@@ -1,0 +1,1 @@
+export { resolveTransition } from './resolve'

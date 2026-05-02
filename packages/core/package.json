@@ -24,8 +24,8 @@
     "declarative"
   ],
   "sideEffects": false,
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "react-native": "./src/index.ts",
   "source": "./src/index.ts",
@@ -34,29 +34,29 @@
       "types": "./dist/index.d.ts",
       "react-native": "./src/index.ts",
       "source": "./src/index.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     },
     "./view": {
       "types": "./dist/motion/View.d.ts",
       "react-native": "./src/motion/View.tsx",
       "source": "./src/motion/View.tsx",
-      "import": "./dist/motion/View.js",
-      "require": "./dist/motion/View.cjs"
+      "import": "./dist/motion/View.mjs",
+      "require": "./dist/motion/View.js"
     },
     "./text": {
       "types": "./dist/motion/Text.d.ts",
       "react-native": "./src/motion/Text.tsx",
       "source": "./src/motion/Text.tsx",
-      "import": "./dist/motion/Text.js",
-      "require": "./dist/motion/Text.cjs"
+      "import": "./dist/motion/Text.mjs",
+      "require": "./dist/motion/Text.js"
     },
     "./image": {
       "types": "./dist/motion/Image.d.ts",
       "react-native": "./src/motion/Image.tsx",
       "source": "./src/motion/Image.tsx",
-      "import": "./dist/motion/Image.js",
-      "require": "./dist/motion/Image.cjs"
+      "import": "./dist/motion/Image.mjs",
+      "require": "./dist/motion/Image.js"
     },
     "./package.json": "./package.json"
   },

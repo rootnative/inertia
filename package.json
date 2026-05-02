@@ -1,8 +1,8 @@
 {
-  "name": "@onlynative/inertia",
+  "name": "inertia-monorepo",
   "private": true,
   "version": "0.0.0",
-  "description": "Wrapper around react native reanimated library to make the animation system easier",
+  "description": "Workspace root for @onlynative/inertia — a wrapper around react-native-reanimated that makes the animation system easier.",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=20"
@@ -21,6 +21,7 @@
     "example:android": "pnpm --filter @onlynative/inertia-example android"
   },
   "devDependencies": {
+    "@eslint/js": "^9.18.0",
     "@types/node": "^22.10.0",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
