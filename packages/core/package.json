@@ -1,0 +1,95 @@
+{
+  "name": "@onlynative/inertia",
+  "version": "0.0.1-alpha.0",
+  "description": "Declarative animation primitives for React Native, built on react-native-reanimated.",
+  "license": "MIT",
+  "author": "OnlyNative",
+  "homepage": "https://github.com/onlynative/inertia",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/onlynative/inertia.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/onlynative/inertia/issues"
+  },
+  "keywords": [
+    "react-native",
+    "reanimated",
+    "animation",
+    "motion",
+    "expo",
+    "framer-motion",
+    "react-spring",
+    "declarative"
+  ],
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "react-native": "./src/index.ts",
+  "source": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "react-native": "./src/index.ts",
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./view": {
+      "types": "./dist/motion/View.d.ts",
+      "react-native": "./src/motion/View.tsx",
+      "source": "./src/motion/View.tsx",
+      "import": "./dist/motion/View.js",
+      "require": "./dist/motion/View.cjs"
+    },
+    "./text": {
+      "types": "./dist/motion/Text.d.ts",
+      "react-native": "./src/motion/Text.tsx",
+      "source": "./src/motion/Text.tsx",
+      "import": "./dist/motion/Text.js",
+      "require": "./dist/motion/Text.cjs"
+    },
+    "./image": {
+      "types": "./dist/motion/Image.d.ts",
+      "react-native": "./src/motion/Image.tsx",
+      "source": "./src/motion/Image.tsx",
+      "import": "./dist/motion/Image.js",
+      "require": "./dist/motion/Image.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "llms.txt",
+    "README.md",
+    "!**/__tests__",
+    "!**/*.test.*"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"no tests yet\" && exit 0",
+    "lint": "eslint src",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0",
+    "react-native": ">=0.81.0",
+    "react-native-reanimated": ">=4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "react": "19.1.0",
+    "react-native": "0.81.0",
+    "react-native-reanimated": "^4.0.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

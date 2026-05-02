@@ -1,0 +1,39 @@
+# @onlynative/inertia
+
+Declarative animation primitives for React Native, built on react-native-reanimated. Inspired by Framer Motion (web) and react-spring (cross-platform).
+
+## Status
+
+0.0.1-alpha — Phase-1 foundation. Motion.View / Motion.Text / Motion.Image with initial + animate + per-property transition (spring, timing). Sequences, variants, gestures, <Presence>, and decay are tracked toward v0.1. See the repo's CLAUDE.md for the roadmap.
+
+## Install
+
+```sh
+pnpm add @onlynative/inertia react-native-reanimated
+```
+
+Enable the Reanimated Babel plugin per its install guide.
+
+## Imports
+
+```ts
+import { Motion } from '@onlynative/inertia'
+// or for tree-shaking:
+import { MotionView } from '@onlynative/inertia/view'
+import { MotionText } from '@onlynative/inertia/text'
+import { MotionImage } from '@onlynative/inertia/image'
+```
+
+## API
+
+`<Motion.View animate={{...}} initial={{...}} transition={{...}} />`
+
+- `animate` — target values for animatable properties. Inferred from the underlying RN component's style — Motion.View accepts ViewStyle keys, Motion.Image accepts ImageStyle keys (e.g. tintColor — phase 2).
+- `initial` — values applied on mount; non-reactive after first render. Pass `false` to skip mount animation.
+- `transition` — spring (default) | timing | decay | no-animation. Per-property entries override the top-level config.
+
+Spring config uses react-spring vocabulary: `tension`, `friction`, `mass`, `velocity`. Reanimated's raw `stiffness`/`damping` never appear in the public API.
+
+## Animatable properties (alpha)
+
+opacity, translateX, translateY, scale, scaleX, scaleY, rotate, width, height, borderRadius.

@@ -1,5 +1,5 @@
 {
-  "name": "@onlynative/inertia-monorepo",
+  "name": "@onlynative/inertia",
   "private": true,
   "version": "0.0.0",
   "description": "Wrapper around react native reanimated library to make the animation system easier",
