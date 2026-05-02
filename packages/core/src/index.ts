@@ -5,8 +5,19 @@
  * with `initial` / `animate` / `transition` (spring + timing). Sequences,
  * variants, gestures, `<Presence>`, and `decay` land across v0.1 phases 2-3.
  */
-export { Motion, MotionView, MotionText, MotionImage, createMotionComponent } from './motion'
-export { resolveTransition } from './transitions'
+export {
+  Motion,
+  MotionView,
+  MotionText,
+  MotionImage,
+  createMotionComponent,
+} from './motion'
+export {
+  resolveTransition,
+  resolveAnimatableValue,
+  ensureWorkletEasing,
+} from './transitions'
+export { useVariants } from './values'
 export type {
   AnimatableValue,
   AnimateStyle,
@@ -22,4 +33,6 @@ export type {
   TimingTransition,
   Transition,
   TransitionConfig,
+  VariantController,
+  VariantsMap,
 } from './types'

@@ -1,16 +1,27 @@
-import { type ComponentType, forwardRef, useEffect, useMemo, useRef } from 'react'
+import {
+  type ComponentType,
+  forwardRef,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
-import { resolveTransition } from '../transitions'
+import { resolveAnimatableValue } from '../transitions'
 import {
+  type AnimatableValue,
+  type AnimateStyle,
   type MotionComponent,
   type MotionProps,
   type PerPropertyTransition,
   type Transition,
   type TransitionConfig,
+  type VariantController,
+  type VariantsMap,
 } from '../types'
 
 /**
@@ -107,26 +118,52 @@ export function createMotionComponent<C extends ComponentType<any>>(
       animate,
       exit: _exit,
       transition,
+      variants,
+      controller,
       onAnimationEnd: _onAnimationEnd,
       style,
       ...rest
     } = props as Props & { style?: unknown }
 
-    const animateRecord = (animate ?? {}) as Partial<
-      Record<AnimatableKey, number>
+    // Resolve `animate` against `variants` / `controller`. The controller's
+    // `current` wins when both are set (typed contract: don't mix
+    // `controller` and `animate` — controller drives the animation in that
+    // mode). When `animate` is a string and `variants` exist, look it up.
+    const variantKey = useControllerKey(controller)
+    const resolvedAnimate = resolveAnimateInput(
+      animate as AnimateStyle<unknown> | string | undefined,
+      variants as VariantsMap<unknown> | undefined,
+      variantKey,
+    )
+
+    const animateRecord = (resolvedAnimate ?? {}) as Partial<
+      Record<AnimatableKey, AnimatableValue<number>>
     >
     const initialRecord =
       initial && initial !== false
         ? (initial as Partial<Record<AnimatableKey, number>>)
         : undefined
 
-    // The set of keys this instance animates is locked at first render.
-    // Adding/removing keys mid-life requires remounting via `key` change.
+    // The set of keys this instance animates is locked at first render. With
+    // variants in play the union across all variants is what matters — a key
+    // touched by any variant must be active so the worklet picks it up when
+    // the controller transitions.
     const activeKeysRef = useRef<readonly AnimatableKey[] | null>(null)
     if (activeKeysRef.current === null) {
-      activeKeysRef.current = ALL_KEYS.filter(
-        (k) => k in animateRecord || (initialRecord && k in initialRecord),
-      )
+      const touched = new Set<AnimatableKey>()
+      for (const k of ALL_KEYS) {
+        if (k in animateRecord) touched.add(k)
+        if (initialRecord && k in initialRecord) touched.add(k)
+      }
+      if (variants) {
+        for (const variant of Object.values(variants) as object[]) {
+          if (!variant) continue
+          for (const k of ALL_KEYS) {
+            if (k in variant) touched.add(k)
+          }
+        }
+      }
+      activeKeysRef.current = ALL_KEYS.filter((k) => touched.has(k))
     }
     const hasTransformRef = useRef<boolean>(
       activeKeysRef.current.some((k) => TRANSFORM_KEY_SET.has(k)),
@@ -134,10 +171,13 @@ export function createMotionComponent<C extends ComponentType<any>>(
 
     const sharedValues = useAnimatableSharedValues((key) => {
       if (initial === false) {
-        return animateRecord[key] ?? DEFAULT_RESTING[key]
+        const a = animateRecord[key]
+        return restValue(a) ?? DEFAULT_RESTING[key]
       }
       return (
-        initialRecord?.[key] ?? animateRecord[key] ?? DEFAULT_RESTING[key]
+        initialRecord?.[key] ??
+        restValue(animateRecord[key]) ??
+        DEFAULT_RESTING[key]
       )
     })
 
@@ -149,7 +189,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
         const target = animateRecord[key]
         if (target === undefined) continue
         const cfg = transitionFor(key, transition)
-        sharedValues[key].value = resolveTransition(cfg, target) as never
+        sharedValues[key].value = resolveAnimatableValue(target, cfg) as never
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [animateSig, transitionSig])
@@ -214,6 +254,70 @@ function useAnimatableSharedValues(
     height: useSharedValue(init('height')),
     borderRadius: useSharedValue(init('borderRadius')),
   }
+}
+
+/**
+ * Subscribe to a `VariantController` and return its `current` key. Returns
+ * `undefined` when no controller is provided so callers can fall back to a
+ * literal `animate` value.
+ */
+function useControllerKey(
+  controller: VariantController | undefined,
+): string | undefined {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    if (!controller) return
+    const unsub = controller.subscribe(() => setTick((n) => n + 1))
+    return unsub
+  }, [controller])
+  return controller?.current
+}
+
+/**
+ * Resolve the effective `animate` target from the public-prop tuple.
+ *
+ * Precedence: `controller.current` (when controller is set) > string-keyed
+ * `animate` looked up in `variants` > literal `animate` object > `undefined`.
+ */
+function resolveAnimateInput(
+  animate: AnimateStyle<unknown> | string | undefined,
+  variants: VariantsMap<unknown> | undefined,
+  controllerKey: string | undefined,
+): AnimateStyle<unknown> | undefined {
+  if (controllerKey !== undefined && variants && controllerKey in variants) {
+    return variants[controllerKey]
+  }
+  if (typeof animate === 'string') {
+    if (variants && animate in variants) return variants[animate]
+    if (__DEV__) {
+      console.warn(
+        `[inertia] animate="${animate}" but no matching variant. Did you forget to pass \`variants\`?`,
+      )
+    }
+    return undefined
+  }
+  return animate as AnimateStyle<unknown> | undefined
+}
+
+declare const __DEV__: boolean
+
+/**
+ * Pick the resting/initial-frame number out of an `AnimatableValue`. Plain
+ * numbers come through unchanged; sequence arrays use their first element;
+ * `{ to }` step objects use `to`. Non-numeric or unresolvable shapes return
+ * `undefined` so the caller can fall back to `DEFAULT_RESTING`.
+ */
+function restValue(v: AnimatableValue<number> | undefined): number | undefined {
+  if (v === undefined) return undefined
+  if (typeof v === 'number') return v
+  if (Array.isArray(v)) {
+    return v.length > 0 ? restValue(v[0] as AnimatableValue<number>) : undefined
+  }
+  if (typeof v === 'object' && v !== null && 'to' in v) {
+    const to = (v as { to: unknown }).to
+    return typeof to === 'number' ? to : undefined
+  }
+  return undefined
 }
 
 function stableSig(value: unknown): string {

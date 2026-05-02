@@ -1,1 +1,2 @@
-export { resolveTransition } from './resolve'
+export { resolveTransition, resolveAnimatableValue } from './resolve'
+export { ensureWorkletEasing } from './easing'

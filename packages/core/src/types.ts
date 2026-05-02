@@ -5,15 +5,16 @@ import { type StyleProp } from 'react-native'
  * A single animation step's destination, optionally overriding the transition
  * for that step.
  */
-export type SequenceStep<V> =
-  | V
-  | ({ to: V; delay?: number } & TransitionConfig)
+export type SequenceStep<V> = V | ({ to: V; delay?: number } & TransitionConfig)
 
 /**
  * A target value for an animatable property: a single value, a sequence of
  * steps (keyframes), or a single step object.
  */
-export type AnimatableValue<V> = V | SequenceStep<V> | ReadonlyArray<SequenceStep<V>>
+export type AnimatableValue<V> =
+  | V
+  | SequenceStep<V>
+  | ReadonlyArray<SequenceStep<V>>
 
 /**
  * Spring transition — public surface uses react-spring vocabulary
@@ -96,6 +97,26 @@ export interface AnimationCallbackInfo<S> {
 }
 
 /**
+ * A variants map: string state names → animate target objects.
+ */
+export type VariantsMap<C> = Record<string, AnimateStyle<C>>
+
+/**
+ * Controller returned by `useVariants`. The `current` shared state is read
+ * via `controller` prop on a Motion primitive; `transitionTo` drives the
+ * controller from JS code (event handlers, async chains, etc.).
+ */
+export interface VariantController<K extends string = string> {
+  current: K
+  // Method-shorthand on purpose: TS treats parameters as bivariant so a
+  // `VariantController<'open' | 'closed'>` is assignable to the wider
+  // `VariantController<string>` that the `controller` prop is typed against.
+  transitionTo(next: K): void
+  /** @internal — subscription used by Motion primitives to re-render. */
+  subscribe(listener: (next: K) => void): () => void
+}
+
+/**
  * Props injected onto every Motion primitive.
  */
 export interface MotionProps<C> {
@@ -108,14 +129,26 @@ export interface MotionProps<C> {
    */
   initial?: AnimateStyle<C> | false
   /**
-   * The animation target. May be a single state object, a variant key (when
-   * `variants` is supplied), or an array of sequence steps.
+   * The animation target. A style object, a variant key (when `variants` is
+   * supplied), or an array of sequence steps. Variant keys autocomplete when
+   * `variants` is annotated `as const`.
    */
-  animate?: AnimateStyle<C>
+  animate?: AnimateStyle<C> | string
   /**
    * Values applied while the component exits via `<Presence>`.
    */
   exit?: AnimateStyle<C>
+  /**
+   * Named animation states. With `variants` set, `animate` accepts a key from
+   * this map.
+   */
+  variants?: VariantsMap<C>
+  /**
+   * Imperative controller from `useVariants(...)`. When supplied, `animate`
+   * is read from `controller.current` and re-applied whenever the controller
+   * transitions. `animate` and `controller` should not both be set.
+   */
+  controller?: VariantController
   /**
    * Per-property or top-level transition config. Per-property entries take
    * precedence over the top-level transition.
