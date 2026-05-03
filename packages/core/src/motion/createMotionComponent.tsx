@@ -12,6 +12,7 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
+import { usePresence } from '../presence'
 import { resolveAnimatableValue } from '../transitions'
 import {
   type AnimatableValue,
@@ -119,7 +120,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
     const {
       initial,
       animate,
-      exit: _exit,
+      exit,
       transition,
       variants,
       controller,
@@ -128,6 +129,12 @@ export function createMotionComponent<C extends ComponentType<any>>(
       style,
       ...rest
     } = props as Props & { style?: unknown }
+
+    // <Presence> contract: when an ancestor flips `isPresent` to false the
+    // child stays rendered until `safeToRemove` is called, giving the exit
+    // animation time to play. `null` when there is no <Presence> ancestor.
+    const presence = usePresence()
+    const isExiting = presence !== null && presence.isPresent === false
 
     // Pin the latest `onAnimationEnd` in a ref so the worklet callback always
     // dispatches against the current closure without re-resolving the
@@ -153,6 +160,9 @@ export function createMotionComponent<C extends ComponentType<any>>(
       initial && initial !== false
         ? (initial as Partial<Record<AnimatableKey, number>>)
         : undefined
+    const exitRecord = exit
+      ? (exit as Partial<Record<AnimatableKey, AnimatableValue<number>>>)
+      : undefined
 
     // Gesture sub-state activation tracked as JS state so changes invalidate
     // the merged-target signature and re-run the animation effect. The cost
@@ -194,6 +204,11 @@ export function createMotionComponent<C extends ComponentType<any>>(
           }
         }
       }
+      if (exitRecord) {
+        for (const k of ALL_KEYS) {
+          if (k in exitRecord) touched.add(k)
+        }
+      }
       activeKeysRef.current = ALL_KEYS.filter((k) => touched.has(k))
     }
     const hasTransformRef = useRef<boolean>(
@@ -216,30 +231,68 @@ export function createMotionComponent<C extends ComponentType<any>>(
     // touched by any sub-state always appear in the merged record (falling
     // back to `animateRecord` or `DEFAULT_RESTING`) so releasing a gesture
     // animates back to a defined value rather than getting skipped.
-    const mergedRecord = mergeGestureTargets(animateRecord, gesture, {
-      pressed,
-      focused,
-      hovered,
-    })
-    const mergedSig = stableSig(mergedRecord)
+    //
+    // While exiting, exit values override everything — gesture / animate
+    // targets are inert because the component is on its way out.
+    const mergedRecord =
+      isExiting && exitRecord
+        ? { ...animateRecord, ...exitRecord }
+        : mergeGestureTargets(animateRecord, gesture, {
+            pressed,
+            focused,
+            hovered,
+          })
+    const mergedSig = stableSig(mergedRecord) + (isExiting ? '|exit' : '')
     const transitionSig = stableSig(transition)
 
+    // Stable ref to the live `safeToRemove` so the effect's settle-counter
+    // closure can reach the latest <Presence> binding without retriggering.
+    const safeToRemoveRef = useRef<(() => void) | undefined>(undefined)
+    safeToRemoveRef.current = presence?.safeToRemove
+
     useEffect(() => {
+      // Exit fast-path: nothing to animate (or no exit prop), tell <Presence>
+      // immediately so the unmount isn't gated on a phantom animation.
+      if (isExiting && (!exitRecord || Object.keys(exitRecord).length === 0)) {
+        safeToRemoveRef.current?.()
+        return
+      }
+
+      let pending = 0
+      let done = false
+      const onSettle = () => {
+        if (done) return
+        pending--
+        if (pending <= 0) {
+          done = true
+          if (isExiting) safeToRemoveRef.current?.()
+        }
+      }
+
       for (const key of ALL_KEYS) {
         const target = mergedRecord[key]
         if (target === undefined) continue
         const cfg = transitionFor(key, transition)
+        if (isExiting) pending++
         const factory = makeKeyCallbackFactory(
           key,
           sharedValues[key],
           targetEndValue(target),
           onAnimationEndRef,
+          isExiting ? onSettle : undefined,
         )
         sharedValues[key].value = resolveAnimatableValue(
           target,
           cfg,
           factory,
         ) as never
+      }
+
+      // No exit-targeted keys (only `animate` keys present, no `exit`)
+      // → release immediately rather than wait for animations that aren't
+      // headed toward an exit value.
+      if (isExiting && pending === 0) {
+        safeToRemoveRef.current?.()
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mergedSig, transitionSig])
@@ -276,11 +329,17 @@ export function createMotionComponent<C extends ComponentType<any>>(
       setHovered,
     )
 
+    // Exiting children are tap-deaf: the next press should fall through to
+    // whatever is underneath, not re-trigger a soon-to-unmount node. This is
+    // the moti #297 fix and a v0.1 acceptance criterion.
+    const exitProps = isExiting ? { pointerEvents: 'none' as const } : undefined
+
     return (
       <AnimatedComponent
         ref={ref as never}
         {...(rest as object)}
         {...gestureHandlers}
+        {...exitProps}
         style={mergedStyle}
       />
     )
@@ -333,8 +392,9 @@ function makeKeyCallbackFactory(
   onAnimationEndRef: {
     current: ((info: AnimationCallbackInfo<unknown>) => void) | undefined
   },
+  onSettle?: () => void,
 ) {
-  if (!onAnimationEndRef.current) return undefined
+  if (!onAnimationEndRef.current && !onSettle) return undefined
   const dispatch = (
     phase: 'step' | 'animation',
     step: number | undefined,
@@ -342,16 +402,21 @@ function makeKeyCallbackFactory(
     value: number | string | undefined,
   ) => {
     const fn = onAnimationEndRef.current
-    if (!fn) return
-    fn({
-      key: key as never,
-      finished,
-      value,
-      target,
-      phase,
-      step,
-      iteration: 0,
-    })
+    if (fn) {
+      fn({
+        key: key as never,
+        finished,
+        value,
+        target,
+        phase,
+        step,
+        iteration: 0,
+      })
+    }
+    // Settle hooks fire only on the terminal phase of the property — sequence
+    // mid-steps don't qualify, since <Presence> waits for the property to
+    // reach its final exit value, not every keyframe.
+    if (onSettle && phase === 'animation') onSettle()
   }
   return (phase: 'step' | 'animation', step: number | undefined) => {
     // Reanimated invokes the callback with only `finished` (see

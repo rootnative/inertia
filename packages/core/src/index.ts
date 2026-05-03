@@ -14,6 +14,8 @@ export {
   MotionScrollView,
   createMotionComponent,
 } from './motion'
+export { Presence, usePresence } from './presence'
+export type { PresenceContextValue } from './presence'
 export {
   resolveTransition,
   resolveAnimatableValue,

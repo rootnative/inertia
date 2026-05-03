@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar'
 import { DecayScreen } from './screens/DecayScreen'
 import { GestureScreen } from './screens/GestureScreen'
 import { ImageScreen } from './screens/ImageScreen'
+import { PresenceScreen } from './screens/PresenceScreen'
 import { PressableScreen } from './screens/PressableScreen'
 import { ScrollViewScreen } from './screens/ScrollViewScreen'
 import { SequenceScreen } from './screens/SequenceScreen'
@@ -22,6 +23,7 @@ type Route =
   | 'gesture'
   | 'pressable'
   | 'scroll-view'
+  | 'presence'
 
 export default function App() {
   const [route, setRoute] = useState<Route>('home')
@@ -36,6 +38,7 @@ export default function App() {
   if (route === 'gesture') return <GestureScreen onBack={goHome} />
   if (route === 'pressable') return <PressableScreen onBack={goHome} />
   if (route === 'scroll-view') return <ScrollViewScreen onBack={goHome} />
+  if (route === 'presence') return <PresenceScreen onBack={goHome} />
 
   return (
     <View style={styles.container}>
@@ -67,6 +70,9 @@ export default function App() {
       </Pressable>
       <Pressable onPress={() => setRoute('scroll-view')} style={styles.link}>
         <Text style={styles.linkLabel}>Motion.ScrollView</Text>
+      </Pressable>
+      <Pressable onPress={() => setRoute('presence')} style={styles.link}>
+        <Text style={styles.linkLabel}>Presence</Text>
       </Pressable>
     </View>
   )
