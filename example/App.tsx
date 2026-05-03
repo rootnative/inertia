@@ -1,13 +1,21 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
+import { DecayScreen } from './screens/DecayScreen'
 import { ImageScreen } from './screens/ImageScreen'
 import { SequenceScreen } from './screens/SequenceScreen'
 import { TextScreen } from './screens/TextScreen'
 import { VariantsScreen } from './screens/VariantsScreen'
 import { ViewScreen } from './screens/ViewScreen'
 
-type Route = 'home' | 'view' | 'text' | 'image' | 'variants' | 'sequence'
+type Route =
+  | 'home'
+  | 'view'
+  | 'text'
+  | 'image'
+  | 'variants'
+  | 'sequence'
+  | 'decay'
 
 export default function App() {
   const [route, setRoute] = useState<Route>('home')
@@ -18,6 +26,7 @@ export default function App() {
   if (route === 'image') return <ImageScreen onBack={goHome} />
   if (route === 'variants') return <VariantsScreen onBack={goHome} />
   if (route === 'sequence') return <SequenceScreen onBack={goHome} />
+  if (route === 'decay') return <DecayScreen onBack={goHome} />
 
   return (
     <View style={styles.container}>
@@ -37,6 +46,9 @@ export default function App() {
       </Pressable>
       <Pressable onPress={() => setRoute('sequence')} style={styles.link}>
         <Text style={styles.linkLabel}>Sequences + repeat</Text>
+      </Pressable>
+      <Pressable onPress={() => setRoute('decay')} style={styles.link}>
+        <Text style={styles.linkLabel}>Decay</Text>
       </Pressable>
     </View>
   )

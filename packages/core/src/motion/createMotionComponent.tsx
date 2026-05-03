@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react'
 import Animated, {
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   type SharedValue,
@@ -15,6 +16,7 @@ import { resolveAnimatableValue } from '../transitions'
 import {
   type AnimatableValue,
   type AnimateStyle,
+  type AnimationCallbackInfo,
   type MotionComponent,
   type MotionProps,
   type PerPropertyTransition,
@@ -120,10 +122,16 @@ export function createMotionComponent<C extends ComponentType<any>>(
       transition,
       variants,
       controller,
-      onAnimationEnd: _onAnimationEnd,
+      onAnimationEnd,
       style,
       ...rest
     } = props as Props & { style?: unknown }
+
+    // Pin the latest `onAnimationEnd` in a ref so the worklet callback always
+    // dispatches against the current closure without re-resolving the
+    // animation graph. Worklets can read refs via `runOnJS`.
+    const onAnimationEndRef = useRef(onAnimationEnd)
+    onAnimationEndRef.current = onAnimationEnd
 
     // Resolve `animate` against `variants` / `controller`. The controller's
     // `current` wins when both are set (typed contract: don't mix
@@ -189,7 +197,17 @@ export function createMotionComponent<C extends ComponentType<any>>(
         const target = animateRecord[key]
         if (target === undefined) continue
         const cfg = transitionFor(key, transition)
-        sharedValues[key].value = resolveAnimatableValue(target, cfg) as never
+        const factory = makeKeyCallbackFactory(
+          key,
+          sharedValues[key],
+          targetEndValue(target),
+          onAnimationEndRef,
+        )
+        sharedValues[key].value = resolveAnimatableValue(
+          target,
+          cfg,
+          factory,
+        ) as never
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [animateSig, transitionSig])
@@ -254,6 +272,80 @@ function useAnimatableSharedValues(
     height: useSharedValue(init('height')),
     borderRadius: useSharedValue(init('borderRadius')),
   }
+}
+
+/**
+ * Build a per-key `CallbackFactory` for the resolver. Each step in a sequence
+ * (or the single animation, when `value` isn't an array) gets its own
+ * Reanimated callback; when it settles on the UI thread, the callback bridges
+ * to JS via `runOnJS` and invokes the user's `onAnimationEnd` with a fully
+ * populated `AnimationCallbackInfo`.
+ *
+ * Reading `onAnimationEndRef.current` inside the JS-side handler keeps the
+ * factory itself stable — re-creating animations on every render is a
+ * separate concern (gated by `animateSig` / `transitionSig`).
+ */
+function makeKeyCallbackFactory(
+  key: string,
+  sharedValue: SharedValue<number>,
+  target: number | string | undefined,
+  onAnimationEndRef: {
+    current: ((info: AnimationCallbackInfo<unknown>) => void) | undefined
+  },
+) {
+  if (!onAnimationEndRef.current) return undefined
+  const dispatch = (
+    phase: 'step' | 'animation',
+    step: number | undefined,
+    finished: boolean,
+    value: number | string | undefined,
+  ) => {
+    const fn = onAnimationEndRef.current
+    if (!fn) return
+    fn({
+      key: key as never,
+      finished,
+      value,
+      target,
+      phase,
+      step,
+      iteration: 0,
+    })
+  }
+  return (phase: 'step' | 'animation', step: number | undefined) => {
+    // Reanimated invokes the callback with only `finished` (see
+    // valueSetter.js:24,40,51 in 4.x) — `current` is never passed. Read the
+    // shared value inside the worklet; by the time the callback fires the
+    // final/clamped value has already been written to it.
+    const cb = (finished?: boolean) => {
+      'worklet'
+      runOnJS(dispatch)(phase, step, !!finished, sharedValue.value)
+    }
+    return cb
+  }
+}
+
+/**
+ * Pull a single end-value out of an `AnimatableValue` for the
+ * `AnimationCallbackInfo.target` field. Plain numbers/strings come through;
+ * the last sequence step's `to`/value is used for arrays; `{ to }` step
+ * objects use `to`. Returns `undefined` for unrecognized shapes.
+ */
+function targetEndValue(
+  v: AnimatableValue<number> | undefined,
+): number | string | undefined {
+  if (v === undefined) return undefined
+  if (typeof v === 'number' || typeof v === 'string') return v
+  if (Array.isArray(v)) {
+    return v.length > 0
+      ? targetEndValue(v[v.length - 1] as AnimatableValue<number>)
+      : undefined
+  }
+  if (typeof v === 'object' && v !== null && 'to' in v) {
+    const to = (v as { to: unknown }).to
+    return typeof to === 'number' || typeof to === 'string' ? to : undefined
+  }
+  return undefined
 }
 
 /**
@@ -323,10 +415,35 @@ function restValue(v: AnimatableValue<number> | undefined): number | undefined {
 function stableSig(value: unknown): string {
   if (value === undefined) return ''
   try {
-    return JSON.stringify(value, Object.keys(value as object).sort())
+    return stableStringify(value)
   } catch {
     return String(value)
   }
+}
+
+/**
+ * JSON.stringify with keys sorted at every level — gives a stable signature
+ * regardless of property declaration order. Functions serialize as `null` so a
+ * change in easing-fn reference is invisible here; that's fine for v0.1
+ * (easing swaps are rare and the worklet wrapper handles correctness).
+ */
+function stableStringify(v: unknown): string {
+  if (v === null || typeof v !== 'object') {
+    if (typeof v === 'function' || v === undefined) return 'null'
+    return JSON.stringify(v)
+  }
+  if (Array.isArray(v)) {
+    return '[' + v.map(stableStringify).join(',') + ']'
+  }
+  const obj = v as Record<string, unknown>
+  const keys = Object.keys(obj).sort()
+  return (
+    '{' +
+    keys
+      .map((k) => JSON.stringify(k) + ':' + stableStringify(obj[k]))
+      .join(',') +
+    '}'
+  )
 }
 
 // Suppress the implicit any-return of the rotate ternary's union shape.
