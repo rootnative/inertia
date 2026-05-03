@@ -23,6 +23,7 @@ export type {
   AnimateStyle,
   AnimationCallbackInfo,
   DecayTransition,
+  GestureSubStates,
   MotionComponent,
   MotionProps,
   NoAnimationTransition,

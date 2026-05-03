@@ -17,6 +17,7 @@ import {
   type AnimatableValue,
   type AnimateStyle,
   type AnimationCallbackInfo,
+  type GestureSubStates,
   type MotionComponent,
   type MotionProps,
   type PerPropertyTransition,
@@ -122,6 +123,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
       transition,
       variants,
       controller,
+      gesture,
       onAnimationEnd,
       style,
       ...rest
@@ -152,10 +154,19 @@ export function createMotionComponent<C extends ComponentType<any>>(
         ? (initial as Partial<Record<AnimatableKey, number>>)
         : undefined
 
+    // Gesture sub-state activation tracked as JS state so changes invalidate
+    // the merged-target signature and re-run the animation effect. The cost
+    // is three useState slots regardless of whether `gesture` is set; that's
+    // tiny and lets us stay rules-of-hooks-clean.
+    const [pressed, setPressed] = useState(false)
+    const [focused, setFocused] = useState(false)
+    const [hovered, setHovered] = useState(false)
+
     // The set of keys this instance animates is locked at first render. With
     // variants in play the union across all variants is what matters — a key
     // touched by any variant must be active so the worklet picks it up when
-    // the controller transitions.
+    // the controller transitions. Gesture sub-states join the same union so
+    // pressed/focused/hovered targets can drive any key they declare.
     const activeKeysRef = useRef<readonly AnimatableKey[] | null>(null)
     if (activeKeysRef.current === null) {
       const touched = new Set<AnimatableKey>()
@@ -168,6 +179,18 @@ export function createMotionComponent<C extends ComponentType<any>>(
           if (!variant) continue
           for (const k of ALL_KEYS) {
             if (k in variant) touched.add(k)
+          }
+        }
+      }
+      if (gesture) {
+        for (const subState of [
+          gesture.pressed,
+          gesture.focused,
+          gesture.hovered,
+        ] as Array<object | undefined>) {
+          if (!subState) continue
+          for (const k of ALL_KEYS) {
+            if (k in subState) touched.add(k)
           }
         }
       }
@@ -189,12 +212,21 @@ export function createMotionComponent<C extends ComponentType<any>>(
       )
     })
 
-    const animateSig = stableSig(animateRecord)
+    // Merge gesture sub-state targets over the base `animate` record. Keys
+    // touched by any sub-state always appear in the merged record (falling
+    // back to `animateRecord` or `DEFAULT_RESTING`) so releasing a gesture
+    // animates back to a defined value rather than getting skipped.
+    const mergedRecord = mergeGestureTargets(animateRecord, gesture, {
+      pressed,
+      focused,
+      hovered,
+    })
+    const mergedSig = stableSig(mergedRecord)
     const transitionSig = stableSig(transition)
 
     useEffect(() => {
       for (const key of ALL_KEYS) {
-        const target = animateRecord[key]
+        const target = mergedRecord[key]
         if (target === undefined) continue
         const cfg = transitionFor(key, transition)
         const factory = makeKeyCallbackFactory(
@@ -210,7 +242,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
         ) as never
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [animateSig, transitionSig])
+    }, [mergedSig, transitionSig])
 
     const animatedStyle = useAnimatedStyle(() => {
       const activeKeys = activeKeysRef.current!
@@ -236,10 +268,19 @@ export function createMotionComponent<C extends ComponentType<any>>(
       [style, animatedStyle],
     )
 
+    const gestureHandlers = useGestureHandlers(
+      gesture,
+      rest as Record<string, unknown>,
+      setPressed,
+      setFocused,
+      setHovered,
+    )
+
     return (
       <AnimatedComponent
         ref={ref as never}
         {...(rest as object)}
+        {...gestureHandlers}
         style={mergedStyle}
       />
     )
@@ -444,6 +485,137 @@ function stableStringify(v: unknown): string {
       .join(',') +
     '}'
   )
+}
+
+/**
+ * Merge gesture sub-state targets over the base `animate` record. Keys touched
+ * by any declared sub-state are always present in the result so releasing a
+ * gesture animates the property back to a defined value (the base `animate`
+ * value when present, otherwise `DEFAULT_RESTING`). Sub-states layer in
+ * priority order: `hovered` < `focused` < `pressed`.
+ */
+function mergeGestureTargets(
+  base: Partial<Record<AnimatableKey, AnimatableValue<number>>>,
+  gesture: GestureSubStates<unknown> | undefined,
+  active: { pressed: boolean; focused: boolean; hovered: boolean },
+): Partial<Record<AnimatableKey, AnimatableValue<number>>> {
+  if (!gesture) return base
+  const merged: Partial<Record<AnimatableKey, AnimatableValue<number>>> = {
+    ...base,
+  }
+  const subStates = [
+    gesture.hovered,
+    gesture.focused,
+    gesture.pressed,
+  ] as Array<
+    Partial<Record<AnimatableKey, AnimatableValue<number>>> | undefined
+  >
+  for (const sub of subStates) {
+    if (!sub) continue
+    for (const k of ALL_KEYS) {
+      if (k in sub && !(k in merged)) {
+        merged[k] = DEFAULT_RESTING[k]
+      }
+    }
+  }
+  if (active.hovered && gesture.hovered) {
+    Object.assign(
+      merged,
+      gesture.hovered as Partial<
+        Record<AnimatableKey, AnimatableValue<number>>
+      >,
+    )
+  }
+  if (active.focused && gesture.focused) {
+    Object.assign(
+      merged,
+      gesture.focused as Partial<
+        Record<AnimatableKey, AnimatableValue<number>>
+      >,
+    )
+  }
+  if (active.pressed && gesture.pressed) {
+    Object.assign(
+      merged,
+      gesture.pressed as Partial<
+        Record<AnimatableKey, AnimatableValue<number>>
+      >,
+    )
+  }
+  return merged
+}
+
+type GestureHandlers = Record<string, (event: unknown) => void>
+
+/**
+ * Build the touch / focus / hover handler props for a gesture-enabled Motion
+ * primitive. Returns an empty object when `gesture` is undefined so the
+ * component renders identically to the gesture-less path (zero overhead).
+ *
+ * Existing user-supplied handlers on the same events are composed: the user's
+ * handler runs first, then the internal state setter. We pull user handlers
+ * out of `rest` rather than overwriting them.
+ */
+function useGestureHandlers(
+  gesture: GestureSubStates<unknown> | undefined,
+  rest: Record<string, unknown>,
+  setPressed: (next: boolean) => void,
+  setFocused: (next: boolean) => void,
+  setHovered: (next: boolean) => void,
+): GestureHandlers {
+  return useMemo(() => {
+    if (!gesture) return {}
+    const handlers: GestureHandlers = {}
+    if (gesture.pressed) {
+      handlers.onTouchStart = compose(rest.onTouchStart, () => setPressed(true))
+      handlers.onTouchEnd = compose(rest.onTouchEnd, () => setPressed(false))
+      handlers.onTouchCancel = compose(rest.onTouchCancel, () =>
+        setPressed(false),
+      )
+      // Pressable / TouchableOpacity expose press hooks above the touch layer;
+      // forward to those when present so wrapping consumers stay consistent.
+      handlers.onPressIn = compose(rest.onPressIn, () => setPressed(true))
+      handlers.onPressOut = compose(rest.onPressOut, () => setPressed(false))
+    }
+    if (gesture.focused) {
+      handlers.onFocus = compose(rest.onFocus, () => setFocused(true))
+      handlers.onBlur = compose(rest.onBlur, () => setFocused(false))
+    }
+    if (gesture.hovered) {
+      // Web-only events. RN-Web 0.72+ accepts these on View; native ignores
+      // them so the cost is zero on iOS / Android.
+      handlers.onMouseEnter = compose(rest.onMouseEnter, () => setHovered(true))
+      handlers.onMouseLeave = compose(rest.onMouseLeave, () =>
+        setHovered(false),
+      )
+    }
+    return handlers
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    gesture?.pressed ? 1 : 0,
+    gesture?.focused ? 1 : 0,
+    gesture?.hovered ? 1 : 0,
+    rest.onTouchStart,
+    rest.onTouchEnd,
+    rest.onTouchCancel,
+    rest.onPressIn,
+    rest.onPressOut,
+    rest.onFocus,
+    rest.onBlur,
+    rest.onMouseEnter,
+    rest.onMouseLeave,
+  ])
+}
+
+function compose(
+  user: unknown,
+  ours: (event: unknown) => void,
+): (event: unknown) => void {
+  if (typeof user !== 'function') return ours
+  return (event: unknown) => {
+    ;(user as (event: unknown) => void)(event)
+    ours(event)
+  }
 }
 
 // Suppress the implicit any-return of the rotate ternary's union shape.

@@ -102,6 +102,25 @@ export interface AnimationCallbackInfo<S> {
 export type VariantsMap<C> = Record<string, AnimateStyle<C>>
 
 /**
+ * Gesture sub-states accepted by the `gesture` prop on every Motion primitive.
+ *
+ * - `pressed` — active while the user is touching the component (touch start
+ *   to touch end / cancel).
+ * - `focused` — active while a focusable component owns keyboard focus
+ *   (no-op for non-focusable underlying components).
+ * - `hovered` — web-only. Typed for cross-platform call sites; the runtime is
+ *   a no-op on native.
+ *
+ * When a sub-state is active, its values override the base `animate` target
+ * per-property. Priority on overlap: `pressed` > `focused` > `hovered`.
+ */
+export interface GestureSubStates<C> {
+  pressed?: AnimateStyle<C>
+  focused?: AnimateStyle<C>
+  hovered?: AnimateStyle<C>
+}
+
+/**
  * Controller returned by `useVariants`. The `current` shared state is read
  * via `controller` prop on a Motion primitive; `transitionTo` drives the
  * controller from JS code (event handlers, async chains, etc.).
@@ -149,6 +168,13 @@ export interface MotionProps<C> {
    * transitions. `animate` and `controller` should not both be set.
    */
   controller?: VariantController
+  /**
+   * Gesture-driven sub-states (`pressed`, `focused`, `hovered`). When omitted,
+   * no handlers are mounted on the underlying component. Sub-state values
+   * merge over `animate` per-property while the corresponding gesture is
+   * active.
+   */
+  gesture?: GestureSubStates<C>
   /**
    * Per-property or top-level transition config. Per-property entries take
    * precedence over the top-level transition.
