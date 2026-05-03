@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar'
 import { DecayScreen } from './screens/DecayScreen'
 import { GestureScreen } from './screens/GestureScreen'
 import { ImageScreen } from './screens/ImageScreen'
+import { PressableScreen } from './screens/PressableScreen'
+import { ScrollViewScreen } from './screens/ScrollViewScreen'
 import { SequenceScreen } from './screens/SequenceScreen'
 import { TextScreen } from './screens/TextScreen'
 import { VariantsScreen } from './screens/VariantsScreen'
@@ -18,6 +20,8 @@ type Route =
   | 'sequence'
   | 'decay'
   | 'gesture'
+  | 'pressable'
+  | 'scroll-view'
 
 export default function App() {
   const [route, setRoute] = useState<Route>('home')
@@ -30,6 +34,8 @@ export default function App() {
   if (route === 'sequence') return <SequenceScreen onBack={goHome} />
   if (route === 'decay') return <DecayScreen onBack={goHome} />
   if (route === 'gesture') return <GestureScreen onBack={goHome} />
+  if (route === 'pressable') return <PressableScreen onBack={goHome} />
+  if (route === 'scroll-view') return <ScrollViewScreen onBack={goHome} />
 
   return (
     <View style={styles.container}>
@@ -55,6 +61,12 @@ export default function App() {
       </Pressable>
       <Pressable onPress={() => setRoute('gesture')} style={styles.link}>
         <Text style={styles.linkLabel}>Gesture (pressed)</Text>
+      </Pressable>
+      <Pressable onPress={() => setRoute('pressable')} style={styles.link}>
+        <Text style={styles.linkLabel}>Motion.Pressable</Text>
+      </Pressable>
+      <Pressable onPress={() => setRoute('scroll-view')} style={styles.link}>
+        <Text style={styles.linkLabel}>Motion.ScrollView</Text>
       </Pressable>
     </View>
   )

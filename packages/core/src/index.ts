@@ -10,6 +10,8 @@ export {
   MotionView,
   MotionText,
   MotionImage,
+  MotionPressable,
+  MotionScrollView,
   createMotionComponent,
 } from './motion'
 export {

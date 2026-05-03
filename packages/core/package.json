@@ -58,6 +58,20 @@
       "import": "./dist/motion/Image.mjs",
       "require": "./dist/motion/Image.js"
     },
+    "./pressable": {
+      "types": "./dist/motion/Pressable.d.ts",
+      "react-native": "./src/motion/Pressable.tsx",
+      "source": "./src/motion/Pressable.tsx",
+      "import": "./dist/motion/Pressable.mjs",
+      "require": "./dist/motion/Pressable.js"
+    },
+    "./scroll-view": {
+      "types": "./dist/motion/ScrollView.d.ts",
+      "react-native": "./src/motion/ScrollView.tsx",
+      "source": "./src/motion/ScrollView.tsx",
+      "import": "./dist/motion/ScrollView.mjs",
+      "require": "./dist/motion/ScrollView.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

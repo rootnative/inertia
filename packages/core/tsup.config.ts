@@ -6,6 +6,8 @@ export default defineConfig({
     'motion/View': 'src/motion/View.tsx',
     'motion/Text': 'src/motion/Text.tsx',
     'motion/Image': 'src/motion/Image.tsx',
+    'motion/Pressable': 'src/motion/Pressable.tsx',
+    'motion/ScrollView': 'src/motion/ScrollView.tsx',
   },
   format: ['esm', 'cjs'],
   dts: true,
