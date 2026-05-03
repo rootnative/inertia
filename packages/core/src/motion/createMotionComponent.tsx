@@ -279,6 +279,10 @@ export function createMotionComponent<C extends ComponentType<any>>(
           sharedValues[key],
           targetEndValue(target),
           onAnimationEndRef,
+          {
+            stepCount: stepCountOf(target),
+            totalIterations: totalIterationsOf(cfg),
+          },
           isExiting ? onSettle : undefined,
         )
         sharedValues[key].value = resolveAnimatableValue(
@@ -381,9 +385,12 @@ function useAnimatableSharedValues(
  * to JS via `runOnJS` and invokes the user's `onAnimationEnd` with a fully
  * populated `AnimationCallbackInfo`.
  *
- * Reading `onAnimationEndRef.current` inside the JS-side handler keeps the
- * factory itself stable — re-creating animations on every render is a
- * separate concern (gated by `animateSig` / `transitionSig`).
+ * Phase resolution lives here, on the JS thread. The resolver hands us a
+ * coarse rawPhase (`'step'` for any sequence step, `'animation'` for a
+ * single-shot terminal); we map that onto the public phase set
+ * (`'step' | 'sequence' | 'repeat' | 'animation'`) using `meta` and the
+ * iteration counter. `iteration` resets per effect run because the factory
+ * is constructed fresh inside the effect.
  */
 function makeKeyCallbackFactory(
   key: string,
@@ -392,15 +399,45 @@ function makeKeyCallbackFactory(
   onAnimationEndRef: {
     current: ((info: AnimationCallbackInfo<unknown>) => void) | undefined
   },
+  meta: { stepCount: number; totalIterations: number },
   onSettle?: () => void,
 ) {
   if (!onAnimationEndRef.current && !onSettle) return undefined
+
+  // Shared across this animation graph's callbacks (one per sequence step,
+  // or one for a single-shot). Mutated when a full pass completes.
+  const state = { iteration: 0 }
+
   const dispatch = (
-    phase: 'step' | 'animation',
+    rawPhase: 'step' | 'animation',
     step: number | undefined,
     finished: boolean,
     value: number | string | undefined,
   ) => {
+    const isLastIteration = state.iteration >= meta.totalIterations - 1
+    let phase: 'step' | 'sequence' | 'repeat' | 'animation'
+    let isTerminal = false
+
+    if (rawPhase === 'step') {
+      const isLastInPass = step !== undefined && step === meta.stepCount - 1
+      if (!isLastInPass) {
+        phase = 'step'
+      } else if (isLastIteration) {
+        phase = 'animation'
+        isTerminal = true
+      } else {
+        phase = 'sequence'
+      }
+    } else if (isLastIteration) {
+      phase = 'animation'
+      isTerminal = true
+    } else {
+      phase = 'repeat'
+    }
+
+    const reportedIteration = state.iteration
+    if (phase === 'sequence' || phase === 'repeat') state.iteration++
+
     const fn = onAnimationEndRef.current
     if (fn) {
       fn({
@@ -410,25 +447,51 @@ function makeKeyCallbackFactory(
         target,
         phase,
         step,
-        iteration: 0,
+        iteration: reportedIteration,
       })
     }
-    // Settle hooks fire only on the terminal phase of the property — sequence
-    // mid-steps don't qualify, since <Presence> waits for the property to
-    // reach its final exit value, not every keyframe.
-    if (onSettle && phase === 'animation') onSettle()
+    // Settle hooks fire only on the terminal phase of the property —
+    // sequence mid-steps and non-final iterations don't qualify, since
+    // <Presence> waits for the property to reach its final exit value.
+    if (onSettle && isTerminal) onSettle()
   }
-  return (phase: 'step' | 'animation', step: number | undefined) => {
+
+  return (rawPhase: 'step' | 'animation', step: number | undefined) => {
     // Reanimated invokes the callback with only `finished` (see
     // valueSetter.js:24,40,51 in 4.x) — `current` is never passed. Read the
     // shared value inside the worklet; by the time the callback fires the
     // final/clamped value has already been written to it.
     const cb = (finished?: boolean) => {
       'worklet'
-      runOnJS(dispatch)(phase, step, !!finished, sharedValue.value)
+      runOnJS(dispatch)(rawPhase, step, !!finished, sharedValue.value)
     }
     return cb
   }
+}
+
+/**
+ * Number of sequence steps in an animatable value. `1` for plain values and
+ * single-step `{ to }` objects; the array length for keyframe arrays.
+ */
+function stepCountOf(v: AnimatableValue<number> | undefined): number {
+  if (Array.isArray(v)) return v.length
+  return 1
+}
+
+/**
+ * Total number of iterations the animation will run, including the initial
+ * pass. `1` when there is no `repeat`; `Number.POSITIVE_INFINITY` for
+ * `'infinite'`. Decay and `no-animation` configs cannot repeat — both return
+ * `1` so the iteration counter stays at 0.
+ */
+function totalIterationsOf(cfg: TransitionConfig | undefined): number {
+  if (!cfg || cfg.type === 'no-animation' || cfg.type === 'decay') return 1
+  const r = cfg.repeat
+  if (r === undefined) return 1
+  if (r === 'infinite') return Number.POSITIVE_INFINITY
+  if (typeof r === 'number') return r
+  if (r.count === 'infinite') return Number.POSITIVE_INFINITY
+  return r.count
 }
 
 /**

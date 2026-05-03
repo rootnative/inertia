@@ -170,6 +170,22 @@ function repeatOf(cfg: TransitionConfig): RepeatConfig | undefined {
   return cfg.repeat
 }
 
+/**
+ * Return `cfg` minus its `repeat` field. Used when peeling top-level repeat
+ * off a base transition before passing it down to per-sequence-step
+ * resolution — the sequence as a whole is what should repeat, not each step.
+ */
+function stripRepeat(
+  cfg: TransitionConfig | undefined,
+): TransitionConfig | undefined {
+  if (!cfg) return cfg
+  if (cfg.type === 'no-animation' || cfg.type === 'decay') return cfg
+  if (cfg.repeat === undefined) return cfg
+  const next = { ...cfg }
+  delete next.repeat
+  return next
+}
+
 function delayOf(cfg: TransitionConfig): number | undefined {
   if (cfg.type === 'no-animation') return undefined
   return cfg.delay
@@ -196,7 +212,9 @@ function isStepObject<V>(
  * Handles the three shapes of `AnimatableValue`:
  *   1. plain value      → single `resolveTransition` call
  *   2. `{ to, ...over }` → single step with the override merged into `base`
- *   3. array of either   → `withSequence` of resolved steps
+ *   3. array of either   → `withSequence` of resolved steps, with the
+ *      top-level `repeat` applied at the **sequence level** (not per step).
+ *      Per-step `repeat` overrides remain step-local.
  */
 export function resolveAnimatableValue<V extends number | string>(
   value: AnimatableValue<V>,
@@ -205,10 +223,12 @@ export function resolveAnimatableValue<V extends number | string>(
 ): unknown {
   if (Array.isArray(value)) {
     const steps = value as ReadonlyArray<SequenceStep<V>>
+    const stepBase = stripRepeat(base)
     const animations = steps.map((step, i) =>
-      resolveStep(step, base, factory?.('step', i)),
+      resolveStep(step, stepBase, factory?.('step', i)),
     )
-    return withSequence(...(animations as never[]))
+    const seq = withSequence(...(animations as never[]))
+    return applyRepeat(seq, base ? repeatOf(base) : undefined)
   }
   const step = value as SequenceStep<V>
   const cb = factory?.('animation', undefined)
