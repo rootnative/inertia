@@ -51,6 +51,11 @@ type TransformKey = (typeof TRANSFORM_KEYS)[number]
 
 const TRANSFORM_KEY_SET = new Set<AnimatableKey>(TRANSFORM_KEYS)
 
+// Stable style object applied while a Motion primitive is mid-exit so taps
+// fall through. Hoisted so every render shares the same reference and
+// Reanimated's style merging treats it as a no-op when present.
+const EXITING_POINTER_EVENTS_STYLE = { pointerEvents: 'none' } as const
+
 const DEFAULT_RESTING: Record<AnimatableKey, number> = {
   translateX: 0,
   translateY: 0,
@@ -338,9 +343,17 @@ export function createMotionComponent<C extends ComponentType<any>>(
       return out
     })
 
+    // Exiting children are tap-deaf: the next press should fall through to
+    // whatever is underneath, not re-trigger a soon-to-unmount node. This is
+    // the moti #297 fix and a v0.1 acceptance criterion. RN 0.71+ deprecates
+    // `pointerEvents` as a prop in favor of the style key, so we merge it
+    // alongside the animated style instead of spreading as a prop.
     const mergedStyle = useMemo(
-      () => [style, animatedStyle] as unknown,
-      [style, animatedStyle],
+      () =>
+        (isExiting
+          ? [style, animatedStyle, EXITING_POINTER_EVENTS_STYLE]
+          : [style, animatedStyle]) as unknown,
+      [style, animatedStyle, isExiting],
     )
 
     const gestureHandlers = useGestureHandlers(
@@ -351,17 +364,11 @@ export function createMotionComponent<C extends ComponentType<any>>(
       setHovered,
     )
 
-    // Exiting children are tap-deaf: the next press should fall through to
-    // whatever is underneath, not re-trigger a soon-to-unmount node. This is
-    // the moti #297 fix and a v0.1 acceptance criterion.
-    const exitProps = isExiting ? { pointerEvents: 'none' as const } : undefined
-
     return (
       <AnimatedComponent
         ref={ref as never}
         {...(rest as object)}
         {...gestureHandlers}
-        {...exitProps}
         style={mergedStyle}
       />
     )

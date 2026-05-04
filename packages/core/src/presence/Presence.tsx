@@ -5,13 +5,13 @@ import {
   type ReactElement,
   type ReactNode,
   useCallback,
-  useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import { PresenceContext, type PresenceContextValue } from './PresenceContext'
 
-interface RenderedItem {
+interface RenderEntry {
   key: Key
   element: ReactElement
   isPresent: boolean
@@ -50,69 +50,87 @@ export function Presence({ children }: { children: ReactNode }) {
     return out
   }, [children])
 
-  const [rendered, setRendered] = useState<RenderedItem[]>(() =>
-    incoming.map((el) => ({
+  // Snapshot of elements removed from `incoming` whose exit animation is
+  // still in flight. setExiting is called synchronously during render below
+  // (the documented pattern for derived-from-prop-change state), so React
+  // re-renders with the new snapshot before committing — no visual frame
+  // where the departing child has vanished.
+  const [exiting, setExiting] = useState<Map<Key, ReactElement>>(
+    () => new Map(),
+  )
+
+  // Tracks the previous render's `incoming` so we can diff. Updated
+  // synchronously alongside the setState call.
+  const prevIncomingRef = useRef<ReactElement[]>(incoming)
+
+  if (prevIncomingRef.current !== incoming) {
+    const prev = prevIncomingRef.current
+    prevIncomingRef.current = incoming
+    const incomingKeys = new Set(incoming.map((el) => el.key as Key))
+    let next: Map<Key, ReactElement> | null = null
+    const ensureMutable = () => {
+      if (!next) next = new Map(exiting)
+      return next
+    }
+
+    // Departures: in prev but not in current → snapshot for exit.
+    for (const oldEl of prev) {
+      const key = oldEl.key as Key
+      if (!incomingKeys.has(key) && !exiting.has(key)) {
+        ensureMutable().set(key, oldEl)
+      }
+    }
+    // Returns: was exiting and reappears → drop the snapshot. The live
+    // `incoming` entry takes over with the same key, so React reconciles
+    // the underlying Motion instance and the in-flight exit animation
+    // interrupts back toward `animate` values.
+    for (const el of incoming) {
+      const key = el.key as Key
+      if (exiting.has(key)) {
+        ensureMutable().delete(key)
+      }
+    }
+
+    if (next) setExiting(next)
+  }
+
+  const handleRemove = useCallback((key: Key) => {
+    setExiting((prev) => {
+      if (!prev.has(key)) return prev
+      const next = new Map(prev)
+      next.delete(key)
+      return next
+    })
+  }, [])
+
+  // Single combined render list. Putting `incoming` and `exiting` entries in
+  // one array (rather than two `.map` calls inside a fragment) ensures React
+  // reconciles by `key` across positions — when an entry moves from
+  // present-list to exiting-list, the component instance persists.
+  const renderList: RenderEntry[] = []
+  for (const el of incoming) {
+    renderList.push({
       key: el.key as Key,
       element: el,
       isPresent: true,
-    })),
-  )
-
-  // Reconcile incoming → rendered. New keys append (entering); missing keys
-  // flip `isPresent: false` (exiting); still-present keys swap in the latest
-  // element so prop changes pass through.
-  useEffect(() => {
-    setRendered((prev) => {
-      const incomingByKey = new Map(incoming.map((el) => [el.key as Key, el]))
-      const renderedKeys = new Set(prev.map((r) => r.key))
-
-      let changed = false
-      const next: RenderedItem[] = prev.map((r) => {
-        const fresh = incomingByKey.get(r.key)
-        if (fresh) {
-          if (!r.isPresent) {
-            // Re-added before exit completed: cancel the exit and re-promote.
-            changed = true
-            return { key: r.key, element: fresh, isPresent: true }
-          }
-          if (fresh !== r.element) {
-            return { key: r.key, element: fresh, isPresent: true }
-          }
-          return r
-        }
-        if (r.isPresent) {
-          changed = true
-          return { ...r, isPresent: false }
-        }
-        return r
-      })
-
-      for (const el of incoming) {
-        const key = el.key as Key
-        if (!renderedKeys.has(key)) {
-          next.push({ key, element: el, isPresent: true })
-          changed = true
-        }
-      }
-
-      return changed ? next : prev
     })
-  }, [incoming])
-
-  const handleRemove = useCallback((key: Key) => {
-    setRendered((prev) => prev.filter((r) => r.key !== key))
-  }, [])
+  }
+  for (const [key, el] of exiting) {
+    if (!renderList.some((entry) => entry.key === key)) {
+      renderList.push({ key, element: el, isPresent: false })
+    }
+  }
 
   return (
     <>
-      {rendered.map((r) => (
+      {renderList.map(({ key, element, isPresent }) => (
         <PresenceItem
-          key={r.key}
-          itemKey={r.key}
-          isPresent={r.isPresent}
+          key={key}
+          itemKey={key}
+          isPresent={isPresent}
           onRemove={handleRemove}
         >
-          {r.element}
+          {element}
         </PresenceItem>
       ))}
     </>

@@ -1,9 +1,13 @@
 /**
  * `@onlynative/inertia` — declarative animation primitives for React Native.
  *
- * Alpha scope (v0.0.1-alpha): `Motion.View`, `Motion.Text`, `Motion.Image`
- * with `initial` / `animate` / `transition` (spring + timing). Sequences,
- * variants, gestures, `<Presence>`, and `decay` land across v0.1 phases 2-3.
+ * v0.1 surface: `Motion.View` / `Motion.Text` / `Motion.Image` /
+ * `Motion.Pressable` / `Motion.ScrollView`, with `initial` / `animate` /
+ * `exit` / `transition` / `variants` / `gesture` / `controller` /
+ * `onAnimationEnd` props. Sequences, repeats (single-value and
+ * sequence-level), spring / timing / decay / no-animation transitions,
+ * and `<Presence>` for mount / unmount transitions all in scope.
+ * `<MotionConfig reducedMotion>` gates motion against the OS setting.
  */
 export {
   Motion,
