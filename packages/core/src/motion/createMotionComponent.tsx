@@ -12,6 +12,7 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
+import { useShouldReduceMotion } from '../config'
 import { usePresence } from '../presence'
 import { resolveAnimatableValue } from '../transitions'
 import {
@@ -136,6 +137,13 @@ export function createMotionComponent<C extends ComponentType<any>>(
     const presence = usePresence()
     const isExiting = presence !== null && presence.isPresent === false
 
+    // Resolved reduced-motion preference for this subtree. When true, every
+    // per-key transition is replaced with `no-animation` below, so values
+    // snap to target without interpolation. The hook also subscribes to OS
+    // changes (via Reanimated's `useReducedMotion`), so toggling the
+    // accessibility setting at runtime re-renders this component.
+    const shouldReduceMotion = useShouldReduceMotion()
+
     // Pin the latest `onAnimationEnd` in a ref so the worklet callback always
     // dispatches against the current closure without re-resolving the
     // animation graph. Worklets can read refs via `runOnJS`.
@@ -242,7 +250,10 @@ export function createMotionComponent<C extends ComponentType<any>>(
             focused,
             hovered,
           })
-    const mergedSig = stableSig(mergedRecord) + (isExiting ? '|exit' : '')
+    const mergedSig =
+      stableSig(mergedRecord) +
+      (isExiting ? '|exit' : '') +
+      (shouldReduceMotion ? '|rm' : '')
     const transitionSig = stableSig(transition)
 
     // Stable ref to the live `safeToRemove` so the effect's settle-counter
@@ -272,7 +283,14 @@ export function createMotionComponent<C extends ComponentType<any>>(
       for (const key of ALL_KEYS) {
         const target = mergedRecord[key]
         if (target === undefined) continue
-        const cfg = transitionFor(key, transition)
+        // Reduced-motion overrides every per-key transition (and any nested
+        // sequence-step transition) with `no-animation`, which the resolver
+        // turns into a direct value assignment. Sequences still iterate but
+        // each step settles instantly, which matches the "snap to final
+        // state" expectation.
+        const cfg = shouldReduceMotion
+          ? ({ type: 'no-animation' } as const)
+          : transitionFor(key, transition)
         if (isExiting) pending++
         const factory = makeKeyCallbackFactory(
           key,

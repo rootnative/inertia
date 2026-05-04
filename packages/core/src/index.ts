@@ -14,6 +14,8 @@ export {
   MotionScrollView,
   createMotionComponent,
 } from './motion'
+export { MotionConfig, useMotionConfig, useShouldReduceMotion } from './config'
+export type { MotionConfigValue, ReducedMotion } from './config'
 export { Presence, usePresence } from './presence'
 export type { PresenceContextValue } from './presence'
 export {
