@@ -21,7 +21,8 @@
     "example:android": "pnpm --filter @onlynative/inertia-example android",
     "docs:dev": "pnpm --filter @onlynative/inertia-docs dev",
     "docs:build": "pnpm --filter @onlynative/inertia-docs build",
-    "docs:serve": "pnpm --filter @onlynative/inertia-docs serve"
+    "docs:serve": "pnpm --filter @onlynative/inertia-docs serve",
+    "build:llms": "node scripts/build-llms.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",

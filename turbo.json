@@ -4,8 +4,18 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"],
-      "inputs": ["src/**", "tsconfig.json", "tsup.config.ts", "package.json"]
+      "outputs": ["dist/**", "build/**"],
+      "inputs": [
+        "src/**",
+        "docs/**",
+        "scripts/**",
+        "static/**",
+        "tsconfig.json",
+        "tsup.config.ts",
+        "docusaurus.config.ts",
+        "sidebars.ts",
+        "package.json"
+      ]
     },
     "dev": {
       "cache": false,
