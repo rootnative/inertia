@@ -3,11 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "docusaurus start",
-    "build": "docusaurus build",
+    "prepare:demo": "node scripts/prepare-demo.mjs",
+    "prepare:demo:force": "node scripts/prepare-demo.mjs --force",
+    "dev": "pnpm prepare:demo && docusaurus start",
+    "build": "pnpm prepare:demo:force && docusaurus build",
     "typecheck": "tsc --noEmit",
     "serve": "docusaurus serve",
-    "clean": "rm -rf build .docusaurus"
+    "clean": "rm -rf build .docusaurus static/example"
   },
   "dependencies": {
     "@docusaurus/core": "^3.10.0",

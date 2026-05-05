@@ -12,6 +12,7 @@ build/
 
 # Docusaurus
 .docusaurus/
+docs/static/example/
 
 # Expo
 .expo/

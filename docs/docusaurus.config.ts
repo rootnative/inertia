@@ -80,6 +80,11 @@ const config: Config = {
           position: 'left',
         },
         {
+          href: 'https://onlynative.github.io/inertia/example/',
+          label: 'Example',
+          position: 'right',
+        },
+        {
           href: 'https://github.com/onlynative/inertia',
           label: 'GitHub',
           position: 'right',
