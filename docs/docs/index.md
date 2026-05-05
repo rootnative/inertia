@@ -51,6 +51,14 @@ For tree-shaking when only one primitive is used:
 import { MotionView } from '@onlynative/inertia/view'
 ```
 
-## What's next
+## Where to next
 
-Detailed pages for each primitive, the transition shapes, sequences, variants, gestures, `<Presence>`, and `<MotionConfig>` land alongside the v0.1 push. Until then, the per-package [`llms.txt`](https://github.com/onlynative/inertia/blob/main/packages/core/llms.txt) is the most up-to-date reference.
+- [Installation](./installation) — install + Reanimated Babel plugin.
+- [Primitives](./primitives/index.md) — `Motion.View` / `Text` / `Image` / `Pressable` / `ScrollView`.
+- [Transitions](./transitions) — `spring` (default) / `timing` / `decay` / `no-animation`.
+- [Sequences & repeat](./sequences) — keyframe arrays and the unified `repeat` shape.
+- [Variants](./variants) — named animation states + `useVariants` controller.
+- [Gestures](./gestures) — `pressed` / `focused` / `hovered` sub-states.
+- [Presence](./presence) — mount / unmount transitions.
+- [MotionConfig](./motion-config) — reduce-motion gate.
+- [Hooks](./api/hooks) and [createMotionComponent](./api/create-motion-component) — escape hatches.
