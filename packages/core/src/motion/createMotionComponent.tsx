@@ -382,25 +382,51 @@ export function createMotionComponent<C extends ComponentType<any>>(
 type SharedValueMap = Record<AnimatableKey, SharedValue<number>>
 
 /**
- * Allocate one shared value per animatable key in `ALL_KEYS`. Hooks are
- * called in a stable, lexical order — fine for rules-of-hooks. Unused
- * shared values are cheap; the worklet skips them via `activeKeysRef`.
+ * Allocate one shared value per animatable key in `ALL_KEYS` and return a
+ * **stable** map — same object reference across every render.
+ *
+ * Stability matters: `useAnimatedStyle` derives its dep array from
+ * `Object.values(updater.__closure)`. Our worklet captures `sharedValues`,
+ * so a fresh object literal each render would change that dep, fire
+ * Reanimated's effect, and re-bind the worklet on the UI thread on every
+ * render — the exact cost CLAUDE.md flags. The shared values themselves
+ * are stable across renders (Reanimated's `useSharedValue` is a `useRef`
+ * under the hood), so snapshotting the wrapping object once is safe.
+ *
+ * Hooks are called in a stable, lexical order — fine for rules-of-hooks.
+ * Unused shared values are cheap; the worklet skips them via
+ * `activeKeysRef`.
  */
 function useAnimatableSharedValues(
   init: (key: AnimatableKey) => number,
 ): SharedValueMap {
-  return {
-    translateX: useSharedValue(init('translateX')),
-    translateY: useSharedValue(init('translateY')),
-    scale: useSharedValue(init('scale')),
-    scaleX: useSharedValue(init('scaleX')),
-    scaleY: useSharedValue(init('scaleY')),
-    rotate: useSharedValue(init('rotate')),
-    opacity: useSharedValue(init('opacity')),
-    width: useSharedValue(init('width')),
-    height: useSharedValue(init('height')),
-    borderRadius: useSharedValue(init('borderRadius')),
+  const translateX = useSharedValue(init('translateX'))
+  const translateY = useSharedValue(init('translateY'))
+  const scale = useSharedValue(init('scale'))
+  const scaleX = useSharedValue(init('scaleX'))
+  const scaleY = useSharedValue(init('scaleY'))
+  const rotate = useSharedValue(init('rotate'))
+  const opacity = useSharedValue(init('opacity'))
+  const width = useSharedValue(init('width'))
+  const height = useSharedValue(init('height'))
+  const borderRadius = useSharedValue(init('borderRadius'))
+
+  const ref = useRef<SharedValueMap | null>(null)
+  if (ref.current === null) {
+    ref.current = {
+      translateX,
+      translateY,
+      scale,
+      scaleX,
+      scaleY,
+      rotate,
+      opacity,
+      width,
+      height,
+      borderRadius,
+    }
   }
+  return ref.current
 }
 
 /**
