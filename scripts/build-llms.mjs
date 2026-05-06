@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 /**
- * Build LLM documentation files.
+ * Build the llms.txt documentation files.
  *
  * Two outputs from one source of truth:
  *
  * - `docs/static/llms.txt`             — hand-curated, concise. Source of truth.
  * - `packages/core/llms.txt`           — copy of the above, ships with npm so
- *                                         AI tools reading from `node_modules`
- *                                         pick up the same overview.
+ *                                         downstream tooling reading from
+ *                                         `node_modules` picks up the same
+ *                                         overview.
  * - `docs/static/llms-full.txt`        — auto-generated from the docs/docs/*.md
  *                                         page set, in sidebar order. Mirrors
- *                                         the rendered docs site so the LLM
- *                                         and human surfaces stay in sync.
+ *                                         the rendered docs site so both
+ *                                         surfaces stay in sync.
  *
  * Run via `pnpm build:llms`. Re-run after editing any markdown page in
  * `docs/docs/` or after the public API changes.

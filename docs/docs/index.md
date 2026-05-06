@@ -7,7 +7,7 @@ sidebar_position: 1
 
 Declarative animation primitives for React Native, built on `react-native-reanimated`. Inspired by Framer Motion (web) and react-spring (cross-platform).
 
-> **Status:** `0.0.1-alpha`. The Phase-1 foundation is in place — `Motion.View` / `Motion.Text` / `Motion.Image` with `initial` + `animate` + per-property `transition`. Sequences, variants, gestures, `<Presence>`, decay, and `<MotionConfig>` are landing toward v0.1. See the repo's `CLAUDE.md` for the roadmap.
+> **Status:** `0.0.1-alpha`. The Phase-1 foundation is in place — `Motion.View` / `Motion.Text` / `Motion.Image` with `initial` + `animate` + per-property `transition`. Sequences, variants, gestures, `<Presence>`, decay, and `<MotionConfig>` are landing toward v0.1.
 
 ## Why Inertia
 

@@ -411,7 +411,7 @@ type SharedValueMap = Record<AnimatableKey, SharedValue<number>>
  * `Object.values(updater.__closure)`. Our worklet captures `sharedValues`,
  * so a fresh object literal each render would change that dep, fire
  * Reanimated's effect, and re-bind the worklet on the UI thread on every
- * render — the exact cost CLAUDE.md flags. The shared values themselves
+ * render — the exact cost design principle 8 calls out. The shared values themselves
  * are stable across renders (Reanimated's `useSharedValue` is a `useRef`
  * under the hood), so snapshotting the wrapping object once is safe.
  *

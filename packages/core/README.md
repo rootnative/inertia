@@ -2,7 +2,7 @@
 
 Declarative animation primitives for React Native, built on `react-native-reanimated`.
 
-> **Status:** `0.0.1-alpha` — Phase-1 foundation only. `Motion.View` / `Motion.Text` / `Motion.Image` with `initial` + `animate` + per-property `transition` (spring, timing). Sequences, variants, gestures, `<Presence>`, and `decay` are tracked toward v0.1 — see the repo's `CLAUDE.md` for the roadmap.
+> **Status:** `0.0.1-alpha` — Phase-1 foundation only. `Motion.View` / `Motion.Text` / `Motion.Image` with `initial` + `animate` + per-property `transition` (spring, timing). Sequences, variants, gestures, `<Presence>`, and `decay` are tracked toward v0.1.
 
 ## Install
 
