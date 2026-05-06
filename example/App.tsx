@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { DecayScreen } from './screens/DecayScreen'
 import { GestureScreen } from './screens/GestureScreen'
 import { ImageScreen } from './screens/ImageScreen'
 import { MotionConfigScreen } from './screens/MotionConfigScreen'
+import { PerfBenchScreen } from './screens/PerfBenchScreen'
 import { PresenceScreen } from './screens/PresenceScreen'
 import { PressableScreen } from './screens/PressableScreen'
 import { ScrollViewScreen } from './screens/ScrollViewScreen'
@@ -26,6 +27,7 @@ type Route =
   | 'scroll-view'
   | 'presence'
   | 'motion-config'
+  | 'perf-bench'
 
 export default function App() {
   const [route, setRoute] = useState<Route>('home')
@@ -42,9 +44,10 @@ export default function App() {
   if (route === 'scroll-view') return <ScrollViewScreen onBack={goHome} />
   if (route === 'presence') return <PresenceScreen onBack={goHome} />
   if (route === 'motion-config') return <MotionConfigScreen onBack={goHome} />
+  if (route === 'perf-bench') return <PerfBenchScreen onBack={goHome} />
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <StatusBar style="auto" />
       <Text style={styles.title}>Inertia example</Text>
       <Pressable onPress={() => setRoute('view')} style={styles.link}>
@@ -80,7 +83,10 @@ export default function App() {
       <Pressable onPress={() => setRoute('motion-config')} style={styles.link}>
         <Text style={styles.linkLabel}>MotionConfig (reduced motion)</Text>
       </Pressable>
-    </View>
+      <Pressable onPress={() => setRoute('perf-bench')} style={styles.link}>
+        <Text style={styles.linkLabel}>Perf bench (FlashList)</Text>
+      </Pressable>
+    </ScrollView>
   )
 }
 
@@ -88,8 +94,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  content: {
     paddingHorizontal: 24,
     paddingTop: 96,
+    paddingBottom: 48,
     gap: 16,
   },
   title: {

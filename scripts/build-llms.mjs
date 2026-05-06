@@ -45,6 +45,7 @@ const PAGES = [
   'gestures',
   'presence',
   'motion-config',
+  'perf-bench',
   'api/hooks',
   'api/create-motion-component',
 ]
