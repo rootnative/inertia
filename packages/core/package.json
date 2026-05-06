@@ -79,6 +79,8 @@
     "src",
     "llms.txt",
     "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
     "!**/__tests__",
     "!**/*.test.*"
   ],
