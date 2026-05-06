@@ -92,4 +92,4 @@ Sequence and repeat lifecycle is reported through one callback:
 | `'repeat'`    | A non-final iteration of a non-sequence animation completes.          |
 | `'animation'` | The terminal phase of the property — no more passes will run.         |
 
-Transform parents fire once per logical event, not once per axis. A `translateX` + `translateY` animation on the same primitive produces the callback shape you'd expect from "translate", not two duplicates.
+Transform parents fire once per logical event, not once per axis. A `translateX` + `translateY` animation on the same primitive produces the callback shape you'd expect from "translate", not two duplicates — when the terminal `'animation'` phase fires for any transform key, `key` is reported as the sentinel `'transform'`. Mid-step events (`'step'` / `'sequence'` / `'repeat'`) still fire per-axis with the specific axis name (`'translateX'`, `'scale'`, etc.) since each step is its own logical event.

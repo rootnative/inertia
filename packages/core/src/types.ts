@@ -87,7 +87,14 @@ export type AnimateStyle<C> = C extends { style?: StyleProp<infer S> }
   : never
 
 export interface AnimationCallbackInfo<S> {
-  key: keyof S
+  /**
+   * The animatable key that just settled — typically a `keyof S` (e.g.
+   * `'opacity'`, `'translateX'`). The sentinel `'transform'` is emitted in
+   * lieu of any specific transform axis (`translateX`/`Y`, `scale`/`X`/`Y`,
+   * `rotate`) when the terminal `'animation'` phase fires for a transform
+   * group, so a multi-axis translate produces one callback rather than two.
+   */
+  key: keyof S | 'transform'
   finished: boolean
   value: unknown
   target: unknown

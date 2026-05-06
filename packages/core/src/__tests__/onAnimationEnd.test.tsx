@@ -205,13 +205,116 @@ describe('onAnimationEnd — payload shape', () => {
   })
 })
 
-describe('onAnimationEnd — known gap', () => {
-  // CLAUDE.md acceptance: "transform parents fire once, not once per axis".
-  // Today the factory builds a callback per animatable key, so a translateX
-  // + translateY animation reports twice. Implementing the coalescing layer
-  // is tracked as future work; this `it.todo` keeps the gap visible in the
-  // test output.
-  it.todo(
-    'coalesces translateX + translateY into a single transform-parent callback',
-  )
+describe('onAnimationEnd — transform-parent coalescing', () => {
+  it('coalesces translateX + translateY into a single transform-parent callback', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const onEnd = jest.fn<
+      void,
+      [AnimationCallbackInfo<{ translateX: number }>]
+    >()
+
+    render(
+      <Motion.View
+        initial={{ translateX: 0, translateY: 0 }}
+        animate={{ translateX: 100, translateY: 50 }}
+        transition={{ type: 'spring' }}
+        onAnimationEnd={onEnd}
+      />,
+    )
+
+    // Two transform axes → two withSpring calls, two settle callbacks.
+    expect(withSpring).toHaveBeenCalledTimes(2)
+    settleAll(withSpring)
+
+    // …but only one onAnimationEnd fire — the transform group coalesced.
+    expect(onEnd).toHaveBeenCalledTimes(1)
+    expect(onEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: 'transform',
+        phase: 'animation',
+        finished: true,
+      }),
+    )
+  })
+
+  it('a single-axis transform animation also reports key="transform"', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const onEnd = jest.fn<
+      void,
+      [AnimationCallbackInfo<{ translateX: number }>]
+    >()
+
+    render(
+      <Motion.View
+        initial={{ translateX: 0 }}
+        animate={{ translateX: 100 }}
+        transition={{ type: 'spring' }}
+        onAnimationEnd={onEnd}
+      />,
+    )
+
+    settleAll(withSpring)
+
+    expect(onEnd).toHaveBeenCalledTimes(1)
+    expect(onEnd).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'transform', phase: 'animation' }),
+    )
+  })
+
+  it('opacity + translateX produces two callbacks: opacity + transform', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const onEnd = jest.fn<
+      void,
+      [AnimationCallbackInfo<{ opacity: number; translateX: number }>]
+    >()
+
+    render(
+      <Motion.View
+        initial={{ opacity: 0, translateX: 0 }}
+        animate={{ opacity: 1, translateX: 100 }}
+        transition={{ type: 'spring' }}
+        onAnimationEnd={onEnd}
+      />,
+    )
+
+    expect(withSpring).toHaveBeenCalledTimes(2)
+    settleAll(withSpring)
+
+    expect(onEnd).toHaveBeenCalledTimes(2)
+    const keys = onEnd.mock.calls.map(([info]) => info.key).sort()
+    expect(keys).toEqual(['opacity', 'transform'])
+  })
+
+  it('mid-step transform-axis callbacks still fire per-axis (only terminal coalesces)', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const onEnd = jest.fn<
+      void,
+      [AnimationCallbackInfo<{ translateX: number }>]
+    >()
+
+    render(
+      <Motion.View
+        initial={{ translateX: 0 }}
+        animate={{ translateX: [0, 50, 100] }}
+        transition={{ type: 'spring' }}
+        onAnimationEnd={onEnd}
+      />,
+    )
+
+    settleAll(withSpring)
+
+    // Step 0, step 1 fire as 'translateX' (mid-step events are per-axis).
+    // Step 2 (terminal 'animation') is coalesced into 'transform'.
+    expect(onEnd).toHaveBeenCalledTimes(3)
+    const events = onEnd.mock.calls.map(([info]) => ({
+      key: info.key,
+      phase: info.phase,
+      step: info.step,
+    }))
+    expect(events).toEqual([
+      { key: 'translateX', phase: 'step', step: 0 },
+      { key: 'translateX', phase: 'step', step: 1 },
+      { key: 'transform', phase: 'animation', step: 2 },
+    ])
+  })
 })

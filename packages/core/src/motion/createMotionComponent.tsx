@@ -45,6 +45,14 @@ const TRANSFORM_KEYS = [
 
 const TOP_LEVEL_KEYS = ['opacity', 'width', 'height', 'borderRadius'] as const
 
+/**
+ * Per-effect transform-group coordinator. Counts how many transform-axis
+ * terminal callbacks are still pending; when the last one fires, the
+ * factory emits a single coalesced `onAnimationEnd({ key: 'transform' })`
+ * instead of N per-axis callbacks. Mutated by the dispatch closure.
+ */
+type TransformGroup = { remaining: number }
+
 const ALL_KEYS = [...TRANSFORM_KEYS, ...TOP_LEVEL_KEYS] as const
 type AnimatableKey = (typeof ALL_KEYS)[number]
 type TransformKey = (typeof TRANSFORM_KEYS)[number]
@@ -285,6 +293,19 @@ export function createMotionComponent<C extends ComponentType<any>>(
         }
       }
 
+      // Count transform axes participating in this effect run so the factory
+      // can coalesce their terminal callbacks into a single transform-group
+      // event. `undefined` when no transform axis is animating, which lets
+      // the factory skip the coalescing branch entirely.
+      let transformPending = 0
+      for (const k of ALL_KEYS) {
+        if (TRANSFORM_KEY_SET.has(k) && mergedRecord[k] !== undefined) {
+          transformPending++
+        }
+      }
+      const transformGroup: TransformGroup | undefined =
+        transformPending > 0 ? { remaining: transformPending } : undefined
+
       for (const key of ALL_KEYS) {
         const target = mergedRecord[key]
         if (target === undefined) continue
@@ -307,6 +328,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
             totalIterations: totalIterationsOf(cfg),
           },
           isExiting ? onSettle : undefined,
+          TRANSFORM_KEY_SET.has(key) ? transformGroup : undefined,
         )
         sharedValues[key].value = resolveAnimatableValue(
           target,
@@ -452,12 +474,15 @@ function makeKeyCallbackFactory(
   },
   meta: { stepCount: number; totalIterations: number },
   onSettle?: () => void,
+  transformGroup?: TransformGroup,
 ) {
   if (!onAnimationEndRef.current && !onSettle) return undefined
 
   // Shared across this animation graph's callbacks (one per sequence step,
   // or one for a single-shot). Mutated when a full pass completes.
   const state = { iteration: 0 }
+
+  const isTransformKey = TRANSFORM_KEY_SET.has(key as AnimatableKey)
 
   const dispatch = (
     rawPhase: 'step' | 'animation',
@@ -491,19 +516,42 @@ function makeKeyCallbackFactory(
 
     const fn = onAnimationEndRef.current
     if (fn) {
-      fn({
-        key: key as never,
-        finished,
-        value,
-        target,
-        phase,
-        step,
-        iteration: reportedIteration,
-      })
+      // Transform-group coalescing: a multi-axis translate / scale /
+      // rotate animation should fire onAnimationEnd ONCE for the logical
+      // transform, not once per axis. We only coalesce the terminal
+      // `'animation'` phase — `step`/`sequence`/`repeat` events fire
+      // per-axis since each is its own logical event. Released per-axis
+      // for a single-axis case too, with `key: 'transform'` for
+      // consistency.
+      if (isTransformKey && transformGroup && phase === 'animation') {
+        transformGroup.remaining--
+        if (transformGroup.remaining <= 0) {
+          fn({
+            key: 'transform' as never,
+            finished,
+            value,
+            target,
+            phase,
+            step,
+            iteration: reportedIteration,
+          })
+        }
+      } else {
+        fn({
+          key: key as never,
+          finished,
+          value,
+          target,
+          phase,
+          step,
+          iteration: reportedIteration,
+        })
+      }
     }
-    // Settle hooks fire only on the terminal phase of the property —
-    // sequence mid-steps and non-final iterations don't qualify, since
-    // <Presence> waits for the property to reach its final exit value.
+    // Settle hooks fire per-axis on the terminal phase — <Presence> waits
+    // for *every* exiting property to settle before unmounting, so we
+    // intentionally do not coalesce these (the transform-group coalesce
+    // is purely a user-callback ergonomic).
     if (onSettle && isTerminal) onSettle()
   }
 
