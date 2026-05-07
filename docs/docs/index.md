@@ -14,7 +14,7 @@ Declarative animation primitives for React Native, built on `react-native-reanim
 - **DX-first.** Animations are props on a component, not imperative shared values, worklets, and `useAnimatedStyle` boilerplate.
 - **Per-primitive style inference.** `Motion.View` accepts `ViewStyle` keys, `Motion.Text` accepts `TextStyle`, `Motion.Image` accepts `ImageStyle`. No shared union fallback that lets wrong props slip through.
 - **react-spring vocabulary.** Spring config uses `tension`, `friction`, `mass`, `velocity`. Reanimated's raw `stiffness` / `damping` never appear in the public surface.
-- **One `gesture` prop on every primitive.** `pressed`, `focused`, `hovered` (web) sub-states; no `whileTap` / `whilePress` soup, no separate "pressable" variant.
+- **One `gesture` prop on every primitive.** `pressed`, `focused`, `focusVisible` (keyboard focus only — W3C `:focus-visible`), `hovered` (web) sub-states; no `whileTap` / `whilePress` soup, no separate "pressable" variant.
 - **Per-primitive tree-shaking.** Subpath imports (`@onlynative/inertia/view`, `/text`, `/image`, `/pressable`, `/scroll-view`) so apps that animate one element don't ship the whole library.
 - **Stable worklets.** The factory hashes resolved animate / transition objects and memoizes the generated worklet + `useAnimatedStyle` — re-renders with unchanged values produce zero new UI-thread closures.
 
@@ -58,7 +58,7 @@ import { MotionView } from '@onlynative/inertia/view'
 - [Transitions](./transitions) — `spring` (default) / `timing` / `decay` / `no-animation`.
 - [Sequences & repeat](./sequences) — keyframe arrays and the unified `repeat` shape.
 - [Variants](./variants) — named animation states + `useVariants` controller.
-- [Gestures](./gestures) — `pressed` / `focused` / `hovered` sub-states.
+- [Gestures](./gestures) — `pressed` / `focused` / `focusVisible` / `hovered` sub-states.
 - [Presence](./presence) — mount / unmount transitions.
 - [MotionConfig](./motion-config) — reduce-motion gate.
 - [Hooks](./api/hooks) and [createMotionComponent](./api/create-motion-component) — escape hatches.

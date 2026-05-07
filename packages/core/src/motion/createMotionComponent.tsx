@@ -13,6 +13,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated'
 import { useShouldReduceMotion } from '../config'
+import { isFocusVisible } from '../gestures'
 import { usePresence } from '../presence'
 import { resolveAnimatableValue } from '../transitions'
 import {
@@ -187,10 +188,11 @@ export function createMotionComponent<C extends ComponentType<any>>(
 
     // Gesture sub-state activation tracked as JS state so changes invalidate
     // the merged-target signature and re-run the animation effect. The cost
-    // is three useState slots regardless of whether `gesture` is set; that's
+    // is four useState slots regardless of whether `gesture` is set; that's
     // tiny and lets us stay rules-of-hooks-clean.
     const [pressed, setPressed] = useState(false)
     const [focused, setFocused] = useState(false)
+    const [focusVisible, setFocusVisible] = useState(false)
     const [hovered, setHovered] = useState(false)
 
     // The set of keys this instance animates is locked at first render. With
@@ -217,6 +219,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
         for (const subState of [
           gesture.pressed,
           gesture.focused,
+          gesture.focusVisible,
           gesture.hovered,
         ] as Array<object | undefined>) {
           if (!subState) continue
@@ -261,6 +264,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
         : mergeGestureTargets(animateRecord, gesture, {
             pressed,
             focused,
+            focusVisible,
             hovered,
           })
     const mergedSig =
@@ -383,6 +387,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
       rest as Record<string, unknown>,
       setPressed,
       setFocused,
+      setFocusVisible,
       setHovered,
     )
 
@@ -719,12 +724,18 @@ function stableStringify(v: unknown): string {
  * by any declared sub-state are always present in the result so releasing a
  * gesture animates the property back to a defined value (the base `animate`
  * value when present, otherwise `DEFAULT_RESTING`). Sub-states layer in
- * priority order: `hovered` < `focused` < `pressed`.
+ * priority order (lowest first):
+ * `hovered` < `focused` < `focusVisible` < `pressed`.
  */
 function mergeGestureTargets(
   base: Partial<Record<AnimatableKey, AnimatableValue<number>>>,
   gesture: GestureSubStates<unknown> | undefined,
-  active: { pressed: boolean; focused: boolean; hovered: boolean },
+  active: {
+    pressed: boolean
+    focused: boolean
+    focusVisible: boolean
+    hovered: boolean
+  },
 ): Partial<Record<AnimatableKey, AnimatableValue<number>>> {
   if (!gesture) return base
   const merged: Partial<Record<AnimatableKey, AnimatableValue<number>>> = {
@@ -733,6 +744,7 @@ function mergeGestureTargets(
   const subStates = [
     gesture.hovered,
     gesture.focused,
+    gesture.focusVisible,
     gesture.pressed,
   ] as Array<
     Partial<Record<AnimatableKey, AnimatableValue<number>>> | undefined
@@ -757,6 +769,14 @@ function mergeGestureTargets(
     Object.assign(
       merged,
       gesture.focused as Partial<
+        Record<AnimatableKey, AnimatableValue<number>>
+      >,
+    )
+  }
+  if (active.focusVisible && gesture.focusVisible) {
+    Object.assign(
+      merged,
+      gesture.focusVisible as Partial<
         Record<AnimatableKey, AnimatableValue<number>>
       >,
     )
@@ -788,6 +808,7 @@ function useGestureHandlers(
   rest: Record<string, unknown>,
   setPressed: (next: boolean) => void,
   setFocused: (next: boolean) => void,
+  setFocusVisible: (next: boolean) => void,
   setHovered: (next: boolean) => void,
 ): GestureHandlers {
   return useMemo(() => {
@@ -804,9 +825,20 @@ function useGestureHandlers(
       handlers.onPressIn = compose(rest.onPressIn, () => setPressed(true))
       handlers.onPressOut = compose(rest.onPressOut, () => setPressed(false))
     }
-    if (gesture.focused) {
-      handlers.onFocus = compose(rest.onFocus, () => setFocused(true))
-      handlers.onBlur = compose(rest.onBlur, () => setFocused(false))
+    // Mount onFocus/onBlur if either focus sub-state is declared. The two flags
+    // are independent: `focused` always tracks focus; `focusVisible` only
+    // engages when the most recent input was keyboard (W3C `:focus-visible`
+    // semantics). On native the modality is always `'keyboard'`, so the two
+    // flags move together.
+    if (gesture.focused || gesture.focusVisible) {
+      handlers.onFocus = compose(rest.onFocus, () => {
+        if (gesture.focused) setFocused(true)
+        if (gesture.focusVisible && isFocusVisible()) setFocusVisible(true)
+      })
+      handlers.onBlur = compose(rest.onBlur, () => {
+        if (gesture.focused) setFocused(false)
+        if (gesture.focusVisible) setFocusVisible(false)
+      })
     }
     if (gesture.hovered) {
       // Web-only events. RN-Web 0.72+ accepts these on View; native ignores
@@ -821,6 +853,7 @@ function useGestureHandlers(
   }, [
     gesture?.pressed ? 1 : 0,
     gesture?.focused ? 1 : 0,
+    gesture?.focusVisible ? 1 : 0,
     gesture?.hovered ? 1 : 0,
     rest.onTouchStart,
     rest.onTouchEnd,

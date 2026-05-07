@@ -113,17 +113,34 @@ export type VariantsMap<C> = Record<string, AnimateStyle<C>>
  *
  * - `pressed` — active while the user is touching the component (touch start
  *   to touch end / cancel).
- * - `focused` — active while a focusable component owns keyboard focus
- *   (no-op for non-focusable underlying components).
+ * - `focused` — active while a focusable component owns focus, regardless of
+ *   how focus arrived (mouse, touch, or keyboard). No-op for non-focusable
+ *   underlying components.
+ * - `focusVisible` — active only when focus arrived from the keyboard
+ *   (W3C `:focus-visible` semantics). Use this for focus rings to avoid
+ *   flashing them on click-focus on web. On native — where focus always
+ *   arrives via D-pad, screen reader, or hardware keyboard — this behaves
+ *   identically to `focused`.
  * - `hovered` — web-only. Typed for cross-platform call sites; the runtime is
  *   a no-op on native.
  *
  * When a sub-state is active, its values override the base `animate` target
- * per-property. Priority on overlap: `pressed` > `focused` > `hovered`.
+ * per-property. Priority on overlap (highest first):
+ * `pressed` > `focusVisible` > `focused` > `hovered`. `focusVisible` layers
+ * above `focused` so declaring both yields a state-layer on any focus and a
+ * ring on keyboard focus only.
+ *
+ * Sub-states stack as **single-state selection**, not blended interpolation:
+ * the highest-priority active key's value wins per-property, with one
+ * transition between target values. Mid-transition cross-fades between
+ * sub-states (e.g. release-while-still-hovered) follow the standard `transition`
+ * for that property — the resolver does not run multiple parallel
+ * interpolations the way a hand-rolled chained-`interpolateColor` would.
  */
 export interface GestureSubStates<C> {
   pressed?: AnimateStyle<C>
   focused?: AnimateStyle<C>
+  focusVisible?: AnimateStyle<C>
   hovered?: AnimateStyle<C>
 }
 

@@ -42,7 +42,7 @@ export function FadeIn() {
 - **Primitives** — `Motion.View`, `Motion.Text`, `Motion.Image`, `Motion.Pressable`, `Motion.ScrollView`. Per-primitive style inference (no shared `ViewStyle & TextStyle & ImageStyle` fallback).
 - **Sequences and keyframes** — `animate={{ x: [0, 100, 0] }}` with per-step transitions; unified `repeat: number | 'infinite' | { count, alternate }`.
 - **Variants** — `variants={{ open, closed }}` with `animate="open"`. Programmatic control via `useVariants` + `controller={...}`.
-- **Gestures** — single `gesture` prop on every primitive: `gesture={{ pressed, focused, hovered }}`. Zero overhead when omitted.
+- **Gestures** — single `gesture` prop on every primitive: `gesture={{ pressed, focused, focusVisible, hovered }}`. `focusVisible` engages only on keyboard focus (W3C `:focus-visible`) so click-focus on web doesn't flash a ring; on native it tracks `focused`. Zero overhead when omitted.
 - **`<Presence>`** — mount/unmount transitions; exiting children automatically receive `pointerEvents: 'none'`.
 - **`<MotionConfig reducedMotion>`** — OS reduce-motion honored end-to-end (`'user' | 'never' | 'always'`).
 - **Per-primitive subpath imports** — `@onlynative/inertia/view`, `/text`, `/image`, `/pressable`, `/scroll-view`.
@@ -62,11 +62,11 @@ A `Motion.View`-only import currently bundles to ~3.2 kB brotlied (excluding pee
 
 ## Transitions
 
-| `type`               | Public config keys                                                                           | Maps to                            |
-| -------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `'spring'` (default) | `tension`, `friction`, `mass`, `velocity`, `restSpeedThreshold`, `restDisplacementThreshold` | `withSpring`                       |
-| `'timing'`           | `duration`, `easing`, `delay`                                                                | `withTiming`                       |
-| `'decay'`            | `velocity`, `deceleration`, `clamp`                                                          | `withDecay`                        |
+| `type`               | Public config keys                                                                           | Maps to                             |
+| -------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `'spring'` (default) | `tension`, `friction`, `mass`, `velocity`, `restSpeedThreshold`, `restDisplacementThreshold` | `withSpring`                        |
+| `'timing'`           | `duration`, `easing`, `delay`                                                                | `withTiming`                        |
+| `'decay'`            | `velocity`, `deceleration`, `clamp`                                                          | `withDecay`                         |
 | `'no-animation'`     | —                                                                                            | direct assignment, no interpolation |
 
 Plus, on any transition: `delay`, `repeat`. Per-property transitions take precedence over the top-level transition. Spring config uses **react-spring vocabulary** (`tension`/`friction`); Reanimated's raw `stiffness`/`damping` is never on the public surface.

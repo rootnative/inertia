@@ -20,7 +20,7 @@
 - **React-spring vocabulary** — public springs use `tension`, `friction`, `mass`, `velocity`. Reanimated's raw `stiffness`/`damping` never appear on the public types.
 - **First-class sequences and keyframes** — `animate={{ x: [0, 100, 0] }}` and per-step transitions `[{ to: 100, type: 'spring' }]`. Unified `repeat` config (`number | 'infinite' | { count, alternate }`).
 - **State-machine animations** — `variants={{ open: {...}, closed: {...} }}` with `animate="open"`. Variant keys autocomplete. `useVariants` returns a `{ current, transitionTo }` controller for programmatic flows.
-- **One `gesture` prop on every primitive** — `gesture={{ pressed: {...}, focused: {...} }}` works on `Motion.View`, `Motion.Pressable`, etc. Zero overhead when omitted; no separate "pressable" variant.
+- **One `gesture` prop on every primitive** — `gesture={{ pressed: {...}, focused: {...}, focusVisible: {...}, hovered: {...} }}` works on `Motion.View`, `Motion.Pressable`, etc. `focusVisible` engages only on keyboard focus (W3C `:focus-visible`) so rings don't flash on click-focus on web. Zero overhead when omitted; no separate "pressable" variant.
 - **`<Presence>` for mount/unmount** — half the noise of `<AnimatePresence>`, and exiting children automatically receive `pointerEvents: 'none'` so the next tap reaches what's underneath.
 - **`<MotionConfig reducedMotion="user">`** — respects OS reduce-motion settings end-to-end. Per-component overrides via `reducedMotion` prop.
 - **JS-thread resolver, memoized worklets** — animate/transition objects compile to baked `withSpring` / `withTiming` / `withDecay` calls on the JS thread. The worklet body only consumes them, and re-renders with unchanged values produce zero new UI-thread closures.
@@ -101,11 +101,15 @@ For programmatic chaining, `useVariants(variants)` returns a `{ current, transit
 <Motion.Pressable
   gesture={{
     pressed: { scale: 0.96 },
-    focused: { borderColor: '#4f46e5' },
+    hovered: { opacity: 0.9 },
+    focused: { opacity: 0.85 },
+    focusVisible: { borderColor: '#4f46e5' },
   }}
   transition={{ type: 'spring' }}
 />
 ```
+
+`focused` engages on every focus; `focusVisible` engages only when focus arrived from the keyboard. Use `focused` for state-layer fills, `focusVisible` for rings. On native the two move together. Priority on overlap: `pressed > focusVisible > focused > hovered`.
 
 ### Presence (mount/unmount)
 
