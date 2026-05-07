@@ -44,6 +44,18 @@ transition={{
 }}
 ```
 
+#### Porting from raw Reanimated `stiffness` / `damping`
+
+The conversion is a **1:1 alias rename**, not a physics formula. If you have a Reanimated `withSpring` config tuned the way you want, port it by renaming two keys:
+
+| Reanimated raw | Inertia    |
+| -------------- | ---------- |
+| `stiffness`    | `tension`  |
+| `damping`      | `friction` |
+| `mass`         | `mass`     |
+
+So a Material Design 3 emphasized spring (`{ stiffness: 380, damping: 32, mass: 1 }`) ports as `{ type: 'spring', tension: 380, friction: 32, mass: 1 }`. No retuning, same perceptual result.
+
 ### `'timing'`
 
 Duration-based interpolation. Useful for opacity fades and anything where physics feel wrong.

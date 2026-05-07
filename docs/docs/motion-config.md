@@ -6,6 +6,10 @@ sidebar_position: 9
 
 A provider that gates how descendant Motion primitives respond to the OS reduce-motion accessibility setting.
 
+:::tip Free accessibility win for migrators
+Apps moving from hand-rolled `useSharedValue` + `useAnimatedStyle` to Inertia primitives pick up reduce-motion compliance automatically — every `Motion.*` component subscribes to the OS setting via [`useShouldReduceMotion()`](#reading-the-resolved-value) without any per-component plumbing. If you previously had no reduce-motion handling, you have it now.
+:::
+
 ## Default — respect the OS
 
 By default (and without any provider in the tree), Inertia respects the OS reduce-motion setting. When the user enables it, every per-key transition is swapped for `'no-animation'` — values snap to their target instantly. Sequences still iterate, but each step settles immediately.

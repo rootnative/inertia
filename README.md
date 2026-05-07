@@ -164,12 +164,12 @@ Out of scope for `v0.1`: SVG path morphing, gradient interpolation, shared-eleme
 
 ## Packages
 
-| Package                                    | Description                                                                                                        |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| [`@onlynative/inertia`](packages/core)     | Animation primitives (`Motion.*`), transition resolvers, `<Presence>`, `<MotionConfig>`, `useVariants`.            |
-| _`@onlynative/inertia-gestures`_ (planned) | Optional adapter that swaps the Pressable-based gesture layer for `react-native-gesture-handler`. Lands in `v0.2`. |
-| [`example`](example)                       | Expo Router app with one screen per primitive — manual validation harness.                                         |
-| [`docs`](docs)                             | Docusaurus documentation site. Hosts `/llms.txt` and `/llms-full.txt`.                                             |
+| Package                                                   | Description                                                                                                                                  |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@onlynative/inertia`](packages/core)                    | Animation primitives (`Motion.*`), transition resolvers, `<Presence>`, `<MotionConfig>`, `useVariants`.                                      |
+| [`@onlynative/inertia-gestures`](packages/gestures)       | Optional `react-native-gesture-handler` adapter — `useDrag`, `useSwipe`, `usePan`. See the [docs](docs/docs/gestures-adapter.md). Peer-dep on gesture-handler so the core library has no required gesture-handler dep. |
+| [`example`](example)                                      | Expo Router app with one screen per primitive — manual validation harness.                                                                   |
+| [`docs`](docs)                                            | Docusaurus documentation site. Hosts `/llms.txt` and `/llms-full.txt`.                                                                       |
 
 ## Repository Layout
 
@@ -180,16 +180,19 @@ Out of scope for `v0.1`: SVG path morphing, gradient interpolation, shared-eleme
 │   └── screens/           # ViewScreen, TextScreen, ImageScreen, PressableScreen,
 │                          # ScrollViewScreen, SequenceScreen, VariantsScreen,
 │                          # PresenceScreen, GestureScreen, DecayScreen,
-│                          # MotionConfigScreen, PerfBenchScreen
+│                          # MotionConfigScreen, PerfBenchScreen,
+│                          # DragScreen, SwipeScreen, PanScreen
 ├── packages/
-│   └── core/              # @onlynative/inertia
-│       └── src/
-│           ├── motion/    # Motion.View / Text / Image / Pressable / ScrollView + factory
-│           ├── transitions/  # spring / timing / decay / no-animation resolvers
-│           ├── values/    # useVariants (escape-hatch hooks layer)
-│           ├── presence/  # <Presence>
-│           ├── config/    # <MotionConfig>, reduce-motion gating
-│           └── types.ts   # Public type surface
+│   ├── core/              # @onlynative/inertia
+│   │   └── src/
+│   │       ├── motion/    # Motion.View / Text / Image / Pressable / ScrollView + factory
+│   │       ├── transitions/  # spring / timing / decay / no-animation resolvers
+│   │       ├── values/    # useVariants (escape-hatch hooks layer)
+│   │       ├── presence/  # <Presence>
+│   │       ├── config/    # <MotionConfig>, reduce-motion gating
+│   │       └── types.ts   # Public type surface
+│   └── gestures/          # @onlynative/inertia-gestures
+│       └── src/           # useDrag / useSwipe / usePan (gesture-handler adapter)
 ├── scripts/               # build-llms.mjs (per-package + aggregated llms docs)
 ├── turbo.json
 └── pnpm-workspace.yaml
