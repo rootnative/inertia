@@ -6,11 +6,13 @@ import { DragScreen } from './screens/DragScreen'
 import { GestureScreen } from './screens/GestureScreen'
 import { ImageScreen } from './screens/ImageScreen'
 import { MotionConfigScreen } from './screens/MotionConfigScreen'
+import { PanScreen } from './screens/PanScreen'
 import { PerfBenchScreen } from './screens/PerfBenchScreen'
 import { PresenceScreen } from './screens/PresenceScreen'
 import { PressableScreen } from './screens/PressableScreen'
 import { ScrollViewScreen } from './screens/ScrollViewScreen'
 import { SequenceScreen } from './screens/SequenceScreen'
+import { SwipeScreen } from './screens/SwipeScreen'
 import { TextScreen } from './screens/TextScreen'
 import { VariantsScreen } from './screens/VariantsScreen'
 import { ViewScreen } from './screens/ViewScreen'
@@ -24,6 +26,8 @@ type Route =
   | 'sequence'
   | 'decay'
   | 'drag'
+  | 'swipe'
+  | 'pan'
   | 'gesture'
   | 'pressable'
   | 'scroll-view'
@@ -42,6 +46,8 @@ export default function App() {
   if (route === 'sequence') return <SequenceScreen onBack={goHome} />
   if (route === 'decay') return <DecayScreen onBack={goHome} />
   if (route === 'drag') return <DragScreen onBack={goHome} />
+  if (route === 'swipe') return <SwipeScreen onBack={goHome} />
+  if (route === 'pan') return <PanScreen onBack={goHome} />
   if (route === 'gesture') return <GestureScreen onBack={goHome} />
   if (route === 'pressable') return <PressableScreen onBack={goHome} />
   if (route === 'scroll-view') return <ScrollViewScreen onBack={goHome} />
@@ -73,6 +79,12 @@ export default function App() {
       </Pressable>
       <Pressable onPress={() => setRoute('drag')} style={styles.link}>
         <Text style={styles.linkLabel}>Drag (gestures adapter)</Text>
+      </Pressable>
+      <Pressable onPress={() => setRoute('swipe')} style={styles.link}>
+        <Text style={styles.linkLabel}>Swipe (card stack)</Text>
+      </Pressable>
+      <Pressable onPress={() => setRoute('pan')} style={styles.link}>
+        <Text style={styles.linkLabel}>Pan (with momentum)</Text>
       </Pressable>
       <Pressable onPress={() => setRoute('gesture')} style={styles.link}>
         <Text style={styles.linkLabel}>Gesture (pressed)</Text>
