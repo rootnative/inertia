@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { DecayScreen } from './screens/DecayScreen'
+import { DragScreen } from './screens/DragScreen'
 import { GestureScreen } from './screens/GestureScreen'
 import { ImageScreen } from './screens/ImageScreen'
 import { MotionConfigScreen } from './screens/MotionConfigScreen'
@@ -22,6 +23,7 @@ type Route =
   | 'variants'
   | 'sequence'
   | 'decay'
+  | 'drag'
   | 'gesture'
   | 'pressable'
   | 'scroll-view'
@@ -39,6 +41,7 @@ export default function App() {
   if (route === 'variants') return <VariantsScreen onBack={goHome} />
   if (route === 'sequence') return <SequenceScreen onBack={goHome} />
   if (route === 'decay') return <DecayScreen onBack={goHome} />
+  if (route === 'drag') return <DragScreen onBack={goHome} />
   if (route === 'gesture') return <GestureScreen onBack={goHome} />
   if (route === 'pressable') return <PressableScreen onBack={goHome} />
   if (route === 'scroll-view') return <ScrollViewScreen onBack={goHome} />
@@ -67,6 +70,9 @@ export default function App() {
       </Pressable>
       <Pressable onPress={() => setRoute('decay')} style={styles.link}>
         <Text style={styles.linkLabel}>Decay</Text>
+      </Pressable>
+      <Pressable onPress={() => setRoute('drag')} style={styles.link}>
+        <Text style={styles.linkLabel}>Drag (gestures adapter)</Text>
       </Pressable>
       <Pressable onPress={() => setRoute('gesture')} style={styles.link}>
         <Text style={styles.linkLabel}>Gesture (pressed)</Text>
