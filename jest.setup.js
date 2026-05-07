@@ -9,17 +9,24 @@ jest.mock('react-native/Libraries/Text/Text', () => {
   return { __esModule: true, default: Text }
 })
 
-// Reanimated mock — STATIC RENDER ONLY.
+// Reanimated mock — STATIC RENDER, with stable `useSharedValue` semantics.
 //
-// `useAnimatedStyle` invokes the worklet exactly once at render and returns
-// a plain object. It is NOT live: mutating a shared value after mount does
-// not re-run the worklet and the rendered style stays at its initial state.
+// `useAnimatedStyle` invokes the worklet exactly once per render and returns
+// a plain object. It does not subscribe to shared-value mutations — to
+// observe a post-mount target value you must trigger a re-render (the
+// `renderWithMotion` / `flushMotion` helpers in `@onlynative/inertia/testing`
+// do this for you).
+//
+// `useSharedValue` is backed by `useRef` so the same `{ value }` object
+// persists across renders. After a `useEffect` assigns the target, the next
+// render reads it back.
 //
 // What this means for tests:
 //   ✅ assert at-rest structure / role / accessibility / static styles
-//   ❌ don't fire press / hover / focus and assert post-interaction styles
-//      coming from `useSharedValue` + `withTiming`/`withSpring` — they will
-//      silently read as the at-rest values
+//   ✅ assert post-effect target styles by re-rendering (use
+//      `renderWithMotion` from the testing subpath)
+//   ❌ frame-level intermediate states are not observable — physics doesn't
+//      run; targets snap in one step.
 jest.mock('react-native-reanimated', () => {
   const React = require('react')
   const { Image, Pressable, ScrollView, Text, View } = require('react-native')
@@ -51,7 +58,11 @@ jest.mock('react-native-reanimated', () => {
     Text: AnimatedText,
     Image: AnimatedImage,
     ScrollView: AnimatedScrollView,
-    useSharedValue: (initial) => ({ value: initial }),
+    useSharedValue: (initial) => {
+      const ref = React.useRef(null)
+      if (ref.current === null) ref.current = { value: initial }
+      return ref.current
+    },
     useDerivedValue: (fn) => ({ value: fn() }),
     useAnimatedStyle: (fn) => fn(),
     useAnimatedProps: (fn) => fn(),

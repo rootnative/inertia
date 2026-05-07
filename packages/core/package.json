@@ -72,6 +72,13 @@
       "import": "./dist/motion/ScrollView.mjs",
       "require": "./dist/motion/ScrollView.js"
     },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "react-native": "./src/testing/index.ts",
+      "source": "./src/testing/index.ts",
+      "import": "./dist/testing/index.mjs",
+      "require": "./dist/testing/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

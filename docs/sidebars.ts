@@ -25,6 +25,13 @@ const sidebars: SidebarsConfig = {
     { type: 'doc', id: 'presence', label: 'Presence' },
     { type: 'doc', id: 'motion-config', label: 'MotionConfig' },
     { type: 'doc', id: 'perf-bench', label: 'Perf bench' },
+    { type: 'doc', id: 'testing', label: 'Testing' },
+    {
+      type: 'category',
+      label: 'Migrations',
+      collapsed: false,
+      items: ['migrations/from-reanimated'],
+    },
     {
       type: 'category',
       label: 'API',

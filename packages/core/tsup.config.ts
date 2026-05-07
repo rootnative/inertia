@@ -8,6 +8,7 @@ export default defineConfig({
     'motion/Image': 'src/motion/Image.tsx',
     'motion/Pressable': 'src/motion/Pressable.tsx',
     'motion/ScrollView': 'src/motion/ScrollView.tsx',
+    'testing/index': 'src/testing/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,
@@ -22,6 +23,7 @@ export default defineConfig({
     'react/jsx-runtime',
     'react-native',
     'react-native-reanimated',
+    '@testing-library/react-native',
   ],
   esbuildOptions(options) {
     options.jsx = 'automatic'
