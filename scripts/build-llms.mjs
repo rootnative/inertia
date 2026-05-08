@@ -9,16 +9,17 @@
  *                                         downstream tooling reading from
  *                                         `node_modules` picks up the same
  *                                         overview.
- * - `docs/static/llms-full.txt`        — auto-generated from the docs/docs/*.md
- *                                         page set, in sidebar order. Mirrors
- *                                         the rendered docs site so both
- *                                         surfaces stay in sync.
+ * - `docs/static/llms-full.txt`        — auto-generated from the
+ *                                         docs/docs/*.{md,mdx} page set, in
+ *                                         sidebar order. Mirrors the rendered
+ *                                         docs site so both surfaces stay in
+ *                                         sync.
  *
  * Run via `pnpm build:llms`. Re-run after editing any markdown page in
  * `docs/docs/` or after the public API changes.
  */
 
-import { copyFileSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -61,11 +62,50 @@ function stripFrontmatter(md) {
   return after === -1 ? '' : md.slice(after + 1)
 }
 
+function resolveDocPath(id) {
+  const mdx = join(docsContentDir, `${id}.mdx`)
+  if (existsSync(mdx)) return mdx
+  const md = join(docsContentDir, `${id}.md`)
+  if (existsSync(md)) return md
+  throw new Error(
+    `[build-llms] doc page not found for id "${id}" — looked for ${id}.mdx and ${id}.md in ${docsContentDir}`,
+  )
+}
+
+// MDX pages can include `import` statements at the top — strip them so the
+// llms output stays plain prose.
+function stripMdxImports(md) {
+  const lines = md.split('\n')
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+    if (line.startsWith('import ') || line.trim() === '') {
+      i++
+      continue
+    }
+    break
+  }
+  return lines.slice(i).join('\n')
+}
+
+// Replace the JSX components used by the docs with plain-text equivalents so
+// the llms output is readable by tools that don't render React.
+function expandJsxComponents(md) {
+  // <PackageManagerTabs packages="..." /> → ```bash\nyarn add ...\n```
+  md = md.replace(
+    /<PackageManagerTabs\s+packages=["']([^"']+)["']\s*\/>/g,
+    (_, pkgs) => '```bash\nyarn add ' + pkgs + '\n```',
+  )
+  // <RunnableExample ... /> → drop. The live demo isn't useful in a text dump.
+  md = md.replace(/<RunnableExample\b[^/]*\/>/g, '')
+  return md
+}
+
 function buildLlmsFull() {
   const sections = PAGES.map((id) => {
-    const path = join(docsContentDir, `${id}.md`)
+    const path = resolveDocPath(id)
     const raw = readFileSync(path, 'utf8')
-    return stripFrontmatter(raw).trimEnd()
+    return expandJsxComponents(stripMdxImports(stripFrontmatter(raw))).trimEnd()
   })
 
   const header = [

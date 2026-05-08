@@ -3,6 +3,9 @@ slug: /
 sidebar_position: 1
 ---
 
+import PackageManagerTabs from '@site/src/components/PackageManagerTabs'
+import RunnableExample from '@site/src/components/RunnableExample'
+
 # Inertia
 
 Declarative animation primitives for React Native, built on `react-native-reanimated`. Inspired by Framer Motion (web) and react-spring (cross-platform).
@@ -20,9 +23,9 @@ Declarative animation primitives for React Native, built on `react-native-reanim
 
 ## Install
 
-```bash
-pnpm add @onlynative/inertia react-native-reanimated
-```
+Pick your package manager — Yarn is the default. The selection syncs across every install snippet in the docs.
+
+<PackageManagerTabs packages="@onlynative/inertia react-native-reanimated" />
 
 Then enable the Reanimated Babel plugin per its [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation).
 
@@ -50,6 +53,14 @@ For tree-shaking when only one primitive is used:
 ```ts
 import { MotionView } from '@onlynative/inertia/view'
 ```
+
+## Runnable example
+
+The full example app is embedded below — every primitive, every gesture, the same code that ships under `example/` in the repo. Tap a screen and interact:
+
+<RunnableExample height={680} />
+
+Each docs page deep-links into the relevant screen of this same app, so you can try the API as you read.
 
 ## Where to next
 

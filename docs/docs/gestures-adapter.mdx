@@ -2,6 +2,9 @@
 sidebar_position: 8
 ---
 
+import PackageManagerTabs from '@site/src/components/PackageManagerTabs'
+import RunnableExample from '@site/src/components/RunnableExample'
+
 # Gestures adapter
 
 `@onlynative/inertia-gestures` adds drag / swipe / pan hooks built on `react-native-gesture-handler`. It is an **optional** sibling package — install it only if you need richer-than-`pressable` gestures. The core library has no required `gesture-handler` dependency.
@@ -10,9 +13,7 @@ The hooks compose with any `Motion.*` primitive via a `<GestureDetector>` and a 
 
 ## Install
 
-```bash
-pnpm add @onlynative/inertia-gestures react-native-gesture-handler
-```
+<PackageManagerTabs packages="@onlynative/inertia-gestures react-native-gesture-handler" />
 
 Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation) — it needs `<GestureHandlerRootView>` near the root of your app.
 
@@ -39,13 +40,13 @@ function DraggableBox() {
 }
 ```
 
-| Option        | Type                                                              | Default  | Notes                                                                   |
-| ------------- | ----------------------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
-| `axis`        | `'x' \| 'y' \| 'both'`                                            | `'both'` | Lock the gesture to one axis.                                           |
-| `constraints` | `{ left?, right?, top?, bottom? }`                                | none     | Bounds in px from the resting position. Each side independently optional. |
-| `elastic`     | `number` (0–1)                                                    | `0`      | Rubber-band coefficient past `constraints`. `0` hard-clamps; `0.4` is a typical Framer-Motion feel. |
-| `onDragStart` | `() => void`                                                      | none     | Fires on JS thread when drag begins.                                    |
-| `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void`                    | none     | Fires on JS thread when drag ends.                                      |
+| Option        | Type                                           | Default  | Notes                                                                                               |
+| ------------- | ---------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `axis`        | `'x' \| 'y' \| 'both'`                         | `'both'` | Lock the gesture to one axis.                                                                       |
+| `constraints` | `{ left?, right?, top?, bottom? }`             | none     | Bounds in px from the resting position. Each side independently optional.                           |
+| `elastic`     | `number` (0–1)                                 | `0`      | Rubber-band coefficient past `constraints`. `0` hard-clamps; `0.4` is a typical Framer-Motion feel. |
+| `onDragStart` | `() => void`                                   | none     | Fires on JS thread when drag begins.                                                                |
+| `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends.                                                                  |
 
 Returns `{ gesture, animatedStyle, dragX, dragY, isDragging }`. The shared values are exposed for power use cases (deriving secondary effects from drag position).
 
@@ -72,12 +73,12 @@ return (
 )
 ```
 
-| Option              | Type                                                             | Default                          | Notes                                                                |
-| ------------------- | ---------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------- |
-| `directions`        | `Array<'left' \| 'right' \| 'up' \| 'down'>`                     | all four                         | Only commits along listed directions. Off-axis swipes do nothing.    |
-| `distanceThreshold` | `number` (px)                                                    | `80`                             | Distance past which a release commits.                               |
-| `velocityThreshold` | `number` (px/sec)                                                | `800`                            | Flick velocity that commits even before distance threshold.          |
-| `onSwipe`           | `(direction, { distance, velocity }) => void`                    | none                             | JS-thread callback. Direction is one of the allowed values.          |
+| Option              | Type                                          | Default  | Notes                                                             |
+| ------------------- | --------------------------------------------- | -------- | ----------------------------------------------------------------- |
+| `directions`        | `Array<'left' \| 'right' \| 'up' \| 'down'>`  | all four | Only commits along listed directions. Off-axis swipes do nothing. |
+| `distanceThreshold` | `number` (px)                                 | `80`     | Distance past which a release commits.                            |
+| `velocityThreshold` | `number` (px/sec)                             | `800`    | Flick velocity that commits even before distance threshold.       |
+| `onSwipe`           | `(direction, { distance, velocity }) => void` | none     | JS-thread callback. Direction is one of the allowed values.       |
 
 The dominant axis (whichever of \|tx\|, \|ty\| is larger at release) decides which direction is checked.
 
@@ -100,21 +101,25 @@ return (
 )
 ```
 
-| Option            | Type                               | Default  | Notes                                                                 |
-| ----------------- | ---------------------------------- | -------- | --------------------------------------------------------------------- |
-| `constraints`     | `{ left?, right?, top?, bottom? }` | none     | Hard clamp during gesture and during decay.                            |
+| Option            | Type                               | Default            | Notes                                                                         |
+| ----------------- | ---------------------------------- | ------------------ | ----------------------------------------------------------------------------- |
+| `constraints`     | `{ left?, right?, top?, bottom? }` | none               | Hard clamp during gesture and during decay.                                   |
 | `deceleration`    | `number`                           | Reanimated default | Higher = momentum dies faster. Roughly `0.99` (slow) to `0.999` (long glide). |
-| `disableMomentum` | `boolean`                          | `false`  | Hard stop on release (drag-like).                                     |
+| `disableMomentum` | `boolean`                          | `false`            | Hard stop on release (drag-like).                                             |
 
 For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-clamps because it composes with `withDecay`'s `clamp` parameter, which doesn't have an overshoot mode.
 
 ## When to pick which
 
-| Gesture       | Snap back on release? | Momentum on release?       | Typical UX                                         |
-| ------------- | --------------------- | -------------------------- | -------------------------------------------------- |
-| `useDrag`     | No — stays where left | No                         | Move-to-position, sliders, sortable handles.       |
-| `useSwipe`    | Yes — always          | No (springs back)          | Swipe-to-delete rows, card stacks, dismiss sheets. |
-| `usePan`      | No — stays where left | Yes — coasts via `withDecay` | Maps, zoomable canvases, large-image navigation.   |
+| Gesture    | Snap back on release? | Momentum on release?         | Typical UX                                         |
+| ---------- | --------------------- | ---------------------------- | -------------------------------------------------- |
+| `useDrag`  | No — stays where left | No                           | Move-to-position, sliders, sortable handles.       |
+| `useSwipe` | Yes — always          | No (springs back)            | Swipe-to-delete rows, card stacks, dismiss sheets. |
+| `usePan`   | No — stays where left | Yes — coasts via `withDecay` | Maps, zoomable canvases, large-image navigation.   |
+
+## Try it
+
+<RunnableExample screen="drag" height={620} />
 
 ## Why a separate package?
 

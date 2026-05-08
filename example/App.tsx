@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native'
+import { Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { DecayScreen } from './screens/DecayScreen'
 import { DragScreen } from './screens/DragScreen'
@@ -35,8 +35,37 @@ type Route =
   | 'motion-config'
   | 'perf-bench'
 
+const VALID_ROUTES: ReadonlyArray<Route> = [
+  'home',
+  'view',
+  'text',
+  'image',
+  'variants',
+  'sequence',
+  'decay',
+  'drag',
+  'swipe',
+  'pan',
+  'gesture',
+  'pressable',
+  'scroll-view',
+  'presence',
+  'motion-config',
+  'perf-bench',
+]
+
+function readInitialRoute(): Route {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return 'home'
+  const params = new URLSearchParams(window.location.search)
+  const screen = params.get('screen')
+  if (screen && (VALID_ROUTES as ReadonlyArray<string>).includes(screen)) {
+    return screen as Route
+  }
+  return 'home'
+}
+
 export default function App() {
-  const [route, setRoute] = useState<Route>('home')
+  const [route, setRoute] = useState<Route>(readInitialRoute)
   const goHome = () => setRoute('home')
 
   if (route === 'view') return <ViewScreen onBack={goHome} />

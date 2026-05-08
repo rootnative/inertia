@@ -2,6 +2,9 @@
 sidebar_position: 2
 ---
 
+import PackageManagerTabs from '@site/src/components/PackageManagerTabs'
+import RunnableExample from '@site/src/components/RunnableExample'
+
 # Installation
 
 Inertia is a thin wrapper around `react-native-reanimated`. The Reanimated install must complete first — Inertia is a peer to it, not a replacement.
@@ -14,9 +17,9 @@ Inertia is a thin wrapper around `react-native-reanimated`. The Reanimated insta
 
 ## Install
 
-```bash
-pnpm add @onlynative/inertia react-native-reanimated
-```
+Yarn is the default. Switch tabs for npm, pnpm, or Bun — your selection persists across the docs.
+
+<PackageManagerTabs packages="@onlynative/inertia react-native-reanimated" />
 
 Then enable the Reanimated Babel plugin per its [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation). The plugin is what transforms `'worklet'`-marked functions into UI-thread code; without it, every animation crashes at runtime.
 
@@ -52,6 +55,12 @@ export function FadeIn() {
   )
 }
 ```
+
+### Try it live
+
+The example app runs in the iframe below — tap any screen to interact with the same primitives you'd ship in your app.
+
+<RunnableExample screen="view" height={620} />
 
 ## Subpath imports
 
