@@ -23,8 +23,8 @@ export function PanScreen({ onBack }: { onBack: () => void }) {
     <ScreenShell title="Pan (with momentum)" onBack={onBack}>
       <GestureHandlerRootView style={styles.root}>
         <Text style={styles.hint}>
-          Drag the canvas. On release, momentum carries it until friction
-          stops or it hits the bounds.
+          Drag the canvas. On release, momentum carries it until friction stops
+          or it hits the bounds.
         </Text>
         <View style={styles.viewport}>
           <GestureDetector gesture={pan.gesture}>

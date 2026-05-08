@@ -142,10 +142,7 @@ function boundsTuple(
 ): [number, number] | undefined {
   'worklet'
   if (min === undefined && max === undefined) return undefined
-  return [
-    min ?? Number.NEGATIVE_INFINITY,
-    max ?? Number.POSITIVE_INFINITY,
-  ]
+  return [min ?? Number.NEGATIVE_INFINITY, max ?? Number.POSITIVE_INFINITY]
 }
 
 function decayConfig(
@@ -154,7 +151,11 @@ function decayConfig(
   clamp: [number, number] | undefined,
 ) {
   'worklet'
-  const cfg: { velocity: number; deceleration?: number; clamp?: [number, number] } = {
+  const cfg: {
+    velocity: number
+    deceleration?: number
+    clamp?: [number, number]
+  } = {
     velocity,
   }
   if (deceleration !== undefined) cfg.deceleration = deceleration

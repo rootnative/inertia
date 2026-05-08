@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'
+import {
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler'
 import { Motion } from '@onlynative/inertia'
 import { useDrag } from '@onlynative/inertia-gestures'
 import { ScreenShell } from './ScreenShell'
@@ -14,10 +17,26 @@ export function DragScreen({ onBack }: { onBack: () => void }) {
     <ScreenShell title="Drag" onBack={onBack}>
       <GestureHandlerRootView style={styles.root}>
         <View style={styles.modes}>
-          <ModeButton label="Free" active={mode === 'free'} onPress={() => setMode('free')} />
-          <ModeButton label="X-only" active={mode === 'x-only'} onPress={() => setMode('x-only')} />
-          <ModeButton label="Clamped ±100" active={mode === 'clamped'} onPress={() => setMode('clamped')} />
-          <ModeButton label="Rubber-band" active={mode === 'rubber-band'} onPress={() => setMode('rubber-band')} />
+          <ModeButton
+            label="Free"
+            active={mode === 'free'}
+            onPress={() => setMode('free')}
+          />
+          <ModeButton
+            label="X-only"
+            active={mode === 'x-only'}
+            onPress={() => setMode('x-only')}
+          />
+          <ModeButton
+            label="Clamped ±100"
+            active={mode === 'clamped'}
+            onPress={() => setMode('clamped')}
+          />
+          <ModeButton
+            label="Rubber-band"
+            active={mode === 'rubber-band'}
+            onPress={() => setMode('rubber-band')}
+          />
         </View>
         <View style={styles.stage}>
           <DragBox key={mode} mode={mode} />

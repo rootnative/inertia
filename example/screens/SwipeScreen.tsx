@@ -91,7 +91,11 @@ function CardView({
 
   const cardStyle = [
     styles.card,
-    { backgroundColor: card.color, top: offset, transform: [{ translateY: -offset }] },
+    {
+      backgroundColor: card.color,
+      top: offset,
+      transform: [{ translateY: -offset }],
+    },
     isTop ? swipe.animatedStyle : null,
   ]
 

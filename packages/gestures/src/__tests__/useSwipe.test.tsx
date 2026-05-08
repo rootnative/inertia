@@ -24,7 +24,12 @@ describe('useSwipe', () => {
 
     h.onStart?.({})
     h.onUpdate?.({ translationX: -90, translationY: 0 })
-    h.onEnd?.({ translationX: -90, translationY: 0, velocityX: 0, velocityY: 0 })
+    h.onEnd?.({
+      translationX: -90,
+      translationY: 0,
+      velocityX: 0,
+      velocityY: 0,
+    })
 
     expect(onSwipe).toHaveBeenCalledWith('left', { distance: 90, velocity: 0 })
   })
@@ -57,7 +62,12 @@ describe('useSwipe', () => {
     const h = getHandlers(result.current.gesture)
 
     h.onStart?.({})
-    h.onEnd?.({ translationX: 20, translationY: 0, velocityX: 100, velocityY: 0 })
+    h.onEnd?.({
+      translationX: 20,
+      translationY: 0,
+      velocityX: 100,
+      velocityY: 0,
+    })
 
     expect(onSwipe).not.toHaveBeenCalled()
   })
