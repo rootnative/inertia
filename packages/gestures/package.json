@@ -1,6 +1,6 @@
 {
   "name": "@onlynative/inertia-gestures",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.1-alpha.1",
   "description": "Gesture-handler-driven drag / pan / swipe adapters for @onlynative/inertia.",
   "license": "MIT",
   "author": "OnlyNative",
