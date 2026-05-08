@@ -1,0 +1,80 @@
+[
+  {
+    "name": "Motion.View (subpath)",
+    "path": "dist/motion/View.mjs",
+    "ignore": [
+      "react",
+      "react/jsx-runtime",
+      "react-native",
+      "react-native-reanimated"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "Motion.Text (subpath)",
+    "path": "dist/motion/Text.mjs",
+    "ignore": [
+      "react",
+      "react/jsx-runtime",
+      "react-native",
+      "react-native-reanimated"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "Motion.Image (subpath)",
+    "path": "dist/motion/Image.mjs",
+    "ignore": [
+      "react",
+      "react/jsx-runtime",
+      "react-native",
+      "react-native-reanimated"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "Motion.Pressable (subpath)",
+    "path": "dist/motion/Pressable.mjs",
+    "ignore": [
+      "react",
+      "react/jsx-runtime",
+      "react-native",
+      "react-native-reanimated"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "Motion.ScrollView (subpath)",
+    "path": "dist/motion/ScrollView.mjs",
+    "ignore": [
+      "react",
+      "react/jsx-runtime",
+      "react-native",
+      "react-native-reanimated"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "Full Motion namespace (root entry)",
+    "path": "dist/index.mjs",
+    "ignore": [
+      "react",
+      "react/jsx-runtime",
+      "react-native",
+      "react-native-reanimated"
+    ],
+    "limit": "6 KB"
+  },
+  {
+    "name": "Testing helpers",
+    "path": "dist/testing/index.mjs",
+    "ignore": [
+      "react",
+      "react/jsx-runtime",
+      "react-native",
+      "react-native-reanimated",
+      "@testing-library/react-native"
+    ],
+    "limit": "1 KB"
+  }
+]
