@@ -243,6 +243,7 @@ export interface MotionProps<C> {
  * underlying component's props (minus `style`, which we replace with an
  * animated style) with the Motion-specific props above.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type MotionComponent<C extends ComponentType<any>> = ComponentType<
   Omit<React.ComponentProps<C>, 'style'> &
     MotionProps<React.ComponentProps<C>> & {

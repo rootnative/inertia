@@ -182,12 +182,17 @@ function gestureLayerTransitionFor<S>(
  * borderRadius) and color properties (backgroundColor, borderColor, color,
  * tintColor) applied via Reanimated shared values + `useAnimatedStyle`.
  */
+// `ComponentType<any>` is React's canonical "accept any component" idiom.
+// `unknown` doesn't work — props need to widen to whatever `C` actually accepts
+// at the call site. The two `any` uses below are deliberate.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createMotionComponent<C extends ComponentType<any>>(
   Component: C,
 ): MotionComponent<C> {
   ensureReanimatedInstalled()
 
   const AnimatedComponent = Animated.createAnimatedComponent(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Component as ComponentType<any>,
   )
 
@@ -1012,6 +1017,13 @@ function useGestureHandlers(
   setFocusVisible: (next: boolean) => void,
   setHovered: (next: boolean) => void,
 ): GestureHandlers {
+  // Deps key on declared-ness, not object identity — a fresh `gesture={...}`
+  // literal each render must not rebuild handlers if the same sub-states are
+  // declared.
+  const hasPressed = gesture?.pressed ? 1 : 0
+  const hasFocused = gesture?.focused ? 1 : 0
+  const hasFocusVisible = gesture?.focusVisible ? 1 : 0
+  const hasHovered = gesture?.hovered ? 1 : 0
   return useMemo(() => {
     if (!gesture) return {}
     const handlers: GestureHandlers = {}
@@ -1052,10 +1064,10 @@ function useGestureHandlers(
     return handlers
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    gesture?.pressed ? 1 : 0,
-    gesture?.focused ? 1 : 0,
-    gesture?.focusVisible ? 1 : 0,
-    gesture?.hovered ? 1 : 0,
+    hasPressed,
+    hasFocused,
+    hasFocusVisible,
+    hasHovered,
     rest.onTouchStart,
     rest.onTouchEnd,
     rest.onTouchCancel,
