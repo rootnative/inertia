@@ -1,0 +1,1111 @@
+# Inertia — full API reference
+
+> This file aggregates every documentation page in source order. Generated from docs/docs/*.md by scripts/build-llms.mjs — do not edit by hand.
+
+> Source: https://github.com/onlynative/inertia
+> Site:   https://onlynative.github.io/inertia/
+
+---
+# Inertia
+
+Declarative animation primitives for React Native, built on `react-native-reanimated`. Inspired by Framer Motion (web) and react-spring (cross-platform).
+
+> **Status:** `0.0.1-alpha`. The Phase-1 foundation is in place — `Motion.View` / `Motion.Text` / `Motion.Image` with `initial` + `animate` + per-property `transition`. Sequences, variants, gestures, `<Presence>`, decay, and `<MotionConfig>` are landing toward v0.1.
+
+## Why Inertia
+
+- **DX-first.** Animations are props on a component, not imperative shared values, worklets, and `useAnimatedStyle` boilerplate.
+- **Per-primitive style inference.** `Motion.View` accepts `ViewStyle` keys, `Motion.Text` accepts `TextStyle`, `Motion.Image` accepts `ImageStyle`. No shared union fallback that lets wrong props slip through.
+- **react-spring vocabulary.** Spring config uses `tension`, `friction`, `mass`, `velocity`. Reanimated's raw `stiffness` / `damping` never appear in the public surface.
+- **One `gesture` prop on every primitive.** `pressed`, `focused`, `focusVisible` (keyboard focus only — W3C `:focus-visible`), `hovered` (web) sub-states; no `whileTap` / `whilePress` soup, no separate "pressable" variant.
+- **Per-primitive tree-shaking.** Subpath imports (`@onlynative/inertia/view`, `/text`, `/image`, `/pressable`, `/scroll-view`) so apps that animate one element don't ship the whole library.
+- **Stable worklets.** The factory hashes resolved animate / transition objects and memoizes the generated worklet + `useAnimatedStyle` — re-renders with unchanged values produce zero new UI-thread closures.
+
+## Install
+
+Pick your package manager — Yarn is the default. The selection syncs across every install snippet in the docs.
+
+```bash
+yarn add @onlynative/inertia react-native-reanimated
+```
+
+Then enable the Reanimated Babel plugin per its [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation).
+
+## A first animation
+
+```tsx
+import { Motion } from '@onlynative/inertia'
+
+export function FadeIn() {
+  return (
+    <Motion.View
+      initial={{ opacity: 0, translateY: 20 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{
+        opacity: { type: 'timing', duration: 200 },
+        translateY: { type: 'spring', tension: 180, friction: 12 },
+      }}
+    />
+  )
+}
+```
+
+For tree-shaking when only one primitive is used:
+
+```ts
+import { MotionView } from '@onlynative/inertia/view'
+```
+
+## Runnable example
+
+The full example app is embedded below — every primitive, every gesture, the same code that ships under `example/` in the repo. Tap a screen and interact:
+
+
+
+Each docs page deep-links into the relevant screen of this same app, so you can try the API as you read.
+
+## Where to next
+
+- [Installation](./installation) — install + Reanimated Babel plugin.
+- [Primitives](./primitives/index.md) — `Motion.View` / `Text` / `Image` / `Pressable` / `ScrollView`.
+- [Transitions](./transitions) — `spring` (default) / `timing` / `decay` / `no-animation`.
+- [Sequences & repeat](./sequences) — keyframe arrays and the unified `repeat` shape.
+- [Variants](./variants) — named animation states + `useVariants` controller.
+- [Gestures](./gestures) — `pressed` / `focused` / `focusVisible` / `hovered` sub-states.
+- [Presence](./presence) — mount / unmount transitions.
+- [MotionConfig](./motion-config) — reduce-motion gate.
+- [Hooks](./api/hooks) and [createMotionComponent](./api/create-motion-component) — escape hatches.
+
+---
+
+# Installation
+
+Inertia is a thin wrapper around `react-native-reanimated`. The Reanimated install must complete first — Inertia is a peer to it, not a replacement.
+
+## Prerequisites
+
+- React Native `>= 0.81` (or Expo SDK `54+`)
+- React `>= 19`
+- `react-native-reanimated >= 4.0.0`
+
+## Install
+
+Yarn is the default. Switch tabs for npm, pnpm, or Bun — your selection persists across the docs.
+
+```bash
+yarn add @onlynative/inertia react-native-reanimated
+```
+
+Then enable the Reanimated Babel plugin per its [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation). The plugin is what transforms `'worklet'`-marked functions into UI-thread code; without it, every animation crashes at runtime.
+
+A typical `babel.config.js` for a managed Expo app:
+
+```js
+module.exports = function (api) {
+  api.cache(true)
+  return {
+    presets: ['babel-preset-expo'],
+    plugins: ['react-native-reanimated/plugin'],
+  }
+}
+```
+
+The Reanimated plugin must be **last** in the plugins array.
+
+## First animation
+
+```tsx
+import { Motion } from '@onlynative/inertia'
+
+export function FadeIn() {
+  return (
+    <Motion.View
+      initial={{ opacity: 0, translateY: 20 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{
+        opacity: { type: 'timing', duration: 200 },
+        translateY: { type: 'spring', tension: 180, friction: 12 },
+      }}
+    />
+  )
+}
+```
+
+### Try it live
+
+The example app runs in the iframe below — tap any screen to interact with the same primitives you'd ship in your app.
+
+
+
+## Subpath imports
+
+Each primitive is reachable directly so apps that animate one element don't pull in the rest:
+
+```ts
+import { MotionView } from '@onlynative/inertia/view'
+import { MotionText } from '@onlynative/inertia/text'
+import { MotionImage } from '@onlynative/inertia/image'
+import { MotionPressable } from '@onlynative/inertia/pressable'
+import { MotionScrollView } from '@onlynative/inertia/scroll-view'
+```
+
+`@onlynative/inertia` is `sideEffects: false`, so a bundler with tree-shaking enabled (Metro 0.79+, Webpack, Rollup) will drop primitives you don't reference even when importing from the main entry.
+
+## Reduced motion
+
+Inertia respects the OS reduce-motion accessibility setting by default — no extra wiring needed. To override the default for the whole app or a subtree, see [MotionConfig](./motion-config).
+
+---
+
+# Primitives
+
+Every animatable surface is a `Motion.*` component. Each one is an animatable mirror of an underlying React Native primitive — the prop surface (other than `style`) is unchanged, plus the Motion-specific props (`initial`, `animate`, `exit`, `variants`, `controller`, `gesture`, `transition`, `onAnimationEnd`).
+
+| Component                            | Wraps RN's   | Style type   |
+| ------------------------------------ | ------------ | ------------ |
+| [`Motion.View`](./view)              | `View`       | `ViewStyle`  |
+| [`Motion.Text`](./text)              | `Text`       | `TextStyle`  |
+| [`Motion.Image`](./image)            | `Image`      | `ImageStyle` |
+| [`Motion.Pressable`](./pressable)    | `Pressable`  | `ViewStyle`  |
+| [`Motion.ScrollView`](./scroll-view) | `ScrollView` | `ViewStyle`  |
+
+## Per-primitive style inference
+
+`animate`, `initial`, `exit`, and `gesture` sub-states are typed against the underlying component's `style` shape — there is no shared `ViewStyle & TextStyle & ImageStyle` fallback. So `tintColor` autocompletes on `Motion.Image` and is rejected at compile time on `Motion.View`.
+
+```tsx
+<Motion.Image animate={{ tintColor: '#4f46e5' }} />     // ✅
+<Motion.View animate={{ tintColor: '#4f46e5' }} />      // ❌ TS error
+```
+
+## Custom primitives
+
+Wrap any component with `createMotionComponent(C)` to get the same prop surface inferred from `C`'s style prop. See [createMotionComponent](../api/create-motion-component).
+
+## Animatable properties (alpha)
+
+The alpha supports the properties below across every primitive that accepts them.
+
+**Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`.
+
+**Color:** `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Any color string Reanimated recognizes works — hex (`'#4f46e5'`, `'#fff'`), `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors including `'transparent'`. The target is forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
+
+```tsx
+<Motion.View
+  initial={{ backgroundColor: 'transparent' }}
+  animate={{ backgroundColor: '#4f46e5' }}
+  transition={{ type: 'timing', duration: 200 }}
+/>
+```
+
+When `initial` is omitted, color slots seed with `'transparent'` — fine for fade-in, but pass an explicit `initial` color when animating between two opaque values to avoid the first frame flashing through transparent.
+
+**Out of scope for alpha:** layout transforms (`layout` / `layoutId`), SVG path morphing, gradient interpolation. Those land in later versions.
+
+---
+
+# Motion.View
+
+Animatable `View`. The default primitive — use it for boxes, surfaces, and anything that doesn't need to be `Text` / `Image` / scrolling / pressable.
+
+```tsx
+import { Motion } from '@onlynative/inertia'
+
+export function Card() {
+  return (
+    <Motion.View
+      initial={{ opacity: 0, translateY: 24 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'spring', tension: 200, friction: 18 }}
+      style={cardStyles.card}
+    />
+  )
+}
+```
+
+## Tree-shaken import
+
+```ts
+import { MotionView } from '@onlynative/inertia/view'
+```
+
+## Animatable keys
+
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`, `backgroundColor`, `borderColor`.
+
+## Notes
+
+- `transform` is composed automatically. Mixing transform keys (e.g. `translateX` + `scale`) into one `animate` object emits a single `transform` array — you don't write `transform: [...]` yourself.
+- `rotate` is a number, in degrees. The factory wraps it as `{ rotate: '${value}deg' }` for Reanimated.
+- `width` / `height` interpolation can jitter on Fabric for non-`flex: 1` containers. Prefer `scaleX` / `scaleY` for resize animations where layout impact is acceptable.
+
+---
+
+# Motion.Text
+
+Animatable `Text`. `animate` / `initial` / `exit` / `gesture` are typed against `TextStyle`.
+
+```tsx
+import { Motion } from '@onlynative/inertia'
+
+export function Heading({ visible }: { visible: boolean }) {
+  return (
+    <Motion.Text
+      initial={{ opacity: 0, translateY: 8 }}
+      animate={{ opacity: visible ? 1 : 0, translateY: visible ? 0 : 8 }}
+      transition={{ type: 'spring' }}
+      style={headingStyles.title}
+    >
+      Hello
+    </Motion.Text>
+  )
+}
+```
+
+## Tree-shaken import
+
+```ts
+import { MotionText } from '@onlynative/inertia/text'
+```
+
+## Animatable keys (alpha)
+
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `color`. `fontSize` interpolation is deferred — drop to a `useSharedValue` + `useAnimatedStyle` workflow if you need it today.
+
+```tsx
+<Motion.Text
+  initial={{ color: '#6b7280' }}
+  animate={{ color: pressed ? '#4f46e5' : '#6b7280' }}
+  transition={{ type: 'timing', duration: 150 }}
+>
+  Tap me
+</Motion.Text>
+```
+
+---
+
+# Motion.Image
+
+Animatable `Image`. `animate` / `initial` / `exit` / `gesture` are typed against `ImageStyle`, so `tintColor` autocompletes here (and is rejected on other primitives).
+
+```tsx
+import { Motion } from '@onlynative/inertia'
+
+export function Avatar({ source }: { source: { uri: string } }) {
+  return (
+    <Motion.Image
+      source={source}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{
+        opacity: { type: 'timing', duration: 200 },
+        scale: { type: 'spring', tension: 220, friction: 18 },
+      }}
+      style={avatarStyles.image}
+    />
+  )
+}
+```
+
+## Tree-shaken import
+
+```ts
+import { MotionImage } from '@onlynative/inertia/image'
+```
+
+## Animatable keys (alpha)
+
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `tintColor`.
+
+```tsx
+<Motion.Image
+  source={icon}
+  initial={{ tintColor: '#9ca3af' }}
+  animate={{ tintColor: active ? '#0a84ff' : '#9ca3af' }}
+  transition={{ type: 'timing', duration: 180 }}
+/>
+```
+
+---
+
+# Motion.Pressable
+
+Animatable `Pressable`. The `gesture.pressed` sub-state hooks directly into Pressable's `onPressIn` / `onPressOut`, picking up touch slop and accessibility semantics from React Native for free.
+
+```tsx
+import { Motion } from '@onlynative/inertia'
+
+export function PrimaryButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Motion.Pressable
+      onPress={onPress}
+      gesture={{
+        pressed: { scale: 0.96, opacity: 0.85 },
+        focused: { scale: 1.02 },
+      }}
+      transition={{ type: 'spring', tension: 320, friction: 22 }}
+      style={buttonStyles.button}
+    />
+  )
+}
+```
+
+## Tree-shaken import
+
+```ts
+import { MotionPressable } from '@onlynative/inertia/pressable'
+```
+
+## `style` must be a value, not a function
+
+This is the **#1 footgun** for users coming from RN's `Pressable` and the single most important thing to know about `Motion.Pressable`. RN's `Pressable` accepts a function-form `style={(state) => ...}` that re-runs on every press to derive styles from the press/focus/hover state. **`Motion.Pressable` silently drops the function form** — Reanimated's `createAnimatedComponent` wrapper does not invoke it, and you'll see no error.
+
+```tsx
+// ❌ Silently broken — the function is never called.
+<Motion.Pressable
+  style={({ pressed }) => [
+    styles.button,
+    pressed && styles.buttonPressed,
+  ]}
+/>
+
+// ✅ Drive press-state through `gesture` instead.
+<Motion.Pressable
+  style={styles.button}
+  gesture={{ pressed: { scale: 0.96, opacity: 0.85 } }}
+/>
+```
+
+This applies to `style` only. Plain values, arrays, and `StyleSheet.create` outputs all work as expected. If you genuinely need conditional styles that aren't animatable through `gesture`, compute them once in render and pass the resulting style array.
+
+## Notes
+
+- `gesture` is the only path. There is no separate "Moti-style" pressable variant; this is intentional.
+- `gesture.focused` works for any focusable Pressable (e.g. with `accessible` / TV / web keyboard focus). Native ignores it gracefully when the platform doesn't fire focus events.
+
+See the full [gestures](../gestures) page for sub-state priority and the prop's typing.
+
+---
+
+# Motion.ScrollView
+
+Animatable `ScrollView`. Animations apply to the scroll **container** itself — useful for entrance transforms, exit fades, or scaling the entire scrollable region.
+
+```tsx
+import { Motion } from '@onlynative/inertia'
+
+export function AnimatedFeed() {
+  return (
+    <Motion.ScrollView
+      initial={{ opacity: 0, translateY: 16 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 240 }}
+      contentContainerStyle={feedStyles.content}
+    >
+      {/* rows */}
+    </Motion.ScrollView>
+  )
+}
+```
+
+## Tree-shaken import
+
+```ts
+import { MotionScrollView } from '@onlynative/inertia/scroll-view'
+```
+
+## Notes
+
+- This animates the outer container. To drive animations from scroll position itself (parallax, sticky headers), the `useScroll` hook lands in the values layer post-alpha.
+- Per-row entrance animations belong on a `Motion.View` row inside the scroll view, not on the scroll view itself.
+
+---
+
+# Transitions
+
+A `transition` prop decides **how** an `animate` value reaches its target. The default is a spring tuned for everyday UI motion; durations, decay, and instant assignment are all opt-in.
+
+## Top-level vs per-property
+
+`transition` accepts either one config (applied to every animating key) or a per-property map. Per-property entries always win.
+
+```tsx
+// One config, applies to all animating keys
+<Motion.View animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'spring' }} />
+
+// Per-property — opacity uses timing, translateY uses spring
+<Motion.View
+  animate={{ opacity: 1, translateY: 0 }}
+  transition={{
+    opacity: { type: 'timing', duration: 200 },
+    translateY: { type: 'spring', tension: 180, friction: 12 },
+  }}
+/>
+```
+
+## Types
+
+### `'spring'` (default)
+
+react-spring vocabulary. The library converts to Reanimated under the hood — raw `stiffness` / `damping` never appear in the public API.
+
+```tsx
+transition={{
+  type: 'spring',
+  tension: 170,         // default
+  friction: 26,         // default
+  mass: 1,              // default
+  velocity: 0,
+  restSpeedThreshold: undefined,
+  restDisplacementThreshold: undefined,
+  delay: 0,
+  repeat: undefined,
+}}
+```
+
+#### Porting from raw Reanimated `stiffness` / `damping`
+
+The conversion is a **1:1 alias rename**, not a physics formula. If you have a Reanimated `withSpring` config tuned the way you want, port it by renaming two keys:
+
+| Reanimated raw | Inertia    |
+| -------------- | ---------- |
+| `stiffness`    | `tension`  |
+| `damping`      | `friction` |
+| `mass`         | `mass`     |
+
+So a Material Design 3 emphasized spring (`{ stiffness: 380, damping: 32, mass: 1 }`) ports as `{ type: 'spring', tension: 380, friction: 32, mass: 1 }`. No retuning, same perceptual result.
+
+### `'timing'`
+
+Duration-based interpolation. Useful for opacity fades and anything where physics feel wrong.
+
+```tsx
+transition={{
+  type: 'timing',
+  duration: 250,        // default
+  easing: Easing.inOut(Easing.ease),  // default
+  delay: 0,
+  repeat: undefined,
+}}
+```
+
+User-supplied `easing` functions are auto-wrapped as worklets at JS time, so plain functions work in nested-transition contexts (variants, sequences, per-property maps) without manual `'worklet'` directives. Easing fns must be pure — no captured JS-thread refs.
+
+### `'decay'`
+
+Velocity-driven decay (the gesture-flick model). Combine with `react-native-gesture-handler` to drive scroll-style flick momentum.
+
+```tsx
+transition={{
+  type: 'decay',
+  velocity: 800,
+  deceleration: 0.998,
+  clamp: [0, 600],
+}}
+```
+
+`decay` cannot be repeated — `repeat` is ignored on decay configs.
+
+### `'no-animation'`
+
+Skip interpolation entirely; jump to the target value. Equivalent to a direct shared-value assignment, but stays inside the transition shape so per-property overrides compose:
+
+```tsx
+transition={{
+  opacity: { type: 'timing', duration: 200 },
+  translateY: { type: 'no-animation' },
+}}
+```
+
+This is also what reduced-motion mode swaps every transition into. See [MotionConfig](./motion-config).
+
+## `delay`
+
+Available on every type except `'no-animation'`. Applied before the underlying animation runs:
+
+```tsx
+transition={{ type: 'spring', delay: 200 }}
+```
+
+## `repeat`
+
+A unified shape — one prop, no flags soup. See [sequences and repeat](./sequences#repeat) for the full table.
+
+## Defaults
+
+| Type   | Field      | Default                     |
+| ------ | ---------- | --------------------------- |
+| spring | `tension`  | `170`                       |
+| spring | `friction` | `26`                        |
+| spring | `mass`     | `1`                         |
+| timing | `duration` | `250`                       |
+| timing | `easing`   | `Easing.inOut(Easing.ease)` |
+
+If those defaults move, the source of truth is `packages/core/src/transitions/resolve.ts`.
+
+---
+
+# Sequences and repeat
+
+Per-property keyframes and looping live in two related shapes: arrays for sequence steps, and the unified `repeat` config on transitions.
+
+## Keyframes
+
+Pass an array as the value of any animatable key to step through frames in order:
+
+```tsx
+<Motion.View
+  animate={{
+    translateX: [0, 100, 0],
+    opacity: [0, 1],
+  }}
+/>
+```
+
+Each step inherits the transition that's in effect for that key. Sequences run on the UI thread without bouncing through JS.
+
+## Per-step transitions
+
+Replace any step with `{ to, ...transitionOverride }` to tune that step's physics independently:
+
+```tsx
+<Motion.View
+  animate={{
+    opacity: [
+      0,
+      { to: 1, type: 'spring', tension: 200 },
+      { to: 0, type: 'timing', duration: 300, delay: 500 },
+    ],
+  }}
+/>
+```
+
+We use `to` (not `value`) because steps describe a destination — "animate **to** this".
+
+## Repeat
+
+`repeat` lives on the transition, not on `animate`. One shape, no `loop` / `repeatReverse` cousins.
+
+| Form                                       | Meaning                                        |
+| ------------------------------------------ | ---------------------------------------------- |
+| `repeat: 3`                                | Run 3 iterations total, alternating direction. |
+| `repeat: 'infinite'`                       | Loop forever, alternating direction.           |
+| `repeat: { count: 3, alternate: false }`   | Full control. `alternate` defaults to `true`.  |
+| `repeat: { count: 'infinite', alternate }` | Endless with explicit alternate flag.          |
+
+```tsx
+<Motion.View
+  animate={{ translateX: [0, 80, 0] }}
+  transition={{ type: 'timing', duration: 600, repeat: 'infinite' }}
+/>
+```
+
+When applied to a sequence, repeat wraps the **whole sequence**, not each step. Per-step `repeat` overrides remain step-local — they apply only inside that step.
+
+`'no-animation'` and `'decay'` configs ignore `repeat`.
+
+## `onAnimationEnd`
+
+Sequence and repeat lifecycle is reported through one callback:
+
+```tsx
+<Motion.View
+  animate={{ translateX: [0, 100, 0] }}
+  transition={{ repeat: 2 }}
+  onAnimationEnd={({
+    key,
+    finished,
+    phase,
+    step,
+    iteration,
+    value,
+    target,
+  }) => {
+    // phase: 'step' | 'sequence' | 'repeat' | 'animation'
+    // step:  index in the keyframe array, undefined for non-sequences
+    // iteration: 0 on the first pass, 1 on the second, …
+  }}
+/>
+```
+
+| `phase`       | When it fires                                                         |
+| ------------- | --------------------------------------------------------------------- |
+| `'step'`      | A non-final step in a sequence settles.                               |
+| `'sequence'`  | Last step of a non-final iteration — the sequence is about to repeat. |
+| `'repeat'`    | A non-final iteration of a non-sequence animation completes.          |
+| `'animation'` | The terminal phase of the property — no more passes will run.         |
+
+Transform parents fire once per logical event, not once per axis. A `translateX` + `translateY` animation on the same primitive produces the callback shape you'd expect from "translate", not two duplicates — when the terminal `'animation'` phase fires for any transform key, `key` is reported as the sentinel `'transform'`. Mid-step events (`'step'` / `'sequence'` / `'repeat'`) still fire per-axis with the specific axis name (`'translateX'`, `'scale'`, etc.) since each step is its own logical event.
+
+---
+
+# Variants
+
+Named animation states. Define them once, then drive transitions by passing a key — no extra hook required for the common case.
+
+## Declarative
+
+```tsx
+import { Motion } from '@onlynative/inertia'
+
+const variants = {
+  closed: { translateY: 100, opacity: 0 },
+  open: { translateY: 0, opacity: 1 },
+} as const
+
+export function Sheet({ isOpen }: { isOpen: boolean }) {
+  return (
+    <Motion.View
+      variants={variants}
+      animate={isOpen ? 'open' : 'closed'}
+      transition={{ type: 'spring', tension: 220, friction: 22 }}
+      style={sheetStyles.sheet}
+    />
+  )
+}
+```
+
+Annotate the variants map with `as const` so variant keys autocomplete on `animate`.
+
+## Programmatic — `useVariants`
+
+For chaining, async transitions, or driving variants from non-React code (event handlers, gesture callbacks, network responses), build a controller with `useVariants` and pass it through the `controller` prop:
+
+```tsx
+import { Motion, useVariants } from '@onlynative/inertia'
+
+const variants = {
+  resting: { scale: 1, opacity: 1 },
+  loading: { scale: 0.96, opacity: 0.6 },
+  done: { scale: 1.04, opacity: 1 },
+} as const
+
+export function SaveButton() {
+  const controller = useVariants(variants, 'resting')
+
+  async function save() {
+    controller.transitionTo('loading')
+    await api.save()
+    controller.transitionTo('done')
+  }
+
+  return (
+    <Motion.Pressable
+      variants={variants}
+      controller={controller}
+      onPress={save}
+      transition={{ type: 'spring' }}
+      style={buttonStyles.button}
+    />
+  )
+}
+```
+
+`useVariants(variants, initial?)` returns a `{ current, transitionTo, subscribe }` controller. `current` is the active key; `transitionTo(next)` re-applies the matching variant on every subscribed Motion primitive.
+
+When both `controller` and `animate` are set on the same primitive, the controller wins. Don't mix them — the typed contract is "either drive imperatively or declaratively, not both".
+
+## Variant transitions
+
+`transition` resolves from the Motion primitive, not from each variant. A single transition on the wrapping primitive applies to every variant target:
+
+```tsx
+<Motion.View
+  variants={variants}
+  animate="open"
+  transition={{
+    opacity: { type: 'timing', duration: 200 },
+    translateY: { type: 'spring' },
+  }}
+/>
+```
+
+Per-variant transitions land in v0.2; today, switch the wrapping primitive's `transition` based on `current` if you need it.
+
+---
+
+# Gestures
+
+A single `gesture` prop on every Motion primitive — no `whileTap` / `whilePress` soup, no separate "pressable" variant. When the prop is omitted no handlers are mounted (zero overhead).
+
+```tsx
+<Motion.View
+  gesture={{
+    pressed: { scale: 0.96 },
+    hovered: { opacity: 0.9 },
+    focused: { opacity: 0.85 },
+    focusVisible: { borderColor: '#4f46e5' },
+  }}
+  transition={{ type: 'spring' }}
+/>
+```
+
+## Sub-states
+
+| Sub-state      | Active when                                                                                                                                                                      | Backed by                                                                                                      |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `pressed`      | A finger / pointer is on the component (touch start → end / cancel).                                                                                                             | `onTouchStart` / `End` / `Cancel`, plus `onPressIn` / `onPressOut` for `Motion.Pressable`.                     |
+| `focused`      | The component owns focus, regardless of how it arrived (mouse, touch, or keyboard).                                                                                              | `onFocus` / `onBlur`.                                                                                          |
+| `focusVisible` | Focus arrived from the keyboard (W3C `:focus-visible`). On native — where focus always arrives via D-pad / hardware keyboard / screen reader — behaves identically to `focused`. | `onFocus` + module-level input-modality tracker (web `keydown` vs `pointerdown` / `mousedown` / `touchstart`). |
+| `hovered`      | Pointer is over the component. **Web-only**, no-op on native.                                                                                                                    | `onMouseEnter` / `onMouseLeave`.                                                                               |
+
+Sub-states layer over the base `animate` target per-property. When a sub-state is released, the property animates back to whatever was set in `animate` (or to the property's default resting value if `animate` doesn't touch it).
+
+Use `focused` for state-layer fills (any focus, including click-focus on web) and `focusVisible` for focus rings (keyboard-only). Declaring both gives you the right behaviour automatically: clicking a button shows the state layer; tabbing to it shows the state layer **and** the ring.
+
+## Priority
+
+When multiple sub-states are active at once, they layer in this order — later wins:
+
+`hovered` < `focused` < `focusVisible` < `pressed`
+
+So a `pressed` value always wins over `focusVisible`, which wins over `focused`, which wins over `hovered`. `focusVisible` sits above `focused` so a keyboard-focused component picks up both layers; pointer-focused components only get `focused`.
+
+Sub-states stack as **single-state selection**, not blended interpolation: the highest-priority active key's value wins per-property, with one transition between target values. If you need true layered cross-fades — e.g. press blending over hover blending over focus during overlapping transitions — drop down to the hooks layer (`useMotionValue` / `useSpring`) and chain `interpolateColor` calls yourself.
+
+## Type inference
+
+`gesture` sub-states are typed against the same `style`-derived shape as `animate`. So `tintColor` autocompletes inside `gesture.pressed` on `Motion.Image` and is rejected on `Motion.View`.
+
+## Composing user handlers
+
+Inertia composes its internal handlers with whatever you've already attached:
+
+```tsx
+<Motion.Pressable
+  onPressIn={(event) => analytics.track('press', event)}
+  gesture={{ pressed: { scale: 0.96 } }}
+/>
+```
+
+Your `onPressIn` runs first, then the internal pressed-state setter. The same composition applies to every event the gesture prop subscribes to.
+
+---
+
+# Presence
+
+`<Presence>` keeps a child mounted long enough to play its `exit` animation when it's removed from the tree. Half the noise of `<AnimatePresence>`, same role.
+
+```tsx
+import { Motion, Presence } from '@onlynative/inertia'
+
+export function Toast({ visible }: { visible: boolean }) {
+  return (
+    <Presence>
+      {visible ? (
+        <Motion.View
+          key="toast"
+          initial={{ opacity: 0, translateY: 24 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          exit={{ opacity: 0, translateY: 24 }}
+          transition={{ type: 'spring', tension: 220, friction: 22 }}
+          style={toastStyles.toast}
+        />
+      ) : null}
+    </Presence>
+  )
+}
+```
+
+## How it works
+
+`Presence` snapshots children that disappear from its `children` array, holds them in place, and waits for each to finish its exit animation before unmounting. It uses Reanimated's `entering` / `exiting` lifecycle for the underlying frames.
+
+## Required: `key`
+
+Every direct child of `<Presence>` must have an explicit `key`. Without one, React falls back to positional identity and removal looks like a prop change — nothing to mark exiting. In dev, keyless children produce a warning and are skipped.
+
+## Tap-deaf exits
+
+The moment a child starts its exit animation, Inertia merges `pointerEvents: 'none'` onto its style. Taps fall through to whatever's underneath instead of re-triggering an about-to-unmount node. This is the "two clicks to re-open the popover" bug from the prior art — by design, you only need one.
+
+## Re-entry interrupts exit
+
+If a key reappears in `children` while it was exiting, the in-flight exit animation interrupts back toward the `animate` values. The component instance persists across the round trip — no remount, no flicker.
+
+## Multiple children
+
+`Presence` handles lists too:
+
+```tsx
+<Presence>
+  {items.map((item) => (
+    <Motion.View
+      key={item.id}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    />
+  ))}
+</Presence>
+```
+
+Each child's exit timing is independent — one row can finish exiting while another is still animating in.
+
+## What can be a child?
+
+Any component that consumes `usePresence()` and calls `safeToRemove()` when its exit completes. Every `Motion.*` primitive does this. Plain `View` / `Text` will linger in the snapshot once removed because nothing tells `Presence` they're done — pick a Motion primitive instead.
+
+## Accessing presence state
+
+Custom components can read presence state directly:
+
+```tsx
+import { usePresence } from '@onlynative/inertia'
+
+function MyExitable() {
+  const presence = usePresence()
+  // presence is null when no <Presence> ancestor exists
+  // presence?.isPresent flips false when the parent removes us
+  // presence?.safeToRemove() once the exit animation finishes
+}
+```
+
+---
+
+# MotionConfig
+
+A provider that gates how descendant Motion primitives respond to the OS reduce-motion accessibility setting.
+
+:::tip Free accessibility win for migrators
+Apps moving from hand-rolled `useSharedValue` + `useAnimatedStyle` to Inertia primitives pick up reduce-motion compliance automatically — every `Motion.*` component subscribes to the OS setting via [`useShouldReduceMotion()`](#reading-the-resolved-value) without any per-component plumbing. If you previously had no reduce-motion handling, you have it now.
+:::
+
+## Default — respect the OS
+
+By default (and without any provider in the tree), Inertia respects the OS reduce-motion setting. When the user enables it, every per-key transition is swapped for `'no-animation'` — values snap to their target instantly. Sequences still iterate, but each step settles immediately.
+
+```tsx
+import { MotionConfig } from '@onlynative/inertia'
+
+export function App() {
+  return <MotionConfig reducedMotion="user">{/* Your app */}</MotionConfig>
+}
+```
+
+`reducedMotion="user"` is the default value for the prop, so wrapping the root explicitly is mostly a documentation gesture — it's already what happens without a provider.
+
+## Modes
+
+| Value      | Behavior                                                                                     |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| `'user'`   | Defer to the OS accessibility setting. The right default for app-level wrappers.             |
+| `'never'`  | Animate regardless of the OS setting. Use sparingly — e.g. essential onboarding transitions. |
+| `'always'` | Never animate, regardless of OS setting. Useful for tests and snapshots.                     |
+
+## Scope
+
+`<MotionConfig>` is just a context provider. Wrap a subtree to override behavior locally:
+
+```tsx
+<MotionConfig reducedMotion="user">
+  <App />
+
+  <MotionConfig reducedMotion="never">
+    <CriticalOnboardingFlow />
+  </MotionConfig>
+</MotionConfig>
+```
+
+## Reading the resolved value
+
+Two hooks are available for components that want to react to the active mode:
+
+```tsx
+import { useMotionConfig, useShouldReduceMotion } from '@onlynative/inertia'
+
+function MyComponent() {
+  const { reducedMotion } = useMotionConfig()
+  const reduce = useShouldReduceMotion()
+  // reduce: boolean — already accounts for the OS setting when mode is 'user'
+}
+```
+
+`useShouldReduceMotion()` is what every Motion primitive uses internally. It subscribes to OS changes via Reanimated's `useReducedMotion()`, so toggling the accessibility setting at runtime re-renders subscribed primitives.
+
+---
+
+# Perf bench
+
+A manual harness for the Phase-3 acceptance bar:
+
+> A virtualized-list row using `Motion.Pressable` with a `gesture` prop matches a hand-rolled `Pressable + useAnimatedStyle` row within 5% on Android dropped-frames (the moti #322 / #336 bar).
+
+The example app's **Perf bench** screen renders 1000 list rows with a press-state scale animation. A toggle flips the row implementation between Inertia (`Motion.Pressable` + `gesture`) and a hand-rolled equivalent (`Pressable` + `useSharedValue` + `useAnimatedStyle` + `withSpring`). The spring physics are byte-identical so the only difference is which library drives the shared value.
+
+The harness uses React Native's built-in `FlatList` so it runs in Expo Go without a custom dev client. For the canonical moti #322 / #336 reproduction (the issues were against FlashList specifically), swap `FlatList` → `@shopify/flash-list`'s `FlashList` in [example/screens/PerfBenchScreen.tsx](https://github.com/onlynative/inertia/blob/main/example/screens/PerfBenchScreen.tsx) and run a custom dev client (`pnpm --filter @onlynative/inertia-example android`). Same row code; the list-virtualization tax is held constant across both row variants either way.
+
+## What "within 5%" means
+
+Run the same scroll motion on each variant on the same Android device. Read the dropped-frame count off PerfMonitor (or React Native's JS profiler) for the duration of the scroll. The Inertia variant's dropped-frame count should be **within 5%** of the hand-rolled one — i.e. `dropped_inertia <= dropped_handrolled * 1.05`.
+
+If Inertia regresses past 5%, the abstraction is leaking work onto the UI thread that the hand-rolled path avoids — that's a bug, not a tuning issue.
+
+## How to run
+
+1. **Real device.** Simulators don't reproduce the GPU/CPU pressure that surfaces frame drops. Use a mid-range Android (e.g. Pixel 6a or older). Plug into USB so React Native's PerfMonitor can attach.
+2. **Release build.** `pnpm --filter @onlynative/inertia-example android --variant release`. PerfMonitor numbers from the dev build are dominated by hot-reload and inspector overhead and won't track production behavior.
+3. **Open the screen.** Tap **Perf bench (FlashList)** on the example app's home.
+4. **Enable PerfMonitor.** Open the dev menu (shake / volume keys), enable "Perf Monitor". JS frame rate and UI frame rate appear as overlays.
+5. **First pass — Inertia.** With the toggle on **Inertia**, scroll fast for ~10 seconds. Note the JS dropped-frame count and the UI dropped-frame count.
+6. **Second pass — hand-rolled.** Toggle to **Hand-rolled**, scroll for ~10 seconds with the same motion. Note the same two counts.
+7. **Compare.**
+   - JS thread: should be near zero on both — neither variant runs JS per frame.
+   - UI thread: this is where the bar applies. Inertia's count must be within 5% of hand-rolled's.
+
+## What this harness deliberately doesn't do
+
+- **No automated 5% assertion.** Real frame measurement needs a device, not CI. The harness is the reproducible part; the comparison is human-driven.
+- **No JS-side proxy metrics.** `requestAnimationFrame` counts on the JS thread don't capture UI-thread drops, which is the actual bar. Adding a fake JS-side metric would give a false sense of CI coverage.
+- **No iOS run.** iOS rarely drops frames at this list size; the bar is Android-specific.
+
+## When the bar gets violated
+
+The two paths are:
+
+- **Inertia row** — `Motion.Pressable gesture={{ pressed: { scale: 0.96 } }} transition={{ type: 'spring', tension: 320, friction: 22 }}`.
+- **Hand-rolled row** — `Pressable` with manual `useSharedValue(0)` toggling, `useAnimatedStyle` reading `withSpring(1 - pressed.value * 0.04, { stiffness: 320, damping: 22 })`.
+
+If Inertia regresses, suspect (in this order):
+
+1. Worklet recreation per render — should be memoized via `mergedSig` / `transitionSig`. Re-check the [memoization regression test](https://github.com/onlynative/inertia/blob/main/packages/core/src/__tests__/memoization.test.tsx).
+2. Animated style cost — ensure the worklet body doesn't allocate per frame.
+3. Resolver cost — `resolveAnimatableValue` runs on the JS thread, but per-render not per-frame. Check the effect dep array.
+
+---
+
+# Hooks
+
+The escape-hatch surface — drop here when you need imperative control beyond what the props expose.
+
+## `useVariants(variants, initial?)`
+
+Build a controller for a variants map. Pass it through `controller={...}` to drive transitions imperatively.
+
+```ts
+import { useVariants } from '@onlynative/inertia'
+
+const variants = {
+  open: { opacity: 1, translateY: 0 },
+  closed: { opacity: 0, translateY: 100 },
+} as const
+
+const controller = useVariants(variants, 'closed')
+controller.transitionTo('open')
+console.log(controller.current) // 'open'
+```
+
+Returns `{ current, transitionTo, subscribe }`:
+
+| Field          | Type                               | Notes                                                            |
+| -------------- | ---------------------------------- | ---------------------------------------------------------------- |
+| `current`      | `keyof V & string`                 | Active variant key. Read-only — change it via `transitionTo`.    |
+| `transitionTo` | `(next: keyof V & string) => void` | No-op if `next === current`. Warns on unknown keys in dev.       |
+| `subscribe`    | `(listener) => () => void`         | Internal. Motion primitives subscribe via the `controller` prop. |
+
+The controller is identity-stable — the hook returns the same object across renders.
+
+See [Variants](../variants) for the props-side usage.
+
+## `useMotionConfig()`
+
+Read the active `<MotionConfig>` value:
+
+```ts
+import { useMotionConfig } from '@onlynative/inertia'
+
+const { reducedMotion } = useMotionConfig()
+// 'user' | 'never' | 'always'
+```
+
+Returns the default (`{ reducedMotion: 'user' }`) when no provider is in the tree.
+
+## `useShouldReduceMotion()`
+
+Resolve the active reduced-motion mode to a boolean. `'user'` consults Reanimated's OS-backed hook; `'never'` and `'always'` shortcut to `false` / `true`.
+
+```ts
+import { useShouldReduceMotion } from '@onlynative/inertia'
+
+function MyVideoIntro() {
+  const reduce = useShouldReduceMotion()
+  if (reduce) return <StaticPoster />
+  return <AnimatedIntro />
+}
+```
+
+This is what every Motion primitive uses to decide whether to swap transitions for `'no-animation'`. Subscribes to OS changes — components re-render when the user toggles the setting at runtime.
+
+## `usePresence()`
+
+Read the per-child presence context inside a custom component you'd like to behave like a Motion primitive under `<Presence>`:
+
+```ts
+import { usePresence } from '@onlynative/inertia'
+
+function CustomExitable() {
+  const presence = usePresence()
+  // presence is null when no <Presence> ancestor exists
+  // presence?.isPresent flips false when the parent removes us
+  // presence?.safeToRemove() — call once exit completes
+}
+```
+
+See [Presence](../presence) for the higher-level prop-driven usage.
+
+---
+
+# createMotionComponent
+
+Wrap any React component with the same Motion prop surface. The component's `style` prop type is inferred and flows through to `animate` / `initial` / `exit` / `gesture` — no shared union fallback, no need to specify the style type by hand.
+
+## Signature
+
+```ts
+function createMotionComponent<C extends ComponentType<any>>(
+  Component: C,
+): MotionComponent<C>
+```
+
+## Wrapping a third-party component
+
+Most third-party RN primitives can be animated as long as they forward `style` to a host node. For example, wrapping `expo-image`:
+
+```tsx
+import { Image } from 'expo-image'
+import { createMotionComponent } from '@onlynative/inertia'
+
+export const MotionExpoImage = createMotionComponent(Image)
+
+// `animate` is inferred from expo-image's `style` prop
+<MotionExpoImage
+  source={source}
+  initial={{ opacity: 0, scale: 0.95 }}
+  animate={{ opacity: 1, scale: 1 }}
+  transition={{ type: 'spring' }}
+/>
+```
+
+## Wrapping a styled component
+
+If you have a wrapper component that exposes `style`, the same applies:
+
+```tsx
+import { createMotionComponent } from '@onlynative/inertia'
+import { Card } from './Card'
+
+export const MotionCard = createMotionComponent(Card)
+```
+
+Inertia uses Reanimated's `createAnimatedComponent` internally, so the wrapped component must accept a `style` prop that ends up on a host element. Components that wrap their style multiple layers deep without forwarding may fail to animate — Reanimated needs a path to the host node.
+
+## What you get
+
+- `animate`, `initial`, `exit`, `transition`, `variants`, `controller`, `gesture`, `onAnimationEnd` — all the standard Motion props.
+- Per-component `style` inference: `tintColor` will autocomplete on a wrapped image but be rejected on a wrapped view.
+- The same memoization, sequence, and reduced-motion behavior every built-in `Motion.*` primitive enjoys.
+
+## Caveats
+
+- The function-style `style={(state) => ...}` Pressable form is not supported by the factory. Drive press-state styling through `gesture.pressed` instead.
+- Components that re-shape `style` before forwarding (e.g. transforming a string into a stylesheet ref) may not animate cleanly. Test with a single transform or opacity before relying on it for production.
