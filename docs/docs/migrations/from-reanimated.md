@@ -80,11 +80,25 @@ export function Button({ onPress, label }: Props) {
 
 Three shared values, one animated style, and six handler callbacks collapse into one `gesture` prop.
 
-### What you lose, and what to do about it
+### Layered blending preserves the cross-fade
 
-Inertia's `gesture` resolves to **single-state selection**: the highest-priority active sub-state's value wins, and one transition runs between targets. The chained-`interpolateColor` form above blends three independent values, so during overlapping transitions (release-while-still-hovered) you see a real cross-fade between layers.
+The chained-`interpolateColor` form above blends three independent layers so a release-while-still-hovered shows a real cross-fade. Inertia's `gesture` matches that semantically: each declared sub-state owns its own progress (0↔1) and the worklet composites layers in priority order (`hovered → focused → focusVisible → pressed`). When you release while still hovered, the press layer fades back to 0 independently — the hover layer stays at 1, so the value lands on the hover target rather than snapping back to base.
 
-For most state-layer cases the difference is invisible — sub-state transitions complete in 100–200 ms. Where it matters (long, slow MD3 emphasized fills with overlapping inputs), keep the chained-interpolate version and animate it with the [hooks layer](../api/hooks).
+To configure per-layer fade timing (MD3 spec uses ~50 ms in, ~150 ms out), pass per-state entries on `transition`:
+
+```tsx
+transition={{
+  backgroundColor: { type: 'timing', duration: 120 },
+  pressed:  { type: 'timing', duration: 50 },
+  hovered:  { type: 'timing', duration: 90 },
+}}
+```
+
+Without per-layer entries, layers inherit the top-level `transition` (or fall back to the library default spring).
+
+### `style` must be a value, not a function
+
+`Motion.Pressable` inherits Reanimated's `createAnimatedComponent` wrapper, which silently drops the function-form `style={({ pressed }) => ...}` that RN's `Pressable` accepts. Drive press/focus/hover styling through `gesture` (as above) or compute conditional styles once in render. See [primitives/pressable](../primitives/pressable#style-must-be-a-value-not-a-function) for the full caveat.
 
 ## Mount-on-appear (fade in, slide up)
 

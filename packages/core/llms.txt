@@ -62,10 +62,33 @@ Spring uses react-spring vocabulary (`tension`, `friction`, `mass`). Reanimated'
 ## Gestures
 
 ```tsx
-<Motion.View gesture={{ pressed: { scale: 0.96 }, focused: {...}, hovered: {...} }} />
+<Motion.View
+  gesture={{
+    hovered: { backgroundColor: '#0001' },
+    focused: { backgroundColor: '#0002' },
+    pressed: { backgroundColor: '#0003' },
+  }}
+  transition={{ type: 'timing', duration: 120 }}
+/>
 ```
 
-Sub-state priority: `hovered < focused < pressed`. `hovered` is a no-op on native.
+Sub-states layer **additively** in priority order: `hovered → focused → focusVisible → pressed`. Each declared sub-state owns an independent progress (0↔1) that fades in/out with its own transition; the worklet composites layers via `lerp` (numerics) / `interpolateColor` (colors). MD3 release-while-hovered behaves correctly — the press layer fades out without disturbing the hover layer.
+
+Per-layer transitions via `transition.<stateName>`:
+
+```tsx
+transition={{
+  pressed:  { type: 'timing', duration: 50 },
+  hovered:  { type: 'timing', duration: 90 },
+}}
+```
+
+`focusVisible` engages only on keyboard focus (W3C `:focus-visible`) so click-focus on web doesn't flash a ring; on native it tracks `focused`. `hovered` is a no-op on native.
+
+## Caveats
+
+- `Motion.Pressable` does **not** support function-form `style={({ pressed }) => ...}`. Reanimated's animated-component wrapper silently drops it. Drive press/focus/hover styling through `gesture` instead, or compute conditional styles once in render.
+- `initial` is read once on mount and intentionally non-reactive. To reset after a state change, change the component `key`, remount via `<Presence>`, or drive the value through a controller. Pass `initial={false}` to skip the initial-mount animation.
 
 ## Animatable properties (alpha)
 

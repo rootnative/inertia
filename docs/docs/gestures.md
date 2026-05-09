@@ -33,13 +33,45 @@ Use `focused` for state-layer fills (any focus, including click-focus on web) an
 
 ## Priority
 
-When multiple sub-states are active at once, they layer in this order — later wins:
+When multiple sub-states are active at once, they layer **additively** in this order — later layers composite over earlier ones:
 
-`hovered` < `focused` < `focusVisible` < `pressed`
+`hovered` → `focused` → `focusVisible` → `pressed`
 
-So a `pressed` value always wins over `focusVisible`, which wins over `focused`, which wins over `hovered`. `focusVisible` sits above `focused` so a keyboard-focused component picks up both layers; pointer-focused components only get `focused`.
+Each declared sub-state owns its own progress (0↔1) shared value that fades in when the sub-state activates and back out when it releases. The `useAnimatedStyle` worklet composites the layers per-property:
 
-Sub-states stack as **single-state selection**, not blended interpolation: the highest-priority active key's value wins per-property, with one transition between target values. If you need true layered cross-fades — e.g. press blending over hover blending over focus during overlapping transitions — drop down to the hooks layer (`useMotionValue` / `useSpring`) and chain `interpolateColor` calls yourself.
+```
+v = base
+v = lerp(v, hovered.value,      progressHovered)      // if declared
+v = lerp(v, focused.value,      progressFocused)      // if declared
+v = lerp(v, focusVisible.value, progressFocusVisible) // if declared
+v = lerp(v, pressed.value,      progressPressed)      // if declared
+```
+
+(Color-valued keys use `interpolateColor` instead of `lerp`.) When a single sub-state is active, this collapses to "highest-priority declared layer wins" — a `pressed` target overrides everything below it. The win of layered composition is in **overlapping transitions**: release-while-still-hovered fades the press layer back to 0 independently while the hover layer holds at 1, so the value lands on the hover target rather than snapping back to base.
+
+## Per-layer transitions
+
+Each layer animates with its own transition. Resolution priority:
+
+1. `transition.<stateName>` on the parent primitive (e.g. `transition.pressed`)
+2. The top-level `transition` (when written as a top-level transition object)
+3. Library default (spring)
+
+```tsx
+<Motion.Pressable
+  gesture={{
+    hovered: { backgroundColor: '#0001' },
+    pressed: { backgroundColor: '#0003' },
+  }}
+  transition={{
+    backgroundColor: { type: 'timing', duration: 120 },
+    pressed: { type: 'timing', duration: 50 }, // press fade-in / out
+    hovered: { type: 'timing', duration: 90 }, // hover fade-in / out
+  }}
+/>
+```
+
+Per-layer entries (`pressed`, `hovered`, …) and per-property entries (`backgroundColor`, `opacity`, …) live on the same `transition` map and don't conflict — none of the gesture-layer names are valid style props.
 
 ## Type inference
 
