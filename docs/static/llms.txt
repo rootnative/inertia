@@ -69,7 +69,11 @@ Sub-state priority: `hovered < focused < pressed`. `hovered` is a no-op on nativ
 
 ## Animatable properties (alpha)
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`. Color, layout, and SVG path morphing are not in alpha.
+Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`.
+
+Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Hex, `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors all work; the target string is forwarded straight through `withSpring` / `withTiming` and Reanimated handles RGBA interpolation natively.
+
+Layout (`layout` / `layoutId`) and SVG path morphing are not in alpha.
 
 ## Docs
 

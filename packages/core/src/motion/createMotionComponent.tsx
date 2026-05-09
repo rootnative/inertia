@@ -44,7 +44,28 @@ const TRANSFORM_KEYS = [
   'rotate',
 ] as const
 
-const TOP_LEVEL_KEYS = ['opacity', 'width', 'height', 'borderRadius'] as const
+const NUMERIC_TOP_LEVEL_KEYS = [
+  'opacity',
+  'width',
+  'height',
+  'borderRadius',
+] as const
+
+// Color-valued keys. Reanimated's value setter detects color strings and
+// interpolates between their packed RGBA representations natively in
+// `withSpring` / `withTiming` — so the resolver path is identical to numeric
+// keys; only the shared-value seed and the resting default differ.
+//
+// `tintColor` is Image-only, but allocated unconditionally here: the
+// per-primitive type system (`AnimateStyle<C>`) is what gates which keys
+// `animate` accepts at compile time. An unused shared value is a single ref;
+// allocating it everywhere keeps hook order stable and the factory generic.
+const COLOR_KEYS = [
+  'backgroundColor',
+  'borderColor',
+  'color',
+  'tintColor',
+] as const
 
 /**
  * Per-effect transform-group coordinator. Counts how many transform-axis
@@ -54,7 +75,11 @@ const TOP_LEVEL_KEYS = ['opacity', 'width', 'height', 'borderRadius'] as const
  */
 type TransformGroup = { remaining: number }
 
-const ALL_KEYS = [...TRANSFORM_KEYS, ...TOP_LEVEL_KEYS] as const
+const ALL_KEYS = [
+  ...TRANSFORM_KEYS,
+  ...NUMERIC_TOP_LEVEL_KEYS,
+  ...COLOR_KEYS,
+] as const
 type AnimatableKey = (typeof ALL_KEYS)[number]
 type TransformKey = (typeof TRANSFORM_KEYS)[number]
 
@@ -65,7 +90,7 @@ const TRANSFORM_KEY_SET = new Set<AnimatableKey>(TRANSFORM_KEYS)
 // Reanimated's style merging treats it as a no-op when present.
 const EXITING_POINTER_EVENTS_STYLE = { pointerEvents: 'none' } as const
 
-const DEFAULT_RESTING: Record<AnimatableKey, number> = {
+const DEFAULT_RESTING: Record<AnimatableKey, number | string> = {
   translateX: 0,
   translateY: 0,
   scale: 1,
@@ -76,6 +101,14 @@ const DEFAULT_RESTING: Record<AnimatableKey, number> = {
   width: 0,
   height: 0,
   borderRadius: 0,
+  // 'transparent' is the only safe universal default for colors: it works as
+  // an initial seed for any color animation (no jarring opaque flash on mount
+  // when `initial` is omitted) and rgba(0,0,0,0) interpolates cleanly into
+  // any opaque target via Reanimated's color util.
+  backgroundColor: 'transparent',
+  borderColor: 'transparent',
+  color: 'transparent',
+  tintColor: 'transparent',
 }
 
 const TRANSITION_KEYS = new Set([
@@ -117,10 +150,9 @@ function transitionFor<S>(
  * `exit` / `transition` all infer from `C`'s `style` prop. There is no
  * shared `ViewStyle & TextStyle & ImageStyle` fallback.
  *
- * Alpha scope: numeric properties listed in `ALL_KEYS`, applied via
- * Reanimated shared values + `useAnimatedStyle`. Sequences, variants,
- * gestures, color animation, and the cross-render memoization optimization
- * land in later phases.
+ * Alpha scope: numeric properties (transforms, opacity, width, height,
+ * borderRadius) and color properties (backgroundColor, borderColor, color,
+ * tintColor) applied via Reanimated shared values + `useAnimatedStyle`.
  */
 export function createMotionComponent<C extends ComponentType<any>>(
   Component: C,
@@ -176,14 +208,16 @@ export function createMotionComponent<C extends ComponentType<any>>(
     )
 
     const animateRecord = (resolvedAnimate ?? {}) as Partial<
-      Record<AnimatableKey, AnimatableValue<number>>
+      Record<AnimatableKey, AnimatableValue<number | string>>
     >
     const initialRecord =
       initial && initial !== false
-        ? (initial as Partial<Record<AnimatableKey, number>>)
+        ? (initial as Partial<Record<AnimatableKey, number | string>>)
         : undefined
     const exitRecord = exit
-      ? (exit as Partial<Record<AnimatableKey, AnimatableValue<number>>>)
+      ? (exit as Partial<
+          Record<AnimatableKey, AnimatableValue<number | string>>
+        >)
       : undefined
 
     // Gesture sub-state activation tracked as JS state so changes invalidate
@@ -406,7 +440,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
   return Motion as unknown as MotionComponent<C>
 }
 
-type SharedValueMap = Record<AnimatableKey, SharedValue<number>>
+type SharedValueMap = Record<AnimatableKey, SharedValue<number | string>>
 
 /**
  * Allocate one shared value per animatable key in `ALL_KEYS` and return a
@@ -422,21 +456,29 @@ type SharedValueMap = Record<AnimatableKey, SharedValue<number>>
  *
  * Hooks are called in a stable, lexical order — fine for rules-of-hooks.
  * Unused shared values are cheap; the worklet skips them via
- * `activeKeysRef`.
+ * `activeKeysRef`. Color keys are seeded with the initial color string so
+ * Reanimated's value setter recognizes the slot as a color from the first
+ * `withSpring` / `withTiming` call.
  */
 function useAnimatableSharedValues(
-  init: (key: AnimatableKey) => number,
+  init: (key: AnimatableKey) => number | string,
 ): SharedValueMap {
-  const translateX = useSharedValue(init('translateX'))
-  const translateY = useSharedValue(init('translateY'))
-  const scale = useSharedValue(init('scale'))
-  const scaleX = useSharedValue(init('scaleX'))
-  const scaleY = useSharedValue(init('scaleY'))
-  const rotate = useSharedValue(init('rotate'))
-  const opacity = useSharedValue(init('opacity'))
-  const width = useSharedValue(init('width'))
-  const height = useSharedValue(init('height'))
-  const borderRadius = useSharedValue(init('borderRadius'))
+  const translateX = useSharedValue<number | string>(init('translateX'))
+  const translateY = useSharedValue<number | string>(init('translateY'))
+  const scale = useSharedValue<number | string>(init('scale'))
+  const scaleX = useSharedValue<number | string>(init('scaleX'))
+  const scaleY = useSharedValue<number | string>(init('scaleY'))
+  const rotate = useSharedValue<number | string>(init('rotate'))
+  const opacity = useSharedValue<number | string>(init('opacity'))
+  const width = useSharedValue<number | string>(init('width'))
+  const height = useSharedValue<number | string>(init('height'))
+  const borderRadius = useSharedValue<number | string>(init('borderRadius'))
+  const backgroundColor = useSharedValue<number | string>(
+    init('backgroundColor'),
+  )
+  const borderColor = useSharedValue<number | string>(init('borderColor'))
+  const color = useSharedValue<number | string>(init('color'))
+  const tintColor = useSharedValue<number | string>(init('tintColor'))
 
   const ref = useRef<SharedValueMap | null>(null)
   if (ref.current === null) {
@@ -451,6 +493,10 @@ function useAnimatableSharedValues(
       width,
       height,
       borderRadius,
+      backgroundColor,
+      borderColor,
+      color,
+      tintColor,
     }
   }
   return ref.current
@@ -472,7 +518,7 @@ function useAnimatableSharedValues(
  */
 function makeKeyCallbackFactory(
   key: string,
-  sharedValue: SharedValue<number>,
+  sharedValue: SharedValue<number | string>,
   target: number | string | undefined,
   onAnimationEndRef: {
     current: ((info: AnimationCallbackInfo<unknown>) => void) | undefined
@@ -577,7 +623,7 @@ function makeKeyCallbackFactory(
  * Number of sequence steps in an animatable value. `1` for plain values and
  * single-step `{ to }` objects; the array length for keyframe arrays.
  */
-function stepCountOf(v: AnimatableValue<number> | undefined): number {
+function stepCountOf(v: AnimatableValue<number | string> | undefined): number {
   if (Array.isArray(v)) return v.length
   return 1
 }
@@ -605,13 +651,13 @@ function totalIterationsOf(cfg: TransitionConfig | undefined): number {
  * objects use `to`. Returns `undefined` for unrecognized shapes.
  */
 function targetEndValue(
-  v: AnimatableValue<number> | undefined,
+  v: AnimatableValue<number | string> | undefined,
 ): number | string | undefined {
   if (v === undefined) return undefined
   if (typeof v === 'number' || typeof v === 'string') return v
   if (Array.isArray(v)) {
     return v.length > 0
-      ? targetEndValue(v[v.length - 1] as AnimatableValue<number>)
+      ? targetEndValue(v[v.length - 1] as AnimatableValue<number | string>)
       : undefined
   }
   if (typeof v === 'object' && v !== null && 'to' in v) {
@@ -667,20 +713,24 @@ function resolveAnimateInput(
 declare const __DEV__: boolean
 
 /**
- * Pick the resting/initial-frame number out of an `AnimatableValue`. Plain
- * numbers come through unchanged; sequence arrays use their first element;
- * `{ to }` step objects use `to`. Non-numeric or unresolvable shapes return
+ * Pick the resting/initial-frame value out of an `AnimatableValue`. Plain
+ * numbers and color strings come through unchanged; sequence arrays use their
+ * first element; `{ to }` step objects use `to`. Unresolvable shapes return
  * `undefined` so the caller can fall back to `DEFAULT_RESTING`.
  */
-function restValue(v: AnimatableValue<number> | undefined): number | undefined {
+function restValue(
+  v: AnimatableValue<number | string> | undefined,
+): number | string | undefined {
   if (v === undefined) return undefined
-  if (typeof v === 'number') return v
+  if (typeof v === 'number' || typeof v === 'string') return v
   if (Array.isArray(v)) {
-    return v.length > 0 ? restValue(v[0] as AnimatableValue<number>) : undefined
+    return v.length > 0
+      ? restValue(v[0] as AnimatableValue<number | string>)
+      : undefined
   }
   if (typeof v === 'object' && v !== null && 'to' in v) {
     const to = (v as { to: unknown }).to
-    return typeof to === 'number' ? to : undefined
+    return typeof to === 'number' || typeof to === 'string' ? to : undefined
   }
   return undefined
 }
@@ -728,7 +778,7 @@ function stableStringify(v: unknown): string {
  * `hovered` < `focused` < `focusVisible` < `pressed`.
  */
 function mergeGestureTargets(
-  base: Partial<Record<AnimatableKey, AnimatableValue<number>>>,
+  base: Partial<Record<AnimatableKey, AnimatableValue<number | string>>>,
   gesture: GestureSubStates<unknown> | undefined,
   active: {
     pressed: boolean
@@ -736,9 +786,11 @@ function mergeGestureTargets(
     focusVisible: boolean
     hovered: boolean
   },
-): Partial<Record<AnimatableKey, AnimatableValue<number>>> {
+): Partial<Record<AnimatableKey, AnimatableValue<number | string>>> {
   if (!gesture) return base
-  const merged: Partial<Record<AnimatableKey, AnimatableValue<number>>> = {
+  const merged: Partial<
+    Record<AnimatableKey, AnimatableValue<number | string>>
+  > = {
     ...base,
   }
   const subStates = [
@@ -747,7 +799,7 @@ function mergeGestureTargets(
     gesture.focusVisible,
     gesture.pressed,
   ] as Array<
-    Partial<Record<AnimatableKey, AnimatableValue<number>>> | undefined
+    Partial<Record<AnimatableKey, AnimatableValue<number | string>>> | undefined
   >
   for (const sub of subStates) {
     if (!sub) continue
@@ -761,7 +813,7 @@ function mergeGestureTargets(
     Object.assign(
       merged,
       gesture.hovered as Partial<
-        Record<AnimatableKey, AnimatableValue<number>>
+        Record<AnimatableKey, AnimatableValue<number | string>>
       >,
     )
   }
@@ -769,7 +821,7 @@ function mergeGestureTargets(
     Object.assign(
       merged,
       gesture.focused as Partial<
-        Record<AnimatableKey, AnimatableValue<number>>
+        Record<AnimatableKey, AnimatableValue<number | string>>
       >,
     )
   }
@@ -777,7 +829,7 @@ function mergeGestureTargets(
     Object.assign(
       merged,
       gesture.focusVisible as Partial<
-        Record<AnimatableKey, AnimatableValue<number>>
+        Record<AnimatableKey, AnimatableValue<number | string>>
       >,
     )
   }
@@ -785,7 +837,7 @@ function mergeGestureTargets(
     Object.assign(
       merged,
       gesture.pressed as Partial<
-        Record<AnimatableKey, AnimatableValue<number>>
+        Record<AnimatableKey, AnimatableValue<number | string>>
       >,
     )
   }

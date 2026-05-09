@@ -31,4 +31,14 @@ import { MotionText } from '@onlynative/inertia/text'
 
 ## Animatable keys (alpha)
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`. `color` and `fontSize` interpolation are deferred — drop to a `useSharedValue` + `useAnimatedStyle` workflow if you need them today.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `color`. `fontSize` interpolation is deferred — drop to a `useSharedValue` + `useAnimatedStyle` workflow if you need it today.
+
+```tsx
+<Motion.Text
+  initial={{ color: '#6b7280' }}
+  animate={{ color: pressed ? '#4f46e5' : '#6b7280' }}
+  transition={{ type: 'timing', duration: 150 }}
+>
+  Tap me
+</Motion.Text>
+```

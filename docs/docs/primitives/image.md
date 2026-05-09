@@ -33,4 +33,13 @@ import { MotionImage } from '@onlynative/inertia/image'
 
 ## Animatable keys (alpha)
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`. `tintColor` is in the typed surface for forward-compatibility but interpolation lands with the color phase of v0.1.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `tintColor`.
+
+```tsx
+<Motion.Image
+  source={icon}
+  initial={{ tintColor: '#9ca3af' }}
+  animate={{ tintColor: active ? '#0a84ff' : '#9ca3af' }}
+  transition={{ type: 'timing', duration: 180 }}
+/>
+```

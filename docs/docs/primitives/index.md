@@ -29,6 +29,20 @@ Wrap any component with `createMotionComponent(C)` to get the same prop surface 
 
 ## Animatable properties (alpha)
 
-The Phase-1 alpha supports the numeric properties below across every primitive that accepts them. Color and layout interpolation land in v0.1's later phases.
+The alpha supports the properties below across every primitive that accepts them.
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`.
+**Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`.
+
+**Color:** `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Any color string Reanimated recognizes works — hex (`'#4f46e5'`, `'#fff'`), `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors including `'transparent'`. The target is forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
+
+```tsx
+<Motion.View
+  initial={{ backgroundColor: 'transparent' }}
+  animate={{ backgroundColor: '#4f46e5' }}
+  transition={{ type: 'timing', duration: 200 }}
+/>
+```
+
+When `initial` is omitted, color slots seed with `'transparent'` — fine for fade-in, but pass an explicit `initial` color when animating between two opaque values to avoid the first frame flashing through transparent.
+
+**Out of scope for alpha:** layout transforms (`layout` / `layoutId`), SVG path morphing, gradient interpolation. Those land in later versions.

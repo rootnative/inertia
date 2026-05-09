@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
+import { ColorScreen } from './screens/ColorScreen'
 import { DecayScreen } from './screens/DecayScreen'
 import { DragScreen } from './screens/DragScreen'
 import { GestureScreen } from './screens/GestureScreen'
@@ -22,6 +23,7 @@ type Route =
   | 'view'
   | 'text'
   | 'image'
+  | 'color'
   | 'variants'
   | 'sequence'
   | 'decay'
@@ -40,6 +42,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'view',
   'text',
   'image',
+  'color',
   'variants',
   'sequence',
   'decay',
@@ -71,6 +74,7 @@ export default function App() {
   if (route === 'view') return <ViewScreen onBack={goHome} />
   if (route === 'text') return <TextScreen onBack={goHome} />
   if (route === 'image') return <ImageScreen onBack={goHome} />
+  if (route === 'color') return <ColorScreen onBack={goHome} />
   if (route === 'variants') return <VariantsScreen onBack={goHome} />
   if (route === 'sequence') return <SequenceScreen onBack={goHome} />
   if (route === 'decay') return <DecayScreen onBack={goHome} />
@@ -96,6 +100,9 @@ export default function App() {
       </Pressable>
       <Pressable onPress={() => setRoute('image')} style={styles.link}>
         <Text style={styles.linkLabel}>Motion.Image</Text>
+      </Pressable>
+      <Pressable onPress={() => setRoute('color')} style={styles.link}>
+        <Text style={styles.linkLabel}>Color</Text>
       </Pressable>
       <Pressable onPress={() => setRoute('variants')} style={styles.link}>
         <Text style={styles.linkLabel}>Variants</Text>

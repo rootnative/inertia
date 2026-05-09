@@ -128,3 +128,38 @@ describe('no-animation', () => {
     expect(cb).toHaveBeenCalledWith(true, 42)
   })
 })
+
+describe('color passthrough', () => {
+  // Reanimated 3+ recognizes color strings inside `withSpring` / `withTiming`
+  // and interpolates between their packed RGBA representations on the UI
+  // thread. The resolver's job is just to forward the string unchanged — no
+  // hex parsing, no `interpolateColor`, no special branch. These tests guard
+  // that contract so a future "helpful" cast back to `number` doesn't quietly
+  // break color animations on every state-layer component.
+  it('forwards a color string straight through withSpring', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    resolveTransition({ type: 'spring' }, '#ff0000')
+    expect(withSpring).toHaveBeenCalledWith(
+      '#ff0000',
+      expect.any(Object),
+      undefined,
+    )
+  })
+
+  it('forwards a color string straight through withTiming', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    resolveTransition({ type: 'timing', duration: 200 }, 'rgba(79, 70, 229, 1)')
+    expect(withTiming).toHaveBeenCalledWith(
+      'rgba(79, 70, 229, 1)',
+      expect.objectContaining({ duration: 200 }),
+      undefined,
+    )
+  })
+
+  it('no-animation returns the color string and fires the callback', () => {
+    const cb = jest.fn()
+    const result = resolveTransition({ type: 'no-animation' }, '#4f46e5', cb)
+    expect(result).toBe('#4f46e5')
+    expect(cb).toHaveBeenCalledWith(true, '#4f46e5')
+  })
+})

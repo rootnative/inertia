@@ -29,7 +29,7 @@ import { MotionView } from '@onlynative/inertia/view'
 
 ## Animatable keys
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`, `backgroundColor`, `borderColor`.
 
 ## Notes
 

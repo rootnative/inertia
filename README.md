@@ -85,7 +85,7 @@ See the [docs](https://onlynative.github.io/inertia/) for sequences, variants, g
 
 Plus, on any transition: `delay`, `repeat` (`number | 'infinite' | { count, alternate }`). Per-property transitions take precedence over the top-level transition.
 
-**Animatable properties** — `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `backgroundColor`, `borderRadius`, `width`, `height`. Out of scope for `v0.1`: SVG path morphing, gradient interpolation, shared-element transitions across screens.
+**Animatable properties** — numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter handles RGBA interpolation natively. Out of scope for `v0.1`: SVG path morphing, gradient interpolation, shared-element transitions across screens.
 
 ## When _not_ to use Inertia
 

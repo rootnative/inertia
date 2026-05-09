@@ -73,7 +73,7 @@ Plus, on any transition: `delay`, `repeat`. Per-property transitions take preced
 
 ## Animatable properties
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `backgroundColor`, `borderRadius`, `width`, `height`. Layout transforms via `transform: [...]`. Color interpolation uses Reanimated's color utilities.
+Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only — `Motion.View` rejects it at compile time). Layout transforms via `transform: [...]`. Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
 
 Out of scope for `0.x`: SVG path morphing, gradient interpolation, shared-element transitions across screens.
 
