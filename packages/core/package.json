@@ -1,6 +1,6 @@
 {
   "name": "@onlynative/inertia",
-  "version": "0.0.1-alpha.2",
+  "version": "0.0.1-alpha.3",
   "description": "Declarative animation primitives for React Native, built on react-native-reanimated.",
   "license": "MIT",
   "author": "OnlyNative",
