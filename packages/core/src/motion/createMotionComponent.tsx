@@ -17,6 +17,7 @@ import { useShouldReduceMotion } from '../config'
 import { isFocusVisible } from '../gestures'
 import { usePresence } from '../presence'
 import { resolveAnimatableValue, resolveTransition } from '../transitions'
+import { ensureReanimatedInstalled } from './installCheck'
 import {
   type AnimatableValue,
   type AnimateStyle,
@@ -184,6 +185,8 @@ function gestureLayerTransitionFor<S>(
 export function createMotionComponent<C extends ComponentType<any>>(
   Component: C,
 ): MotionComponent<C> {
+  ensureReanimatedInstalled()
+
   const AnimatedComponent = Animated.createAnimatedComponent(
     Component as ComponentType<any>,
   )
