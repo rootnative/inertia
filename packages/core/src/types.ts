@@ -75,7 +75,25 @@ export type PerPropertyTransition<S> = {
   [K in keyof S]?: TransitionConfig
 }
 
-export type Transition<S> = TransitionConfig | PerPropertyTransition<S>
+/**
+ * Per-gesture-layer transition map. Each `gesture` sub-state animates a
+ * progress value 0↔1 with its own transition; the worklet composites the
+ * layers in priority order (`hovered → focused → focusVisible → pressed`).
+ *
+ * Keys live on the same `transition` object as `PerPropertyTransition` because
+ * the only other place they could go (nested inside `gesture` itself) would
+ * collide with the primitive's inferred style keys.
+ */
+export interface GestureLayerTransitions {
+  pressed?: TransitionConfig
+  focused?: TransitionConfig
+  focusVisible?: TransitionConfig
+  hovered?: TransitionConfig
+}
+
+export type Transition<S> =
+  | TransitionConfig
+  | (PerPropertyTransition<S> & GestureLayerTransitions)
 
 /**
  * The animation state shape inferred from the underlying component's style
@@ -124,18 +142,26 @@ export type VariantsMap<C> = Record<string, AnimateStyle<C>>
  * - `hovered` — web-only. Typed for cross-platform call sites; the runtime is
  *   a no-op on native.
  *
- * When a sub-state is active, its values override the base `animate` target
- * per-property. Priority on overlap (highest first):
- * `pressed` > `focusVisible` > `focused` > `hovered`. `focusVisible` layers
- * above `focused` so declaring both yields a state-layer on any focus and a
- * ring on keyboard focus only.
+ * Sub-states layer additively. Each declared sub-state owns an independent
+ * progress value (0↔1) that animates in/out with its own transition; the
+ * worklet composites layers in priority order (lowest-to-highest):
+ * `hovered → focused → focusVisible → pressed`. Per-property the chain is
  *
- * Sub-states stack as **single-state selection**, not blended interpolation:
- * the highest-priority active key's value wins per-property, with one
- * transition between target values. Mid-transition cross-fades between
- * sub-states (e.g. release-while-still-hovered) follow the standard `transition`
- * for that property — the resolver does not run multiple parallel
- * interpolations the way a hand-rolled chained-`interpolateColor` would.
+ *   v = base
+ *   v = lerp(v, hovered.value,      progressHovered)      // if declared
+ *   v = lerp(v, focused.value,      progressFocused)      // if declared
+ *   v = lerp(v, focusVisible.value, progressFocusVisible) // if declared
+ *   v = lerp(v, pressed.value,      progressPressed)      // if declared
+ *
+ * (Color-valued keys use `interpolateColor` instead of `lerp`.) When a single
+ * sub-state is active, this collapses to "the highest-priority declared layer
+ * wins". When multiple are mid-transition (e.g. release-while-still-hovered)
+ * each layer fades independently — a press layer fading out at 50ms while a
+ * hover layer holds at full opacity matches MD3 state-layer semantics.
+ *
+ * Configure per-layer fade timing via `transition.<stateName>` on the parent
+ * primitive (see `GestureLayerTransitions`); without it, layers default to
+ * the parent transition or the library default spring.
  */
 export interface GestureSubStates<C> {
   pressed?: AnimateStyle<C>
@@ -193,10 +219,11 @@ export interface MotionProps<C> {
    */
   controller?: VariantController
   /**
-   * Gesture-driven sub-states (`pressed`, `focused`, `hovered`). When omitted,
-   * no handlers are mounted on the underlying component. Sub-state values
-   * merge over `animate` per-property while the corresponding gesture is
-   * active.
+   * Gesture-driven sub-states (`pressed`, `focused`, `focusVisible`,
+   * `hovered`). When omitted, no handlers are mounted on the underlying
+   * component. Each declared sub-state animates as an independent layer
+   * fading in/out over the base `animate` target — see `GestureSubStates`
+   * for the composition model and per-layer transition wiring.
    */
   gesture?: GestureSubStates<C>
   /**

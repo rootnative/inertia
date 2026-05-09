@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react'
 import Animated, {
+  interpolateColor,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -15,11 +16,12 @@ import Animated, {
 import { useShouldReduceMotion } from '../config'
 import { isFocusVisible } from '../gestures'
 import { usePresence } from '../presence'
-import { resolveAnimatableValue } from '../transitions'
+import { resolveAnimatableValue, resolveTransition } from '../transitions'
 import {
   type AnimatableValue,
   type AnimateStyle,
   type AnimationCallbackInfo,
+  type GestureLayerTransitions,
   type GestureSubStates,
   type MotionComponent,
   type MotionProps,
@@ -84,6 +86,16 @@ type AnimatableKey = (typeof ALL_KEYS)[number]
 type TransformKey = (typeof TRANSFORM_KEYS)[number]
 
 const TRANSFORM_KEY_SET = new Set<AnimatableKey>(TRANSFORM_KEYS)
+const COLOR_KEY_SET = new Set<AnimatableKey>(COLOR_KEYS)
+
+const GESTURE_LAYER_NAMES = [
+  'hovered',
+  'focused',
+  'focusVisible',
+  'pressed',
+] as const
+type GestureLayerName = (typeof GESTURE_LAYER_NAMES)[number]
+const GESTURE_LAYER_NAME_SET = new Set<string>(GESTURE_LAYER_NAMES)
 
 // Stable style object applied while a Motion primitive is mid-exit so taps
 // fall through. Hoisted so every render shares the same reference and
@@ -140,7 +152,22 @@ function transitionFor<S>(
 ): TransitionConfig | undefined {
   if (!transition) return undefined
   if (isTopLevelTransition(transition)) return transition
+  // Gesture-layer keys (`pressed`, `hovered`, …) live on the same map as
+  // per-property keys; skip them when looking up a property transition so a
+  // user who wires `transition.pressed` doesn't accidentally apply that to a
+  // style key named `pressed` (none currently exist, but keep the lookup
+  // honest).
+  if (GESTURE_LAYER_NAME_SET.has(prop as string)) return undefined
   return (transition as PerPropertyTransition<S>)[prop]
+}
+
+function gestureLayerTransitionFor<S>(
+  layer: GestureLayerName,
+  transition: Transition<S> | undefined,
+): TransitionConfig | undefined {
+  if (!transition) return undefined
+  if (isTopLevelTransition(transition)) return transition
+  return (transition as GestureLayerTransitions)[layer]
 }
 
 /**
@@ -220,10 +247,10 @@ export function createMotionComponent<C extends ComponentType<any>>(
         >)
       : undefined
 
-    // Gesture sub-state activation tracked as JS state so changes invalidate
-    // the merged-target signature and re-run the animation effect. The cost
-    // is four useState slots regardless of whether `gesture` is set; that's
-    // tiny and lets us stay rules-of-hooks-clean.
+    // Gesture sub-state activation tracked as JS state. Activation flips drive
+    // the per-layer progress shared values (0↔1); they intentionally do NOT
+    // re-run the value-driving effect — gesture sub-state targets live on the
+    // worklet's composition chain, not on the base `animate` SV.
     const [pressed, setPressed] = useState(false)
     const [focused, setFocused] = useState(false)
     const [focusVisible, setFocusVisible] = useState(false)
@@ -233,7 +260,8 @@ export function createMotionComponent<C extends ComponentType<any>>(
     // variants in play the union across all variants is what matters — a key
     // touched by any variant must be active so the worklet picks it up when
     // the controller transitions. Gesture sub-states join the same union so
-    // pressed/focused/hovered targets can drive any key they declare.
+    // pressed/focused/focusVisible/hovered targets can drive any key they
+    // declare even when the base `animate` doesn't touch it.
     const activeKeysRef = useRef<readonly AnimatableKey[] | null>(null)
     if (activeKeysRef.current === null) {
       const touched = new Set<AnimatableKey>()
@@ -285,24 +313,46 @@ export function createMotionComponent<C extends ComponentType<any>>(
       )
     })
 
-    // Merge gesture sub-state targets over the base `animate` record. Keys
-    // touched by any sub-state always appear in the merged record (falling
-    // back to `animateRecord` or `DEFAULT_RESTING`) so releasing a gesture
-    // animates back to a defined value rather than getting skipped.
+    // One progress SV per gesture layer, allocated unconditionally for hook
+    // stability. Each layer's progress animates 0↔1 with its own transition
+    // when its activation flips; the worklet reads them when compositing.
+    // Initial value is 0 — even if a sub-state is somehow active on mount,
+    // the activation effect below will animate it to 1 on the next tick.
+    const pressedProgress = useSharedValue(0)
+    const focusedProgress = useSharedValue(0)
+    const focusVisibleProgress = useSharedValue(0)
+    const hoveredProgress = useSharedValue(0)
+
+    // Mirror gesture targets into a UI-runtime-resident shared value so the
+    // animated-style worklet can read the latest layer values without having
+    // to capture `gesture` directly (which would re-register the worklet on
+    // every render where the consumer passes a fresh literal). The signature
+    // dependency means we only push to the SV when targets actually change —
+    // the SV ref itself is stable across renders.
     //
-    // While exiting, exit values override everything — gesture / animate
-    // targets are inert because the component is on its way out.
-    const mergedRecord =
+    // The resolved value is a layer-keyed map of primitive endpoints (numbers
+    // or color strings); sequence/`{ to }` step shapes on a sub-state collapse
+    // to their final endpoint via `targetEndValue` because a gesture layer
+    // describes a steady target, not a keyframe sequence.
+    const gestureSV = useSharedValue<ResolvedGestureLayers | null>(
+      resolveGestureLayers(gesture),
+    )
+    const gestureTargetsSig = stableSig(gesture)
+    useEffect(() => {
+      gestureSV.value = resolveGestureLayers(gesture)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [gestureTargetsSig])
+
+    // The base record drives the per-key shared values. Gesture sub-state
+    // targets are intentionally NOT merged here — they layer on top in the
+    // worklet. Exit values still take precedence over `animate` while exiting
+    // because the base SV is what <Presence> waits on to settle.
+    const baseRecord =
       isExiting && exitRecord
         ? { ...animateRecord, ...exitRecord }
-        : mergeGestureTargets(animateRecord, gesture, {
-            pressed,
-            focused,
-            focusVisible,
-            hovered,
-          })
-    const mergedSig =
-      stableSig(mergedRecord) +
+        : animateRecord
+    const baseSig =
+      stableSig(baseRecord) +
       (isExiting ? '|exit' : '') +
       (shouldReduceMotion ? '|rm' : '')
     const transitionSig = stableSig(transition)
@@ -337,7 +387,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
       // the factory skip the coalescing branch entirely.
       let transformPending = 0
       for (const k of ALL_KEYS) {
-        if (TRANSFORM_KEY_SET.has(k) && mergedRecord[k] !== undefined) {
+        if (TRANSFORM_KEY_SET.has(k) && baseRecord[k] !== undefined) {
           transformPending++
         }
       }
@@ -345,7 +395,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
         transformPending > 0 ? { remaining: transformPending } : undefined
 
       for (const key of ALL_KEYS) {
-        const target = mergedRecord[key]
+        const target = baseRecord[key]
         if (target === undefined) continue
         // Reduced-motion overrides every per-key transition (and any nested
         // sequence-step transition) with `no-animation`, which the resolver
@@ -382,15 +432,117 @@ export function createMotionComponent<C extends ComponentType<any>>(
         safeToRemoveRef.current?.()
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mergedSig, transitionSig])
+    }, [baseSig, transitionSig])
+
+    // Per-layer progress: when a sub-state activation flips, animate its
+    // progress SV 0↔1 with the layer's own transition (or the parent
+    // transition / library default, in priority order). On exit we snap every
+    // layer to 0 instantly so the unmount-bound base SV isn't fighting a
+    // stale layer contribution mid-fade.
+    //
+    // The `declared` flag short-circuits the effect when the consumer hasn't
+    // wired the corresponding sub-state — so a Motion primitive without a
+    // `gesture` prop (or with only some sub-states declared) makes zero extra
+    // `withSpring` / `withTiming` calls on mount.
+    useGestureLayerProgress(
+      pressedProgress,
+      pressed,
+      gesture?.pressed != null,
+      'pressed',
+      transition,
+      isExiting,
+      shouldReduceMotion,
+    )
+    useGestureLayerProgress(
+      focusedProgress,
+      focused,
+      gesture?.focused != null,
+      'focused',
+      transition,
+      isExiting,
+      shouldReduceMotion,
+    )
+    useGestureLayerProgress(
+      focusVisibleProgress,
+      focusVisible,
+      gesture?.focusVisible != null,
+      'focusVisible',
+      transition,
+      isExiting,
+      shouldReduceMotion,
+    )
+    useGestureLayerProgress(
+      hoveredProgress,
+      hovered,
+      gesture?.hovered != null,
+      'hovered',
+      transition,
+      isExiting,
+      shouldReduceMotion,
+    )
 
     const animatedStyle = useAnimatedStyle(() => {
       const activeKeys = activeKeysRef.current!
       const hasTransform = hasTransformRef.current
       const out: Record<string, unknown> = {}
       const transform: Array<Record<string, unknown>> = []
+
+      // Read each progress SV exactly once so the chain below sees a coherent
+      // snapshot for this frame. Reading them on the UI thread is cheap.
+      const ph = hoveredProgress.value
+      const pf = focusedProgress.value
+      const pfv = focusVisibleProgress.value
+      const pp = pressedProgress.value
+
+      const layers = gestureSV.value
+      // Locals are suffixed `Layer` so they don't shadow the outer `pressed` /
+      // `focused` / `focusVisible` / `hovered` JS-state booleans — Reanimated's
+      // worklet closure tracker would otherwise pick those up as captured
+      // dependencies and re-register the worklet on every activation flip.
+      const hoveredLayer = layers ? layers.hovered : null
+      const focusedLayer = layers ? layers.focused : null
+      const focusVisibleLayer = layers ? layers.focusVisible : null
+      const pressedLayer = layers ? layers.pressed : null
+
       for (const key of activeKeys) {
-        const v = sharedValues[key].value
+        let v = sharedValues[key].value
+        const isColor = COLOR_KEY_SET.has(key)
+
+        // Composite gesture layers in priority order (lowest first). Each
+        // active layer pulls the value toward its pre-resolved primitive
+        // endpoint by `progress`; numeric keys lerp, color keys go through
+        // Reanimated's RGBA `interpolateColor`. We skip layers with progress
+        // 0 to avoid an `interpolateColor(0, ...)` call that would parse the
+        // target color string for no visible effect.
+        if (hoveredLayer && ph > 0 && hoveredLayer[key] !== undefined) {
+          const t = hoveredLayer[key]
+          v = isColor
+            ? interpolateColor(ph, [0, 1], [v as string, t as string])
+            : (v as number) + ((t as number) - (v as number)) * ph
+        }
+        if (focusedLayer && pf > 0 && focusedLayer[key] !== undefined) {
+          const t = focusedLayer[key]
+          v = isColor
+            ? interpolateColor(pf, [0, 1], [v as string, t as string])
+            : (v as number) + ((t as number) - (v as number)) * pf
+        }
+        if (
+          focusVisibleLayer &&
+          pfv > 0 &&
+          focusVisibleLayer[key] !== undefined
+        ) {
+          const t = focusVisibleLayer[key]
+          v = isColor
+            ? interpolateColor(pfv, [0, 1], [v as string, t as string])
+            : (v as number) + ((t as number) - (v as number)) * pfv
+        }
+        if (pressedLayer && pp > 0 && pressedLayer[key] !== undefined) {
+          const t = pressedLayer[key]
+          v = isColor
+            ? interpolateColor(pp, [0, 1], [v as string, t as string])
+            : (v as number) + ((t as number) - (v as number)) * pp
+        }
+
         if (TRANSFORM_KEY_SET.has(key)) {
           transform.push(
             key === 'rotate' ? { rotate: `${v}deg` } : { [key]: v },
@@ -770,78 +922,72 @@ function stableStringify(v: unknown): string {
 }
 
 /**
- * Merge gesture sub-state targets over the base `animate` record. Keys touched
- * by any declared sub-state are always present in the result so releasing a
- * gesture animates the property back to a defined value (the base `animate`
- * value when present, otherwise `DEFAULT_RESTING`). Sub-states layer in
- * priority order (lowest first):
- * `hovered` < `focused` < `focusVisible` < `pressed`.
+ * Per-layer resolved targets: each declared gesture sub-state collapses to a
+ * map of primitive endpoints (numbers or color strings), already passed
+ * through `targetEndValue` so the worklet can use them directly without
+ * inspecting `AnimatableValue` shapes on the UI thread.
  */
-function mergeGestureTargets(
-  base: Partial<Record<AnimatableKey, AnimatableValue<number | string>>>,
+type ResolvedGestureLayers = {
+  pressed?: Record<string, number | string>
+  focused?: Record<string, number | string>
+  focusVisible?: Record<string, number | string>
+  hovered?: Record<string, number | string>
+}
+
+function resolveGestureLayers(
   gesture: GestureSubStates<unknown> | undefined,
-  active: {
-    pressed: boolean
-    focused: boolean
-    focusVisible: boolean
-    hovered: boolean
-  },
-): Partial<Record<AnimatableKey, AnimatableValue<number | string>>> {
-  if (!gesture) return base
-  const merged: Partial<
-    Record<AnimatableKey, AnimatableValue<number | string>>
-  > = {
-    ...base,
-  }
-  const subStates = [
-    gesture.hovered,
-    gesture.focused,
-    gesture.focusVisible,
-    gesture.pressed,
-  ] as Array<
-    Partial<Record<AnimatableKey, AnimatableValue<number | string>>> | undefined
-  >
-  for (const sub of subStates) {
-    if (!sub) continue
-    for (const k of ALL_KEYS) {
-      if (k in sub && !(k in merged)) {
-        merged[k] = DEFAULT_RESTING[k]
-      }
+): ResolvedGestureLayers | null {
+  if (!gesture) return null
+  const out: ResolvedGestureLayers = {}
+  for (const layer of GESTURE_LAYER_NAMES) {
+    const subState = gesture[layer]
+    if (!subState) continue
+    const resolved: Record<string, number | string> = {}
+    for (const key of ALL_KEYS) {
+      const raw = (subState as Record<string, unknown>)[key]
+      if (raw === undefined) continue
+      const t = targetEndValue(raw as AnimatableValue<number | string>)
+      if (t !== undefined) resolved[key] = t
     }
+    out[layer] = resolved
   }
-  if (active.hovered && gesture.hovered) {
-    Object.assign(
-      merged,
-      gesture.hovered as Partial<
-        Record<AnimatableKey, AnimatableValue<number | string>>
-      >,
-    )
-  }
-  if (active.focused && gesture.focused) {
-    Object.assign(
-      merged,
-      gesture.focused as Partial<
-        Record<AnimatableKey, AnimatableValue<number | string>>
-      >,
-    )
-  }
-  if (active.focusVisible && gesture.focusVisible) {
-    Object.assign(
-      merged,
-      gesture.focusVisible as Partial<
-        Record<AnimatableKey, AnimatableValue<number | string>>
-      >,
-    )
-  }
-  if (active.pressed && gesture.pressed) {
-    Object.assign(
-      merged,
-      gesture.pressed as Partial<
-        Record<AnimatableKey, AnimatableValue<number | string>>
-      >,
-    )
-  }
-  return merged
+  return out
+}
+
+/**
+ * Drive a single gesture layer's progress shared value 0↔1 with its own
+ * transition. Resolution priority for the layer config:
+ * `transition.<layerName>` → top-level `transition` → library default spring.
+ * On exit, snap to 0 instantly so the unmount-bound base SV finishes its exit
+ * animation without a stale layer pulling the value off-target.
+ *
+ * The hook is invoked unconditionally (one call per layer) so hook order
+ * stays stable even when `gesture` adds or removes sub-states across renders.
+ */
+function useGestureLayerProgress<S>(
+  progress: SharedValue<number>,
+  active: boolean,
+  declared: boolean,
+  layer: GestureLayerName,
+  transition: Transition<S> | undefined,
+  isExiting: boolean,
+  shouldReduceMotion: boolean,
+): void {
+  const layerCfgSig = stableSig(gestureLayerTransitionFor(layer, transition))
+  useEffect(() => {
+    if (!declared) return
+    if (isExiting) {
+      progress.value = 0
+      return
+    }
+    const target = active ? 1 : 0
+    const cfg = shouldReduceMotion
+      ? ({ type: 'no-animation' } as const)
+      : (gestureLayerTransitionFor(layer, transition) ??
+        ({ type: 'spring' } as const))
+    progress.value = resolveTransition(cfg, target) as never
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, declared, isExiting, shouldReduceMotion, layerCfgSig])
 }
 
 type GestureHandlers = Record<string, (event: unknown) => void>
