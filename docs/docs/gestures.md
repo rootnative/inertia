@@ -89,3 +89,9 @@ Inertia composes its internal handlers with whatever you've already attached:
 ```
 
 Your `onPressIn` runs first, then the internal pressed-state setter. The same composition applies to every event the gesture prop subscribes to.
+
+## When you need drag, pan, or swipe
+
+The `gesture` prop covers Pressable-shaped states — anything that boils down to "active / inactive / focused / hovered". For continuous, value-bearing gestures (a thumb that follows the finger, a sheet that flicks closed, a carousel with momentum), reach for the [gestures adapter](./gestures-adapter): `useDrag`, `usePan`, `useSwipe`. It's an opt-in sibling package so the core library doesn't ship a `react-native-gesture-handler` peer for apps that only animate buttons.
+
+A fully gesture-driven `Slider` is the canonical example the core package can't build alone — the thumb's position has to track touch X continuously, and that's what the adapter is for.

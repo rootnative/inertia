@@ -58,7 +58,13 @@ import { MotionPressable } from '@onlynative/inertia/pressable'
 import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 ```
 
-A `Motion.View`-only import currently bundles to ~3.2 kB brotlied (excluding peers).
+Or the barrel — same primitives, named imports tree-shake cleanly because the package is `sideEffects: false`:
+
+```ts
+import { MotionView } from '@onlynative/inertia'
+```
+
+Both forms land at ~4.1–4.2 kB brotlied for a single primitive (peers excluded). The full namespace (`import { Motion } from '@onlynative/inertia'`, then `Motion.View`) cannot tree-shake — accessing one property of a literal object holds the whole object live — and lands at ~4.8 kB. CI checks all three forms via `size-limit` so the gap doesn't drift.
 
 ## Transitions
 
@@ -81,6 +87,22 @@ Plus, on any transition: `delay`, `repeat`. Per-property transitions take preced
 Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only — `Motion.View` rejects it at compile time). Layout transforms via `transform: [...]`. Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
 
 Out of scope for `0.x`: SVG path morphing, gradient interpolation, shared-element transitions across screens.
+
+## When not to use the core package alone
+
+The `gesture` prop in `@onlynative/inertia` covers `pressed` / `focused` / `focusVisible` / `hovered` — the Pressable-shaped sub-states. **Continuous, value-bearing gestures live in the adapter package** [`@onlynative/inertia-gestures`](../gestures), which wraps `react-native-gesture-handler` and ships:
+
+- `useDrag` — one- or two-axis drag with optional constraints and rubber-band elasticity
+- `usePan` — camera-style pan with momentum on release
+- `useSwipe` — directional commit-or-snap-back (distance + velocity thresholds)
+
+If your screen needs a thumb that follows the finger, a sheet that flicks closed, a carousel with momentum, or any gesture that produces a value other than "active / inactive" — install the adapter:
+
+```sh
+pnpm add @onlynative/inertia-gestures react-native-gesture-handler
+```
+
+A fully gesture-driven `Slider` (continuous thumb tracking + range clamping) is the canonical example: the core package can't build it on its own, the adapter can. This is intentional — keeping `react-native-gesture-handler` out of the core peer set means apps that animate buttons and sheets don't pay for a gesture engine they never invoke.
 
 ## Documentation
 
