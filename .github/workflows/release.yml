@@ -1,0 +1,175 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - prepatch
+          - preminor
+          - premajor
+          - prerelease
+      preid:
+        description: 'Pre-release identifier (e.g. alpha, beta, rc). Only used with pre* version types.'
+        required: false
+        default: 'alpha'
+        type: string
+      tag:
+        description: 'npm dist-tag'
+        required: true
+        type: choice
+        options:
+          - latest
+          - alpha
+          - beta
+          - rc
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Upgrade npm (OIDC trusted publishing requires >=11.5.1)
+        run: npm install -g npm@latest
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Discover public packages
+        id: packages
+        run: |
+          # Find all non-private packages under packages/
+          PUBLIC_PKGS=$(node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const dirs = fs.readdirSync('packages', { withFileTypes: true })
+              .filter(d => d.isDirectory())
+              .map(d => d.name)
+              .filter(name => {
+                const pkgPath = path.join('packages', name, 'package.json');
+                if (!fs.existsSync(pkgPath)) return false;
+                const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+                return pkg.private !== true;
+              });
+            console.log(dirs.join(' '));
+          ")
+          echo "packages=$PUBLIC_PKGS" >> "$GITHUB_OUTPUT"
+          echo "Discovered public packages: $PUBLIC_PKGS"
+
+      - name: Bump versions
+        id: version
+        run: |
+          VERSION_ARGS="${{ inputs.version }}"
+          if [[ "$VERSION_ARGS" == pre* ]]; then
+            VERSION_ARGS="$VERSION_ARGS --preid ${{ inputs.preid }}"
+          fi
+
+          NEW_VERSION=""
+          for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
+            (cd "packages/$PKG_DIR" && npm version $VERSION_ARGS --no-git-tag-version)
+            if [ -z "$NEW_VERSION" ]; then
+              NEW_VERSION=$(node -p "require('./packages/$PKG_DIR/package.json').version")
+            fi
+          done
+
+          # Update @onlynative/inertia peer dep in any package that references it
+          for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
+            node -e "
+              const fs = require('fs');
+              const pkgPath = 'packages/$PKG_DIR/package.json';
+              const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+              if (pkg.peerDependencies?.['@onlynative/inertia']) {
+                pkg.peerDependencies['@onlynative/inertia'] = '>=$NEW_VERSION';
+                fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+              }
+            "
+          done
+
+          # Update lockfile after version bumps
+          pnpm install --no-frozen-lockfile
+
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Regenerate LLM docs with new versions
+        run: pnpm run build:llms
+
+      - name: Commit and tag
+        run: |
+          git add pnpm-lock.yaml
+          git add packages/*/llms.txt docs/static/llms-full.txt
+          for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
+            git add "packages/$PKG_DIR/package.json"
+          done
+          git commit -m "release: v${{ steps.version.outputs.version }}"
+          git tag "v${{ steps.version.outputs.version }}"
+
+      - name: Publish packages
+        run: |
+          # Publish core first (other packages may depend on @onlynative/inertia)
+          if [ -d packages/core ]; then
+            echo "Publishing @onlynative/inertia..."
+            (cd packages/core && pnpm publish --provenance --access public --tag ${{ inputs.tag }} --no-git-checks)
+          fi
+
+          # Publish remaining packages
+          for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
+            if [ "$PKG_DIR" = "core" ]; then continue; fi
+            PKG_NAME=$(node -p "require('./packages/$PKG_DIR/package.json').name")
+            echo "Publishing $PKG_NAME..."
+            (cd "packages/$PKG_DIR" && pnpm publish --provenance --access public --tag ${{ inputs.tag }} --no-git-checks)
+          done
+
+      - name: Push to main
+        run: |
+          git push origin main
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Create GitHub Release
+        run: |
+          PRERELEASE_FLAG=""
+          if [[ "${{ inputs.tag }}" != "latest" ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+          gh release create "v${{ steps.version.outputs.version }}" --generate-notes $PRERELEASE_FLAG
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
