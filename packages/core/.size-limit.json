@@ -66,6 +66,42 @@
     "limit": "6 KB"
   },
   {
+    "name": "MotionView (barrel, tree-shaken)",
+    "path": "dist/index.mjs",
+    "import": "{ MotionView }",
+    "ignore": [
+      "react",
+      "react/jsx-runtime",
+      "react-native",
+      "react-native-reanimated"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "MotionText (barrel, tree-shaken)",
+    "path": "dist/index.mjs",
+    "import": "{ MotionText }",
+    "ignore": [
+      "react",
+      "react/jsx-runtime",
+      "react-native",
+      "react-native-reanimated"
+    ],
+    "limit": "5 KB"
+  },
+  {
+    "name": "MotionImage (barrel, tree-shaken)",
+    "path": "dist/index.mjs",
+    "import": "{ MotionImage }",
+    "ignore": [
+      "react",
+      "react/jsx-runtime",
+      "react-native",
+      "react-native-reanimated"
+    ],
+    "limit": "5 KB"
+  },
+  {
     "name": "Testing helpers",
     "path": "dist/testing/index.mjs",
     "ignore": [

@@ -74,7 +74,9 @@ import { MotionPressable } from '@onlynative/inertia/pressable'
 import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 ```
 
-`@onlynative/inertia` is `sideEffects: false`, so a bundler with tree-shaking enabled (Metro 0.79+, Webpack, Rollup) will drop primitives you don't reference even when importing from the main entry.
+`@onlynative/inertia` is `sideEffects: false`, so a bundler with tree-shaking enabled (Metro 0.79+, Webpack, Rollup) will drop primitives you don't reference. The named imports above tree-shake to within ~0.1 kB of the subpath equivalents, verified per-primitive in CI.
+
+One caveat: the `Motion` namespace object cannot tree-shake. `import { Motion } from '@onlynative/inertia'` followed by `Motion.View` holds the whole namespace live (it's a literal object — bundlers can't eliminate property accesses). Use it for ergonomics; reach for `import { MotionView } from '@onlynative/inertia'` (or the subpath) when bundle size matters.
 
 ## Reduced motion
 
