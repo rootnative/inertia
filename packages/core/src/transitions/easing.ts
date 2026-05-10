@@ -1,4 +1,6 @@
-import { isWorkletFunction } from 'react-native-reanimated'
+// `isWorkletFunction` lives in `react-native-worklets` (the Reanimated 4 peer
+// dep); Reanimated's own re-export is deprecated.
+import { isWorkletFunction } from 'react-native-worklets'
 
 /**
  * Reanimated 3.9+ validates that easing functions used in nested-transition

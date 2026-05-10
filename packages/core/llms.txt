@@ -13,7 +13,16 @@ Enable the Reanimated Babel plugin per its install guide.
 ## Imports
 
 ```ts
-import { Motion, Presence, MotionConfig, useVariants } from '@onlynative/inertia'
+import {
+  Motion,
+  Presence,
+  MotionConfig,
+  useVariants,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useScroll,
+} from '@onlynative/inertia'
 // or for tree-shaking:
 import { MotionView } from '@onlynative/inertia/view'
 import { MotionText } from '@onlynative/inertia/text'
@@ -28,6 +37,10 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 - `<Presence>` — mount / unmount transitions; children need explicit `key`s. Exiting children get `pointerEvents: 'none'` automatically.
 - `<MotionConfig reducedMotion="user" | "never" | "always">` — gates motion against the OS reduce-motion setting (default `"user"`).
 - `useVariants(variants, initial?)` — returns `{ current, transitionTo }` controller for the `controller` prop.
+- `useMotionValue(initial)` — thin pass-through over `useSharedValue<T>`. Returns a `SharedValue<T>` directly so it interops with every Reanimated API without unwrapping.
+- `useSpring(target, config?)` — animate a `SharedValue<number>` toward `target` with react-spring vocab. `target` may be a plain number (effect-driven) or a `SharedValue<number>` (UI-thread reaction).
+- `useTransform(value, inputRange, outputRange, options?)` / `useTransform(transformer)` — interpolate a numeric shared value onto a number or color range, or derive any value from any number of shared values via a worklet. Non-worklet transformers are auto-wrapped.
+- `useScroll()` — returns `{ scrollX, scrollY, onScroll }` for use with `Motion.ScrollView`. Scroll events fire on the UI thread.
 - `createMotionComponent<C>(C)` — wrap any component with the same Motion prop surface, inferring style from `C`.
 
 ## Motion props

@@ -27,7 +27,18 @@ export {
   resolveAnimatableValue,
   ensureWorkletEasing,
 } from './transitions'
-export { useVariants } from './values'
+export {
+  useMotionValue,
+  useScroll,
+  useSpring,
+  useTransform,
+  useVariants,
+} from './values'
+export type {
+  ExtrapolationMode,
+  UseScrollResult,
+  UseTransformOptions,
+} from './values'
 export type {
   AnimatableValue,
   AnimateStyle,

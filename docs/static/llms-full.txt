@@ -418,7 +418,7 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 
 ## Notes
 
-- This animates the outer container. To drive animations from scroll position itself (parallax, sticky headers), the `useScroll` hook lands in the values layer post-alpha.
+- This animates the outer container. To drive animations from scroll position itself (parallax, sticky headers), pair this with [`useScroll`](../api/hooks#usescroll) — it returns `scrollX` / `scrollY` shared values plus an `onScroll` handler you drop on this primitive.
 - Per-row entrance animations belong on a `Motion.View` row inside the scroll view, not on the scroll view itself.
 
 ---
@@ -1017,6 +1017,161 @@ If Inertia regresses, suspect (in this order):
 # Hooks
 
 The escape-hatch surface — drop here when you need imperative control beyond what the props expose.
+
+The value-layer hooks (`useMotionValue`, `useSpring`, `useTransform`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values, not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
+
+## `useMotionValue(initial)`
+
+Create an animatable value owned by JS but readable from worklets. A thin pass-through over Reanimated's `useSharedValue` — the returned `SharedValue<T>` works anywhere a shared value is accepted (`useAnimatedStyle`, `useDerivedValue`, the other value hooks below).
+
+```tsx
+import { useMotionValue, Motion } from '@onlynative/inertia'
+import { useAnimatedStyle } from 'react-native-reanimated'
+
+function Draggable() {
+  const x = useMotionValue(0)
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.value }],
+  }))
+
+  return (
+    <Motion.View
+      style={style}
+      onTouchMove={(e) => (x.value = e.nativeEvent.pageX)}
+    />
+  )
+}
+```
+
+We intentionally don't wrap the shared value in a `MotionValue` class — adding a `{ get, set, value }` shell would force consumers to unwrap it at every Reanimated boundary and would break worklet capture. The bare shared value _is_ the public surface.
+
+| Signature                                                | Returns          |
+| -------------------------------------------------------- | ---------------- |
+| `useMotionValue<T extends number \| string>(initial: T)` | `SharedValue<T>` |
+
+## `useSpring(target, config?)`
+
+Animate a shared value toward `target` with spring physics, using Inertia's react-spring vocabulary (`tension` / `friction` / `mass`).
+
+`target` can be a plain number — the spring re-runs whenever the prop changes — or another `SharedValue<number>`, in which case the spring is driven by a UI-thread reaction. Both paths bottom out at the same `withSpring` call; the split is just which thread observes the source.
+
+```tsx
+import { useMotionValue, useSpring, Motion } from '@onlynative/inertia'
+import { useAnimatedStyle } from 'react-native-reanimated'
+
+function Followable({ targetX }: { targetX: number }) {
+  // Plain-number path: re-springs whenever `targetX` changes.
+  const x = useSpring(targetX, { tension: 200, friction: 18 })
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.value }],
+  }))
+  return <Motion.View style={style} />
+}
+
+function Chained() {
+  // SharedValue path: drag drives `dragX`, spring smooths it into `x`.
+  const dragX = useMotionValue(0)
+  const x = useSpring(dragX)
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.value }],
+  }))
+  return <Motion.View style={style} />
+}
+```
+
+| Signature                                                                     | Returns               |
+| ----------------------------------------------------------------------------- | --------------------- |
+| `useSpring(target: number \| SharedValue<number>, config?: SpringTransition)` | `SharedValue<number>` |
+
+Config accepts every field of [`SpringTransition`](../transitions): `tension`, `friction`, `mass`, `velocity`, `restSpeedThreshold`, `restDisplacementThreshold`. Reanimated's raw `stiffness` / `damping` names are never accepted — that conversion is private to the library.
+
+## `useTransform(...)`
+
+Derive a value from one or more shared values. Two overloads:
+
+### Interpolation
+
+Map a numeric shared value onto a range of numbers or colors. Output type drives whether the underlying call is `interpolate` (numerics) or `interpolateColor` (color strings).
+
+```tsx
+import { useMotionValue, useTransform } from '@onlynative/inertia'
+
+const scroll = useMotionValue(0)
+const headerOpacity = useTransform(scroll, [0, 100], [1, 0])
+const headerTint = useTransform(scroll, [0, 100], ['#ffffff', '#000000'])
+```
+
+| Signature                                                                                                              | Returns               |
+| ---------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `useTransform(value: SharedValue<number>, inputRange: number[], outputRange: number[], options?: UseTransformOptions)` | `SharedValue<number>` |
+| `useTransform(value: SharedValue<number>, inputRange: number[], outputRange: string[], options?: UseTransformOptions)` | `SharedValue<string>` |
+
+`UseTransformOptions`:
+
+| Field              | Type                                | Default   | Notes                                 |
+| ------------------ | ----------------------------------- | --------- | ------------------------------------- |
+| `extrapolateLeft`  | `'clamp' \| 'identity' \| 'extend'` | `'clamp'` | Behavior below the first input value. |
+| `extrapolateRight` | `'clamp' \| 'identity' \| 'extend'` | `'clamp'` | Behavior above the last input value.  |
+
+The input range must be monotonically increasing.
+
+### Transformer worklet
+
+Derive any value from any number of shared values via a worklet.
+
+```tsx
+const x = useMotionValue(0)
+const y = useMotionValue(0)
+const distance = useTransform(() => Math.sqrt(x.value ** 2 + y.value ** 2))
+```
+
+| Signature                               | Returns          |
+| --------------------------------------- | ---------------- |
+| `useTransform<T>(transformer: () => T)` | `SharedValue<T>` |
+
+The transformer must be a worklet. Plain functions are auto-wrapped with the `'worklet'` directive at JS time — the same treatment user-supplied easing gets — so you don't need to remember it. The transformer must be pure: no captured JS-thread refs, no calls to non-worklet APIs.
+
+## `useScroll()`
+
+Track the scroll offset of a `Motion.ScrollView` as shared values. Scroll events fire on the UI thread, so the returned values are safe to read from any worklet without a JS-thread bounce.
+
+```tsx
+import { useScroll, useTransform, Motion } from '@onlynative/inertia'
+import { useAnimatedStyle } from 'react-native-reanimated'
+
+function StickyHeader() {
+  const { scrollY, onScroll } = useScroll()
+  const headerOpacity = useTransform(scrollY, [0, 100], [1, 0])
+
+  // Shared values feed `useAnimatedStyle`, not `animate`. The `animate` prop
+  // takes plain values that the resolver bakes into `withSpring` /
+  // `withTiming` calls on the JS thread; shared values are the right fit
+  // for continuous, externally-driven inputs (scroll, gestures).
+  const headerStyle = useAnimatedStyle(() => ({ opacity: headerOpacity.value }))
+
+  return (
+    <>
+      <Motion.View style={headerStyle} />
+      <Motion.ScrollView onScroll={onScroll} scrollEventThrottle={16}>
+        {/* …content… */}
+      </Motion.ScrollView>
+    </>
+  )
+}
+```
+
+Returns:
+
+| Field      | Type                                                       | Notes                                                                                                                 |
+| ---------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `scrollX`  | `SharedValue<number>`                                      | Horizontal scroll offset in points.                                                                                   |
+| `scrollY`  | `SharedValue<number>`                                      | Vertical scroll offset in points.                                                                                     |
+| `onScroll` | `(event: NativeSyntheticEvent<NativeScrollEvent>) => void` | Pass to `Motion.ScrollView`'s `onScroll` prop. Worklet-backed; safe to forward to any Reanimated-animated scrollable. |
+
+Set `scrollEventThrottle={16}` on the `ScrollView` for steady 60 Hz updates; without it, Android can dispatch less frequently than iOS.
 
 ## `useVariants(variants, initial?)`
 

@@ -1,3 +1,12 @@
+// `react-native-worklets` is a required peer of Reanimated 4 and ships its
+// own native module. The source files import `isWorkletFunction` from it
+// directly (Reanimated's re-export is deprecated); under Jest we stub the
+// surface so the source guard works the same way the Reanimated mock does.
+jest.mock('react-native-worklets', () => ({
+  __esModule: true,
+  isWorkletFunction: () => false,
+}))
+
 // Override RN's Text mock — the default mockComponent crashes on arrow function
 // components exported by RN 0.81's Flow `component` syntax.
 jest.mock('react-native/Libraries/Text/Text', () => {
@@ -66,7 +75,27 @@ jest.mock('react-native-reanimated', () => {
     useDerivedValue: (fn) => ({ value: fn() }),
     useAnimatedStyle: (fn) => fn(),
     useAnimatedProps: (fn) => fn(),
-    useAnimatedReaction: () => {},
+    useAnimatedReaction: (prepare, react) => {
+      // Best-effort sync invocation: run prepare() once, hand the result to
+      // react() so tests can observe the side effect (e.g. `useSpring`
+      // forwarding a target into its output shared value). Physics still
+      // doesn't run — `withSpring` is the identity in this mock.
+      const value = typeof prepare === 'function' ? prepare() : undefined
+      if (typeof react === 'function') react(value, undefined)
+    },
+    useAnimatedScrollHandler: (handlers) => {
+      // The real handler is an opaque worklet bag; in tests we return a plain
+      // function that invokes the appropriate user handler synchronously so
+      // assertions on scroll-driven shared values work without a native event
+      // loop. Shape: `useAnimatedScrollHandler({ onScroll })` or
+      // `useAnimatedScrollHandler(onScroll)`.
+      const onScroll =
+        typeof handlers === 'function' ? handlers : handlers?.onScroll
+      return (event) => {
+        if (typeof onScroll === 'function')
+          onScroll(event?.nativeEvent ?? event)
+      }
+    },
     useReducedMotion: () => false,
     isWorkletFunction: () => false,
     cancelAnimation: () => {},
@@ -87,5 +116,6 @@ jest.mock('react-native-reanimated', () => {
       value >= 1 ? output[output.length - 1] : output[0],
     interpolateColor: (value, _input, output) =>
       value >= 1 ? output[output.length - 1] : output[0],
+    Extrapolation: { CLAMP: 'clamp', IDENTITY: 'identity', EXTEND: 'extend' },
   }
 })

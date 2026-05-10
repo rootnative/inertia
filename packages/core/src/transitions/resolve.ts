@@ -8,6 +8,7 @@ import {
   withTiming,
 } from 'react-native-reanimated'
 import { ensureWorkletEasing } from './easing'
+import { springToReanimated } from './spring'
 import {
   type AnimatableValue,
   type DecayTransition,
@@ -39,31 +40,7 @@ export type CallbackFactory = (
   step: number | undefined,
 ) => AnimationCallback | undefined
 
-/**
- * Default spring physics, expressed in react-spring vocabulary. Conversion
- * to Reanimated's raw `stiffness` / `damping` lives below; raw config never
- * leaks past this module.
- */
-const DEFAULT_SPRING: Required<
-  Pick<SpringTransition, 'tension' | 'friction' | 'mass'>
-> = {
-  tension: 170,
-  friction: 26,
-  mass: 1,
-}
-
 const DEFAULT_TIMING_DURATION = 250
-
-function springToReanimated(t: SpringTransition) {
-  return {
-    stiffness: t.tension ?? DEFAULT_SPRING.tension,
-    damping: t.friction ?? DEFAULT_SPRING.friction,
-    mass: t.mass ?? DEFAULT_SPRING.mass,
-    velocity: t.velocity,
-    restSpeedThreshold: t.restSpeedThreshold,
-    restDisplacementThreshold: t.restDisplacementThreshold,
-  }
-}
 
 function buildSpring(
   cfg: SpringTransition,

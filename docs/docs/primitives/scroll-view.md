@@ -31,5 +31,5 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 
 ## Notes
 
-- This animates the outer container. To drive animations from scroll position itself (parallax, sticky headers), the `useScroll` hook lands in the values layer post-alpha.
+- This animates the outer container. To drive animations from scroll position itself (parallax, sticky headers), pair this with [`useScroll`](../api/hooks#usescroll) — it returns `scrollX` / `scrollY` shared values plus an `onScroll` handler you drop on this primitive.
 - Per-row entrance animations belong on a `Motion.View` row inside the scroll view, not on the scroll view itself.

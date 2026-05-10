@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react-native'
 import * as Reanimated from 'react-native-reanimated'
+import * as Worklets from 'react-native-worklets'
 import { Motion } from '../../motion'
 import { ensureWorkletEasing } from '../easing'
 import { resolveTransition } from '../resolve'
@@ -25,9 +26,11 @@ describe('ensureWorkletEasing', () => {
   })
 
   it('passes already-worklet functions through unchanged', () => {
-    // jest.setup mocks isWorkletFunction → false, so override locally.
+    // jest.setup mocks isWorkletFunction → false, so override locally. The
+    // source-of-truth import is `react-native-worklets` now; the Reanimated
+    // re-export is deprecated.
     const isWorklet = jest
-      .spyOn(Reanimated, 'isWorkletFunction')
+      .spyOn(Worklets, 'isWorkletFunction')
       .mockReturnValue(true)
     const fn = (t: number) => t
     expect(ensureWorkletEasing(fn)).toBe(fn)
