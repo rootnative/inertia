@@ -7,7 +7,11 @@ export function PresenceScreen({ onBack }: { onBack: () => void }) {
   const [show, setShow] = useState(true)
   const [count, setCount] = useState(0)
   return (
-    <ScreenShell title="Presence" onBack={onBack}>
+    <ScreenShell
+      title="Presence"
+      description="Exiting children get pointerEvents='none' automatically — taps fall through to whatever's underneath, fixing the moti #297 double-click repro."
+      onBack={onBack}
+    >
       <Pressable onPress={() => setShow((s) => !s)} style={styles.toggle}>
         <Text style={styles.toggleLabel}>{show ? 'Hide' : 'Show'}</Text>
       </Pressable>

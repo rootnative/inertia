@@ -6,7 +6,11 @@ import { ScreenShell } from './ScreenShell'
 export function PressableScreen({ onBack }: { onBack: () => void }) {
   const [count, setCount] = useState(0)
   return (
-    <ScreenShell title="Motion.Pressable" onBack={onBack}>
+    <ScreenShell
+      title="Motion.Pressable"
+      description="Pressable that animates its press feedback through the gesture prop while still firing onPress."
+      onBack={onBack}
+    >
       <Text style={styles.caption}>Tapped {count} times</Text>
       <Motion.Pressable
         onPress={() => setCount((n) => n + 1)}

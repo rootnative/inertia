@@ -23,7 +23,11 @@ export function VariantsScreen({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <ScreenShell title="Variants" onBack={onBack}>
+    <ScreenShell
+      title="Variants"
+      description="Same variant map, two driver paths — string-keyed animate prop and the useVariants controller."
+      onBack={onBack}
+    >
       <Motion.View
         variants={cardVariants}
         animate={state}

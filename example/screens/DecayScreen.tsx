@@ -17,7 +17,11 @@ export function DecayScreen({ onBack }: { onBack: () => void }) {
   const velocity = pseudoRandomVelocity(seed)
 
   return (
-    <ScreenShell title="Decay" onBack={onBack}>
+    <ScreenShell
+      title="Decay"
+      description="withDecay-driven inertia. Each Throw picks a new velocity; the puck decelerates and clamps at ±150."
+      onBack={onBack}
+    >
       <Motion.View
         animate={{ translateX: 0 }}
         transition={{

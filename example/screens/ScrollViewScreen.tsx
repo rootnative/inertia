@@ -8,7 +8,11 @@ const ROWS = Array.from({ length: 24 }, (_, i) => i + 1)
 export function ScrollViewScreen({ onBack }: { onBack: () => void }) {
   const [mounted, setMounted] = useState(true)
   return (
-    <ScreenShell title="Motion.ScrollView" onBack={onBack}>
+    <ScreenShell
+      title="Motion.ScrollView"
+      description="A ScrollView that animates its mount. Toggle to remount and watch initial → animate replay."
+      onBack={onBack}
+    >
       <Pressable onPress={() => setMounted((m) => !m)} style={styles.toggle}>
         <Text style={styles.toggleLabel}>{mounted ? 'Hide' : 'Show'} list</Text>
       </Pressable>

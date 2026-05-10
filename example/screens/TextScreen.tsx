@@ -6,7 +6,11 @@ import { ScreenShell } from './ScreenShell'
 export function TextScreen({ onBack }: { onBack: () => void }) {
   const [on, setOn] = useState(false)
   return (
-    <ScreenShell title="Motion.Text" onBack={onBack}>
+    <ScreenShell
+      title="Motion.Text"
+      description="Spring-driven opacity + translateX on a TextStyle-typed primitive."
+      onBack={onBack}
+    >
       <Pressable onPress={() => setOn((o) => !o)} style={styles.button}>
         <Text style={styles.buttonLabel}>Toggle</Text>
       </Pressable>

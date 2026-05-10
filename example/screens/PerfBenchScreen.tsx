@@ -115,7 +115,12 @@ export function PerfBenchScreen({ onBack }: { onBack: () => void }) {
   const keyExtractor = (item: Item) => String(item.id)
 
   return (
-    <ScreenShell title="Perf bench" onBack={onBack}>
+    <ScreenShell
+      title="Perf bench"
+      description="Toggle between Motion.Pressable and a hand-rolled Pressable + useAnimatedStyle row, then scroll vigorously. Watch PerfMonitor for dropped frames."
+      onBack={onBack}
+      fill
+    >
       <View style={styles.toggleRow}>
         <Pressable
           onPress={() => setMode('inertia')}
@@ -150,9 +155,7 @@ export function PerfBenchScreen({ onBack }: { onBack: () => void }) {
           </Text>
         </Pressable>
       </View>
-      <Text style={styles.caption}>
-        Scroll vigorously and watch PerfMonitor. {ITEM_COUNT} rows.
-      </Text>
+      <Text style={styles.caption}>{ITEM_COUNT} rows</Text>
       <View style={styles.listContainer}>
         <FlatList
           data={items}

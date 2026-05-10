@@ -6,7 +6,11 @@ import { ScreenShell } from './ScreenShell'
 export function ViewScreen({ onBack }: { onBack: () => void }) {
   const [on, setOn] = useState(false)
   return (
-    <ScreenShell title="Motion.View" onBack={onBack}>
+    <ScreenShell
+      title="Motion.View"
+      description="Per-property transitions: opacity uses timing, translateY uses a spring."
+      onBack={onBack}
+    >
       <Pressable onPress={() => setOn((o) => !o)} style={styles.button}>
         <Text style={styles.buttonLabel}>Toggle</Text>
       </Pressable>

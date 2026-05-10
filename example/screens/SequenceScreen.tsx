@@ -15,7 +15,11 @@ export function SequenceScreen({ onBack }: { onBack: () => void }) {
   const [last, setLast] = useState<LastEvent | null>(null)
 
   return (
-    <ScreenShell title="Sequences + repeat" onBack={onBack}>
+    <ScreenShell
+      title="Sequences + repeat"
+      description="Keyframe arrays per property, with a per-step transition override on opacity. onAnimationEnd fires per step, sequence, repeat, and animation."
+      onBack={onBack}
+    >
       <Motion.View
         // Re-key on press to retrigger the sequence from its first frame.
         key={run}

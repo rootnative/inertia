@@ -8,7 +8,11 @@ const IMAGE = { uri: 'https://reactnative.dev/img/tiny_logo.png' }
 export function ImageScreen({ onBack }: { onBack: () => void }) {
   const [on, setOn] = useState(false)
   return (
-    <ScreenShell title="Motion.Image" onBack={onBack}>
+    <ScreenShell
+      title="Motion.Image"
+      description="ImageStyle-typed primitive — tintColor and transforms compile, ViewStyle-only props don't."
+      onBack={onBack}
+    >
       <Pressable onPress={() => setOn((o) => !o)} style={styles.button}>
         <Text style={styles.buttonLabel}>Toggle</Text>
       </Pressable>

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import {
   GestureDetector,
   GestureHandlerRootView,
@@ -20,12 +20,13 @@ export function PanScreen({ onBack }: { onBack: () => void }) {
   const canvasStyle = [styles.canvas, pan.animatedStyle]
 
   return (
-    <ScreenShell title="Pan (with momentum)" onBack={onBack}>
+    <ScreenShell
+      title="Pan (with momentum)"
+      description="usePan releases into withDecay so the canvas keeps moving until friction stops it or it hits the bounds."
+      onBack={onBack}
+      fill
+    >
       <GestureHandlerRootView style={styles.root}>
-        <Text style={styles.hint}>
-          Drag the canvas. On release, momentum carries it until friction stops
-          or it hits the bounds.
-        </Text>
         <View style={styles.viewport}>
           <GestureDetector gesture={pan.gesture}>
             <Motion.View style={canvasStyle}>
@@ -59,12 +60,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 24,
     width: '100%',
-  },
-  hint: {
-    fontSize: 13,
-    color: '#6b7280',
-    paddingHorizontal: 24,
-    textAlign: 'center',
   },
   viewport: {
     width: VIEWPORT,

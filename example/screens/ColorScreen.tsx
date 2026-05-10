@@ -10,7 +10,11 @@ export function ColorScreen({ onBack }: { onBack: () => void }) {
   const [active, setActive] = useState(false)
 
   return (
-    <ScreenShell title="Color" onBack={onBack}>
+    <ScreenShell
+      title="Color"
+      description="backgroundColor, borderColor, color, and tintColor all interpolate through Reanimated's color setter — no extra util needed."
+      onBack={onBack}
+    >
       <Text style={styles.caption}>State-layer Pressable</Text>
       <Motion.Pressable
         gesture={{

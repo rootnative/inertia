@@ -39,11 +39,13 @@ export function SwipeScreen({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <ScreenShell title="Swipe (card stack)" onBack={onBack}>
+    <ScreenShell
+      title="Swipe (card stack)"
+      description="useSwipe with directions=['left','right']. Drag the top card past the threshold to like or skip; release short and it springs back."
+      onBack={onBack}
+      fill
+    >
       <GestureHandlerRootView style={styles.root}>
-        <Text style={styles.hint}>
-          Swipe the top card left to skip or right to like.
-        </Text>
         <View style={styles.stage}>
           {cards.length === 0 ? (
             <Text style={styles.empty}>No cards left</Text>
@@ -123,12 +125,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 16,
     width: '100%',
-  },
-  hint: {
-    fontSize: 13,
-    color: '#6b7280',
-    paddingHorizontal: 24,
-    textAlign: 'center',
   },
   stage: {
     width: 240,

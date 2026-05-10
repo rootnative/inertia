@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import { Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native'
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { ColorScreen } from './screens/ColorScreen'
 import { DecayScreen } from './screens/DecayScreen'
@@ -57,6 +64,125 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'perf-bench',
 ]
 
+type HomeLink = {
+  route: Exclude<Route, 'home'>
+  label: string
+  description: string
+}
+
+type HomeSection = {
+  title: string
+  blurb: string
+  links: ReadonlyArray<HomeLink>
+}
+
+const SECTIONS: ReadonlyArray<HomeSection> = [
+  {
+    title: 'Primitives',
+    blurb: 'The Motion.* components and the styles they animate.',
+    links: [
+      {
+        route: 'view',
+        label: 'Motion.View',
+        description: 'translate, scale, rotate, size',
+      },
+      {
+        route: 'text',
+        label: 'Motion.Text',
+        description: 'color and transform on text nodes',
+      },
+      {
+        route: 'image',
+        label: 'Motion.Image',
+        description: 'tintColor, opacity, transforms',
+      },
+      {
+        route: 'pressable',
+        label: 'Motion.Pressable',
+        description: 'press feedback + onAnimationEnd payload',
+      },
+      {
+        route: 'scroll-view',
+        label: 'Motion.ScrollView',
+        description: 'animated scroll container',
+      },
+      {
+        route: 'color',
+        label: 'Color animation',
+        description: 'backgroundColor, borderColor, color',
+      },
+    ],
+  },
+  {
+    title: 'Animation patterns',
+    blurb: 'Declarative shapes layered on top of the primitives.',
+    links: [
+      {
+        route: 'variants',
+        label: 'Variants',
+        description: 'named state-machine animations',
+      },
+      {
+        route: 'sequence',
+        label: 'Sequences & repeat',
+        description: 'keyframe arrays and the unified repeat config',
+      },
+      {
+        route: 'decay',
+        label: 'Decay',
+        description: 'withDecay-driven inertia',
+      },
+      {
+        route: 'presence',
+        label: 'Presence',
+        description: 'mount and unmount transitions',
+      },
+    ],
+  },
+  {
+    title: 'Gestures',
+    blurb: 'The gesture prop and the optional gesture-handler adapter.',
+    links: [
+      {
+        route: 'gesture',
+        label: 'Gesture sub-states',
+        description: 'pressed, focused, hovered on every primitive',
+      },
+      {
+        route: 'drag',
+        label: 'Drag',
+        description: 'continuous drag via the gestures adapter',
+      },
+      {
+        route: 'swipe',
+        label: 'Swipe',
+        description: 'card-stack swipe gesture',
+      },
+      {
+        route: 'pan',
+        label: 'Pan',
+        description: 'pan with momentum via withDecay',
+      },
+    ],
+  },
+  {
+    title: 'System & performance',
+    blurb: 'Accessibility, perf, and bench harnesses.',
+    links: [
+      {
+        route: 'motion-config',
+        label: 'MotionConfig',
+        description: 'reduced-motion provider tied to the OS setting',
+      },
+      {
+        route: 'perf-bench',
+        label: 'FlashList perf bench',
+        description: 'Motion.Pressable vs hand-rolled in a long list',
+      },
+    ],
+  },
+]
+
 function readInitialRoute(): Route {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return 'home'
   const params = new URLSearchParams(window.location.search)
@@ -91,55 +217,36 @@ export default function App() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <StatusBar style="auto" />
-      <Text style={styles.title}>Inertia example</Text>
-      <Pressable onPress={() => setRoute('view')} style={styles.link}>
-        <Text style={styles.linkLabel}>Motion.View</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('text')} style={styles.link}>
-        <Text style={styles.linkLabel}>Motion.Text</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('image')} style={styles.link}>
-        <Text style={styles.linkLabel}>Motion.Image</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('color')} style={styles.link}>
-        <Text style={styles.linkLabel}>Color</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('variants')} style={styles.link}>
-        <Text style={styles.linkLabel}>Variants</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('sequence')} style={styles.link}>
-        <Text style={styles.linkLabel}>Sequences + repeat</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('decay')} style={styles.link}>
-        <Text style={styles.linkLabel}>Decay</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('drag')} style={styles.link}>
-        <Text style={styles.linkLabel}>Drag (gestures adapter)</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('swipe')} style={styles.link}>
-        <Text style={styles.linkLabel}>Swipe (card stack)</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('pan')} style={styles.link}>
-        <Text style={styles.linkLabel}>Pan (with momentum)</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('gesture')} style={styles.link}>
-        <Text style={styles.linkLabel}>Gesture (pressed)</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('pressable')} style={styles.link}>
-        <Text style={styles.linkLabel}>Motion.Pressable</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('scroll-view')} style={styles.link}>
-        <Text style={styles.linkLabel}>Motion.ScrollView</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('presence')} style={styles.link}>
-        <Text style={styles.linkLabel}>Presence</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('motion-config')} style={styles.link}>
-        <Text style={styles.linkLabel}>MotionConfig (reduced motion)</Text>
-      </Pressable>
-      <Pressable onPress={() => setRoute('perf-bench')} style={styles.link}>
-        <Text style={styles.linkLabel}>Perf bench (FlashList)</Text>
-      </Pressable>
+      <View style={styles.hero}>
+        <Text style={styles.eyebrow}>@onlynative/inertia</Text>
+        <Text style={styles.title}>Example gallery</Text>
+        <Text style={styles.subtitle}>
+          One screen per piece of the v0.1 surface. Tap through to see each
+          primitive, transition, and gesture in isolation.
+        </Text>
+      </View>
+
+      {SECTIONS.map((section) => (
+        <View key={section.title} style={styles.section}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <Text style={styles.sectionBlurb}>{section.blurb}</Text>
+          <View style={styles.linkList}>
+            {section.links.map((link) => (
+              <Pressable
+                key={link.route}
+                onPress={() => setRoute(link.route)}
+                style={({ pressed }) => [
+                  styles.link,
+                  pressed && styles.linkPressed,
+                ]}
+              >
+                <Text style={styles.linkLabel}>{link.label}</Text>
+                <Text style={styles.linkDescription}>{link.description}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ))}
     </ScrollView>
   )
 }
@@ -151,24 +258,66 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 96,
+    paddingTop: 72,
     paddingBottom: 48,
-    gap: 16,
+    gap: 32,
+  },
+  hero: {
+    gap: 8,
+  },
+  eyebrow: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: '#6b7280',
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
-    marginBottom: 16,
+    color: '#111827',
+  },
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#4b5563',
+  },
+  section: {
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: '#111827',
+  },
+  sectionBlurb: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+  linkList: {
+    gap: 10,
   },
   link: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     backgroundColor: '#f3f4f6',
     borderRadius: 10,
+    gap: 4,
+  },
+  linkPressed: {
+    backgroundColor: '#e5e7eb',
   },
   linkLabel: {
-    fontSize: 18,
+    fontSize: 17,
     color: '#4f46e5',
     fontWeight: '600',
+  },
+  linkDescription: {
+    fontSize: 13,
+    color: '#4b5563',
+    lineHeight: 18,
   },
 })

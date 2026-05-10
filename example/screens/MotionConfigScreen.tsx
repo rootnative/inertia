@@ -9,7 +9,11 @@ export function MotionConfigScreen({ onBack }: { onBack: () => void }) {
   const [mode, setMode] = useState<ReducedMotion>('user')
   const [on, setOn] = useState(false)
   return (
-    <ScreenShell title="MotionConfig" onBack={onBack}>
+    <ScreenShell
+      title="MotionConfig"
+      description="reducedMotion='user' follows the OS setting. 'always' snaps to the target, 'never' forces motion regardless of accessibility settings."
+      onBack={onBack}
+    >
       <View style={styles.modeRow}>
         {MODES.map((m) => (
           <Pressable

@@ -14,7 +14,12 @@ export function DragScreen({ onBack }: { onBack: () => void }) {
   const [mode, setMode] = useState<Mode>('free')
 
   return (
-    <ScreenShell title="Drag" onBack={onBack}>
+    <ScreenShell
+      title="Drag"
+      description="useDrag from the gestures adapter. Pick a mode to see free, axis-locked, hard-clamped, or rubber-banded drag."
+      onBack={onBack}
+      fill
+    >
       <GestureHandlerRootView style={styles.root}>
         <View style={styles.modes}>
           <ModeButton

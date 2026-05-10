@@ -4,7 +4,11 @@ import { ScreenShell } from './ScreenShell'
 
 export function GestureScreen({ onBack }: { onBack: () => void }) {
   return (
-    <ScreenShell title="Gesture" onBack={onBack}>
+    <ScreenShell
+      title="Gesture"
+      description="The gesture prop on every Motion.* primitive. Press to scale down (card) or pulse up (pill) — no separate Pressable variant."
+      onBack={onBack}
+    >
       <Text style={styles.caption}>Press and hold</Text>
       <Motion.View
         gesture={{
