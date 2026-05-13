@@ -47,6 +47,18 @@ npx expo install react react-native react-native-reanimated
 yarn add @onlynative/inertia-gestures react-native-gesture-handler
 ```
 
+**Optional** — animated gradients (`MotionLinearGradient`):
+
+```bash
+yarn add @onlynative/inertia-gradients expo-linear-gradient
+```
+
+**Optional** — animated SVG path morphing:
+
+```bash
+yarn add @onlynative/inertia-svg react-native-svg
+```
+
 ## Quick Start
 
 ```tsx
@@ -85,14 +97,14 @@ See the [docs](https://onlynative.github.io/inertia/) for sequences, variants, g
 
 Plus, on any transition: `delay`, `repeat` (`number | 'infinite' | { count, alternate }`). Per-property transitions take precedence over the top-level transition.
 
-**Animatable properties** — numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter handles RGBA interpolation natively. Out of scope for `v0.1`: SVG path morphing, gradient interpolation, shared-element transitions across screens.
+**Animatable properties** — numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter handles RGBA interpolation natively. Gradient interpolation lives in [`@onlynative/inertia-gradients`](packages/gradients); SVG path morphing lives in [`@onlynative/inertia-svg`](packages/svg). Shared-element transitions across screens are deferred to `v1.x`.
 
 ## When _not_ to use Inertia
 
 Inertia is a declarative wrapper. Some patterns work better one layer down:
 
 - **Continuous gesture-driven UI** (sliders, swipe-to-dismiss, pinch-zoom) — use [`@onlynative/inertia-gestures`](packages/gestures) or drop down to `react-native-gesture-handler` + raw Reanimated.
-- **Frame-by-frame data viz** — keep SVG attribute interpolation in raw Reanimated.
+- **Frame-by-frame data viz** — keep SVG attribute interpolation in raw Reanimated, or use [`@onlynative/inertia-svg`](packages/svg) for declarative path morphing of structurally-compatible paths.
 - **Custom physics** — drop down to the `useMotionValue` / `useSpring` / `useTransform` hooks layer.
 - **Layout / shared-element transitions** — deferred to `v1.x`; use Reanimated's `Layout` API for now.
 
@@ -100,12 +112,14 @@ The hooks layer mirrors Reanimated's shape, so dropping down doesn't feel like s
 
 ## Packages
 
-| Package                                             | Description                                                                                             |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| [`@onlynative/inertia`](packages/core)              | Animation primitives (`Motion.*`), transition resolvers, `<Presence>`, `<MotionConfig>`, `useVariants`. |
-| [`@onlynative/inertia-gestures`](packages/gestures) | Optional `react-native-gesture-handler` adapter — `useDrag`, `useSwipe`, `usePan`.                      |
-| [`example`](example)                                | Expo Router app with one screen per primitive — manual validation harness.                              |
-| [`docs`](docs)                                      | Docusaurus documentation site. Hosts `/llms.txt` and `/llms-full.txt`.                                  |
+| Package                                               | Description                                                                                                                |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| [`@onlynative/inertia`](packages/core)                | Animation primitives (`Motion.*`), transition resolvers, `<Presence>`, `<MotionConfig>`, `useVariants`.                    |
+| [`@onlynative/inertia-gestures`](packages/gestures)   | Optional `react-native-gesture-handler` adapter — `useDrag`, `useSwipe`, `usePan`.                                         |
+| [`@onlynative/inertia-gradients`](packages/gradients) | Optional `expo-linear-gradient` adapter — `MotionLinearGradient` with animatable `colors` / `start` / `end` / `locations`. |
+| [`@onlynative/inertia-svg`](packages/svg)             | Optional `react-native-svg` adapter — `MotionPath` with animatable `d` (path morphing), `fill`, `stroke`.                  |
+| [`example`](example)                                  | Expo Router app with one screen per primitive — manual validation harness.                                                 |
+| [`docs`](docs)                                        | Docusaurus documentation site. Hosts `/llms.txt` and `/llms-full.txt`.                                                     |
 
 ## Repository Layout
 
@@ -122,8 +136,12 @@ The hooks layer mirrors Reanimated's shape, so dropping down doesn't feel like s
 │   │       ├── presence/      # <Presence>
 │   │       ├── config/        # <MotionConfig>, reduce-motion gating
 │   │       └── types.ts       # Public type surface
-│   └── gestures/          # @onlynative/inertia-gestures
-│       └── src/           # useDrag / useSwipe / usePan (gesture-handler adapter)
+│   ├── gestures/          # @onlynative/inertia-gestures
+│   │   └── src/           # useDrag / useSwipe / usePan (gesture-handler adapter)
+│   ├── gradients/         # @onlynative/inertia-gradients
+│   │   └── src/           # MotionLinearGradient (expo-linear-gradient adapter)
+│   └── svg/               # @onlynative/inertia-svg
+│       └── src/           # MotionPath + path utils (react-native-svg adapter)
 ├── scripts/               # build-llms.mjs (per-package + aggregated llms docs)
 ├── turbo.json
 └── pnpm-workspace.yaml

@@ -23,6 +23,7 @@ const sidebars: SidebarsConfig = {
     { type: 'doc', id: 'gestures', label: 'Gestures' },
     { type: 'doc', id: 'gestures-adapter', label: 'Gestures adapter' },
     { type: 'doc', id: 'gradients', label: 'Gradients' },
+    { type: 'doc', id: 'svg', label: 'SVG' },
     { type: 'doc', id: 'presence', label: 'Presence' },
     { type: 'doc', id: 'motion-config', label: 'MotionConfig' },
     { type: 'doc', id: 'perf-bench', label: 'Perf bench' },

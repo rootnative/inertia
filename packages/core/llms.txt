@@ -109,7 +109,13 @@ Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `ro
 
 Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Hex, `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors all work; the target string is forwarded straight through `withSpring` / `withTiming` and Reanimated handles RGBA interpolation natively.
 
-Layout (`layout` / `layoutId`) and SVG path morphing are not in alpha.
+Layout (`layout` / `layoutId`) is not in alpha; it ships in v1.x.
+
+## Optional adapter packages
+
+- `@onlynative/inertia-gradients` — `MotionLinearGradient` over `expo-linear-gradient`. Animatable: `colors`, `start`, `end`, `locations`.
+- `@onlynative/inertia-svg` — `MotionPath` over `react-native-svg`. Animatable: `d` (path morphing on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
+- `@onlynative/inertia-gestures` — `useDrag`, `useSwipe`, `usePan` over `react-native-gesture-handler`.
 
 ## Docs
 

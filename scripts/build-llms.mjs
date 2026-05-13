@@ -47,6 +47,7 @@ const PAGES = [
   'gestures',
   'gestures-adapter',
   'gradients',
+  'svg',
   'presence',
   'motion-config',
   'perf-bench',

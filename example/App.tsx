@@ -16,6 +16,7 @@ import { ImageScreen } from './screens/ImageScreen'
 import { LinearGradientScreen } from './screens/LinearGradientScreen'
 import { MotionConfigScreen } from './screens/MotionConfigScreen'
 import { PanScreen } from './screens/PanScreen'
+import { PathMorphScreen } from './screens/PathMorphScreen'
 import { PerfBenchScreen } from './screens/PerfBenchScreen'
 import { PresenceScreen } from './screens/PresenceScreen'
 import { PressableScreen } from './screens/PressableScreen'
@@ -45,6 +46,7 @@ type Route =
   | 'scroll-view'
   | 'presence'
   | 'linear-gradient'
+  | 'path-morph'
   | 'motion-config'
   | 'perf-bench'
 
@@ -66,6 +68,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'scroll-view',
   'presence',
   'linear-gradient',
+  'path-morph',
   'motion-config',
   'perf-bench',
 ]
@@ -126,6 +129,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         route: 'linear-gradient',
         label: 'MotionLinearGradient',
         description: 'animatable gradient via @onlynative/inertia-gradients',
+      },
+      {
+        route: 'path-morph',
+        label: 'MotionPath',
+        description: 'path morphing via @onlynative/inertia-svg',
       },
     ],
   },
@@ -231,6 +239,7 @@ export default function App() {
   if (route === 'presence') return <PresenceScreen onBack={goHome} />
   if (route === 'linear-gradient')
     return <LinearGradientScreen onBack={goHome} />
+  if (route === 'path-morph') return <PathMorphScreen onBack={goHome} />
   if (route === 'motion-config') return <MotionConfigScreen onBack={goHome} />
   if (route === 'perf-bench') return <PerfBenchScreen onBack={goHome} />
 
