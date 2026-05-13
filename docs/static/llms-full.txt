@@ -822,6 +822,222 @@ A fully gesture-driven `Slider` is the canonical example the core package can't 
 
 ---
 
+# Gestures adapter
+
+`@onlynative/inertia-gestures` adds drag / swipe / pan hooks built on `react-native-gesture-handler`. It is an **optional** sibling package — install it only if you need richer-than-`pressable` gestures. The core library has no required `gesture-handler` dependency.
+
+The hooks compose with any `Motion.*` primitive via a `<GestureDetector>` and a single `style` slot — they don't replace the `gesture` prop, they extend what's reachable beside it.
+
+## Install
+
+```bash
+yarn add @onlynative/inertia-gestures react-native-gesture-handler
+```
+
+Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation) — it needs `<GestureHandlerRootView>` near the root of your app.
+
+## `useDrag`
+
+Drag a Motion primitive on one or two axes, with optional bounds and rubber-band overshoot.
+
+```tsx
+import { GestureDetector } from 'react-native-gesture-handler'
+import { Motion } from '@onlynative/inertia'
+import { useDrag } from '@onlynative/inertia-gestures'
+
+function DraggableBox() {
+  const drag = useDrag({
+    axis: 'both',
+    constraints: { left: -100, right: 100, top: -60, bottom: 60 },
+    elastic: 0.4,
+  })
+  return (
+    <GestureDetector gesture={drag.gesture}>
+      <Motion.View style={[styles.box, drag.animatedStyle]} />
+    </GestureDetector>
+  )
+}
+```
+
+| Option        | Type                                           | Default  | Notes                                                                                               |
+| ------------- | ---------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `axis`        | `'x' \| 'y' \| 'both'`                         | `'both'` | Lock the gesture to one axis.                                                                       |
+| `constraints` | `{ left?, right?, top?, bottom? }`             | none     | Bounds in px from the resting position. Each side independently optional.                           |
+| `elastic`     | `number` (0–1)                                 | `0`      | Rubber-band coefficient past `constraints`. `0` hard-clamps; `0.4` is a typical Framer-Motion feel. |
+| `onDragStart` | `() => void`                                   | none     | Fires on JS thread when drag begins.                                                                |
+| `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends.                                                                  |
+
+Returns `{ gesture, animatedStyle, dragX, dragY, isDragging }`. The shared values are exposed for power use cases (deriving secondary effects from drag position).
+
+## `useSwipe`
+
+Directional commit-or-snap-back gesture. Tracks live translation while the user drags; on release, fires `onSwipe` if either the distance or velocity threshold is met along an allowed axis. Whether or not it commits, the position springs back to zero — the consumer drives the side effect (delete, dismiss, advance).
+
+```tsx
+const swipe = useSwipe({
+  directions: ['left', 'right'],
+  distanceThreshold: 100,
+  onSwipe: (direction) => {
+    if (direction === 'left') dismiss()
+    if (direction === 'right') accept()
+  },
+})
+
+return (
+  <GestureDetector gesture={swipe.gesture}>
+    <Motion.View style={[styles.card, swipe.animatedStyle]}>
+      {children}
+    </Motion.View>
+  </GestureDetector>
+)
+```
+
+| Option              | Type                                          | Default  | Notes                                                             |
+| ------------------- | --------------------------------------------- | -------- | ----------------------------------------------------------------- |
+| `directions`        | `Array<'left' \| 'right' \| 'up' \| 'down'>`  | all four | Only commits along listed directions. Off-axis swipes do nothing. |
+| `distanceThreshold` | `number` (px)                                 | `80`     | Distance past which a release commits.                            |
+| `velocityThreshold` | `number` (px/sec)                             | `800`    | Flick velocity that commits even before distance threshold.       |
+| `onSwipe`           | `(direction, { distance, velocity }) => void` | none     | JS-thread callback. Direction is one of the allowed values.       |
+
+The dominant axis (whichever of \|tx\|, \|ty\| is larger at release) decides which direction is checked.
+
+## `usePan`
+
+Camera-style pan with momentum on release. Position **persists across separate gestures** — the next pan starts from the current offset, not zero — and on release the position continues gliding via Reanimated's `withDecay`.
+
+```tsx
+const pan = usePan({
+  constraints: { left: -240, right: 240, top: -240, bottom: 240 },
+  deceleration: 0.997,
+})
+
+return (
+  <GestureDetector gesture={pan.gesture}>
+    <Motion.View style={[styles.canvas, pan.animatedStyle]}>
+      {/* large content */}
+    </Motion.View>
+  </GestureDetector>
+)
+```
+
+| Option            | Type                               | Default            | Notes                                                                         |
+| ----------------- | ---------------------------------- | ------------------ | ----------------------------------------------------------------------------- |
+| `constraints`     | `{ left?, right?, top?, bottom? }` | none               | Hard clamp during gesture and during decay.                                   |
+| `deceleration`    | `number`                           | Reanimated default | Higher = momentum dies faster. Roughly `0.99` (slow) to `0.999` (long glide). |
+| `disableMomentum` | `boolean`                          | `false`            | Hard stop on release (drag-like).                                             |
+
+For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-clamps because it composes with `withDecay`'s `clamp` parameter, which doesn't have an overshoot mode.
+
+## When to pick which
+
+| Gesture    | Snap back on release? | Momentum on release?         | Typical UX                                         |
+| ---------- | --------------------- | ---------------------------- | -------------------------------------------------- |
+| `useDrag`  | No — stays where left | No                           | Move-to-position, sliders, sortable handles.       |
+| `useSwipe` | Yes — always          | No (springs back)            | Swipe-to-delete rows, card stacks, dismiss sheets. |
+| `usePan`   | No — stays where left | Yes — coasts via `withDecay` | Maps, zoomable canvases, large-image navigation.   |
+
+## Try it
+
+
+
+## Why a separate package?
+
+The core library's `gesture` prop covers `pressed` / `focused` / `focusVisible` / `hovered` — boolean state-overlay gestures with no continuous translation. Drag, swipe, and pan are **value-driven**: the gesture publishes a continuous position that the consumer composes into the view's style. They don't fit the boolean-state model, and they need `react-native-gesture-handler` (which we don't want as a required peer of core).
+
+Splitting them off keeps core's surface area minimal and lets the gesture-handler dependency stay opt-in. The hooks return primitives (`gesture`, `animatedStyle`, shared values) rather than wrapping Motion in a new component, so they layer cleanly on the existing `Motion.*` set.
+
+---
+
+# Gradients
+
+`@onlynative/inertia-gradients` adds an animatable linear gradient built on `expo-linear-gradient`. It is an **optional** sibling package — install it only when you need to animate gradient stops. The core library has no required `expo-linear-gradient` dependency.
+
+`MotionLinearGradient` accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
+
+## Install
+
+```bash
+yarn add @onlynative/inertia-gradients expo-linear-gradient
+```
+
+`expo-linear-gradient` works in bare React Native projects as well as Expo — no `expo-modules-core` runtime is required.
+
+## Usage
+
+```tsx
+import { MotionLinearGradient } from '@onlynative/inertia-gradients'
+
+function Hero() {
+  return (
+    <MotionLinearGradient
+      colors={['#0f172a', '#1e293b']}
+      animate={{ colors: ['#7c3aed', '#0ea5e9'] }}
+      transition={{ type: 'timing', duration: 600 }}
+      style={StyleSheet.absoluteFill}
+    />
+  )
+}
+```
+
+The static `colors` prop is required — it sets the visual on first render and **locks the slot count** for the lifetime of the component. To resize the gradient (e.g. swap a 2-stop for a 3-stop), remount via `key={...}`. The component throws in dev if `colors.length` changes between renders.
+
+## Animatable props
+
+| Key         | Shape                  | Notes                                                                                                                           |
+| ----------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `colors`    | `readonly string[]`    | Element-wise color interpolation via Reanimated's color setter. Length must match the static `colors` prop.                     |
+| `start`     | `{ x: number, y: number }` | Normalized `[0, 1]` coordinates. `x` and `y` animate independently — useful for rotating gradient direction.                |
+| `end`       | `{ x: number, y: number }` | Same shape as `start`.                                                                                                      |
+| `locations` | `readonly number[]`    | Optional stop positions. If supplied at mount, must remain supplied and same-length as `colors` for the component's lifetime. |
+
+Per-property transitions work just like the core primitives:
+
+```tsx
+<MotionLinearGradient
+  colors={['#000', '#000']}
+  animate={{
+    colors: ['#7c3aed', '#0ea5e9'],
+    start: { x: 0, y: 0 },
+    end:   { x: 1, y: 1 },
+  }}
+  transition={{
+    colors: { type: 'timing', duration: 600 },
+    start:  { type: 'spring', tension: 80, friction: 14 },
+    end:    { type: 'spring', tension: 80, friction: 14 },
+  }}
+/>
+```
+
+## `initial`
+
+Pass `initial` to override the mount-frame values (so the component starts somewhere other than the static props), or `initial={false}` to start at the `animate` target with no mount animation.
+
+```tsx
+<MotionLinearGradient
+  colors={['#111', '#222']}
+  initial={{ colors: ['#000', '#000'] }}      // fade up from black
+  animate={{ colors: ['#7c3aed', '#0ea5e9'] }}
+/>
+
+<MotionLinearGradient
+  colors={['#111', '#222']}
+  initial={false}                              // skip the mount animation
+  animate={{ colors: ['#7c3aed', '#0ea5e9'] }}
+/>
+```
+
+## Reduced motion
+
+`MotionLinearGradient` participates in [`<MotionConfig reducedMotion>`](./motion-config.md) the same way the core primitives do — when the OS reduce-motion setting is on (or you pass `reducedMotion="always"`), transitions resolve as direct assignment instead of `withSpring` / `withTiming`.
+
+## What this primitive doesn't do (v0.2)
+
+- **Radial / conic gradients** — linear-only for v0.2. Radial lands in v0.3 once the linear API is validated.
+- **Slot-count resize** — the colors array length is locked at mount. To change it, remount via `key={...}`.
+- **Per-stop sequence keyframes** — `animate.colors` accepts a single target array, not a nested array of arrays. For chained gradient transitions, drive the target through state and let React re-render.
+
+---
+
 # Presence
 
 `<Presence>` keeps a child mounted long enough to play its `exit` animation when it's removed from the tree. Half the noise of `<AnimatePresence>`, same role.
@@ -985,7 +1201,7 @@ If Inertia regresses past 5%, the abstraction is leaking work onto the UI thread
 
 1. **Real device.** Simulators don't reproduce the GPU/CPU pressure that surfaces frame drops. Use a mid-range Android (e.g. Pixel 6a or older). Plug into USB so React Native's PerfMonitor can attach.
 2. **Release build.** `pnpm --filter @onlynative/inertia-example android --variant release`. PerfMonitor numbers from the dev build are dominated by hot-reload and inspector overhead and won't track production behavior.
-3. **Open the screen.** Tap **Perf bench (FlashList)** on the example app's home.
+3. **Open the screen.** Tap **Perf bench** on the example app's home. The default build uses `FlatList`; see the swap recipe below if you need the canonical FlashList reproduction.
 4. **Enable PerfMonitor.** Open the dev menu (shake / volume keys), enable "Perf Monitor". JS frame rate and UI frame rate appear as overlays.
 5. **First pass — Inertia.** With the toggle on **Inertia**, scroll fast for ~10 seconds. Note the JS dropped-frame count and the UI dropped-frame count.
 6. **Second pass — hand-rolled.** Toggle to **Hand-rolled**, scroll for ~10 seconds with the same motion. Note the same two counts.
@@ -1304,3 +1520,98 @@ Inertia uses Reanimated's `createAnimatedComponent` internally, so the wrapped c
 
 - The function-style `style={(state) => ...}` Pressable form is not supported by the factory. Drive press-state styling through `gesture.pressed` instead.
 - Components that re-shape `style` before forwarding (e.g. transforming a string into a stylesheet ref) may not animate cleanly. Test with a single transform or opacity before relying on it for production.
+
+---
+
+# Testing
+
+Inertia ships a Reanimated Jest mock and a `renderWithMotion` helper so existing test suites don't need to learn how the mock is wired before they can assert on animated UI.
+
+## Setup
+
+The mock lives at the repo root in `jest.setup.js`. Add it to your Jest config:
+
+```js
+// jest.config.js
+module.exports = {
+  preset: 'react-native',
+  setupFiles: [
+    require.resolve('@onlynative/inertia/jest.setup.js'),
+    // ... your other setup files
+  ],
+}
+```
+
+The mock is **static-render**: animations don't actually run, but `useSharedValue` is `useRef`-backed so values written by an effect persist across re-renders. Combined with `renderWithMotion`, that's enough to assert post-animation styles in unit tests.
+
+## `renderWithMotion`
+
+Use it as a drop-in for `@testing-library/react-native`'s `render`. It returns the same render result, with the rendered tree already flushed to the `animate` target.
+
+```ts
+import { renderWithMotion } from '@onlynative/inertia/testing'
+import { Motion } from '@onlynative/inertia'
+
+it('fades in to opacity: 1', () => {
+  const { getByTestId } = renderWithMotion(
+    <Motion.View
+      testID="card"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    />,
+  )
+
+  expect(getByTestId('card').props.style).toMatchObject({ opacity: 1 })
+})
+```
+
+Without the helper, plain `render(...)` returns the `initial` styles — that's the static-render trade-off the mock makes. Inertia tests its own primitives this way too; see `packages/core/src/__tests__/testing-helper.test.tsx`.
+
+## `flushMotion(result, nextUi)`
+
+For tests that change props between flushes (a `useState` toggling `animate`, a controller transition), `rerender` once with the new element and then call `flushMotion` to apply the second pass:
+
+```ts
+const result = renderWithMotion(
+  <Motion.View testID="card" animate={{ opacity: 0.4 }} />,
+)
+
+// later in the test, after some interaction:
+const next = <Motion.View testID="card" animate={{ opacity: 0.9 }} />
+result.rerender(next)
+flushMotion(result, next)
+
+expect(getStyle(result).opacity).toBe(0.9)
+```
+
+`flushMotion` clones the element internally to defeat React's element-reference bail-out, so passing the same element twice in a row works.
+
+## What you can and can't assert
+
+The mock only resolves to **terminal targets** — it doesn't simulate frames. So you can:
+
+- ✅ Assert post-animation styles (`renderWithMotion` flushes once)
+- ✅ Spy on `withSpring` / `withTiming` / `withDecay` to verify how Inertia compiles a transition (see `packages/core/src/__tests__/memoization.test.tsx` for the pattern)
+- ✅ Capture the settle callback from `withSpring` / `withTiming` to fire `onAnimationEnd` manually (see `onAnimationEnd.test.tsx`)
+
+You cannot:
+
+- ❌ Assert intermediate frames (`opacity` halfway from 0 to 1)
+- ❌ Make timing-based assertions — there is no timer to advance
+- ❌ Snapshot the gesture-driven UI (`gesture.pressed`) without firing the corresponding RN event first; the mock doesn't simulate input
+
+For frame-level correctness, validate manually in the example app — there's a screen per primitive in [`example/screens/`](https://github.com/onlynative/inertia/tree/main/example/screens).
+
+## Migrating existing tests
+
+If your test suite was previously asserting against raw `react-native-reanimated` shared values:
+
+```diff
+- import { render } from '@testing-library/react-native'
++ import { renderWithMotion } from '@onlynative/inertia/testing'
+
+- const { getByTestId } = render(<Card />)
++ const { getByTestId } = renderWithMotion(<Card />)
+```
+
+For tests that previously called `act` + `jest.runAllTimers()` to push animations through, drop both — the mock skips the timer dance and `renderWithMotion` does the rendering shuffle for you.

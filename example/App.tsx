@@ -13,6 +13,7 @@ import { DecayScreen } from './screens/DecayScreen'
 import { DragScreen } from './screens/DragScreen'
 import { GestureScreen } from './screens/GestureScreen'
 import { ImageScreen } from './screens/ImageScreen'
+import { LinearGradientScreen } from './screens/LinearGradientScreen'
 import { MotionConfigScreen } from './screens/MotionConfigScreen'
 import { PanScreen } from './screens/PanScreen'
 import { PerfBenchScreen } from './screens/PerfBenchScreen'
@@ -43,6 +44,7 @@ type Route =
   | 'pressable'
   | 'scroll-view'
   | 'presence'
+  | 'linear-gradient'
   | 'motion-config'
   | 'perf-bench'
 
@@ -63,6 +65,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'pressable',
   'scroll-view',
   'presence',
+  'linear-gradient',
   'motion-config',
   'perf-bench',
 ]
@@ -118,6 +121,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         route: 'transforms',
         label: 'Transforms',
         description: 'rotate, rotateX, rotateY (3D needs perspective)',
+      },
+      {
+        route: 'linear-gradient',
+        label: 'MotionLinearGradient',
+        description: 'animatable gradient via @onlynative/inertia-gradients',
       },
     ],
   },
@@ -221,6 +229,8 @@ export default function App() {
   if (route === 'pressable') return <PressableScreen onBack={goHome} />
   if (route === 'scroll-view') return <ScrollViewScreen onBack={goHome} />
   if (route === 'presence') return <PresenceScreen onBack={goHome} />
+  if (route === 'linear-gradient')
+    return <LinearGradientScreen onBack={goHome} />
   if (route === 'motion-config') return <MotionConfigScreen onBack={goHome} />
   if (route === 'perf-bench') return <PerfBenchScreen onBack={goHome} />
 

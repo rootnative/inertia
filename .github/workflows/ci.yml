@@ -45,5 +45,8 @@ jobs:
       - name: Build packages
         run: pnpm run build
 
-      - name: Bundle-size check
+      - name: Bundle-size check (core)
         run: pnpm --filter @onlynative/inertia size
+
+      - name: Bundle-size check (gradients)
+        run: pnpm --filter @onlynative/inertia-gradients size

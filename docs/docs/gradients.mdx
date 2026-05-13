@@ -1,0 +1,91 @@
+---
+sidebar_position: 9
+---
+
+import PackageManagerTabs from '@site/src/components/PackageManagerTabs'
+
+# Gradients
+
+`@onlynative/inertia-gradients` adds an animatable linear gradient built on `expo-linear-gradient`. It is an **optional** sibling package — install it only when you need to animate gradient stops. The core library has no required `expo-linear-gradient` dependency.
+
+`MotionLinearGradient` accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
+
+## Install
+
+<PackageManagerTabs packages="@onlynative/inertia-gradients expo-linear-gradient" />
+
+`expo-linear-gradient` works in bare React Native projects as well as Expo — no `expo-modules-core` runtime is required.
+
+## Usage
+
+```tsx
+import { MotionLinearGradient } from '@onlynative/inertia-gradients'
+
+function Hero() {
+  return (
+    <MotionLinearGradient
+      colors={['#0f172a', '#1e293b']}
+      animate={{ colors: ['#7c3aed', '#0ea5e9'] }}
+      transition={{ type: 'timing', duration: 600 }}
+      style={StyleSheet.absoluteFill}
+    />
+  )
+}
+```
+
+The static `colors` prop is required — it sets the visual on first render and **locks the slot count** for the lifetime of the component. To resize the gradient (e.g. swap a 2-stop for a 3-stop), remount via `key={...}`. The component throws in dev if `colors.length` changes between renders.
+
+## Animatable props
+
+| Key         | Shape                      | Notes                                                                                                                         |
+| ----------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `colors`    | `readonly string[]`        | Element-wise color interpolation via Reanimated's color setter. Length must match the static `colors` prop.                   |
+| `start`     | `{ x: number, y: number }` | Normalized `[0, 1]` coordinates. `x` and `y` animate independently — useful for rotating gradient direction.                  |
+| `end`       | `{ x: number, y: number }` | Same shape as `start`.                                                                                                        |
+| `locations` | `readonly number[]`        | Optional stop positions. If supplied at mount, must remain supplied and same-length as `colors` for the component's lifetime. |
+
+Per-property transitions work just like the core primitives:
+
+```tsx
+<MotionLinearGradient
+  colors={['#000', '#000']}
+  animate={{
+    colors: ['#7c3aed', '#0ea5e9'],
+    start: { x: 0, y: 0 },
+    end: { x: 1, y: 1 },
+  }}
+  transition={{
+    colors: { type: 'timing', duration: 600 },
+    start: { type: 'spring', tension: 80, friction: 14 },
+    end: { type: 'spring', tension: 80, friction: 14 },
+  }}
+/>
+```
+
+## `initial`
+
+Pass `initial` to override the mount-frame values (so the component starts somewhere other than the static props), or `initial={false}` to start at the `animate` target with no mount animation.
+
+```tsx
+<MotionLinearGradient
+  colors={['#111', '#222']}
+  initial={{ colors: ['#000', '#000'] }}      // fade up from black
+  animate={{ colors: ['#7c3aed', '#0ea5e9'] }}
+/>
+
+<MotionLinearGradient
+  colors={['#111', '#222']}
+  initial={false}                              // skip the mount animation
+  animate={{ colors: ['#7c3aed', '#0ea5e9'] }}
+/>
+```
+
+## Reduced motion
+
+`MotionLinearGradient` participates in [`<MotionConfig reducedMotion>`](./motion-config.md) the same way the core primitives do — when the OS reduce-motion setting is on (or you pass `reducedMotion="always"`), transitions resolve as direct assignment instead of `withSpring` / `withTiming`.
+
+## What this primitive doesn't do (v0.2)
+
+- **Radial / conic gradients** — linear-only for v0.2. Radial lands in v0.3 once the linear API is validated.
+- **Slot-count resize** — the colors array length is locked at mount. To change it, remount via `key={...}`.
+- **Per-stop sequence keyframes** — `animate.colors` accepts a single target array, not a nested array of arrays. For chained gradient transitions, drive the target through state and let React re-render.
