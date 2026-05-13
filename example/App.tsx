@@ -184,8 +184,9 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
       },
       {
         route: 'perf-bench',
-        label: 'FlashList perf bench',
-        description: 'Motion.Pressable vs hand-rolled in a long list',
+        label: 'Perf bench',
+        description:
+          'Motion.Pressable vs hand-rolled in a long list (FlatList default; FlashList swap documented)',
       },
     ],
   },

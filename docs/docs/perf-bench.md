@@ -22,7 +22,7 @@ If Inertia regresses past 5%, the abstraction is leaking work onto the UI thread
 
 1. **Real device.** Simulators don't reproduce the GPU/CPU pressure that surfaces frame drops. Use a mid-range Android (e.g. Pixel 6a or older). Plug into USB so React Native's PerfMonitor can attach.
 2. **Release build.** `pnpm --filter @onlynative/inertia-example android --variant release`. PerfMonitor numbers from the dev build are dominated by hot-reload and inspector overhead and won't track production behavior.
-3. **Open the screen.** Tap **Perf bench (FlashList)** on the example app's home.
+3. **Open the screen.** Tap **Perf bench** on the example app's home. The default build uses `FlatList`; see the swap recipe below if you need the canonical FlashList reproduction.
 4. **Enable PerfMonitor.** Open the dev menu (shake / volume keys), enable "Perf Monitor". JS frame rate and UI frame rate appear as overlays.
 5. **First pass — Inertia.** With the toggle on **Inertia**, scroll fast for ~10 seconds. Note the JS dropped-frame count and the UI dropped-frame count.
 6. **Second pass — hand-rolled.** Toggle to **Hand-rolled**, scroll for ~10 seconds with the same motion. Note the same two counts.
