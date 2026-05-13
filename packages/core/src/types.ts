@@ -96,12 +96,38 @@ export type Transition<S> =
   | (PerPropertyTransition<S> & GestureLayerTransitions)
 
 /**
+ * Transform shorthands that Inertia exposes on `animate` but that don't
+ * appear on RN's typed ViewStyle as top-level keys. RN keeps `scale` and
+ * `rotate` inside the `transform` array; only `scaleX`/`scaleY` and
+ * `translateX`/`translateY` are surfaced as (deprecated) top-level
+ * shortcuts. Inertia's runtime treats these as transform-group keys (see
+ * `TRANSFORM_KEYS` in `createMotionComponent`), so they're documented as
+ * first-class animatables in `CLAUDE.md` and must be reachable from
+ * `animate` without dropping into the `transform: [...]` array form.
+ */
+type AnimatableTransformExtras = {
+  scale?: AnimatableValue<number>
+  rotate?: AnimatableValue<string>
+}
+
+/**
  * The animation state shape inferred from the underlying component's style
  * prop. We narrow to the value side of `style` so consumers see ViewStyle on
  * `Motion.View`, TextStyle on `Motion.Text`, etc. — no shared union.
+ *
+ * Some components (notably `Pressable`) type `style` as a union of
+ * `StyleProp<T>` and a callback `(state) => StyleProp<T>`. If we infer `S`
+ * directly from `StyleProp<infer S>`, the callback branch widens `S` to
+ * `unknown`, which collapses the animate map to `| {}` and silently
+ * accepts any key. Excluding functions first keeps inference tight.
  */
-export type AnimateStyle<C> = C extends { style?: StyleProp<infer S> }
-  ? { [K in keyof S]?: AnimatableValue<S[K]> }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type _StyleValue<T> = Exclude<T, (...args: any[]) => any>
+
+export type AnimateStyle<C> = C extends { style?: infer Raw }
+  ? _StyleValue<Raw> extends StyleProp<infer S>
+    ? { [K in keyof S]?: AnimatableValue<S[K]> } & AnimatableTransformExtras
+    : never
   : never
 
 export interface AnimationCallbackInfo<S> {
