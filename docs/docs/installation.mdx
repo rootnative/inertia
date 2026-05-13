@@ -78,6 +78,26 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 
 One caveat: the `Motion` namespace object cannot tree-shake. `import { Motion } from '@onlynative/inertia'` followed by `Motion.View` holds the whole namespace live (it's a literal object — bundlers can't eliminate property accesses). Use it for ergonomics; reach for `import { MotionView } from '@onlynative/inertia'` (or the subpath) when bundle size matters.
 
+## Optional adapter packages
+
+Two sibling packages extend Inertia for capabilities that need extra peer dependencies. The core library has no required dependency on either — install only what you need.
+
+### Gestures (`@onlynative/inertia-gestures`)
+
+Drag / pan / swipe hooks built on [`react-native-gesture-handler`](https://docs.swmansion.com/react-native-gesture-handler). Compose with any `Motion.*` primitive via `<GestureDetector>`.
+
+<PackageManagerTabs packages="@onlynative/inertia-gestures react-native-gesture-handler" />
+
+Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation) — it needs `<GestureHandlerRootView>` near the root of your app. See [Gestures adapter](./gestures-adapter) for the hooks.
+
+### Gradients (`@onlynative/inertia-gradients`)
+
+`MotionLinearGradient` wraps [`expo-linear-gradient`](https://docs.expo.dev/versions/latest/sdk/linear-gradient/) with animatable `colors` / `start` / `end` / `locations`. Works in bare React Native as well as Expo.
+
+<PackageManagerTabs packages="@onlynative/inertia-gradients expo-linear-gradient" />
+
+See [Gradients](./gradients) for the primitive.
+
 ## Reduced motion
 
 Inertia respects the OS reduce-motion accessibility setting by default — no extra wiring needed. To override the default for the whole app or a subtree, see [MotionConfig](./motion-config).

@@ -86,23 +86,29 @@ Plus, on any transition: `delay`, `repeat`. Per-property transitions take preced
 
 Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only — `Motion.View` rejects it at compile time). Layout transforms via `transform: [...]`. Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
 
-Out of scope for `0.x`: SVG path morphing, gradient interpolation, shared-element transitions across screens.
+Out of scope for `0.x`: SVG path morphing, shared-element transitions across screens.
 
 ## When not to use the core package alone
 
-The `gesture` prop in `@onlynative/inertia` covers `pressed` / `focused` / `focusVisible` / `hovered` — the Pressable-shaped sub-states. **Continuous, value-bearing gestures live in the adapter package** [`@onlynative/inertia-gestures`](../gestures), which wraps `react-native-gesture-handler` and ships:
+Two sibling packages extend Inertia for capabilities that need extra peer dependencies. The core stays minimal so apps that don't need these don't pay for them.
+
+**Continuous gestures** — the `gesture` prop in `@onlynative/inertia` covers `pressed` / `focused` / `focusVisible` / `hovered` (the Pressable-shaped sub-states). For drag, pan, or swipe, use [`@onlynative/inertia-gestures`](../gestures):
 
 - `useDrag` — one- or two-axis drag with optional constraints and rubber-band elasticity
 - `usePan` — camera-style pan with momentum on release
 - `useSwipe` — directional commit-or-snap-back (distance + velocity thresholds)
 
-If your screen needs a thumb that follows the finger, a sheet that flicks closed, a carousel with momentum, or any gesture that produces a value other than "active / inactive" — install the adapter:
-
 ```sh
 pnpm add @onlynative/inertia-gestures react-native-gesture-handler
 ```
 
-A fully gesture-driven `Slider` (continuous thumb tracking + range clamping) is the canonical example: the core package can't build it on its own, the adapter can. This is intentional — keeping `react-native-gesture-handler` out of the core peer set means apps that animate buttons and sheets don't pay for a gesture engine they never invoke.
+**Animated gradients** — colors / start / end / locations interpolation on a linear gradient lives in [`@onlynative/inertia-gradients`](../gradients), wrapping `expo-linear-gradient`:
+
+```sh
+pnpm add @onlynative/inertia-gradients expo-linear-gradient
+```
+
+Keeping `react-native-gesture-handler` and `expo-linear-gradient` out of the core peer set means apps that animate buttons, sheets, and basic styles don't pay for capabilities they never invoke.
 
 ## Documentation
 

@@ -72,6 +72,8 @@ Each docs page deep-links into the relevant screen of this same app, so you can 
 - [Sequences & repeat](./sequences) — keyframe arrays and the unified `repeat` shape.
 - [Variants](./variants) — named animation states + `useVariants` controller.
 - [Gestures](./gestures) — `pressed` / `focused` / `focusVisible` / `hovered` sub-states.
+- [Gestures adapter](./gestures-adapter) — drag / pan / swipe via `react-native-gesture-handler` (optional package).
+- [Gradients](./gradients) — animatable `MotionLinearGradient` via `expo-linear-gradient` (optional package).
 - [Presence](./presence) — mount / unmount transitions.
 - [MotionConfig](./motion-config) — reduce-motion gate.
 - [Hooks](./api/hooks) and [createMotionComponent](./api/create-motion-component) — escape hatches.
@@ -152,6 +154,30 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 `@onlynative/inertia` is `sideEffects: false`, so a bundler with tree-shaking enabled (Metro 0.79+, Webpack, Rollup) will drop primitives you don't reference. The named imports above tree-shake to within ~0.1 kB of the subpath equivalents, verified per-primitive in CI.
 
 One caveat: the `Motion` namespace object cannot tree-shake. `import { Motion } from '@onlynative/inertia'` followed by `Motion.View` holds the whole namespace live (it's a literal object — bundlers can't eliminate property accesses). Use it for ergonomics; reach for `import { MotionView } from '@onlynative/inertia'` (or the subpath) when bundle size matters.
+
+## Optional adapter packages
+
+Two sibling packages extend Inertia for capabilities that need extra peer dependencies. The core library has no required dependency on either — install only what you need.
+
+### Gestures (`@onlynative/inertia-gestures`)
+
+Drag / pan / swipe hooks built on [`react-native-gesture-handler`](https://docs.swmansion.com/react-native-gesture-handler). Compose with any `Motion.*` primitive via `<GestureDetector>`.
+
+```bash
+yarn add @onlynative/inertia-gestures react-native-gesture-handler
+```
+
+Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation) — it needs `<GestureHandlerRootView>` near the root of your app. See [Gestures adapter](./gestures-adapter) for the hooks.
+
+### Gradients (`@onlynative/inertia-gradients`)
+
+`MotionLinearGradient` wraps [`expo-linear-gradient`](https://docs.expo.dev/versions/latest/sdk/linear-gradient/) with animatable `colors` / `start` / `end` / `locations`. Works in bare React Native as well as Expo.
+
+```bash
+yarn add @onlynative/inertia-gradients expo-linear-gradient
+```
+
+See [Gradients](./gradients) for the primitive.
 
 ## Reduced motion
 
@@ -983,12 +1009,12 @@ The static `colors` prop is required — it sets the visual on first render and 
 
 ## Animatable props
 
-| Key         | Shape                  | Notes                                                                                                                           |
-| ----------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `colors`    | `readonly string[]`    | Element-wise color interpolation via Reanimated's color setter. Length must match the static `colors` prop.                     |
-| `start`     | `{ x: number, y: number }` | Normalized `[0, 1]` coordinates. `x` and `y` animate independently — useful for rotating gradient direction.                |
-| `end`       | `{ x: number, y: number }` | Same shape as `start`.                                                                                                      |
-| `locations` | `readonly number[]`    | Optional stop positions. If supplied at mount, must remain supplied and same-length as `colors` for the component's lifetime. |
+| Key         | Shape                      | Notes                                                                                                                         |
+| ----------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `colors`    | `readonly string[]`        | Element-wise color interpolation via Reanimated's color setter. Length must match the static `colors` prop.                   |
+| `start`     | `{ x: number, y: number }` | Normalized `[0, 1]` coordinates. `x` and `y` animate independently — useful for rotating gradient direction.                  |
+| `end`       | `{ x: number, y: number }` | Same shape as `start`.                                                                                                        |
+| `locations` | `readonly number[]`        | Optional stop positions. If supplied at mount, must remain supplied and same-length as `colors` for the component's lifetime. |
 
 Per-property transitions work just like the core primitives:
 
@@ -998,12 +1024,12 @@ Per-property transitions work just like the core primitives:
   animate={{
     colors: ['#7c3aed', '#0ea5e9'],
     start: { x: 0, y: 0 },
-    end:   { x: 1, y: 1 },
+    end: { x: 1, y: 1 },
   }}
   transition={{
     colors: { type: 'timing', duration: 600 },
-    start:  { type: 'spring', tension: 80, friction: 14 },
-    end:    { type: 'spring', tension: 80, friction: 14 },
+    start: { type: 'spring', tension: 80, friction: 14 },
+    end: { type: 'spring', tension: 80, friction: 14 },
   }}
 />
 ```
