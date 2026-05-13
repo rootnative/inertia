@@ -29,10 +29,10 @@ import { MotionView } from '@onlynative/inertia/view'
 
 ## Animatable keys
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`, `backgroundColor`, `borderColor`.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `backgroundColor`, `borderColor`.
 
 ## Notes
 
 - `transform` is composed automatically. Mixing transform keys (e.g. `translateX` + `scale`) into one `animate` object emits a single `transform` array — you don't write `transform: [...]` yourself.
-- `rotate` is a number, in degrees. The factory wraps it as `{ rotate: '${value}deg' }` for Reanimated.
+- `rotate`, `rotateX`, and `rotateY` are numbers, in degrees. The factory wraps each as `{ rotate: '${value}deg' }` (etc.) for Reanimated. Use `rotateX` / `rotateY` together with a `perspective` style entry to get the 3D effect to render.
 - `width` / `height` interpolation can jitter on Fabric for non-`flex: 1` containers. Prefer `scaleX` / `scaleY` for resize animations where layout impact is acceptable.

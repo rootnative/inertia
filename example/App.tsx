@@ -22,6 +22,7 @@ import { ScrollViewScreen } from './screens/ScrollViewScreen'
 import { SequenceScreen } from './screens/SequenceScreen'
 import { SwipeScreen } from './screens/SwipeScreen'
 import { TextScreen } from './screens/TextScreen'
+import { TransformsScreen } from './screens/TransformsScreen'
 import { VariantsScreen } from './screens/VariantsScreen'
 import { ViewScreen } from './screens/ViewScreen'
 
@@ -31,6 +32,7 @@ type Route =
   | 'text'
   | 'image'
   | 'color'
+  | 'transforms'
   | 'variants'
   | 'sequence'
   | 'decay'
@@ -50,6 +52,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'text',
   'image',
   'color',
+  'transforms',
   'variants',
   'sequence',
   'decay',
@@ -110,6 +113,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         route: 'color',
         label: 'Color animation',
         description: 'backgroundColor, borderColor, color',
+      },
+      {
+        route: 'transforms',
+        label: 'Transforms',
+        description: 'rotate, rotateX, rotateY (3D needs perspective)',
       },
     ],
   },
@@ -201,6 +209,7 @@ export default function App() {
   if (route === 'text') return <TextScreen onBack={goHome} />
   if (route === 'image') return <ImageScreen onBack={goHome} />
   if (route === 'color') return <ColorScreen onBack={goHome} />
+  if (route === 'transforms') return <TransformsScreen onBack={goHome} />
   if (route === 'variants') return <VariantsScreen onBack={goHome} />
   if (route === 'sequence') return <SequenceScreen onBack={goHome} />
   if (route === 'decay') return <DecayScreen onBack={goHome} />

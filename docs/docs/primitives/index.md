@@ -31,7 +31,7 @@ Wrap any component with `createMotionComponent(C)` to get the same prop surface 
 
 The alpha supports the properties below across every primitive that accepts them.
 
-**Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`.
+**Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Rotation values are degrees as numbers — the runtime wraps with `'deg'` before handing to Reanimated.
 
 **Color:** `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Any color string Reanimated recognizes works — hex (`'#4f46e5'`, `'#fff'`), `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors including `'transparent'`. The target is forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
 

@@ -20,13 +20,7 @@
  */
 
 import type { ComponentProps } from 'react'
-import type {
-  Image,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native'
+import type { Image, Pressable, ScrollView, Text, View } from 'react-native'
 import type { AnimateStyle } from '../types'
 
 type ViewAnimate = AnimateStyle<ComponentProps<typeof View>>
@@ -38,6 +32,9 @@ type ScrollViewAnimate = AnimateStyle<ComponentProps<typeof ScrollView>>
 // ─── Motion.View / ViewStyle ────────────────────────────────────────────────
 
 const _viewAccepts: ViewAnimate = { opacity: 1, translateX: 10, scale: 1.1 }
+const _viewAcceptsRotate: ViewAnimate = { rotate: 45, rotateX: 30, rotateY: 60 }
+// @ts-expect-error rotate is a numeric degree value; strings like '45deg' aren't accepted
+const _viewRejectsRotateString: ViewAnimate = { rotate: '45deg' }
 // @ts-expect-error tintColor is ImageStyle-only and must be rejected on View
 const _viewRejectsTintColor: ViewAnimate = { tintColor: '#0a84ff' }
 // @ts-expect-error fontSize is TextStyle-only and must be rejected on View
@@ -75,6 +72,8 @@ const _scrollViewRejectsTintColor: ScrollViewAnimate = { tintColor: '#0a84ff' }
 // Silence "declared but never read" — these exist purely as type assertions.
 export type _PhaseOneTypeAssertions = [
   typeof _viewAccepts,
+  typeof _viewAcceptsRotate,
+  typeof _viewRejectsRotateString,
   typeof _viewRejectsTintColor,
   typeof _viewRejectsFontSize,
   typeof _viewRejectsUnknown,

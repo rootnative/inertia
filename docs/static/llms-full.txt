@@ -188,7 +188,7 @@ Wrap any component with `createMotionComponent(C)` to get the same prop surface 
 
 The alpha supports the properties below across every primitive that accepts them.
 
-**Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`.
+**Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Rotation values are degrees as numbers — the runtime wraps with `'deg'` before handing to Reanimated.
 
 **Color:** `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Any color string Reanimated recognizes works — hex (`'#4f46e5'`, `'#fff'`), `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors including `'transparent'`. The target is forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
 
@@ -233,12 +233,12 @@ import { MotionView } from '@onlynative/inertia/view'
 
 ## Animatable keys
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`, `backgroundColor`, `borderColor`.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `backgroundColor`, `borderColor`.
 
 ## Notes
 
 - `transform` is composed automatically. Mixing transform keys (e.g. `translateX` + `scale`) into one `animate` object emits a single `transform` array — you don't write `transform: [...]` yourself.
-- `rotate` is a number, in degrees. The factory wraps it as `{ rotate: '${value}deg' }` for Reanimated.
+- `rotate`, `rotateX`, and `rotateY` are numbers, in degrees. The factory wraps each as `{ rotate: '${value}deg' }` (etc.) for Reanimated. Use `rotateX` / `rotateY` together with a `perspective` style entry to get the 3D effect to render.
 - `width` / `height` interpolation can jitter on Fabric for non-`flex: 1` containers. Prefer `scaleX` / `scaleY` for resize animations where layout impact is acceptable.
 
 ---
@@ -272,7 +272,7 @@ import { MotionText } from '@onlynative/inertia/text'
 
 ## Animatable keys (alpha)
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `color`. `fontSize` interpolation is deferred — drop to a `useSharedValue` + `useAnimatedStyle` workflow if you need it today.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `color`. `fontSize` interpolation is deferred — drop to a `useSharedValue` + `useAnimatedStyle` workflow if you need it today.
 
 ```tsx
 <Motion.Text
@@ -317,7 +317,7 @@ import { MotionImage } from '@onlynative/inertia/image'
 
 ## Animatable keys (alpha)
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `tintColor`.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `tintColor`.
 
 ```tsx
 <Motion.Image

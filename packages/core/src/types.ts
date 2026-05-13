@@ -97,17 +97,21 @@ export type Transition<S> =
 
 /**
  * Transform shorthands that Inertia exposes on `animate` but that don't
- * appear on RN's typed ViewStyle as top-level keys. RN keeps `scale` and
- * `rotate` inside the `transform` array; only `scaleX`/`scaleY` and
- * `translateX`/`translateY` are surfaced as (deprecated) top-level
- * shortcuts. Inertia's runtime treats these as transform-group keys (see
- * `TRANSFORM_KEYS` in `createMotionComponent`), so they're documented as
- * first-class animatables in `CLAUDE.md` and must be reachable from
- * `animate` without dropping into the `transform: [...]` array form.
+ * appear on RN's typed ViewStyle as top-level keys. RN keeps `scale`,
+ * `rotate`, `rotateX`, and `rotateY` inside the `transform` array; only
+ * `scaleX`/`scaleY` and `translateX`/`translateY` are surfaced as
+ * (deprecated) top-level shortcuts. Inertia's runtime treats these as
+ * transform-group keys (see `TRANSFORM_KEYS` in `createMotionComponent`),
+ * so they're documented as first-class animatables in `CLAUDE.md` and must
+ * be reachable from `animate` without dropping into the `transform: [...]`
+ * array form. Rotation values are degrees as numbers — the runtime appends
+ * `'deg'` before handing the transform to Reanimated.
  */
 type AnimatableTransformExtras = {
   scale?: AnimatableValue<number>
-  rotate?: AnimatableValue<string>
+  rotate?: AnimatableValue<number>
+  rotateX?: AnimatableValue<number>
+  rotateY?: AnimatableValue<number>
 }
 
 /**

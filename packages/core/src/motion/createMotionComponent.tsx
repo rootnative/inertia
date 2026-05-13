@@ -45,7 +45,16 @@ const TRANSFORM_KEYS = [
   'scaleX',
   'scaleY',
   'rotate',
+  'rotateX',
+  'rotateY',
 ] as const
+
+// Rotation keys land in the transform array as `{ rotate: '45deg' }` / `{
+// rotateX: '45deg' }` etc. — Reanimated needs the unit-suffixed string form.
+// We hold the underlying shared value as a plain number (degrees) and wrap
+// in the worklet so the resolver pipeline stays uniform with the other
+// numeric transform keys.
+const ROTATION_KEYS = new Set<string>(['rotate', 'rotateX', 'rotateY'])
 
 const NUMERIC_TOP_LEVEL_KEYS = [
   'opacity',
@@ -110,6 +119,8 @@ const DEFAULT_RESTING: Record<AnimatableKey, number | string> = {
   scaleX: 1,
   scaleY: 1,
   rotate: 0,
+  rotateX: 0,
+  rotateY: 0,
   opacity: 1,
   width: 0,
   height: 0,
@@ -553,7 +564,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
 
         if (TRANSFORM_KEY_SET.has(key)) {
           transform.push(
-            key === 'rotate' ? { rotate: `${v}deg` } : { [key]: v },
+            ROTATION_KEYS.has(key) ? { [key]: `${v}deg` } : { [key]: v },
           )
         } else {
           out[key] = v
@@ -629,6 +640,8 @@ function useAnimatableSharedValues(
   const scaleX = useSharedValue<number | string>(init('scaleX'))
   const scaleY = useSharedValue<number | string>(init('scaleY'))
   const rotate = useSharedValue<number | string>(init('rotate'))
+  const rotateX = useSharedValue<number | string>(init('rotateX'))
+  const rotateY = useSharedValue<number | string>(init('rotateY'))
   const opacity = useSharedValue<number | string>(init('opacity'))
   const width = useSharedValue<number | string>(init('width'))
   const height = useSharedValue<number | string>(init('height'))
@@ -649,6 +662,8 @@ function useAnimatableSharedValues(
       scaleX,
       scaleY,
       rotate,
+      rotateX,
+      rotateY,
       opacity,
       width,
       height,

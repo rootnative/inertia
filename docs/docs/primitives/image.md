@@ -33,7 +33,7 @@ import { MotionImage } from '@onlynative/inertia/image'
 
 ## Animatable keys (alpha)
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `tintColor`.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `tintColor`.
 
 ```tsx
 <Motion.Image
