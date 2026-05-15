@@ -74,49 +74,55 @@ export function useTransform<T>(
   outputRange?: readonly number[] | readonly string[],
   options?: UseTransformOptions,
 ): SharedValue<T> | SharedValue<number> | SharedValue<string> {
-  // Single-arg transformer overload. We wrap non-worklet user fns the same
-  // way `ensureWorkletEasing` does — the public surface accepts a plain
-  // function; Reanimated 3.9+ requires worklets in nested-derivation
-  // contexts, so we auto-wrap at JS time.
+  // Build the producer worklet on the JS thread, then call
+  // `useDerivedValue` exactly once. Keeping the hook call unconditional
+  // satisfies rules-of-hooks; per-call branching (transformer vs
+  // interpolation) is decided once at JS time, never at frame time.
+  let producer: () => unknown
   if (typeof arg1 === 'function') {
+    // Transformer overload. The public surface accepts a plain function;
+    // Reanimated 3.9+ requires worklets in nested-derivation contexts, so
+    // we auto-wrap at JS time the same way `ensureWorkletEasing` does.
     const userFn = arg1 as () => T
-    const fn = isWorkletFunction(userFn)
+    producer = isWorkletFunction(userFn)
       ? userFn
-      : ((() => {
+      : () => {
           'worklet'
           return userFn()
-        }) as () => T)
-    // `useDerivedValue` requires a worklet as the producer; the wrapped
-    // function above carries the directive even when the user fn doesn't.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    return useDerivedValue<T>(fn) as SharedValue<T>
+        }
+  } else {
+    // Interpolation overload. We pre-resolve everything JS-side so the
+    // worklet body only consumes flat values.
+    const source = arg1
+    const input = inputRange as readonly number[]
+    const output = outputRange as readonly (number | string)[]
+    const isColor = output.length > 0 && typeof output[0] === 'string'
+    const extrapolateLeft = mapExtrapolation(options?.extrapolateLeft)
+    const extrapolateRight = mapExtrapolation(options?.extrapolateRight)
+    producer = isColor
+      ? () => {
+          'worklet'
+          return interpolateColor(
+            source.value,
+            input as number[],
+            output as string[],
+          )
+        }
+      : () => {
+          'worklet'
+          return interpolate(
+            source.value,
+            input as number[],
+            output as number[],
+            { extrapolateLeft, extrapolateRight },
+          )
+        }
   }
 
-  // Interpolation overload. We branch in a fresh `useDerivedValue` worklet
-  // body — the branch lives at JS time (string vs number output) but the
-  // chosen path runs on the UI thread.
-  const source = arg1 as SharedValue<number>
-  const input = inputRange as readonly number[]
-  const output = outputRange as readonly (number | string)[]
-  const isColor = output.length > 0 && typeof output[0] === 'string'
-
-  const extrapolateLeft = mapExtrapolation(options?.extrapolateLeft)
-  const extrapolateRight = mapExtrapolation(options?.extrapolateRight)
-
-  return useDerivedValue(() => {
-    'worklet'
-    if (isColor) {
-      return interpolateColor(
-        source.value,
-        input as number[],
-        output as string[],
-      ) as unknown as number | string
-    }
-    return interpolate(source.value, input as number[], output as number[], {
-      extrapolateLeft,
-      extrapolateRight,
-    })
-  }) as SharedValue<number> | SharedValue<string>
+  return useDerivedValue(producer as () => never) as unknown as
+    | SharedValue<T>
+    | SharedValue<number>
+    | SharedValue<string>
 }
 
 function mapExtrapolation(mode: ExtrapolationMode | undefined): Extrapolation {

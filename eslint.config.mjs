@@ -48,6 +48,8 @@ export default [
       ...reactPlugin.configs.recommended.rules,
       ...reactHooksPlugin.configs.recommended.rules,
       'no-undef': 'off',
+      'no-redeclare': 'off',
+      '@typescript-eslint/no-redeclare': 'error',
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
       'react-native/no-inline-styles': 'error',
