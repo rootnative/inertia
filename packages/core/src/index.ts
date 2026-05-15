@@ -28,6 +28,7 @@ export {
   ensureWorkletEasing,
 } from './transitions'
 export {
+  useAnimation,
   useGesture,
   useMotionValue,
   useScroll,

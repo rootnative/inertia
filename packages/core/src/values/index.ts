@@ -1,3 +1,4 @@
+export { useAnimation } from './useAnimation'
 export {
   useGesture,
   type UseGestureHandlers,

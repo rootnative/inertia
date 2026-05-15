@@ -1597,7 +1597,7 @@ For tests that previously called `act` + `jest.runAllTimers()` to push animation
 
 Inertia is a thin wrapper over `react-native-reanimated` — every animation it produces could have been written by hand with `useSharedValue` + `useAnimatedStyle`. The win is that the common patterns collapse into props. This page maps the patterns we keep rewriting in `@onlynative/ui` and other downstream consumers onto the Inertia equivalents.
 
-If a pattern below isn't covered, the likely answer is "drop down to the hooks layer" — Inertia exposes `useMotionValue` / `useSpring` / `useTransform` so you don't have to leave the package.
+If a pattern below isn't covered, the likely answer is "drop down to the hooks layer" — Inertia exposes `useMotionValue` / `useSpring` / `useTransform` / `useAnimation` / `useGesture` so you don't have to leave the package.
 
 ## State-layer fills (Material Design 3)
 
@@ -1691,6 +1691,51 @@ Without per-layer entries, layers inherit the top-level `transition` (or fall ba
 
 `Motion.Pressable` inherits Reanimated's `createAnimatedComponent` wrapper, which silently drops the function-form `style={({ pressed }) => ...}` that RN's `Pressable` accepts. Drive press/focus/hover styling through `gesture` (as above) or compute conditional styles once in render. See [primitives/pressable](../primitives/pressable#style-must-be-a-value-not-a-function) for the full caveat.
 
+### When the gesture drives sibling overlays — `useGesture`
+
+The `gesture` prop animates the receiver's _own_ style. If you have a focus ring rendered as a sibling, an MD3 state-layer halo overlaid on the content, or a content tint that needs to live on a child View, the prop can't reach those siblings — but [`useGesture`](../api/hooks#usegesturetransition) can. It returns the same four 0↔1 progress shared values the prop is built on, plus a handler bag to spread on a `Pressable`. Feed the shared values into as many `useAnimatedStyle` blocks as you need.
+
+```tsx
+import { useGesture } from '@onlynative/inertia'
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+} from 'react-native-reanimated'
+
+export function ButtonWithRing({ onPress, label }: Props) {
+  const { pressed, focused, focusVisible, hovered, handlers } = useGesture({
+    pressed: { type: 'timing', duration: 100 },
+    hovered: { type: 'timing', duration: 150 },
+    focused: { type: 'timing', duration: 200 },
+  })
+
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: focusVisible.value,
+  }))
+  const bgStyle = useAnimatedStyle(() => {
+    let bg = interpolateColor(hovered.value, [0, 1], ['transparent', '#0001'])
+    bg = interpolateColor(focused.value, [0, 1], [bg, '#0002'])
+    bg = interpolateColor(pressed.value, [0, 1], [bg, '#0003'])
+    return { backgroundColor: bg }
+  })
+
+  return (
+    <View>
+      <Animated.View pointerEvents="none" style={[styles.ring, ringStyle]} />
+      <Pressable
+        {...handlers}
+        onPress={onPress}
+        style={[styles.button, bgStyle]}
+      >
+        <Text>{label}</Text>
+      </Pressable>
+    </View>
+  )
+}
+```
+
+`useGesture` and the `gesture` prop share the same machinery, semantics, and reduced-motion gating — they're two surfaces over one engine. The rule of thumb: if your animation lives entirely on one component's style, use the prop; if it spans siblings, use the hook.
+
 ## Mount-on-appear (fade in, slide up)
 
 ### Before
@@ -1783,6 +1828,71 @@ controller.transitionTo(checked ? 'on' : 'off')
 <Motion.View controller={controller} variants={variants} />
 ```
 
+### When one progress drives multiple sibling views — `useAnimation`
+
+`variants` lives on one Motion primitive. A real Switch / Checkbox is three or four views (track, thumb, ripple halo) that all read the same progress. The native pattern with [`useAnimation`](../api/hooks#useanimationtarget-transition) — Inertia's general-purpose "drive a `SharedValue<number>` toward a target with any transition" hook — keeps the progress shared across as many `useAnimatedStyle` blocks as you need.
+
+```tsx
+import { useAnimation, useGesture } from '@onlynative/inertia'
+import Animated, {
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+} from 'react-native-reanimated'
+
+export function Switch({ value, onValueChange }: Props) {
+  const progress = useAnimation(value ? 1 : 0, {
+    type: 'spring',
+    tension: 380,
+    friction: 33,
+  })
+  const { pressed, focused, hovered, handlers } = useGesture({
+    pressed: { type: 'timing', duration: 120 },
+    hovered: { type: 'timing', duration: 150 },
+    focused: { type: 'timing', duration: 200 },
+  })
+
+  const trackStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      progress.value,
+      [0, 1],
+      [colors.surface, colors.primary],
+    ),
+  }))
+  const thumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: interpolate(progress.value, [0, 1], [0, 24]) }],
+  }))
+  const haloStyle = useAnimatedStyle(() => ({
+    opacity: Math.max(
+      hovered.value * 0.08,
+      focused.value * 0.1,
+      pressed.value * 0.1,
+    ),
+  }))
+
+  return (
+    <Pressable
+      {...handlers}
+      onPress={() => onValueChange(!value)}
+      style={styles.track}
+    >
+      <Animated.View style={[styles.trackFill, trackStyle]} />
+      <Animated.View pointerEvents="none" style={[styles.halo, haloStyle]} />
+      <Animated.View style={[styles.thumb, thumbStyle]} />
+    </Pressable>
+  )
+}
+```
+
+What collapsed:
+
+- `const progress = useSharedValue(value ? 1 : 0)` + a `useEffect` that calls `withSpring` — replaced by one `useAnimation(value ? 1 : 0, transition)`.
+- Three press/focus/hover `useSharedValue` calls + six `useCallback` handlers — replaced by one `useGesture(transition)` destructure plus `{...handlers}`.
+- Stiffness/damping rename → tension/friction rename (numerically identical; just designer-friendly names).
+- `isFocusVisible()` modality logic baked into the hook — no consumer wiring required.
+
+`useAnimation` also handles indeterminate progress (loops, sequences) — see [Looping / infinite animations](#looping--infinite-animations) below.
+
 ## Drag / pan / swipe
 
 These wait for the [`@onlynative/inertia-gestures`](../gestures-adapter) adapter (PanGestureHandler under the hood). The hooks return ready-made shared values you wire into the same props — no `setNativeProps`, no manual `withDecay` after release.
@@ -1835,6 +1945,31 @@ const style = useAnimatedStyle(() => ({
 ```
 
 The three `withRepeat` flags collapse into one shape. See [sequences and repeat](../sequences#repeat).
+
+### Indeterminate progress (a loop on a standalone shared value)
+
+When the loop has to drive a shared value the rest of your component reads — an indeterminate `LinearProgress` slide, a `CircularProgress` rotation, an idle spinner whose rotation feeds multiple animated styles — there's no Motion primitive to attach `animate` to. [`useAnimation`](../api/hooks#useanimationtarget-transition) carries the same repeat config to a standalone `SharedValue<number>`:
+
+```tsx
+import { useAnimation } from '@onlynative/inertia'
+import Animated, { useAnimatedStyle } from 'react-native-reanimated'
+
+export function Spinner() {
+  const rotation = useAnimation(1, {
+    type: 'timing',
+    duration: 1400,
+    repeat: { count: 'infinite', alternate: false },
+  })
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value * 360}deg` }],
+  }))
+
+  return <Animated.View style={[styles.ring, style]} />
+}
+```
+
+The same SV could feed a second `useAnimatedStyle` block (e.g. a trailing dot whose opacity tracks `rotation.value`), which is the win over `Motion.View animate={{ rotate: 360 }}`: one driver, many consumers. When the component unmounts the SV is collected and the animation stops — no `cancelAnimation` boilerplate.
 
 ## Custom easing
 
@@ -2040,6 +2175,44 @@ const distance = useTransform(() => Math.sqrt(x.value ** 2 + y.value ** 2))
 | `useTransform<T>(transformer: () => T)` | `SharedValue<T>` |
 
 The transformer must be a worklet. Plain functions are auto-wrapped with the `'worklet'` directive at JS time — the same treatment user-supplied easing gets — so you don't need to remember it. The transformer must be pure: no captured JS-thread refs, no calls to non-worklet APIs.
+
+## `useAnimation(target, transition?)`
+
+The general-purpose value-layer hook: drive a `SharedValue<number>` toward `target` with any `TransitionConfig`. Reach for it when you need raw `useSharedValue + useEffect + withTiming` (or `withSpring`, or `withRepeat`) **outside** the declarative `animate` flow — boolean state progress on a widget with multiple animated children, indeterminate progress on a list of `useAnimatedStyle` consumers, anywhere the value layer is the right abstraction.
+
+```tsx
+import { useAnimation } from '@onlynative/inertia'
+
+// Toggle progress driven by a prop. Spring physics, react-spring vocab.
+const progress = useAnimation(isChecked ? 1 : 0, {
+  type: 'spring',
+  tension: 380,
+  friction: 33,
+})
+
+// Float a label when the field has a value. Timing curve.
+const floated = useAnimation(hasValue ? 1 : 0, {
+  type: 'timing',
+  duration: 150,
+})
+
+// Indeterminate progress slider — loops forever, snaps back each cycle.
+const slide = useAnimation(1, {
+  type: 'timing',
+  duration: 1800,
+  repeat: { count: 'infinite', alternate: false },
+})
+```
+
+| Signature                                                     | Returns               |
+| ------------------------------------------------------------- | --------------------- |
+| `useAnimation(target: number, transition?: TransitionConfig)` | `SharedValue<number>` |
+
+The hook re-runs the animation whenever `target` changes or the transition's structural signature changes. A fresh literal each render (`{ type: 'timing', duration: 200 }` rebuilt on every call) doesn't re-fire — only structural changes do. Reduced motion (`<MotionConfig reducedMotion>`) collapses the transition to `'no-animation'` and snaps the value.
+
+**`useAnimation` vs `useSpring`.** They overlap on the spring case — `useAnimation(target, { type: 'spring', ... })` and `useSpring(target, { ... })` produce the same animation. Prefer `useSpring` when you only want spring physics; it also accepts a `SharedValue<number>` as the target for UI-thread-reactive smoothing (a gesture-driven smoothing source). `useAnimation` is the general-purpose hook — accepts any `TransitionConfig` including `timing`, `decay`, `no-animation`, and `repeat` — but is JS-thread-driven only.
+
+**`useAnimation` vs `Motion.View animate={{...}}`.** Use the `animate` prop when one Motion primitive owns the animated value end-to-end. Use `useAnimation` when the same value drives several `useAnimatedStyle` blocks across siblings — there's no Motion primitive to attach `animate` to in that case.
 
 ## `useScroll()`
 

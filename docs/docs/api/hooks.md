@@ -122,6 +122,44 @@ const distance = useTransform(() => Math.sqrt(x.value ** 2 + y.value ** 2))
 
 The transformer must be a worklet. Plain functions are auto-wrapped with the `'worklet'` directive at JS time — the same treatment user-supplied easing gets — so you don't need to remember it. The transformer must be pure: no captured JS-thread refs, no calls to non-worklet APIs.
 
+## `useAnimation(target, transition?)`
+
+The general-purpose value-layer hook: drive a `SharedValue<number>` toward `target` with any `TransitionConfig`. Reach for it when you need raw `useSharedValue + useEffect + withTiming` (or `withSpring`, or `withRepeat`) **outside** the declarative `animate` flow — boolean state progress on a widget with multiple animated children, indeterminate progress on a list of `useAnimatedStyle` consumers, anywhere the value layer is the right abstraction.
+
+```tsx
+import { useAnimation } from '@onlynative/inertia'
+
+// Toggle progress driven by a prop. Spring physics, react-spring vocab.
+const progress = useAnimation(isChecked ? 1 : 0, {
+  type: 'spring',
+  tension: 380,
+  friction: 33,
+})
+
+// Float a label when the field has a value. Timing curve.
+const floated = useAnimation(hasValue ? 1 : 0, {
+  type: 'timing',
+  duration: 150,
+})
+
+// Indeterminate progress slider — loops forever, snaps back each cycle.
+const slide = useAnimation(1, {
+  type: 'timing',
+  duration: 1800,
+  repeat: { count: 'infinite', alternate: false },
+})
+```
+
+| Signature                                                     | Returns               |
+| ------------------------------------------------------------- | --------------------- |
+| `useAnimation(target: number, transition?: TransitionConfig)` | `SharedValue<number>` |
+
+The hook re-runs the animation whenever `target` changes or the transition's structural signature changes. A fresh literal each render (`{ type: 'timing', duration: 200 }` rebuilt on every call) doesn't re-fire — only structural changes do. Reduced motion (`<MotionConfig reducedMotion>`) collapses the transition to `'no-animation'` and snaps the value.
+
+**`useAnimation` vs `useSpring`.** They overlap on the spring case — `useAnimation(target, { type: 'spring', ... })` and `useSpring(target, { ... })` produce the same animation. Prefer `useSpring` when you only want spring physics; it also accepts a `SharedValue<number>` as the target for UI-thread-reactive smoothing (a gesture-driven smoothing source). `useAnimation` is the general-purpose hook — accepts any `TransitionConfig` including `timing`, `decay`, `no-animation`, and `repeat` — but is JS-thread-driven only.
+
+**`useAnimation` vs `Motion.View animate={{...}}`.** Use the `animate` prop when one Motion primitive owns the animated value end-to-end. Use `useAnimation` when the same value drives several `useAnimatedStyle` blocks across siblings — there's no Motion primitive to attach `animate` to in that case.
+
 ## `useScroll()`
 
 Track the scroll offset of a `Motion.ScrollView` as shared values. Scroll events fire on the UI thread, so the returned values are safe to read from any worklet without a JS-thread bounce.

@@ -20,6 +20,7 @@ import {
   useGesture,
   useVariants,
   useMotionValue,
+  useAnimation,
   useSpring,
   useTransform,
   useScroll,
@@ -40,7 +41,8 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 - `useGesture(transition?)` — hook-form of the `gesture` prop. Returns 0↔1 progress shared values (`pressed`, `focused`, `focusVisible`, `hovered`) plus a `handlers` bag to spread on a `Pressable`. Use when one gesture needs to drive multiple animated siblings (focus rings, MD3 state-layer halos, multi-element compositions).
 - `useVariants(variants, initial?)` — returns `{ current, transitionTo }` controller for the `controller` prop.
 - `useMotionValue(initial)` — thin pass-through over `useSharedValue<T>`. Returns a `SharedValue<T>` directly so it interops with every Reanimated API without unwrapping.
-- `useSpring(target, config?)` — animate a `SharedValue<number>` toward `target` with react-spring vocab. `target` may be a plain number (effect-driven) or a `SharedValue<number>` (UI-thread reaction).
+- `useAnimation(target, transition?)` — drive a `SharedValue<number>` toward `target` with any `TransitionConfig` (spring / timing / decay / no-animation, plus `repeat`). The general-purpose value-layer hook for boolean-state progress, indeterminate loops, and anywhere the same value needs to feed multiple `useAnimatedStyle` blocks.
+- `useSpring(target, config?)` — spring-only shorthand. Animates a `SharedValue<number>` toward `target` with react-spring vocab. `target` may be a plain number (effect-driven) or a `SharedValue<number>` (UI-thread reaction); the latter is the gesture-smoothing path.
 - `useTransform(value, inputRange, outputRange, options?)` / `useTransform(transformer)` — interpolate a numeric shared value onto a number or color range, or derive any value from any number of shared values via a worklet. Non-worklet transformers are auto-wrapped.
 - `useScroll()` — returns `{ scrollX, scrollY, onScroll }` for use with `Motion.ScrollView`. Scroll events fire on the UI thread.
 - `createMotionComponent<C>(C)` — wrap any component with the same Motion prop surface, inferring style from `C`.

@@ -21,6 +21,7 @@ import {
   isTopLevelTransition,
   resolveAnimatableValue,
   resolveTransition,
+  stableSig,
 } from '../transitions'
 import { ensureReanimatedInstalled } from './installCheck'
 import {
@@ -904,40 +905,6 @@ function restValue(
     return typeof to === 'number' || typeof to === 'string' ? to : undefined
   }
   return undefined
-}
-
-function stableSig(value: unknown): string {
-  if (value === undefined) return ''
-  try {
-    return stableStringify(value)
-  } catch {
-    return String(value)
-  }
-}
-
-/**
- * JSON.stringify with keys sorted at every level — gives a stable signature
- * regardless of property declaration order. Functions serialize as `null` so a
- * change in easing-fn reference is invisible here; that's fine for v0.1
- * (easing swaps are rare and the worklet wrapper handles correctness).
- */
-function stableStringify(v: unknown): string {
-  if (v === null || typeof v !== 'object') {
-    if (typeof v === 'function' || v === undefined) return 'null'
-    return JSON.stringify(v)
-  }
-  if (Array.isArray(v)) {
-    return '[' + v.map(stableStringify).join(',') + ']'
-  }
-  const obj = v as Record<string, unknown>
-  const keys = Object.keys(obj).sort()
-  return (
-    '{' +
-    keys
-      .map((k) => JSON.stringify(k) + ':' + stableStringify(obj[k]))
-      .join(',') +
-    '}'
-  )
 }
 
 /**
