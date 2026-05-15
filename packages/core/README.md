@@ -45,6 +45,8 @@ export function FadeIn() {
 - **Gestures** — single `gesture` prop on every primitive: `gesture={{ pressed, focused, focusVisible, hovered }}`. Sub-states layer **additively** in priority order (`hovered → focused → focusVisible → pressed`); each layer fades in/out on its own progress so MD3 release-while-hovered cross-fades correctly. Per-layer transitions via `transition.<stateName>`. `focusVisible` engages only on keyboard focus (W3C `:focus-visible`) so click-focus on web doesn't flash a ring; on native it tracks `focused`. Zero overhead when omitted.
 - **`<Presence>`** — mount/unmount transitions; exiting children automatically receive `pointerEvents: 'none'`.
 - **`<MotionConfig reducedMotion>`** — OS reduce-motion honored end-to-end (`'user' | 'never' | 'always'`).
+- **`layout` prop** — auto-layout transitions on every primitive, bridging Reanimated's `LinearTransition` via the same react-spring vocab (`tension`/`friction`/`mass`). Accepts `boolean | TransitionConfig`.
+- **Value-layer hooks** — `useMotionValue`, `useSpring`, `useAnimation`, `useTransform`, `useScroll`, `useVariants`, `useGesture`. The escape hatch for animations the prop surface can't express — sibling overlays driven by a parent gesture, indeterminate loops on standalone shared values, gesture-smoothed inputs, etc.
 - **Per-primitive subpath imports** — `@onlynative/inertia/view`, `/text`, `/image`, `/pressable`, `/scroll-view`.
 - **JS-thread resolver, memoized worklets** — animate/transition objects compile to baked `withSpring` / `withTiming` / `withDecay` calls on the JS thread; the worklet body never iterates `Object.keys(...)` at frame time.
 
@@ -86,11 +88,11 @@ Plus, on any transition: `delay`, `repeat`. Per-property transitions take preced
 
 Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only — `Motion.View` rejects it at compile time). Layout transforms via `transform: [...]`. Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
 
-Out of scope for `0.x`: SVG path morphing, shared-element transitions across screens.
+SVG path morphing ships in the [`@onlynative/inertia-svg`](../svg) adapter (`MotionPath`). Out of scope for `0.x`: shared-element transitions across screens (Reanimated 4 dropped `sharedTransitionTag`; a measure-based replacement is in design).
 
 ## When not to use the core package alone
 
-Two sibling packages extend Inertia for capabilities that need extra peer dependencies. The core stays minimal so apps that don't need these don't pay for them.
+Three sibling packages extend Inertia for capabilities that need extra peer dependencies. The core stays minimal so apps that don't need these don't pay for them.
 
 **Continuous gestures** — the `gesture` prop in `@onlynative/inertia` covers `pressed` / `focused` / `focusVisible` / `hovered` (the Pressable-shaped sub-states). For drag, pan, or swipe, use [`@onlynative/inertia-gestures`](../gestures):
 
@@ -108,7 +110,13 @@ pnpm add @onlynative/inertia-gestures react-native-gesture-handler
 pnpm add @onlynative/inertia-gradients expo-linear-gradient
 ```
 
-Keeping `react-native-gesture-handler` and `expo-linear-gradient` out of the core peer set means apps that animate buttons, sheets, and basic styles don't pay for capabilities they never invoke.
+**SVG path morphing** — `MotionPath` lives in [`@onlynative/inertia-svg`](../svg), wrapping `react-native-svg`. Animates path data (`d`) on structurally-compatible paths via element-wise scalar interpolation, plus `fill` / `stroke` / `strokeWidth` / opacities / `strokeDashoffset`:
+
+```sh
+pnpm add @onlynative/inertia-svg react-native-svg
+```
+
+Keeping `react-native-gesture-handler`, `expo-linear-gradient`, and `react-native-svg` out of the core peer set means apps that animate buttons, sheets, and basic styles don't pay for capabilities they never invoke.
 
 ## Documentation
 
