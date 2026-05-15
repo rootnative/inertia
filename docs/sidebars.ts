@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
     { type: 'doc', id: 'gradients', label: 'Gradients' },
     { type: 'doc', id: 'svg', label: 'SVG' },
     { type: 'doc', id: 'presence', label: 'Presence' },
+    { type: 'doc', id: 'layout', label: 'Layout' },
     { type: 'doc', id: 'motion-config', label: 'MotionConfig' },
     { type: 'doc', id: 'perf-bench', label: 'Perf bench' },
     { type: 'doc', id: 'testing', label: 'Testing' },

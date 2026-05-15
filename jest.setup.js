@@ -117,5 +117,62 @@ jest.mock('react-native-reanimated', () => {
     interpolateColor: (value, _input, output) =>
       value >= 1 ? output[output.length - 1] : output[0],
     Extrapolation: { CLAMP: 'clamp', IDENTITY: 'identity', EXTEND: 'extend' },
+    // Layout-animation builder stub. The real builder is chainable and records
+    // spring / timing config; tests assert against the recorded fields. Each
+    // chain call returns a fresh instance with the field set so the resolver's
+    // immutable-chain idiom (rebinding `builder = builder.x(...)`) works.
+    LinearTransition: (() => {
+      class LinearTransitionStub {
+        constructor() {
+          this.__kind = 'LinearTransition'
+        }
+        _clone(patch) {
+          const next = new LinearTransitionStub()
+          Object.assign(next, this, patch)
+          return next
+        }
+        springify(duration) {
+          return this._clone({ __mode: 'spring', __duration: duration })
+        }
+        damping(v) {
+          return this._clone({ damping: v })
+        }
+        stiffness(v) {
+          return this._clone({ stiffness: v })
+        }
+        mass(v) {
+          return this._clone({ mass: v })
+        }
+        dampingRatio(v) {
+          return this._clone({ dampingRatio: v })
+        }
+        duration(v) {
+          return this._clone({ __mode: 'timing', __duration: v })
+        }
+        easing(fn) {
+          return this._clone({ easing: fn })
+        }
+        delay(v) {
+          return this._clone({ delay: v })
+        }
+        reduceMotion(v) {
+          return this._clone({ reduceMotion: v })
+        }
+      }
+      const proxy = new Proxy(LinearTransitionStub, {
+        get(target, prop) {
+          if (prop in target) return target[prop]
+          // Forward static-style invocations to a fresh instance so
+          // `LinearTransition.springify()` works as well as
+          // `new LinearTransition().springify()`.
+          return (...args) => {
+            const instance = new LinearTransitionStub()
+            return instance[prop](...args)
+          }
+        },
+      })
+      return proxy
+    })(),
+    ReduceMotion: { System: 'system', Always: 'always', Never: 'never' },
   }
 })

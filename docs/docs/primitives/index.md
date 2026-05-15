@@ -45,4 +45,8 @@ The alpha supports the properties below across every primitive that accepts them
 
 When `initial` is omitted, color slots seed with `'transparent'` — fine for fade-in, but pass an explicit `initial` color when animating between two opaque values to avoid the first frame flashing through transparent.
 
-**Out of scope for alpha:** layout transforms (`layout` / `layoutId`), SVG path morphing, gradient interpolation. Those land in later versions.
+**Optional adapter primitives:** gradient interpolation ships in [`@onlynative/inertia-gradients`](../gradients) (`MotionLinearGradient`), and SVG path morphing ships in [`@onlynative/inertia-svg`](../svg) (`MotionPath`). Both compose with the same `initial` / `animate` / `transition` shape.
+
+**Auto-layout transitions:** the [`layout` prop](../layout) animates position + size changes that come from outside the `animate` flow — siblings reordering, dimensions toggling, etc.
+
+**Out of scope for alpha:** shared element transitions across screens (`layoutId`). Reanimated 4 dropped the `sharedTransitionTag` API; the Inertia-side measure-based replacement is in design.

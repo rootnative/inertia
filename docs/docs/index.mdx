@@ -10,7 +10,7 @@ import RunnableExample from '@site/src/components/RunnableExample'
 
 Declarative animation primitives for React Native, built on `react-native-reanimated`. Inspired by Framer Motion (web) and react-spring (cross-platform).
 
-> **Status:** `0.0.1-alpha`. The Phase-1 foundation is in place — `Motion.View` / `Motion.Text` / `Motion.Image` with `initial` + `animate` + per-property `transition`. Sequences, variants, gestures, `<Presence>`, decay, and `<MotionConfig>` are landing toward v0.1.
+> **Status:** `0.0.1-alpha`. The full v0.1 surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, and the value-layer hooks (`useMotionValue` / `useSpring` / `useTransform` / `useScroll`). APIs may still shift before `0.1.0`; see the [roadmap](https://github.com/onlynative/inertia/blob/main/CLAUDE.md#roadmap) for graduation gates.
 
 ## Why Inertia
 
@@ -72,6 +72,8 @@ Each docs page deep-links into the relevant screen of this same app, so you can 
 - [Gestures](./gestures) — `pressed` / `focused` / `focusVisible` / `hovered` sub-states.
 - [Gestures adapter](./gestures-adapter) — drag / pan / swipe via `react-native-gesture-handler` (optional package).
 - [Gradients](./gradients) — animatable `MotionLinearGradient` via `expo-linear-gradient` (optional package).
+- [SVG](./svg) — animatable `MotionPath` via `react-native-svg` (optional package).
 - [Presence](./presence) — mount / unmount transitions.
+- [Layout](./layout) — auto-layout transitions on position + size changes.
 - [MotionConfig](./motion-config) — reduce-motion gate.
 - [Hooks](./api/hooks) and [createMotionComponent](./api/create-motion-component) — escape hatches.

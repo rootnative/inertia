@@ -45,7 +45,9 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 
 ## Motion props
 
-`initial` (mount-only, non-reactive after first render — pass `false` to skip), `animate`, `exit`, `variants`, `controller`, `gesture`, `transition`, `onAnimationEnd`.
+`initial` (mount-only, non-reactive after first render — pass `false` to skip), `animate`, `exit`, `variants`, `controller`, `gesture`, `transition`, `layout`, `onAnimationEnd`.
+
+`layout` accepts `true` (default spring) or a `TransitionConfig` (spring / timing) and animates position + size changes that come from outside the `animate` flow (siblings reordering, dimensions toggling). `'decay'` downgrades to spring; `'no-animation'` and reduced motion both skip the animation.
 
 ## Transitions
 
@@ -105,11 +107,11 @@ transition={{
 
 ## Animatable properties (alpha)
 
-Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `width`, `height`, `borderRadius`.
+Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Rotation values are degrees; the factory wraps them as `'${value}deg'`. `rotateX` / `rotateY` need a sibling `perspective` style entry to render in 3D.
 
 Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Hex, `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors all work; the target string is forwarded straight through `withSpring` / `withTiming` and Reanimated handles RGBA interpolation natively.
 
-Layout (`layout` / `layoutId`) is not in alpha; it ships in v1.x.
+Auto-layout transitions ship via the `layout` prop (`true` / `TransitionConfig`) on every `Motion.*` primitive — see Layout. Shared element transitions (`layoutId`) are deferred: Reanimated 4 dropped the `sharedTransitionTag` API the previous design relied on.
 
 ## Optional adapter packages
 

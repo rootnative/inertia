@@ -10,7 +10,7 @@
 
 Declarative animation primitives for React Native, built on `react-native-reanimated`. Inspired by Framer Motion (web) and react-spring (cross-platform).
 
-> **Status:** `0.0.1-alpha`. The Phase-1 foundation is in place — `Motion.View` / `Motion.Text` / `Motion.Image` with `initial` + `animate` + per-property `transition`. Sequences, variants, gestures, `<Presence>`, decay, and `<MotionConfig>` are landing toward v0.1.
+> **Status:** `0.0.1-alpha`. The full v0.1 surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, and the value-layer hooks (`useMotionValue` / `useSpring` / `useTransform` / `useScroll`). APIs may still shift before `0.1.0`; see the [roadmap](https://github.com/onlynative/inertia/blob/main/CLAUDE.md#roadmap) for graduation gates.
 
 ## Why Inertia
 
@@ -74,7 +74,9 @@ Each docs page deep-links into the relevant screen of this same app, so you can 
 - [Gestures](./gestures) — `pressed` / `focused` / `focusVisible` / `hovered` sub-states.
 - [Gestures adapter](./gestures-adapter) — drag / pan / swipe via `react-native-gesture-handler` (optional package).
 - [Gradients](./gradients) — animatable `MotionLinearGradient` via `expo-linear-gradient` (optional package).
+- [SVG](./svg) — animatable `MotionPath` via `react-native-svg` (optional package).
 - [Presence](./presence) — mount / unmount transitions.
+- [Layout](./layout) — auto-layout transitions on position + size changes.
 - [MotionConfig](./motion-config) — reduce-motion gate.
 - [Hooks](./api/hooks) and [createMotionComponent](./api/create-motion-component) — escape hatches.
 
@@ -179,6 +181,16 @@ yarn add @onlynative/inertia-gradients expo-linear-gradient
 
 See [Gradients](./gradients) for the primitive.
 
+### SVG (`@onlynative/inertia-svg`)
+
+`MotionPath` wraps [`react-native-svg`](https://github.com/software-mansion/react-native-svg)'s `<Path>` with animatable `d` (path morphing on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, and `strokeDashoffset`. Works in bare React Native as well as Expo.
+
+```bash
+yarn add @onlynative/inertia-svg react-native-svg
+```
+
+See [SVG](./svg) for the primitive.
+
 ## Reduced motion
 
 Inertia respects the OS reduce-motion accessibility setting by default — no extra wiring needed. To override the default for the whole app or a subtree, see [MotionConfig](./motion-config).
@@ -228,7 +240,11 @@ The alpha supports the properties below across every primitive that accepts them
 
 When `initial` is omitted, color slots seed with `'transparent'` — fine for fade-in, but pass an explicit `initial` color when animating between two opaque values to avoid the first frame flashing through transparent.
 
-**Out of scope for alpha:** layout transforms (`layout` / `layoutId`), SVG path morphing, gradient interpolation. Those land in later versions.
+**Optional adapter primitives:** gradient interpolation ships in [`@onlynative/inertia-gradients`](../gradients) (`MotionLinearGradient`), and SVG path morphing ships in [`@onlynative/inertia-svg`](../svg) (`MotionPath`). Both compose with the same `initial` / `animate` / `transition` shape.
+
+**Auto-layout transitions:** the [`layout` prop](../layout) animates position + size changes that come from outside the `animate` flow — siblings reordering, dimensions toggling, etc.
+
+**Out of scope for alpha:** shared element transitions across screens (`layoutId`). Reanimated 4 dropped the `sharedTransitionTag` API; the Inertia-side measure-based replacement is in design.
 
 ---
 
@@ -1133,16 +1149,16 @@ Path normalization that resamples between arbitrary shapes (the flubber-style ap
 
 ## Animatable props
 
-| Key                | Shape    | Notes                                                                                                       |
-| ------------------ | -------- | ----------------------------------------------------------------------------------------------------------- |
-| `d`                | `string` | Path data. Source and target must share the same template — see above. Each scalar param springs / times independently. |
+| Key                | Shape    | Notes                                                                                                                       |
+| ------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `d`                | `string` | Path data. Source and target must share the same template — see above. Each scalar param springs / times independently.     |
 | `fill`             | `string` | Color, interpolated via Reanimated's color setter. Defaults to `'transparent'` if neither static nor `initial` is supplied. |
-| `stroke`           | `string` | Same as `fill`.                                                                                             |
-| `strokeWidth`      | `number` | Numeric. Default seed `1`.                                                                                  |
-| `strokeOpacity`    | `number` | Numeric, 0–1.                                                                                               |
-| `fillOpacity`      | `number` | Numeric, 0–1.                                                                                               |
-| `opacity`          | `number` | Numeric, 0–1.                                                                                               |
-| `strokeDashoffset` | `number` | Useful for "draw" animations on a dashed stroke.                                                            |
+| `stroke`           | `string` | Same as `fill`.                                                                                                             |
+| `strokeWidth`      | `number` | Numeric. Default seed `1`.                                                                                                  |
+| `strokeOpacity`    | `number` | Numeric, 0–1.                                                                                                               |
+| `fillOpacity`      | `number` | Numeric, 0–1.                                                                                                               |
+| `opacity`          | `number` | Numeric, 0–1.                                                                                                               |
+| `strokeDashoffset` | `number` | Useful for "draw" animations on a dashed stroke.                                                                            |
 
 Per-property transitions work just like the core primitives:
 
@@ -1296,6 +1312,69 @@ function MyExitable() {
 
 ---
 
+# Layout
+
+The `layout` prop animates position and size changes that come from outside the `animate` flow — a flex sibling growing, a list reordering, a column toggling its width. Without it, those changes snap; with it, they interpolate.
+
+```tsx
+import { Motion } from '@onlynative/inertia'
+
+function ReorderableRow({ item, onPress }: Props) {
+  return (
+    <Motion.View
+      layout={{ type: 'spring', tension: 200, friction: 22 }}
+      style={styles.row}
+    />
+  )
+}
+```
+
+Internally the prop resolves to Reanimated's `LinearTransition` builder; the same react-spring vocabulary (`tension`, `friction`, `mass`) you use for `transition` works here too. Raw Reanimated names (`stiffness` / `damping`) never appear on the public API.
+
+## Accepted shapes
+
+| Value              | Meaning                                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| omitted / `false`  | No layout animation. Position and size changes snap (default).                                  |
+| `true`             | Library default spring (`tension: 170`, `friction: 26`, `mass: 1`).                             |
+| `TransitionConfig` | `'spring'` or `'timing'`. `'decay'` downgrades to spring; `'no-animation'` skips the animation. |
+
+```tsx
+<Motion.View layout />                                          // default spring
+<Motion.View layout={{ type: 'spring', tension: 240 }} />        // custom spring
+<Motion.View layout={{ type: 'timing', duration: 320 }} />       // duration-based
+<Motion.View layout={{ type: 'timing', easing: (t) => t * t }} /> // custom easing
+```
+
+User-supplied easing functions are auto-wrapped with the `'worklet'` directive at JS time, same as `transition.easing` — you don't need to remember the worklet boundary.
+
+## What triggers a layout animation
+
+`LinearTransition` fires whenever the underlying native view's measured frame changes between commits. The common triggers:
+
+- The component's siblings reorder in a flex container.
+- The component's size changes because its `style` props swap (`height: 56` ↔ `height: 96`).
+- The component's position shifts because a sibling grew, shrank, or was inserted.
+
+The `animate` flow is independent. A `Motion.View` can have both `animate={{ opacity }}` and `layout` — the opacity drives through `useAnimatedStyle`, the layout drives through Reanimated's native commit hook. They don't fight.
+
+## Reduced motion
+
+`layout` participates in [`<MotionConfig reducedMotion>`](./motion-config.md) — when reduced motion is active, the prop resolves to no builder and changes snap. We pass `undefined` to the underlying component rather than a `.duration(0)` builder because Reanimated still runs commit-tracking machinery in the latter case; the snap path is genuinely cheaper.
+
+## What this prop doesn't do (yet)
+
+- **Shared element transitions across screens (`layoutId`)** — Reanimated 4 dropped the `sharedTransitionTag` API the previous design relied on. A measure-based Inertia-side registry is the in-flight replacement, but it ships separately.
+- **Per-axis control (`layout="position"` / `layout="size"`)** — `LinearTransition` doesn't expose an axis filter; the whole frame animates together. If you need to gate a specific dimension, animate it through `animate` instead.
+- **Layout-tied callbacks** — `onAnimationEnd` fires for `animate` keys, not for layout commits. Reanimated's `withCallback` is what backs that on the layout side; we haven't surfaced it yet.
+
+## Caveats
+
+- The wrapped component must render a native host view. Every `Motion.*` primitive does; if you wrap a custom component via `createMotionComponent(C)`, ensure `C` ultimately renders a host view, or the prop is a no-op.
+- Layout animations on virtualized list items (FlatList rows) can fight the list's own measurement passes — measure twice before adding `layout` to row components. The [Perf bench](./perf-bench.md) screen is the place to test.
+
+---
+
 # MotionConfig
 
 A provider that gates how descendant Motion primitives respond to the OS reduce-motion accessibility setting.
@@ -1404,6 +1483,429 @@ If Inertia regresses, suspect (in this order):
 1. Worklet recreation per render — should be memoized via `mergedSig` / `transitionSig`. Re-check the [memoization regression test](https://github.com/onlynative/inertia/blob/main/packages/core/src/__tests__/memoization.test.tsx).
 2. Animated style cost — ensure the worklet body doesn't allocate per frame.
 3. Resolver cost — `resolveAnimatableValue` runs on the JS thread, but per-render not per-frame. Check the effect dep array.
+
+---
+
+# Testing
+
+Inertia ships a Reanimated Jest mock and a `renderWithMotion` helper so existing test suites don't need to learn how the mock is wired before they can assert on animated UI.
+
+## Setup
+
+The mock lives at the repo root in `jest.setup.js`. Add it to your Jest config:
+
+```js
+// jest.config.js
+module.exports = {
+  preset: 'react-native',
+  setupFiles: [
+    require.resolve('@onlynative/inertia/jest.setup.js'),
+    // ... your other setup files
+  ],
+}
+```
+
+The mock is **static-render**: animations don't actually run, but `useSharedValue` is `useRef`-backed so values written by an effect persist across re-renders. Combined with `renderWithMotion`, that's enough to assert post-animation styles in unit tests.
+
+## `renderWithMotion`
+
+Use it as a drop-in for `@testing-library/react-native`'s `render`. It returns the same render result, with the rendered tree already flushed to the `animate` target.
+
+```ts
+import { renderWithMotion } from '@onlynative/inertia/testing'
+import { Motion } from '@onlynative/inertia'
+
+it('fades in to opacity: 1', () => {
+  const { getByTestId } = renderWithMotion(
+    <Motion.View
+      testID="card"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    />,
+  )
+
+  expect(getByTestId('card').props.style).toMatchObject({ opacity: 1 })
+})
+```
+
+Without the helper, plain `render(...)` returns the `initial` styles — that's the static-render trade-off the mock makes. Inertia tests its own primitives this way too; see `packages/core/src/__tests__/testing-helper.test.tsx`.
+
+## `flushMotion(result, nextUi)`
+
+For tests that change props between flushes (a `useState` toggling `animate`, a controller transition), `rerender` once with the new element and then call `flushMotion` to apply the second pass:
+
+```ts
+const result = renderWithMotion(
+  <Motion.View testID="card" animate={{ opacity: 0.4 }} />,
+)
+
+// later in the test, after some interaction:
+const next = <Motion.View testID="card" animate={{ opacity: 0.9 }} />
+result.rerender(next)
+flushMotion(result, next)
+
+expect(getStyle(result).opacity).toBe(0.9)
+```
+
+`flushMotion` clones the element internally to defeat React's element-reference bail-out, so passing the same element twice in a row works.
+
+## What you can and can't assert
+
+The mock only resolves to **terminal targets** — it doesn't simulate frames. So you can:
+
+- ✅ Assert post-animation styles (`renderWithMotion` flushes once)
+- ✅ Spy on `withSpring` / `withTiming` / `withDecay` to verify how Inertia compiles a transition (see `packages/core/src/__tests__/memoization.test.tsx` for the pattern)
+- ✅ Capture the settle callback from `withSpring` / `withTiming` to fire `onAnimationEnd` manually (see `onAnimationEnd.test.tsx`)
+
+You cannot:
+
+- ❌ Assert intermediate frames (`opacity` halfway from 0 to 1)
+- ❌ Make timing-based assertions — there is no timer to advance
+- ❌ Snapshot the gesture-driven UI (`gesture.pressed`) without firing the corresponding RN event first; the mock doesn't simulate input
+
+For frame-level correctness, validate manually in the example app — there's a screen per primitive in [`example/screens/`](https://github.com/onlynative/inertia/tree/main/example/screens).
+
+## Migrating existing tests
+
+If your test suite was previously asserting against raw `react-native-reanimated` shared values:
+
+```diff
+- import { render } from '@testing-library/react-native'
++ import { renderWithMotion } from '@onlynative/inertia/testing'
+
+- const { getByTestId } = render(<Card />)
++ const { getByTestId } = renderWithMotion(<Card />)
+```
+
+For tests that previously called `act` + `jest.runAllTimers()` to push animations through, drop both — the mock skips the timer dance and `renderWithMotion` does the rendering shuffle for you.
+
+---
+
+# Migrating from raw Reanimated
+
+Inertia is a thin wrapper over `react-native-reanimated` — every animation it produces could have been written by hand with `useSharedValue` + `useAnimatedStyle`. The win is that the common patterns collapse into props. This page maps the patterns we keep rewriting in `@onlynative/ui` and other downstream consumers onto the Inertia equivalents.
+
+If a pattern below isn't covered, the likely answer is "drop down to the hooks layer" — Inertia exposes `useMotionValue` / `useSpring` / `useTransform` so you don't have to leave the package.
+
+## State-layer fills (Material Design 3)
+
+The bread-and-butter pattern: a `Pressable` with a coloured layer that fades in on hover, focus, and press. Roughly 13 components in `@onlynative/ui` share this exact shape.
+
+### Before — raw Reanimated
+
+```tsx
+import { Pressable } from 'react-native'
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated'
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
+
+export function Button({ onPress, label }: Props) {
+  const press = useSharedValue(0)
+  const focus = useSharedValue(0)
+  const hover = useSharedValue(0)
+
+  const animatedStyle = useAnimatedStyle(() => {
+    'worklet'
+    let bg = interpolateColor(hover.value, [0, 1], ['transparent', '#0001'])
+    bg = interpolateColor(focus.value, [0, 1], [bg, '#0002'])
+    bg = interpolateColor(press.value, [0, 1], [bg, '#0003'])
+    return { backgroundColor: bg }
+  })
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={() => (press.value = withTiming(1, { duration: 120 }))}
+      onPressOut={() => (press.value = withTiming(0, { duration: 120 }))}
+      onFocus={() => (focus.value = withTiming(1, { duration: 120 }))}
+      onBlur={() => (focus.value = withTiming(0, { duration: 120 }))}
+      onHoverIn={() => (hover.value = withTiming(1, { duration: 120 }))}
+      onHoverOut={() => (hover.value = withTiming(0, { duration: 120 }))}
+      style={[styles.button, animatedStyle]}
+    >
+      <Text>{label}</Text>
+    </AnimatedPressable>
+  )
+}
+```
+
+### After — Inertia
+
+```tsx
+import { Motion } from '@onlynative/inertia'
+
+export function Button({ onPress, label }: Props) {
+  return (
+    <Motion.Pressable
+      onPress={onPress}
+      gesture={{
+        hovered: { backgroundColor: '#0001' },
+        focused: { backgroundColor: '#0002' },
+        pressed: { backgroundColor: '#0003' },
+      }}
+      transition={{ type: 'timing', duration: 120 }}
+      style={styles.button}
+    >
+      <Text>{label}</Text>
+    </Motion.Pressable>
+  )
+}
+```
+
+Three shared values, one animated style, and six handler callbacks collapse into one `gesture` prop.
+
+### Layered blending preserves the cross-fade
+
+The chained-`interpolateColor` form above blends three independent layers so a release-while-still-hovered shows a real cross-fade. Inertia's `gesture` matches that semantically: each declared sub-state owns its own progress (0↔1) and the worklet composites layers in priority order (`hovered → focused → focusVisible → pressed`). When you release while still hovered, the press layer fades back to 0 independently — the hover layer stays at 1, so the value lands on the hover target rather than snapping back to base.
+
+To configure per-layer fade timing (MD3 spec uses ~50 ms in, ~150 ms out), pass per-state entries on `transition`:
+
+```tsx
+transition={{
+  backgroundColor: { type: 'timing', duration: 120 },
+  pressed:  { type: 'timing', duration: 50 },
+  hovered:  { type: 'timing', duration: 90 },
+}}
+```
+
+Without per-layer entries, layers inherit the top-level `transition` (or fall back to the library default spring).
+
+### `style` must be a value, not a function
+
+`Motion.Pressable` inherits Reanimated's `createAnimatedComponent` wrapper, which silently drops the function-form `style={({ pressed }) => ...}` that RN's `Pressable` accepts. Drive press/focus/hover styling through `gesture` (as above) or compute conditional styles once in render. See [primitives/pressable](../primitives/pressable#style-must-be-a-value-not-a-function) for the full caveat.
+
+## Mount-on-appear (fade in, slide up)
+
+### Before
+
+```tsx
+const opacity = useSharedValue(0)
+const translateY = useSharedValue(20)
+
+useEffect(() => {
+  opacity.value = withTiming(1, { duration: 200 })
+  translateY.value = withSpring(0, { stiffness: 180, damping: 22, mass: 1 })
+}, [])
+
+const animatedStyle = useAnimatedStyle(() => ({
+  opacity: opacity.value,
+  transform: [{ translateY: translateY.value }],
+}))
+
+return <Animated.View style={[styles.card, animatedStyle]} />
+```
+
+### After
+
+```tsx
+<Motion.View
+  initial={{ opacity: 0, translateY: 20 }}
+  animate={{ opacity: 1, translateY: 0 }}
+  transition={{
+    opacity: { type: 'timing', duration: 200 },
+    translateY: { type: 'spring', tension: 180, friction: 22 },
+  }}
+  style={styles.card}
+/>
+```
+
+The Reanimated config translates 1:1 — `stiffness` → `tension`, `damping` → `friction`, `mass` → `mass`. See the [transition shapes](../transitions#porting-from-raw-reanimated-stiffness--damping) for the table.
+
+## Toggle progress (Switch / Checkbox / Radio)
+
+A boolean that animates between two states.
+
+### Before
+
+```tsx
+const progress = useSharedValue(checked ? 1 : 0)
+
+useEffect(() => {
+  progress.value = withSpring(checked ? 1 : 0, {
+    stiffness: 380,
+    damping: 32,
+  })
+}, [checked])
+
+const thumbStyle = useAnimatedStyle(() => ({
+  transform: [{ translateX: progress.value * 24 }],
+}))
+const trackStyle = useAnimatedStyle(() => ({
+  backgroundColor: interpolateColor(
+    progress.value,
+    [0, 1],
+    [colors.surface, colors.primary],
+  ),
+}))
+```
+
+### After
+
+```tsx
+const variants = {
+  off: { translateX: 0, backgroundColor: colors.surface },
+  on: { translateX: 24, backgroundColor: colors.primary },
+} as const
+
+<Motion.View
+  variants={variants}
+  animate={checked ? 'on' : 'off'}
+  transition={{ type: 'spring', tension: 380, friction: 32 }}
+  style={styles.thumb}
+/>
+```
+
+One variant map, one prop swap on `animate`. `useEffect` and the manual `withSpring` call both go away.
+
+For programmatic chaining (`onChange` with async work, ripple animations), use `useVariants(variants)` instead and drive the controller from JS:
+
+```tsx
+const controller = useVariants(variants)
+controller.transitionTo(checked ? 'on' : 'off')
+
+<Motion.View controller={controller} variants={variants} />
+```
+
+## Drag / pan / swipe
+
+These wait for the [`@onlynative/inertia-gestures`](../gestures-adapter) adapter (PanGestureHandler under the hood). The hooks return ready-made shared values you wire into the same props — no `setNativeProps`, no manual `withDecay` after release.
+
+```tsx
+import { useDrag } from '@onlynative/inertia-gestures'
+
+const { gesture, animatedStyle } = useDrag({
+  axis: 'x',
+  constraints: { left: -100, right: 100 },
+  elastic: 0.3,
+})
+
+<GestureDetector gesture={gesture}>
+  <Animated.View style={[styles.card, animatedStyle]} />
+</GestureDetector>
+```
+
+If your gesture layer is already PanResponder-based and you don't want to add a peer dep, the existing code keeps working — Inertia doesn't replace `react-native-gesture-handler` flows in the core package.
+
+## Looping / infinite animations
+
+### Before
+
+```tsx
+const angle = useSharedValue(0)
+useEffect(() => {
+  angle.value = withRepeat(
+    withTiming(360, { duration: 1200 }),
+    -1, // -1 means infinite
+    false, // don't reverse
+  )
+}, [])
+const style = useAnimatedStyle(() => ({
+  transform: [{ rotate: `${angle.value}deg` }],
+}))
+```
+
+### After
+
+```tsx
+<Motion.View
+  animate={{ rotate: 360 }}
+  transition={{
+    type: 'timing',
+    duration: 1200,
+    repeat: { count: 'infinite', alternate: false },
+  }}
+/>
+```
+
+The three `withRepeat` flags collapse into one shape. See [sequences and repeat](../sequences#repeat).
+
+## Custom easing
+
+Reanimated 3.9+ validates that `easing` is a worklet inside nested-transition contexts (variants, sequences, per-property maps). A bare arrow function crashes there.
+
+### Before
+
+```tsx
+import { Easing } from 'react-native-reanimated'
+
+// Crashes inside a variant if you forget the directive.
+const easing = (t: number) => {
+  'worklet'
+  return Math.pow(t, 3)
+}
+```
+
+### After
+
+```tsx
+// Plain function — the resolver wraps it as a worklet at JS time.
+const easing = (t: number) => Math.pow(t, 3)
+
+<Motion.View
+  variants={{
+    rest: { translateY: 0 },
+    bounce: { translateY: -16 },
+  }}
+  transition={{ type: 'timing', duration: 280, easing }}
+  animate="bounce"
+/>
+```
+
+Easing fns must still be **pure** — no captured JS-thread refs, no closures over component state. The wrapping only fixes the worklet-validation; it can't safely move JS-thread state across the boundary.
+
+## Mount/unmount transitions (`AnimatePresence`)
+
+If you have an existing `AnimatePresence` from another lib, swap the import:
+
+```diff
+- import { AnimatePresence } from 'some-other-lib'
++ import { Presence } from '@onlynative/inertia'
+
+  function Toast({ visible }: Props) {
+    return (
+-     <AnimatePresence>
++     <Presence>
+        {visible ? (
+          <Motion.View
+            key="toast"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+        ) : null}
+-     </AnimatePresence>
++     </Presence>
+    )
+  }
+```
+
+`<Presence>` automatically applies `pointerEvents: 'none'` to exiting children — the "two clicks to re-open the popover" bug doesn't reproduce. See [Presence](../presence) for the full contract.
+
+## When _not_ to migrate
+
+Some patterns are still better off as raw Reanimated:
+
+- **Frame-by-frame data viz** — d3-style charts that read shared values inside `useDerivedValue` and feed them into SVG props. The Inertia public surface targets `style` keys; SVG attribute interpolation lives in the hooks layer or in raw Reanimated.
+- **Custom physics simulations** — anything where you'd be reaching into `withDecay` callback signatures, `cancelAnimation`, or `runOnUI` directly. Drop down to the hooks.
+- **Layout / shared-element transitions** — deferred to v1.x. If you're animating list reordering or screen-to-screen hero transitions, keep using Reanimated's `Layout` API directly for now.
+- **Slider / continuous gesture range UI** — until [`@onlynative/inertia-gestures`](../gestures-adapter) covers the pattern (v0.2 still in flight), keep the hand-rolled PanResponder + `useSharedValue` flow.
+
+The hooks layer is intentionally the same shape as Reanimated's so dropping down doesn't feel like switching tools.
+
+## Testing migrated components
+
+The Reanimated mock that ships with Jest is **static-render-only** — animations don't actually run, and `useAnimatedStyle` is captured at the at-rest values. After migrating, your existing tests assert against `initial` styles by default, which is usually wrong.
+
+Inertia ships a test helper that flushes animations to their target state in one call. See [Testing](../testing) for the API.
+
+## Stuck?
+
+Open an issue with the before/after pair you're trying to migrate. The patterns in this guide came from `@onlynative/ui`'s real components — if your shape isn't covered, it should be.
 
 ---
 
@@ -1697,98 +2199,3 @@ Inertia uses Reanimated's `createAnimatedComponent` internally, so the wrapped c
 
 - The function-style `style={(state) => ...}` Pressable form is not supported by the factory. Drive press-state styling through `gesture.pressed` instead.
 - Components that re-shape `style` before forwarding (e.g. transforming a string into a stylesheet ref) may not animate cleanly. Test with a single transform or opacity before relying on it for production.
-
----
-
-# Testing
-
-Inertia ships a Reanimated Jest mock and a `renderWithMotion` helper so existing test suites don't need to learn how the mock is wired before they can assert on animated UI.
-
-## Setup
-
-The mock lives at the repo root in `jest.setup.js`. Add it to your Jest config:
-
-```js
-// jest.config.js
-module.exports = {
-  preset: 'react-native',
-  setupFiles: [
-    require.resolve('@onlynative/inertia/jest.setup.js'),
-    // ... your other setup files
-  ],
-}
-```
-
-The mock is **static-render**: animations don't actually run, but `useSharedValue` is `useRef`-backed so values written by an effect persist across re-renders. Combined with `renderWithMotion`, that's enough to assert post-animation styles in unit tests.
-
-## `renderWithMotion`
-
-Use it as a drop-in for `@testing-library/react-native`'s `render`. It returns the same render result, with the rendered tree already flushed to the `animate` target.
-
-```ts
-import { renderWithMotion } from '@onlynative/inertia/testing'
-import { Motion } from '@onlynative/inertia'
-
-it('fades in to opacity: 1', () => {
-  const { getByTestId } = renderWithMotion(
-    <Motion.View
-      testID="card"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-    />,
-  )
-
-  expect(getByTestId('card').props.style).toMatchObject({ opacity: 1 })
-})
-```
-
-Without the helper, plain `render(...)` returns the `initial` styles — that's the static-render trade-off the mock makes. Inertia tests its own primitives this way too; see `packages/core/src/__tests__/testing-helper.test.tsx`.
-
-## `flushMotion(result, nextUi)`
-
-For tests that change props between flushes (a `useState` toggling `animate`, a controller transition), `rerender` once with the new element and then call `flushMotion` to apply the second pass:
-
-```ts
-const result = renderWithMotion(
-  <Motion.View testID="card" animate={{ opacity: 0.4 }} />,
-)
-
-// later in the test, after some interaction:
-const next = <Motion.View testID="card" animate={{ opacity: 0.9 }} />
-result.rerender(next)
-flushMotion(result, next)
-
-expect(getStyle(result).opacity).toBe(0.9)
-```
-
-`flushMotion` clones the element internally to defeat React's element-reference bail-out, so passing the same element twice in a row works.
-
-## What you can and can't assert
-
-The mock only resolves to **terminal targets** — it doesn't simulate frames. So you can:
-
-- ✅ Assert post-animation styles (`renderWithMotion` flushes once)
-- ✅ Spy on `withSpring` / `withTiming` / `withDecay` to verify how Inertia compiles a transition (see `packages/core/src/__tests__/memoization.test.tsx` for the pattern)
-- ✅ Capture the settle callback from `withSpring` / `withTiming` to fire `onAnimationEnd` manually (see `onAnimationEnd.test.tsx`)
-
-You cannot:
-
-- ❌ Assert intermediate frames (`opacity` halfway from 0 to 1)
-- ❌ Make timing-based assertions — there is no timer to advance
-- ❌ Snapshot the gesture-driven UI (`gesture.pressed`) without firing the corresponding RN event first; the mock doesn't simulate input
-
-For frame-level correctness, validate manually in the example app — there's a screen per primitive in [`example/screens/`](https://github.com/onlynative/inertia/tree/main/example/screens).
-
-## Migrating existing tests
-
-If your test suite was previously asserting against raw `react-native-reanimated` shared values:
-
-```diff
-- import { render } from '@testing-library/react-native'
-+ import { renderWithMotion } from '@onlynative/inertia/testing'
-
-- const { getByTestId } = render(<Card />)
-+ const { getByTestId } = renderWithMotion(<Card />)
-```
-
-For tests that previously called `act` + `jest.runAllTimers()` to push animations through, drop both — the mock skips the timer dance and `renderWithMotion` does the rendering shuffle for you.

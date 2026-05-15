@@ -262,6 +262,26 @@ export interface MotionProps<C> {
    */
   transition?: Transition<AnimateStyle<C>>
   /**
+   * Auto-layout animation. When the component's position or size changes
+   * because of a parent layout change (a flex sibling growing, a list
+   * reordering, a column toggling its width), interpolate between the old
+   * and new layout instead of snapping.
+   *
+   * - `true` — animate with the library's default spring.
+   * - `TransitionConfig` — spring (react-spring vocab) or timing config; the
+   *   resolver bridges to Reanimated's `LinearTransition` builder.
+   * - omitted / `false` — no layout animation (default).
+   *
+   * Only `'spring'` / `'timing'` / `'no-animation'` map to layout transitions
+   * — decay is downgraded to spring (no clear target). Reduced motion gates
+   * the prop the same way it gates `animate`.
+   *
+   * `layoutId` for shared element transitions across screens is deferred:
+   * Reanimated 4 dropped the underlying `sharedTransitionTag` API and a
+   * Inertia-side measure-based registry is the in-flight design.
+   */
+  layout?: boolean | TransitionConfig
+  /**
    * Fired once per logical animation completion. See `AnimationCallbackInfo`
    * for the payload shape — transform parents fire once, not per axis.
    */

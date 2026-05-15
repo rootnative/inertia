@@ -15,6 +15,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useShouldReduceMotion } from '../config'
 import { isFocusVisible } from '../gestures'
+import { resolveLayoutTransition, type LayoutProp } from '../layout'
 import { usePresence } from '../presence'
 import { resolveAnimatableValue, resolveTransition } from '../transitions'
 import { ensureReanimatedInstalled } from './installCheck'
@@ -218,10 +219,11 @@ export function createMotionComponent<C extends ComponentType<any>>(
       variants,
       controller,
       gesture,
+      layout,
       onAnimationEnd,
       style,
       ...rest
-    } = props as Props & { style?: unknown }
+    } = props as Props & { style?: unknown; layout?: LayoutProp }
 
     // <Presence> contract: when an ancestor flips `isPresent` to false the
     // child stays rendered until `safeToRemove` is called, giving the exit
@@ -596,11 +598,24 @@ export function createMotionComponent<C extends ComponentType<any>>(
       setHovered,
     )
 
+    // Resolve the `layout` prop into a Reanimated `LinearTransition` builder.
+    // Memoized on the value's stable signature so a fresh `layout={true}` or
+    // `layout={{ ... }}` literal each render doesn't rebuild the builder. When
+    // reduced motion is active we pass `undefined` — see `resolveLayout` for
+    // why we don't pass a duration-0 builder instead.
+    const layoutSig = stableSig(layout)
+    const layoutTransition = useMemo(
+      () => (shouldReduceMotion ? undefined : resolveLayoutTransition(layout)),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [layoutSig, shouldReduceMotion],
+    )
+
     return (
       <AnimatedComponent
         ref={ref as never}
         {...(rest as object)}
         {...gestureHandlers}
+        layout={layoutTransition}
         style={mergedStyle}
       />
     )

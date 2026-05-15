@@ -13,6 +13,7 @@ import { DecayScreen } from './screens/DecayScreen'
 import { DragScreen } from './screens/DragScreen'
 import { GestureScreen } from './screens/GestureScreen'
 import { ImageScreen } from './screens/ImageScreen'
+import { LayoutScreen } from './screens/LayoutScreen'
 import { LinearGradientScreen } from './screens/LinearGradientScreen'
 import { MotionConfigScreen } from './screens/MotionConfigScreen'
 import { PanScreen } from './screens/PanScreen'
@@ -47,6 +48,7 @@ type Route =
   | 'presence'
   | 'linear-gradient'
   | 'path-morph'
+  | 'layout'
   | 'motion-config'
   | 'perf-bench'
 
@@ -69,6 +71,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'presence',
   'linear-gradient',
   'path-morph',
+  'layout',
   'motion-config',
   'perf-bench',
 ]
@@ -161,6 +164,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         label: 'Presence',
         description: 'mount and unmount transitions',
       },
+      {
+        route: 'layout',
+        label: 'Layout',
+        description: 'auto-layout transitions on position + size changes',
+      },
     ],
   },
   {
@@ -240,6 +248,7 @@ export default function App() {
   if (route === 'linear-gradient')
     return <LinearGradientScreen onBack={goHome} />
   if (route === 'path-morph') return <PathMorphScreen onBack={goHome} />
+  if (route === 'layout') return <LayoutScreen onBack={goHome} />
   if (route === 'motion-config') return <MotionConfigScreen onBack={goHome} />
   if (route === 'perf-bench') return <PerfBenchScreen onBack={goHome} />
 

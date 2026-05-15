@@ -49,11 +49,13 @@ const PAGES = [
   'gradients',
   'svg',
   'presence',
+  'layout',
   'motion-config',
   'perf-bench',
+  'testing',
+  'migrations/from-reanimated',
   'api/hooks',
   'api/create-motion-component',
-  'testing',
 ]
 
 // Strip the leading YAML frontmatter block (--- … ---) from a markdown page.
