@@ -856,6 +856,18 @@ Inertia composes its internal handlers with whatever you've already attached:
 
 Your `onPressIn` runs first, then the internal pressed-state setter. The same composition applies to every event the gesture prop subscribes to.
 
+## When the prop isn't enough — `useGesture`
+
+The `gesture` prop animates the receiver's own style. If you need one Pressable's gesture state to drive **multiple** animated views (a focus ring rendered as a sibling, an MD3 state-layer halo over the content, a separate icon-color animation), reach for [`useGesture`](./api/hooks#usegesturetransition) — the hook-form of this prop. It returns the underlying 0↔1 progress shared values for `pressed` / `focused` / `focusVisible` / `hovered` plus a handler bag to spread on a `Pressable`. Feed the shared values into as many `useAnimatedStyle` blocks as you need.
+
+```tsx
+const { pressed, focused, hovered, handlers } = useGesture()
+// ...drive a focus ring, a halo, a tint — each from the same gesture state
+<Pressable {...handlers}>{children}</Pressable>
+```
+
+The prop and the hook share the layered-blend model, the `isFocusVisible()` semantics, and the `<MotionConfig reducedMotion>` gating — they're the same machinery, two surfaces.
+
 ## When you need drag, pan, or swipe
 
 The `gesture` prop covers Pressable-shaped states — anything that boils down to "active / inactive / focused / hovered". For continuous, value-bearing gestures (a thumb that follows the finger, a sheet that flicks closed, a carousel with momentum), reach for the [gestures adapter](./gestures-adapter): `useDrag`, `usePan`, `useSwipe`. It's an opt-in sibling package so the core library doesn't ship a `react-native-gesture-handler` peer for apps that only animate buttons.
@@ -2067,6 +2079,73 @@ Returns:
 | `onScroll` | `(event: NativeSyntheticEvent<NativeScrollEvent>) => void` | Pass to `Motion.ScrollView`'s `onScroll` prop. Worklet-backed; safe to forward to any Reanimated-animated scrollable. |
 
 Set `scrollEventThrottle={16}` on the `ScrollView` for steady 60 Hz updates; without it, Android can dispatch less frequently than iOS.
+
+## `useGesture(transition?)`
+
+The hook-form of the [`gesture` prop](../gestures). Reach for it when one Pressable's gesture state needs to drive multiple animated views — a focus ring rendered as a sibling, an MD3 state-layer halo that overlays the content, a content tint and a separate icon-color animation, etc. The prop-form only animates the receiver's own style; the hook gives you the underlying 0↔1 progress shared values to feed into any number of `useAnimatedStyle` blocks.
+
+```tsx
+import { useGesture } from '@onlynative/inertia'
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+} from 'react-native-reanimated'
+
+function StateLayerButton() {
+  const { pressed, focused, focusVisible, hovered, handlers } = useGesture({
+    pressed: { type: 'timing', duration: 100 },
+    hovered: { type: 'timing', duration: 150 },
+    focused: { type: 'timing', duration: 200 },
+  })
+
+  const ringStyle = useAnimatedStyle(() => ({ opacity: focusVisible.value }))
+  const haloStyle = useAnimatedStyle(() => ({
+    opacity: Math.max(
+      hovered.value * 0.08,
+      focused.value * 0.1,
+      pressed.value * 0.1,
+    ),
+  }))
+
+  return (
+    <Pressable {...handlers}>
+      <Animated.View pointerEvents="none" style={ringStyle} />
+      <Animated.View pointerEvents="none" style={haloStyle} />
+    </Pressable>
+  )
+}
+```
+
+Returns:
+
+| Field          | Type                  | Notes                                                                                              |
+| -------------- | --------------------- | -------------------------------------------------------------------------------------------------- |
+| `pressed`      | `SharedValue<number>` | 0↔1 progress for the pressed layer.                                                                |
+| `focused`      | `SharedValue<number>` | 0↔1 progress for any focus modality.                                                               |
+| `focusVisible` | `SharedValue<number>` | 0↔1 progress for keyboard-only focus (W3C `:focus-visible` semantics).                             |
+| `hovered`      | `SharedValue<number>` | 0↔1 progress for hover (web only — stays at 0 on native).                                          |
+| `handlers`     | `UseGestureHandlers`  | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on the host Pressable. |
+
+Transitions follow the same shape as the `gesture` prop's accompanying `transition`:
+
+- `useGesture({ type: 'timing', duration: 150 })` — same config for every layer.
+- `useGesture({ pressed: {...}, hovered: {...}, focused: {...}, focusVisible: {...} })` — per-layer.
+- Layers without an explicit transition fall back to the library default spring.
+- `<MotionConfig reducedMotion>` is respected — when reduced motion is active, every transition collapses to `'no-animation'` and progress snaps instead of interpolating.
+
+The shared values and the handler bag are **identity-stable** across renders — safe to pass to memoized children. To compose with consumer handlers (e.g. your own `onPressIn` for analytics), wrap manually:
+
+```tsx
+<Pressable
+  {...handlers}
+  onPressIn={(e) => {
+    track('press')
+    handlers.onPressIn()
+  }}
+/>
+```
+
+When `useGesture` and the `gesture` prop describe the same scenario, prefer the prop — fewer moving parts. The hook is the escape hatch for compositions the prop can't express.
 
 ## `useVariants(variants, initial?)`
 

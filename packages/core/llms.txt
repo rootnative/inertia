@@ -17,6 +17,7 @@ import {
   Motion,
   Presence,
   MotionConfig,
+  useGesture,
   useVariants,
   useMotionValue,
   useSpring,
@@ -36,6 +37,7 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 - `Motion.View` / `Motion.Text` / `Motion.Image` / `Motion.Pressable` / `Motion.ScrollView` — animatable primitives. Per-primitive style inference (no shared `ViewStyle & TextStyle & ImageStyle` fallback).
 - `<Presence>` — mount / unmount transitions; children need explicit `key`s. Exiting children get `pointerEvents: 'none'` automatically.
 - `<MotionConfig reducedMotion="user" | "never" | "always">` — gates motion against the OS reduce-motion setting (default `"user"`).
+- `useGesture(transition?)` — hook-form of the `gesture` prop. Returns 0↔1 progress shared values (`pressed`, `focused`, `focusVisible`, `hovered`) plus a `handlers` bag to spread on a `Pressable`. Use when one gesture needs to drive multiple animated siblings (focus rings, MD3 state-layer halos, multi-element compositions).
 - `useVariants(variants, initial?)` — returns `{ current, transitionTo }` controller for the `controller` prop.
 - `useMotionValue(initial)` — thin pass-through over `useSharedValue<T>`. Returns a `SharedValue<T>` directly so it interops with every Reanimated API without unwrapping.
 - `useSpring(target, config?)` — animate a `SharedValue<number>` toward `target` with react-spring vocab. `target` may be a plain number (effect-driven) or a `SharedValue<number>` (UI-thread reaction).

@@ -26,6 +26,7 @@ import { SequenceScreen } from './screens/SequenceScreen'
 import { SwipeScreen } from './screens/SwipeScreen'
 import { TextScreen } from './screens/TextScreen'
 import { TransformsScreen } from './screens/TransformsScreen'
+import { UseGestureScreen } from './screens/UseGestureScreen'
 import { VariantsScreen } from './screens/VariantsScreen'
 import { ViewScreen } from './screens/ViewScreen'
 
@@ -43,6 +44,7 @@ type Route =
   | 'swipe'
   | 'pan'
   | 'gesture'
+  | 'use-gesture'
   | 'pressable'
   | 'scroll-view'
   | 'presence'
@@ -66,6 +68,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'swipe',
   'pan',
   'gesture',
+  'use-gesture',
   'pressable',
   'scroll-view',
   'presence',
@@ -181,6 +184,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         description: 'pressed, focused, hovered on every primitive',
       },
       {
+        route: 'use-gesture',
+        label: 'useGesture',
+        description: 'hook-form for siblings + multi-target compositions',
+      },
+      {
         route: 'drag',
         label: 'Drag',
         description: 'continuous drag via the gestures adapter',
@@ -242,6 +250,7 @@ export default function App() {
   if (route === 'swipe') return <SwipeScreen onBack={goHome} />
   if (route === 'pan') return <PanScreen onBack={goHome} />
   if (route === 'gesture') return <GestureScreen onBack={goHome} />
+  if (route === 'use-gesture') return <UseGestureScreen onBack={goHome} />
   if (route === 'pressable') return <PressableScreen onBack={goHome} />
   if (route === 'scroll-view') return <ScrollViewScreen onBack={goHome} />
   if (route === 'presence') return <PresenceScreen onBack={goHome} />

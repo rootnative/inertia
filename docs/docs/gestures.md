@@ -90,6 +90,18 @@ Inertia composes its internal handlers with whatever you've already attached:
 
 Your `onPressIn` runs first, then the internal pressed-state setter. The same composition applies to every event the gesture prop subscribes to.
 
+## When the prop isn't enough — `useGesture`
+
+The `gesture` prop animates the receiver's own style. If you need one Pressable's gesture state to drive **multiple** animated views (a focus ring rendered as a sibling, an MD3 state-layer halo over the content, a separate icon-color animation), reach for [`useGesture`](./api/hooks#usegesturetransition) — the hook-form of this prop. It returns the underlying 0↔1 progress shared values for `pressed` / `focused` / `focusVisible` / `hovered` plus a handler bag to spread on a `Pressable`. Feed the shared values into as many `useAnimatedStyle` blocks as you need.
+
+```tsx
+const { pressed, focused, hovered, handlers } = useGesture()
+// ...drive a focus ring, a halo, a tint — each from the same gesture state
+<Pressable {...handlers}>{children}</Pressable>
+```
+
+The prop and the hook share the layered-blend model, the `isFocusVisible()` semantics, and the `<MotionConfig reducedMotion>` gating — they're the same machinery, two surfaces.
+
 ## When you need drag, pan, or swipe
 
 The `gesture` prop covers Pressable-shaped states — anything that boils down to "active / inactive / focused / hovered". For continuous, value-bearing gestures (a thumb that follows the finger, a sheet that flicks closed, a carousel with momentum), reach for the [gestures adapter](./gestures-adapter): `useDrag`, `usePan`, `useSwipe`. It's an opt-in sibling package so the core library doesn't ship a `react-native-gesture-handler` peer for apps that only animate buttons.

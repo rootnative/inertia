@@ -17,7 +17,11 @@ import { useShouldReduceMotion } from '../config'
 import { isFocusVisible } from '../gestures'
 import { resolveLayoutTransition, type LayoutProp } from '../layout'
 import { usePresence } from '../presence'
-import { resolveAnimatableValue, resolveTransition } from '../transitions'
+import {
+  isTopLevelTransition,
+  resolveAnimatableValue,
+  resolveTransition,
+} from '../transitions'
 import { ensureReanimatedInstalled } from './installCheck'
 import {
   type AnimatableValue,
@@ -134,29 +138,6 @@ const DEFAULT_RESTING: Record<AnimatableKey, number | string> = {
   borderColor: 'transparent',
   color: 'transparent',
   tintColor: 'transparent',
-}
-
-const TRANSITION_KEYS = new Set([
-  'type',
-  'tension',
-  'friction',
-  'mass',
-  'velocity',
-  'restSpeedThreshold',
-  'restDisplacementThreshold',
-  'duration',
-  'easing',
-  'delay',
-  'repeat',
-  'deceleration',
-  'clamp',
-])
-
-function isTopLevelTransition(t: unknown): t is TransitionConfig {
-  if (t === null || typeof t !== 'object') return false
-  const keys = Object.keys(t as object)
-  if (keys.length === 0) return false
-  return keys.every((k) => TRANSITION_KEYS.has(k))
 }
 
 function transitionFor<S>(

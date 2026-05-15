@@ -1,3 +1,4 @@
 export { resolveTransition, resolveAnimatableValue } from './resolve'
 export { ensureWorkletEasing } from './easing'
+export { isTopLevelTransition, TRANSITION_CONFIG_KEYS } from './keys'
 export { DEFAULT_SPRING, springToReanimated } from './spring'

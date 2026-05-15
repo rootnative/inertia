@@ -161,6 +161,73 @@ Returns:
 
 Set `scrollEventThrottle={16}` on the `ScrollView` for steady 60 Hz updates; without it, Android can dispatch less frequently than iOS.
 
+## `useGesture(transition?)`
+
+The hook-form of the [`gesture` prop](../gestures). Reach for it when one Pressable's gesture state needs to drive multiple animated views — a focus ring rendered as a sibling, an MD3 state-layer halo that overlays the content, a content tint and a separate icon-color animation, etc. The prop-form only animates the receiver's own style; the hook gives you the underlying 0↔1 progress shared values to feed into any number of `useAnimatedStyle` blocks.
+
+```tsx
+import { useGesture } from '@onlynative/inertia'
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+} from 'react-native-reanimated'
+
+function StateLayerButton() {
+  const { pressed, focused, focusVisible, hovered, handlers } = useGesture({
+    pressed: { type: 'timing', duration: 100 },
+    hovered: { type: 'timing', duration: 150 },
+    focused: { type: 'timing', duration: 200 },
+  })
+
+  const ringStyle = useAnimatedStyle(() => ({ opacity: focusVisible.value }))
+  const haloStyle = useAnimatedStyle(() => ({
+    opacity: Math.max(
+      hovered.value * 0.08,
+      focused.value * 0.1,
+      pressed.value * 0.1,
+    ),
+  }))
+
+  return (
+    <Pressable {...handlers}>
+      <Animated.View pointerEvents="none" style={ringStyle} />
+      <Animated.View pointerEvents="none" style={haloStyle} />
+    </Pressable>
+  )
+}
+```
+
+Returns:
+
+| Field          | Type                  | Notes                                                                                              |
+| -------------- | --------------------- | -------------------------------------------------------------------------------------------------- |
+| `pressed`      | `SharedValue<number>` | 0↔1 progress for the pressed layer.                                                                |
+| `focused`      | `SharedValue<number>` | 0↔1 progress for any focus modality.                                                               |
+| `focusVisible` | `SharedValue<number>` | 0↔1 progress for keyboard-only focus (W3C `:focus-visible` semantics).                             |
+| `hovered`      | `SharedValue<number>` | 0↔1 progress for hover (web only — stays at 0 on native).                                          |
+| `handlers`     | `UseGestureHandlers`  | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on the host Pressable. |
+
+Transitions follow the same shape as the `gesture` prop's accompanying `transition`:
+
+- `useGesture({ type: 'timing', duration: 150 })` — same config for every layer.
+- `useGesture({ pressed: {...}, hovered: {...}, focused: {...}, focusVisible: {...} })` — per-layer.
+- Layers without an explicit transition fall back to the library default spring.
+- `<MotionConfig reducedMotion>` is respected — when reduced motion is active, every transition collapses to `'no-animation'` and progress snaps instead of interpolating.
+
+The shared values and the handler bag are **identity-stable** across renders — safe to pass to memoized children. To compose with consumer handlers (e.g. your own `onPressIn` for analytics), wrap manually:
+
+```tsx
+<Pressable
+  {...handlers}
+  onPressIn={(e) => {
+    track('press')
+    handlers.onPressIn()
+  }}
+/>
+```
+
+When `useGesture` and the `gesture` prop describe the same scenario, prefer the prop — fewer moving parts. The hook is the escape hatch for compositions the prop can't express.
+
 ## `useVariants(variants, initial?)`
 
 Build a controller for a variants map. Pass it through `controller={...}` to drive transitions imperatively.

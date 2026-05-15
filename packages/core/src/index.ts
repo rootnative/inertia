@@ -28,6 +28,7 @@ export {
   ensureWorkletEasing,
 } from './transitions'
 export {
+  useGesture,
   useMotionValue,
   useScroll,
   useSpring,
@@ -36,6 +37,8 @@ export {
 } from './values'
 export type {
   ExtrapolationMode,
+  UseGestureHandlers,
+  UseGestureResult,
   UseScrollResult,
   UseTransformOptions,
 } from './values'
