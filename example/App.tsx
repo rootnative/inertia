@@ -15,6 +15,7 @@ import { GestureScreen } from './screens/GestureScreen'
 import { ImageScreen } from './screens/ImageScreen'
 import { LayoutScreen } from './screens/LayoutScreen'
 import { LinearGradientScreen } from './screens/LinearGradientScreen'
+import { MD3SwitchScreen } from './screens/MD3SwitchScreen'
 import { MotionConfigScreen } from './screens/MotionConfigScreen'
 import { PanScreen } from './screens/PanScreen'
 import { PathMorphScreen } from './screens/PathMorphScreen'
@@ -51,6 +52,7 @@ type Route =
   | 'linear-gradient'
   | 'path-morph'
   | 'layout'
+  | 'md3-switch'
   | 'motion-config'
   | 'perf-bench'
 
@@ -75,6 +77,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'linear-gradient',
   'path-morph',
   'layout',
+  'md3-switch',
   'motion-config',
   'perf-bench',
 ]
@@ -189,6 +192,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         description: 'hook-form for siblings + multi-target compositions',
       },
       {
+        route: 'md3-switch',
+        label: 'MD3 Switch — ported',
+        description: 'real component port: useGesture + useAnimation together',
+      },
+      {
         route: 'drag',
         label: 'Drag',
         description: 'continuous drag via the gestures adapter',
@@ -258,6 +266,7 @@ export default function App() {
     return <LinearGradientScreen onBack={goHome} />
   if (route === 'path-morph') return <PathMorphScreen onBack={goHome} />
   if (route === 'layout') return <LayoutScreen onBack={goHome} />
+  if (route === 'md3-switch') return <MD3SwitchScreen onBack={goHome} />
   if (route === 'motion-config') return <MotionConfigScreen onBack={goHome} />
   if (route === 'perf-bench') return <PerfBenchScreen onBack={goHome} />
 
