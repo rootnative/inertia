@@ -6,13 +6,11 @@
 > Site:   https://onlynative.github.io/inertia/
 
 ---
-# Inertia
+Inertia (`@onlynative/inertia`) is a thin, ergonomic wrapper around `react-native-reanimated`. Animations are expressed as props on a component — no shared values, no worklets, no `useAnimatedStyle` boilerplate. The vocabulary takes cues from **Framer Motion** (web) and **react-spring** (cross-platform).
 
-Declarative animation primitives for React Native, built on `react-native-reanimated`. Inspired by Framer Motion (web) and react-spring (cross-platform).
+> **Status:** `0.0.1-alpha`. The full v0.1 surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, and the value-layer hooks. APIs may still shift before `0.1.0`; see the [roadmap](https://github.com/onlynative/inertia/blob/main/CLAUDE.md#roadmap) for graduation gates.
 
-> **Status:** `0.0.1-alpha`. The full v0.1 surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, and the value-layer hooks (`useMotionValue` / `useSpring` / `useTransform` / `useScroll`). APIs may still shift before `0.1.0`; see the [roadmap](https://github.com/onlynative/inertia/blob/main/CLAUDE.md#roadmap) for graduation gates.
-
-## Why Inertia
+## What you get
 
 - **DX-first.** Animations are props on a component, not imperative shared values, worklets, and `useAnimatedStyle` boilerplate.
 - **Per-primitive style inference.** `Motion.View` accepts `ViewStyle` keys, `Motion.Text` accepts `TextStyle`, `Motion.Image` accepts `ImageStyle`. No shared union fallback that lets wrong props slip through.

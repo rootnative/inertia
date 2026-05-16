@@ -1,10 +1,56 @@
 .frame {
+  position: relative;
   width: 100%;
   border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
   background: var(--ifm-background-surface-color);
-  margin: 1.5rem 0;
+  margin: 1.75rem 0;
+  box-shadow:
+    0 24px 60px -30px rgba(15, 23, 42, 0.3),
+    0 4px 16px -8px rgba(15, 23, 42, 0.12);
+}
+
+[data-theme='dark'] .frame {
+  box-shadow:
+    0 30px 80px -30px rgba(0, 0, 0, 0.8),
+    0 4px 16px -8px rgba(0, 0, 0, 0.5);
+}
+
+.chrome {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.95rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ifm-color-emphasis-100);
+  font-size: 0.78rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.dot[data-color='r'] {
+  background: #ff5f57;
+}
+
+.dot[data-color='y'] {
+  background: #febc2e;
+}
+
+.dot[data-color='g'] {
+  background: #28c840;
+}
+
+.label {
+  margin-left: 0.4rem;
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  color: var(--ifm-color-emphasis-600);
 }
 
 .iframe {
@@ -12,4 +58,8 @@
   height: 100%;
   border: 0;
   display: block;
+}
+
+.iframeWrap {
+  height: 100%;
 }

@@ -6,6 +6,35 @@
   --ifm-color-primary-light: #000;
   --ifm-color-primary-lighter: #000;
   --ifm-color-primary-lightest: #000;
+
+  --ifm-font-family-base:
+    'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --ifm-font-family-monospace:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+    monospace;
+  --ifm-heading-font-weight: 700;
+  --ifm-heading-line-height: 1.2;
+  --ifm-h1-font-size: 2.4rem;
+  --ifm-h2-font-size: 1.7rem;
+  --ifm-h3-font-size: 1.25rem;
+  --ifm-line-height-base: 1.65;
+  --ifm-spacing-horizontal: 1rem;
+
+  --ifm-link-decoration: none;
+  --ifm-link-hover-decoration: underline;
+
+  --ifm-code-font-size: 90%;
+  --ifm-code-padding-horizontal: 0.4rem;
+  --ifm-code-padding-vertical: 0.15rem;
+  --ifm-pre-padding: 1.1rem;
+
+  --ifm-navbar-padding-vertical: 0.6rem;
+  --ifm-navbar-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+  --ifm-toc-border-color: transparent;
+
+  --inertia-accent: #4f46e5;
+  --inertia-accent-2: #ec4899;
 }
 
 [data-theme='dark'] {
@@ -16,10 +45,219 @@
   --ifm-color-primary-light: #fff;
   --ifm-color-primary-lighter: #fff;
   --ifm-color-primary-lightest: #fff;
+  --ifm-background-color: #0b0b0f;
+  --ifm-background-surface-color: #111118;
   --ifm-navbar-background-color: var(--ifm-background-color);
   --ifm-navbar-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+  --inertia-accent: #818cf8;
+  --inertia-accent-2: #f472b6;
 }
 
 html {
   scroll-behavior: smooth;
+}
+
+body {
+  font-feature-settings:
+    'cv02' 1,
+    'cv03' 1,
+    'cv04' 1,
+    'cv11' 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  margin-top: 2.5rem;
+}
+
+h3 {
+  margin-top: 1.75rem;
+}
+
+main article > h1:first-child {
+  font-size: clamp(2rem, 4vw, 2.6rem);
+}
+
+main article > p:first-of-type,
+main article > header + p {
+  color: var(--ifm-color-emphasis-700);
+  font-size: 1.05rem;
+}
+
+article a {
+  font-weight: 500;
+}
+
+article a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+}
+
+/* Inline code only — never code inside a <pre> (Prism CodeBlock inner code) */
+:not(pre) > code {
+  background: var(--ifm-color-emphasis-200);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 5px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.88em;
+}
+
+[data-theme='dark'] :not(pre) > code {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Code blocks */
+.theme-code-block {
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px -20px rgba(15, 23, 42, 0.25) !important;
+}
+
+[data-theme='dark'] .theme-code-block {
+  box-shadow: 0 14px 40px -22px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Admonitions polish */
+.theme-admonition {
+  border-radius: 10px;
+  border-left-width: 3px;
+}
+
+/* Tables */
+article table {
+  display: table;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--ifm-color-emphasis-300);
+}
+
+article table thead {
+  background: var(--ifm-color-emphasis-100);
+}
+
+article table th,
+article table td {
+  border: none;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+article table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Sidebar */
+.menu__link {
+  border-radius: 8px;
+  font-size: 0.92rem;
+}
+
+.menu__link--active {
+  font-weight: 600;
+}
+
+.menu__list-item-collapsible {
+  border-radius: 8px;
+}
+
+.menu__caret {
+  border-radius: 6px;
+}
+
+/* Sidebar category headings */
+.theme-doc-sidebar-item-category-level-1
+  > .menu__list-item-collapsible
+  > .menu__link {
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ifm-color-emphasis-600);
+}
+
+/* Navbar */
+.navbar {
+  backdrop-filter: saturate(180%) blur(10px);
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  background: color-mix(
+    in srgb,
+    var(--ifm-navbar-background-color) 80%,
+    transparent
+  );
+}
+
+.navbar__title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.navbar__item {
+  font-size: 0.92rem;
+}
+
+/* Pagination buttons */
+.pagination-nav__link {
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--ifm-color-emphasis-500);
+  transform: translateY(-1px);
+}
+
+.pagination-nav__label {
+  font-weight: 600;
+}
+
+/* Anchor links a bit calmer */
+.hash-link {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+h1:hover .hash-link,
+h2:hover .hash-link,
+h3:hover .hash-link,
+h4:hover .hash-link {
+  opacity: 0.6;
+}
+
+/* Search input */
+.DocSearch-Button {
+  border-radius: 10px;
+}
+
+/* Tabs */
+.tabs__item {
+  border-radius: 8px 8px 0 0;
+  font-weight: 500;
+}
+
+.tabs__item--active {
+  border-bottom-color: var(--inertia-accent);
+}
+
+/* Smooth focus outlines */
+a:focus-visible,
+button:focus-visible,
+.menu__link:focus-visible {
+  outline: 2px solid var(--inertia-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
