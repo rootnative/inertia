@@ -24,6 +24,8 @@ import { PresenceScreen } from './screens/PresenceScreen'
 import { PressableScreen } from './screens/PressableScreen'
 import { ScrollViewScreen } from './screens/ScrollViewScreen'
 import { SequenceScreen } from './screens/SequenceScreen'
+import { ShadowScreen } from './screens/ShadowScreen'
+import { SliderScreen } from './screens/SliderScreen'
 import { SwipeScreen } from './screens/SwipeScreen'
 import { TextScreen } from './screens/TextScreen'
 import { TransformsScreen } from './screens/TransformsScreen'
@@ -38,10 +40,12 @@ type Route =
   | 'image'
   | 'color'
   | 'transforms'
+  | 'shadow'
   | 'variants'
   | 'sequence'
   | 'decay'
   | 'drag'
+  | 'slider'
   | 'swipe'
   | 'pan'
   | 'gesture'
@@ -63,10 +67,12 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'image',
   'color',
   'transforms',
+  'shadow',
   'variants',
   'sequence',
   'decay',
   'drag',
+  'slider',
   'swipe',
   'pan',
   'gesture',
@@ -133,6 +139,12 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         route: 'transforms',
         label: 'Transforms',
         description: 'rotate, rotateX, rotateY (3D needs perspective)',
+      },
+      {
+        route: 'shadow',
+        label: 'Shadow & elevation',
+        description:
+          'MD3 cascade — shadowOpacity / Radius / Offset / elevation',
       },
       {
         route: 'linear-gradient',
@@ -202,6 +214,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         description: 'continuous drag via the gestures adapter',
       },
       {
+        route: 'slider',
+        label: 'Slider — useDrag onRelease',
+        description: 'snap-to-tick or free decay via release transitions',
+      },
+      {
         route: 'swipe',
         label: 'Swipe',
         description: 'card-stack swipe gesture',
@@ -251,10 +268,12 @@ export default function App() {
   if (route === 'image') return <ImageScreen onBack={goHome} />
   if (route === 'color') return <ColorScreen onBack={goHome} />
   if (route === 'transforms') return <TransformsScreen onBack={goHome} />
+  if (route === 'shadow') return <ShadowScreen onBack={goHome} />
   if (route === 'variants') return <VariantsScreen onBack={goHome} />
   if (route === 'sequence') return <SequenceScreen onBack={goHome} />
   if (route === 'decay') return <DecayScreen onBack={goHome} />
   if (route === 'drag') return <DragScreen onBack={goHome} />
+  if (route === 'slider') return <SliderScreen onBack={goHome} />
   if (route === 'swipe') return <SwipeScreen onBack={goHome} />
   if (route === 'pan') return <PanScreen onBack={goHome} />
   if (route === 'gesture') return <GestureScreen onBack={goHome} />
