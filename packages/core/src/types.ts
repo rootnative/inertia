@@ -192,6 +192,14 @@ export type VariantsMap<C> = Record<string, AnimateStyle<C>>
  * Configure per-layer fade timing via `transition.<stateName>` on the parent
  * primitive (see `GestureLayerTransitions`); without it, layers default to
  * the parent transition or the library default spring.
+ *
+ * **Priority cascade is the only composition mode on this prop.** Non-priority
+ * blends — clamped-max (`Math.max(hover*α, focus*β, press*γ)`, as used by MD3
+ * state-layer haloes), additive accumulation, or any per-key custom blend —
+ * are not expressible declaratively. Drop to `useGesture()` for those: it
+ * returns the four progress shared values and a handler bag, and you write
+ * a `useAnimatedStyle` block with whatever composition you need. The hook's
+ * JSDoc shows the clamped-max halo pattern in full.
  */
 export interface GestureSubStates<C> {
   pressed?: AnimateStyle<C>

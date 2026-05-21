@@ -67,6 +67,9 @@ const NUMERIC_TOP_LEVEL_KEYS = [
   'width',
   'height',
   'borderRadius',
+  'shadowOpacity',
+  'shadowRadius',
+  'elevation',
 ] as const
 
 // Color-valued keys. Reanimated's value setter detects color strings and
@@ -83,7 +86,16 @@ const COLOR_KEYS = [
   'borderColor',
   'color',
   'tintColor',
+  'shadowColor',
 ] as const
+
+// Synthetic axes for the `shadowOffset: { width, height }` nested-object style
+// prop. RN doesn't surface these as top-level keys; the worklet recomposes
+// `shadowOffset` from the two synthetic SVs before emitting the style. The
+// consumer's animate value (`shadowOffset: { width, height }`) decomposes into
+// these at the activation / value-driving boundary; consumers don't write
+// these keys directly.
+const SHADOW_OFFSET_KEYS = ['shadowOffsetWidth', 'shadowOffsetHeight'] as const
 
 /**
  * Per-effect transform-group coordinator. Counts how many transform-axis
@@ -97,12 +109,15 @@ const ALL_KEYS = [
   ...TRANSFORM_KEYS,
   ...NUMERIC_TOP_LEVEL_KEYS,
   ...COLOR_KEYS,
+  ...SHADOW_OFFSET_KEYS,
 ] as const
 type AnimatableKey = (typeof ALL_KEYS)[number]
 type TransformKey = (typeof TRANSFORM_KEYS)[number]
+type ShadowOffsetKey = (typeof SHADOW_OFFSET_KEYS)[number]
 
 const TRANSFORM_KEY_SET = new Set<AnimatableKey>(TRANSFORM_KEYS)
 const COLOR_KEY_SET = new Set<AnimatableKey>(COLOR_KEYS)
+const SHADOW_OFFSET_KEY_SET = new Set<AnimatableKey>(SHADOW_OFFSET_KEYS)
 
 const GESTURE_LAYER_NAMES = [
   'hovered',
@@ -131,6 +146,9 @@ const DEFAULT_RESTING: Record<AnimatableKey, number | string> = {
   width: 0,
   height: 0,
   borderRadius: 0,
+  shadowOpacity: 0,
+  shadowRadius: 0,
+  elevation: 0,
   // 'transparent' is the only safe universal default for colors: it works as
   // an initial seed for any color animation (no jarring opaque flash on mount
   // when `initial` is omitted) and rgba(0,0,0,0) interpolates cleanly into
@@ -139,6 +157,9 @@ const DEFAULT_RESTING: Record<AnimatableKey, number | string> = {
   borderColor: 'transparent',
   color: 'transparent',
   tintColor: 'transparent',
+  shadowColor: 'transparent',
+  shadowOffsetWidth: 0,
+  shadowOffsetHeight: 0,
 }
 
 function transitionFor<S>(
@@ -237,18 +258,12 @@ export function createMotionComponent<C extends ComponentType<any>>(
       variantKey,
     )
 
-    const animateRecord = (resolvedAnimate ?? {}) as Partial<
-      Record<AnimatableKey, AnimatableValue<number | string>>
-    >
+    const animateRecord = (resolvedAnimate ?? {}) as InternalAnimateRecord
     const initialRecord =
       initial && initial !== false
-        ? (initial as Partial<Record<AnimatableKey, number | string>>)
+        ? (initial as InternalInitialRecord)
         : undefined
-    const exitRecord = exit
-      ? (exit as Partial<
-          Record<AnimatableKey, AnimatableValue<number | string>>
-        >)
-      : undefined
+    const exitRecord = exit ? (exit as InternalAnimateRecord) : undefined
 
     // Gesture sub-state activation tracked as JS state. Activation flips drive
     // the per-layer progress shared values (0↔1); they intentionally do NOT
@@ -268,16 +283,12 @@ export function createMotionComponent<C extends ComponentType<any>>(
     const activeKeysRef = useRef<readonly AnimatableKey[] | null>(null)
     if (activeKeysRef.current === null) {
       const touched = new Set<AnimatableKey>()
-      for (const k of ALL_KEYS) {
-        if (k in animateRecord) touched.add(k)
-        if (initialRecord && k in initialRecord) touched.add(k)
-      }
+      collectTouchedKeys(touched, animateRecord)
+      if (initialRecord) collectTouchedKeys(touched, initialRecord)
       if (variants) {
         for (const variant of Object.values(variants) as object[]) {
           if (!variant) continue
-          for (const k of ALL_KEYS) {
-            if (k in variant) touched.add(k)
-          }
+          collectTouchedKeys(touched, variant as Record<string, unknown>)
         }
       }
       if (gesture) {
@@ -288,23 +299,43 @@ export function createMotionComponent<C extends ComponentType<any>>(
           gesture.hovered,
         ] as Array<object | undefined>) {
           if (!subState) continue
-          for (const k of ALL_KEYS) {
-            if (k in subState) touched.add(k)
-          }
+          collectTouchedKeys(touched, subState as Record<string, unknown>)
         }
       }
-      if (exitRecord) {
-        for (const k of ALL_KEYS) {
-          if (k in exitRecord) touched.add(k)
-        }
-      }
+      if (exitRecord) collectTouchedKeys(touched, exitRecord)
       activeKeysRef.current = ALL_KEYS.filter((k) => touched.has(k))
     }
     const hasTransformRef = useRef<boolean>(
       activeKeysRef.current.some((k) => TRANSFORM_KEY_SET.has(k)),
     )
+    const hasShadowOffsetRef = useRef<boolean>(
+      activeKeysRef.current.some((k) => SHADOW_OFFSET_KEY_SET.has(k)),
+    )
 
     const sharedValues = useAnimatableSharedValues((key) => {
+      // Shadow offset synthetics seed from the corresponding axis on the
+      // `shadowOffset: { width, height }` source — the consumer doesn't write
+      // `shadowOffsetWidth` / `shadowOffsetHeight` directly. Fall back to the
+      // generic resting default when neither initial nor animate touched it.
+      if (SHADOW_OFFSET_KEY_SET.has(key)) {
+        const axis = shadowOffsetAxisFor(key as ShadowOffsetKey)
+        if (initial === false) {
+          return (
+            shadowOffsetAxisValue(animateRecord.shadowOffset, axis) ??
+            DEFAULT_RESTING[key]
+          )
+        }
+        return (
+          shadowOffsetAxisValue(
+            initialRecord?.shadowOffset as
+              | { width?: number; height?: number }
+              | undefined,
+            axis,
+          ) ??
+          shadowOffsetAxisValue(animateRecord.shadowOffset, axis) ??
+          DEFAULT_RESTING[key]
+        )
+      }
       if (initial === false) {
         const a = animateRecord[key]
         return restValue(a) ?? DEFAULT_RESTING[key]
@@ -398,7 +429,18 @@ export function createMotionComponent<C extends ComponentType<any>>(
         transformPending > 0 ? { remaining: transformPending } : undefined
 
       for (const key of ALL_KEYS) {
-        const target = baseRecord[key]
+        // Shadow offset synthetics read their target from the nested
+        // `shadowOffset: { width, height }` source on `baseRecord` — the
+        // animate / exit record never has `shadowOffsetWidth` etc. on it
+        // directly. The synthetic transition follows the same `shadowOffset`
+        // top-level transition entry (no per-axis split).
+        const target: AnimatableValue<number | string> | undefined =
+          SHADOW_OFFSET_KEY_SET.has(key)
+            ? shadowOffsetAxisValue(
+                baseRecord.shadowOffset,
+                shadowOffsetAxisFor(key as ShadowOffsetKey),
+              )
+            : baseRecord[key]
         if (target === undefined) continue
         // Reduced-motion overrides every per-key transition (and any nested
         // sequence-step transition) with `no-animation`, which the resolver
@@ -407,7 +449,12 @@ export function createMotionComponent<C extends ComponentType<any>>(
         // state" expectation.
         const cfg = shouldReduceMotion
           ? ({ type: 'no-animation' } as const)
-          : transitionFor(key, transition)
+          : transitionFor(
+              SHADOW_OFFSET_KEY_SET.has(key)
+                ? ('shadowOffset' as keyof typeof baseRecord)
+                : key,
+              transition,
+            )
         if (isExiting) pending++
         const factory = makeKeyCallbackFactory(
           key,
@@ -487,8 +534,14 @@ export function createMotionComponent<C extends ComponentType<any>>(
     const animatedStyle = useAnimatedStyle(() => {
       const activeKeys = activeKeysRef.current!
       const hasTransform = hasTransformRef.current
+      const hasShadowOffset = hasShadowOffsetRef.current
       const out: Record<string, unknown> = {}
       const transform: Array<Record<string, unknown>> = []
+      // shadow-offset reassembly buffers. The two synthetic axis SVs feed in
+      // here and the recomposed `{ width, height }` object lands on `out`
+      // after the loop so RN gets a single `shadowOffset` style prop.
+      let shadowOffsetW = 0
+      let shadowOffsetH = 0
 
       // Read each progress SV exactly once so the chain below sees a coherent
       // snapshot for this frame. Reading them on the UI thread is cheap.
@@ -550,11 +603,18 @@ export function createMotionComponent<C extends ComponentType<any>>(
           transform.push(
             ROTATION_KEYS.has(key) ? { [key]: `${v}deg` } : { [key]: v },
           )
+        } else if (key === 'shadowOffsetWidth') {
+          shadowOffsetW = v as number
+        } else if (key === 'shadowOffsetHeight') {
+          shadowOffsetH = v as number
         } else {
           out[key] = v
         }
       }
       if (hasTransform) out.transform = transform
+      if (hasShadowOffset) {
+        out.shadowOffset = { width: shadowOffsetW, height: shadowOffsetH }
+      }
       return out
     })
 
@@ -643,12 +703,22 @@ function useAnimatableSharedValues(
   const width = useSharedValue<number | string>(init('width'))
   const height = useSharedValue<number | string>(init('height'))
   const borderRadius = useSharedValue<number | string>(init('borderRadius'))
+  const shadowOpacity = useSharedValue<number | string>(init('shadowOpacity'))
+  const shadowRadius = useSharedValue<number | string>(init('shadowRadius'))
+  const elevation = useSharedValue<number | string>(init('elevation'))
   const backgroundColor = useSharedValue<number | string>(
     init('backgroundColor'),
   )
   const borderColor = useSharedValue<number | string>(init('borderColor'))
   const color = useSharedValue<number | string>(init('color'))
   const tintColor = useSharedValue<number | string>(init('tintColor'))
+  const shadowColor = useSharedValue<number | string>(init('shadowColor'))
+  const shadowOffsetWidth = useSharedValue<number | string>(
+    init('shadowOffsetWidth'),
+  )
+  const shadowOffsetHeight = useSharedValue<number | string>(
+    init('shadowOffsetHeight'),
+  )
 
   const ref = useRef<SharedValueMap | null>(null)
   if (ref.current === null) {
@@ -665,10 +735,16 @@ function useAnimatableSharedValues(
       width,
       height,
       borderRadius,
+      shadowOpacity,
+      shadowRadius,
+      elevation,
       backgroundColor,
       borderColor,
       color,
       tintColor,
+      shadowColor,
+      shadowOffsetWidth,
+      shadowOffsetHeight,
     }
   }
   return ref.current
@@ -788,6 +864,65 @@ function makeKeyCallbackFactory(
       runOnJS(dispatch)(rawPhase, step, !!finished, sharedValue.value)
     }
     return cb
+  }
+}
+
+/**
+ * Internal shape of the `animate` / `exit` record after the cast, widened to
+ * include the `shadowOffset: { width, height }` nested-object source. The
+ * nested object decomposes into the `shadowOffsetWidth` / `shadowOffsetHeight`
+ * synthetic axes downstream; consumers don't see the synthetics.
+ *
+ * v0.1 contract: `shadowOffset` accepts a single `{ width, height }` literal
+ * (no sequences, no `{ to }` step objects, no array keyframes). Sequence
+ * forms on the nested axes can land in v0.2 if real consumers ask for them.
+ */
+type InternalAnimateRecord = Partial<
+  Record<AnimatableKey, AnimatableValue<number | string>>
+> & {
+  shadowOffset?: { width?: number; height?: number }
+}
+
+type InternalInitialRecord = Partial<Record<AnimatableKey, number | string>> & {
+  shadowOffset?: { width?: number; height?: number }
+}
+
+/**
+ * Resolve a `shadowOffsetWidth` / `shadowOffsetHeight` synthetic key to the
+ * axis it represents on the nested-object source.
+ */
+function shadowOffsetAxisFor(key: ShadowOffsetKey): 'width' | 'height' {
+  return key === 'shadowOffsetWidth' ? 'width' : 'height'
+}
+
+/**
+ * Read a single axis off a `shadowOffset: { width, height }` source. Returns
+ * `undefined` when the source is absent or the axis isn't set, so callers can
+ * fall back to the next source in the precedence chain.
+ */
+function shadowOffsetAxisValue(
+  source: { width?: number; height?: number } | undefined,
+  axis: 'width' | 'height',
+): number | undefined {
+  return source?.[axis]
+}
+
+/**
+ * Populate `touched` with the `AnimatableKey`s mentioned in `record`. Direct
+ * matches (e.g. `opacity`, `width`) come from the key iteration; the nested
+ * `shadowOffset` source decomposes into the two `shadowOffset*` synthetics.
+ */
+function collectTouchedKeys(
+  touched: Set<AnimatableKey>,
+  record: Record<string, unknown>,
+): void {
+  for (const k of ALL_KEYS) {
+    if (k in record) touched.add(k)
+  }
+  if ('shadowOffset' in record && record.shadowOffset) {
+    const so = record.shadowOffset as { width?: unknown; height?: unknown }
+    if (so.width !== undefined) touched.add('shadowOffsetWidth')
+    if (so.height !== undefined) touched.add('shadowOffsetHeight')
   }
 }
 
@@ -930,6 +1065,17 @@ function resolveGestureLayers(
     if (!subState) continue
     const resolved: Record<string, number | string> = {}
     for (const key of ALL_KEYS) {
+      // Shadow offset synthetics decompose from the nested `shadowOffset:
+      // { width, height }` source on the sub-state, the same as on `animate`.
+      if (SHADOW_OFFSET_KEY_SET.has(key)) {
+        const axis = shadowOffsetAxisFor(key as ShadowOffsetKey)
+        const so = (
+          subState as { shadowOffset?: { width?: number; height?: number } }
+        ).shadowOffset
+        const v = shadowOffsetAxisValue(so, axis)
+        if (v !== undefined) resolved[key] = v
+        continue
+      }
       const raw = (subState as Record<string, unknown>)[key]
       if (raw === undefined) continue
       const t = targetEndValue(raw as AnimatableValue<number | string>)
