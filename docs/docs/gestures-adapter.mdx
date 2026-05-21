@@ -47,8 +47,53 @@ function DraggableBox() {
 | `elastic`     | `number` (0–1)                                 | `0`      | Rubber-band coefficient past `constraints`. `0` hard-clamps; `0.4` is a typical Framer-Motion feel. |
 | `onDragStart` | `() => void`                                   | none     | Fires on JS thread when drag begins.                                                                |
 | `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends.                                                                  |
+| `onRelease`   | `(info) => ReleaseResult \| void` (worklet)    | none     | UI-thread release transition — see below.                                                           |
 
 Returns `{ gesture, animatedStyle, dragX, dragY, isDragging }`. The shared values are exposed for power use cases (deriving secondary effects from drag position).
+
+### Release transitions (`onRelease`)
+
+By default `useDrag` leaves the shared values exactly where the finger lifted. Pass `onRelease` to animate them to a settled position via Inertia's transition vocabulary — spring snap-to-tick, decay with bounds, timing settle. The callback runs as a **worklet** so the release velocity stays on the UI thread (no JS round-trip):
+
+```tsx
+const drag = useDrag({
+  axis: 'x',
+  constraints: { left: 0, right: trackWidth },
+  onRelease: (e) => {
+    'worklet'
+    // Snap to the nearest tick using the release velocity for natural continuation.
+    const snap = nearestTick(e.x, ticks)
+    return {
+      x: { type: 'spring', to: snap, velocity: e.velocity.x },
+    }
+  },
+})
+```
+
+Return per-axis release transitions in a `ReleaseResult` shape — omit an axis (or return nothing) to leave that SV where it landed. The transition shapes mirror the core `transition` prop:
+
+```ts
+type ReleaseTransition =
+  | (SpringTransition & { to: number })
+  | (TimingTransition & { to: number })
+  | DecayTransition // no `to` — decay decelerates from current position
+  | (NoAnimationTransition & { to: number })
+```
+
+Decay-on-release (for free-flick behaviour without snapping):
+
+```tsx
+onRelease: (e) => {
+  'worklet'
+  return {
+    x: { type: 'decay', velocity: e.velocity.x, clamp: [0, trackWidth] },
+  }
+}
+```
+
+`onRelease` composes additively with `onDragEnd` — both fire on release. Use `onRelease` for the SV animation; use `onDragEnd` for JS-thread side effects (analytics, state updates).
+
+Internally this routes through `buildReleaseAnimation` exported from `@onlynative/inertia` — a worklet-safe builder that covers spring / timing / decay / no-animation single-step transitions. Reach for it directly if you're writing a custom `Gesture.Pan().onEnd(...)` worklet outside `useDrag`.
 
 ## `useSwipe`
 

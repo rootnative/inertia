@@ -8,15 +8,37 @@ Inertia ships a Reanimated Jest mock and a `renderWithMotion` helper so existing
 
 ## Setup
 
-The mock lives at the repo root in `jest.setup.js`. Add it to your Jest config:
+Inertia ships a Jest preset that wires everything up — the Reanimated mock, the `react-native-worklets` stub, the `Easing.bezier()` factory shape, and the `transformIgnorePatterns` widening needed to let Jest transform `@onlynative/inertia*`'s published ESM bundles. Point Jest at it with one line:
 
 ```js
 // jest.config.js
 module.exports = {
+  preset: require.resolve('@onlynative/inertia/jest-preset'),
+}
+```
+
+The preset internally extends `react-native`'s own preset, so you don't need to reference both. If you already have setup files or `transformIgnorePatterns` of your own, extend the preset:
+
+```js
+const inertia = require('@onlynative/inertia/jest-preset')
+
+module.exports = {
+  ...inertia,
+  setupFiles: [...inertia.setupFiles, '<rootDir>/my-setup.js'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(react-native|@react-native|@react-native-community|@onlynative/inertia|@onlynative/inertia-gestures|@onlynative/inertia-gradients|@onlynative/inertia-svg|react-native-worklets|my-other-esm-pkg)/)',
+  ],
+}
+```
+
+If you can't use the preset (e.g. you have a custom transform pipeline that conflicts), add the setup file directly:
+
+```js
+module.exports = {
   preset: 'react-native',
-  setupFiles: [
-    require.resolve('@onlynative/inertia/jest.setup.js'),
-    // ... your other setup files
+  setupFiles: [require.resolve('@onlynative/inertia/jest-setup')],
+  transformIgnorePatterns: [
+    'node_modules/(?!(react-native|@react-native|@react-native-community|@onlynative/inertia|@onlynative/inertia-gestures|@onlynative/inertia-gradients|@onlynative/inertia-svg|react-native-worklets)/)',
   ],
 }
 ```

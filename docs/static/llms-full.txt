@@ -273,13 +273,46 @@ import { MotionView } from '@onlynative/inertia/view'
 
 ## Animatable keys
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `backgroundColor`, `borderColor`.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`, `backgroundColor`, `borderColor`, `shadowColor`, `shadowOffset`.
+
+## Shadow animation
+
+Shadow keys ride the same animatable pipeline as other numeric / color props — `shadowOpacity`, `shadowRadius`, `elevation` are numerics; `shadowColor` is a color. `shadowOffset` is the one nested-object style on the surface; internally the worklet decomposes it into two synthetic axis SVs and recomposes them into a single `{ width, height }` prop each frame.
+
+```tsx
+// MD3 elevation cascade — flat numerics + the nested shadowOffset
+<Motion.View
+  initial={{
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
+  }}
+  animate={{
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  }}
+  gesture={{
+    hovered: {
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    },
+  }}
+/>
+```
+
+`shadowOffset` v0.1 supports the **single-value form only** — `{ width: number, height: number }`. Sequences inside the nested object (`{ width: [0, 100, 0], height: 0 }`) and array keyframes on the whole object are out of scope; drop to the value-layer hooks (`useMotionValue` + `useAnimatedStyle`) when you need them. Per-axis transition splits are also out of scope — the top-level `transition.shadowOffset` applies to both axes.
 
 ## Notes
 
 - `transform` is composed automatically. Mixing transform keys (e.g. `translateX` + `scale`) into one `animate` object emits a single `transform` array — you don't write `transform: [...]` yourself.
 - `rotate`, `rotateX`, and `rotateY` are numbers, in degrees. The factory wraps each as `{ rotate: '${value}deg' }` (etc.) for Reanimated. Use `rotateX` / `rotateY` together with a `perspective` style entry to get the 3D effect to render.
 - `width` / `height` interpolation can jitter on Fabric for non-`flex: 1` containers. Prefer `scaleX` / `scaleY` for resize animations where layout impact is acceptable.
+- Shadow rendering is platform-specific: iOS uses `shadowColor` / `shadowOpacity` / `shadowOffset` / `shadowRadius`; Android uses `elevation` (which derives its own shadow). Animate both sets together when you need a cross-platform cascade.
 
 ---
 
@@ -532,6 +565,23 @@ transition={{
 ```
 
 User-supplied `easing` functions are auto-wrapped as worklets at JS time, so plain functions work in nested-transition contexts (variants, sequences, per-property maps) without manual `'worklet'` directives. Easing fns must be pure — no captured JS-thread refs.
+
+### Easing input shape
+
+`easing` accepts either a plain function `(t: number) => number` or a Reanimated 4 `EasingFunctionFactory` (`{ factory: () => EasingFunction }`). The resolver detects the factory shape and unwraps it automatically:
+
+```tsx
+import { Easing } from 'react-native-reanimated'
+
+// Pass the factory directly — no `.factory()` call site needed.
+transition={{
+  type: 'timing',
+  duration: 200,
+  easing: Easing.bezier(0.2, 0, 0, 1),
+}}
+```
+
+The exported types are `EasingFunction`, `EasingFunctionFactory`, and the union `EasingInput`.
 
 ### `'decay'`
 
@@ -918,8 +968,53 @@ function DraggableBox() {
 | `elastic`     | `number` (0–1)                                 | `0`      | Rubber-band coefficient past `constraints`. `0` hard-clamps; `0.4` is a typical Framer-Motion feel. |
 | `onDragStart` | `() => void`                                   | none     | Fires on JS thread when drag begins.                                                                |
 | `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends.                                                                  |
+| `onRelease`   | `(info) => ReleaseResult \| void` (worklet)    | none     | UI-thread release transition — see below.                                                           |
 
 Returns `{ gesture, animatedStyle, dragX, dragY, isDragging }`. The shared values are exposed for power use cases (deriving secondary effects from drag position).
+
+### Release transitions (`onRelease`)
+
+By default `useDrag` leaves the shared values exactly where the finger lifted. Pass `onRelease` to animate them to a settled position via Inertia's transition vocabulary — spring snap-to-tick, decay with bounds, timing settle. The callback runs as a **worklet** so the release velocity stays on the UI thread (no JS round-trip):
+
+```tsx
+const drag = useDrag({
+  axis: 'x',
+  constraints: { left: 0, right: trackWidth },
+  onRelease: (e) => {
+    'worklet'
+    // Snap to the nearest tick using the release velocity for natural continuation.
+    const snap = nearestTick(e.x, ticks)
+    return {
+      x: { type: 'spring', to: snap, velocity: e.velocity.x },
+    }
+  },
+})
+```
+
+Return per-axis release transitions in a `ReleaseResult` shape — omit an axis (or return nothing) to leave that SV where it landed. The transition shapes mirror the core `transition` prop:
+
+```ts
+type ReleaseTransition =
+  | (SpringTransition & { to: number })
+  | (TimingTransition & { to: number })
+  | DecayTransition // no `to` — decay decelerates from current position
+  | (NoAnimationTransition & { to: number })
+```
+
+Decay-on-release (for free-flick behaviour without snapping):
+
+```tsx
+onRelease: (e) => {
+  'worklet'
+  return {
+    x: { type: 'decay', velocity: e.velocity.x, clamp: [0, trackWidth] },
+  }
+}
+```
+
+`onRelease` composes additively with `onDragEnd` — both fire on release. Use `onRelease` for the SV animation; use `onDragEnd` for JS-thread side effects (analytics, state updates).
+
+Internally this routes through `buildReleaseAnimation` exported from `@onlynative/inertia` — a worklet-safe builder that covers spring / timing / decay / no-animation single-step transitions. Reach for it directly if you're writing a custom `Gesture.Pan().onEnd(...)` worklet outside `useDrag`.
 
 ## `useSwipe`
 
@@ -1502,15 +1597,37 @@ Inertia ships a Reanimated Jest mock and a `renderWithMotion` helper so existing
 
 ## Setup
 
-The mock lives at the repo root in `jest.setup.js`. Add it to your Jest config:
+Inertia ships a Jest preset that wires everything up — the Reanimated mock, the `react-native-worklets` stub, the `Easing.bezier()` factory shape, and the `transformIgnorePatterns` widening needed to let Jest transform `@onlynative/inertia*`'s published ESM bundles. Point Jest at it with one line:
 
 ```js
 // jest.config.js
 module.exports = {
+  preset: require.resolve('@onlynative/inertia/jest-preset'),
+}
+```
+
+The preset internally extends `react-native`'s own preset, so you don't need to reference both. If you already have setup files or `transformIgnorePatterns` of your own, extend the preset:
+
+```js
+const inertia = require('@onlynative/inertia/jest-preset')
+
+module.exports = {
+  ...inertia,
+  setupFiles: [...inertia.setupFiles, '<rootDir>/my-setup.js'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(react-native|@react-native|@react-native-community|@onlynative/inertia|@onlynative/inertia-gestures|@onlynative/inertia-gradients|@onlynative/inertia-svg|react-native-worklets|my-other-esm-pkg)/)',
+  ],
+}
+```
+
+If you can't use the preset (e.g. you have a custom transform pipeline that conflicts), add the setup file directly:
+
+```js
+module.exports = {
   preset: 'react-native',
-  setupFiles: [
-    require.resolve('@onlynative/inertia/jest.setup.js'),
-    // ... your other setup files
+  setupFiles: [require.resolve('@onlynative/inertia/jest-setup')],
+  transformIgnorePatterns: [
+    'node_modules/(?!(react-native|@react-native|@react-native-community|@onlynative/inertia|@onlynative/inertia-gestures|@onlynative/inertia-gradients|@onlynative/inertia-svg|react-native-worklets)/)',
   ],
 }
 ```
@@ -2392,6 +2509,32 @@ function CustomExitable() {
 ```
 
 See [Presence](../presence) for the higher-level prop-driven usage.
+
+## `buildReleaseAnimation(transition, toValue)`
+
+Worklet-safe single-step animation builder. Mirrors a subset of the internal `resolveTransition` for the UI-thread path where the transition config is picked at gesture-release time, not at render time. Supports `spring` / `timing` / `decay` / `no-animation`; sequences, top-level `repeat`, and easing-function auto-worklet-wrapping are not.
+
+```ts
+import { buildReleaseAnimation } from '@onlynative/inertia'
+import { Gesture } from 'react-native-gesture-handler'
+
+const pan = Gesture.Pan().onEnd((e) => {
+  'worklet'
+  // Spring to a snap target with the release velocity preserved.
+  position.value = buildReleaseAnimation(
+    { type: 'spring', velocity: e.velocityX, friction: 26, tension: 170 },
+    snapTarget,
+  ) as number
+})
+```
+
+For decay transitions, the second argument is ignored — decay decelerates from the SV's current position via its own physics.
+
+| Signature                                                              | Returns                                                                  |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `buildReleaseAnimation(transition: TransitionConfig, toValue: number)` | Reanimated animation value (assign to a `SharedValue<number>` directly). |
+
+Most consumers reach for `useDrag({ onRelease })` from `@onlynative/inertia-gestures` instead — it wraps this builder behind a per-axis return shape. Use `buildReleaseAnimation` directly when you're authoring a custom `Gesture.*().onEnd(...)` worklet outside the adapter hooks.
 
 ---
 

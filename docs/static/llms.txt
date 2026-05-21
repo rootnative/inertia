@@ -46,6 +46,7 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 - `useTransform(value, inputRange, outputRange, options?)` / `useTransform(transformer)` — interpolate a numeric shared value onto a number or color range, or derive any value from any number of shared values via a worklet. Non-worklet transformers are auto-wrapped.
 - `useScroll()` — returns `{ scrollX, scrollY, onScroll }` for use with `Motion.ScrollView`. Scroll events fire on the UI thread.
 - `createMotionComponent<C>(C)` — wrap any component with the same Motion prop surface, inferring style from `C`.
+- `buildReleaseAnimation(transition, toValue)` — worklet-safe single-step animation builder (spring / timing / decay / no-animation). For assigning Inertia-resolved animations to shared values from inside a gesture worklet. Used internally by `@onlynative/inertia-gestures`'s `useDrag({ onRelease })`.
 
 ## Motion props
 
@@ -58,7 +59,7 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 | `type`           | Public config                                                    | Default? |
 | ---------------- | ---------------------------------------------------------------- | -------- |
 | `'spring'`       | `tension`, `friction`, `mass`, `velocity`, `delay`, `repeat`     | yes      |
-| `'timing'`       | `duration`, `easing`, `delay`, `repeat`                          |          |
+| `'timing'`       | `duration`, `easing` (`EasingFunction` or Reanimated 4 `EasingFunctionFactory` — `Easing.bezier(...)` works directly, no `.factory()` call needed), `delay`, `repeat` |          |
 | `'decay'`        | `velocity`, `deceleration`, `clamp`, `delay`                     |          |
 | `'no-animation'` | —                                                                |          |
 
@@ -111,9 +112,11 @@ transition={{
 
 ## Animatable properties (alpha)
 
-Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Rotation values are degrees; the factory wraps them as `'${value}deg'`. `rotateX` / `rotateY` need a sibling `perspective` style entry to render in 3D.
+Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`. Rotation values are degrees; the factory wraps them as `'${value}deg'`. `rotateX` / `rotateY` need a sibling `perspective` style entry to render in 3D.
 
-Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Hex, `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors all work; the target string is forwarded straight through `withSpring` / `withTiming` and Reanimated handles RGBA interpolation natively.
+Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only), `shadowColor`. Hex, `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors all work; the target string is forwarded straight through `withSpring` / `withTiming` and Reanimated handles RGBA interpolation natively.
+
+Nested object: `shadowOffset: { width, height }`. The only nested-object style on the surface — internally decomposes into two synthetic axis SVs that the worklet recomposes into a single `shadowOffset` prop. v0.1 supports the **single-value form only** (`{ width: 0, height: 4 }`); sequences / array keyframes / per-axis transition splits are out of scope, drop to `useMotionValue` for those.
 
 Auto-layout transitions ship via the `layout` prop (`true` / `TransitionConfig`) on every `Motion.*` primitive — see Layout. Shared element transitions (`layoutId`) are deferred: Reanimated 4 dropped the `sharedTransitionTag` API the previous design relied on.
 
@@ -121,7 +124,7 @@ Auto-layout transitions ship via the `layout` prop (`true` / `TransitionConfig`)
 
 - `@onlynative/inertia-gradients` — `MotionLinearGradient` over `expo-linear-gradient`. Animatable: `colors`, `start`, `end`, `locations`.
 - `@onlynative/inertia-svg` — `MotionPath` over `react-native-svg`. Animatable: `d` (path morphing on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
-- `@onlynative/inertia-gestures` — `useDrag`, `useSwipe`, `usePan` over `react-native-gesture-handler`.
+- `@onlynative/inertia-gestures` — `useDrag`, `useSwipe`, `usePan` over `react-native-gesture-handler`. `useDrag` accepts an `onRelease` worklet that returns per-axis Inertia release transitions (snap-to-tick spring, decay with bounds, etc.) — the release velocity stays on the UI thread, no JS round-trip.
 
 ## Docs
 

@@ -340,3 +340,29 @@ function CustomExitable() {
 ```
 
 See [Presence](../presence) for the higher-level prop-driven usage.
+
+## `buildReleaseAnimation(transition, toValue)`
+
+Worklet-safe single-step animation builder. Mirrors a subset of the internal `resolveTransition` for the UI-thread path where the transition config is picked at gesture-release time, not at render time. Supports `spring` / `timing` / `decay` / `no-animation`; sequences, top-level `repeat`, and easing-function auto-worklet-wrapping are not.
+
+```ts
+import { buildReleaseAnimation } from '@onlynative/inertia'
+import { Gesture } from 'react-native-gesture-handler'
+
+const pan = Gesture.Pan().onEnd((e) => {
+  'worklet'
+  // Spring to a snap target with the release velocity preserved.
+  position.value = buildReleaseAnimation(
+    { type: 'spring', velocity: e.velocityX, friction: 26, tension: 170 },
+    snapTarget,
+  ) as number
+})
+```
+
+For decay transitions, the second argument is ignored — decay decelerates from the SV's current position via its own physics.
+
+| Signature                                                              | Returns                                                                  |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `buildReleaseAnimation(transition: TransitionConfig, toValue: number)` | Reanimated animation value (assign to a `SharedValue<number>` directly). |
+
+Most consumers reach for `useDrag({ onRelease })` from `@onlynative/inertia-gestures` instead — it wraps this builder behind a per-axis return shape. Use `buildReleaseAnimation` directly when you're authoring a custom `Gesture.*().onEnd(...)` worklet outside the adapter hooks.

@@ -72,6 +72,23 @@ transition={{
 
 User-supplied `easing` functions are auto-wrapped as worklets at JS time, so plain functions work in nested-transition contexts (variants, sequences, per-property maps) without manual `'worklet'` directives. Easing fns must be pure — no captured JS-thread refs.
 
+### Easing input shape
+
+`easing` accepts either a plain function `(t: number) => number` or a Reanimated 4 `EasingFunctionFactory` (`{ factory: () => EasingFunction }`). The resolver detects the factory shape and unwraps it automatically:
+
+```tsx
+import { Easing } from 'react-native-reanimated'
+
+// Pass the factory directly — no `.factory()` call site needed.
+transition={{
+  type: 'timing',
+  duration: 200,
+  easing: Easing.bezier(0.2, 0, 0, 1),
+}}
+```
+
+The exported types are `EasingFunction`, `EasingFunctionFactory`, and the union `EasingInput`.
+
 ### `'decay'`
 
 Velocity-driven decay (the gesture-flick model). Combine with `react-native-gesture-handler` to drive scroll-style flick momentum.
