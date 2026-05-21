@@ -41,6 +41,7 @@
   "files": [
     "dist",
     "src",
+    "llms.txt",
     "README.md",
     "LICENSE",
     "CHANGELOG.md",
@@ -53,7 +54,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "lint": "eslint src",
-    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+    "clean": "rm -rf dist .turbo *.tsbuildinfo",
+    "prepublishOnly": "node ../../scripts/build-llms.mjs"
   },
   "peerDependencies": {
     "@onlynative/inertia": ">=0.0.1-alpha.6",

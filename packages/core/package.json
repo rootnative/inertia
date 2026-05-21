@@ -103,7 +103,8 @@
     "size": "size-limit",
     "size:why": "size-limit --why",
     "lint": "eslint src",
-    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+    "clean": "rm -rf dist .turbo *.tsbuildinfo",
+    "prepublishOnly": "node ../../scripts/build-llms.mjs"
   },
   "peerDependencies": {
     "react": ">=19.0.0",

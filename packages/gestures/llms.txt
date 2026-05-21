@@ -1,0 +1,176 @@
+> @onlynative/inertia-gestures — adapter package for @onlynative/inertia.
+> This file is generated from the matching docs page by scripts/build-llms.mjs — do not edit by hand.
+
+> Full docs:    https://onlynative.github.io/inertia/
+> Core overview: see @onlynative/inertia/llms.txt (or docs/static/llms.txt in the repo)
+> Source:        https://github.com/onlynative/inertia
+
+---
+# Gestures adapter
+
+`@onlynative/inertia-gestures` adds drag / swipe / pan hooks built on `react-native-gesture-handler`. It is an **optional** sibling package — install it only if you need richer-than-`pressable` gestures. The core library has no required `gesture-handler` dependency.
+
+The hooks compose with any `Motion.*` primitive via a `<GestureDetector>` and a single `style` slot — they don't replace the `gesture` prop, they extend what's reachable beside it.
+
+## Install
+
+```bash
+yarn add @onlynative/inertia-gestures react-native-gesture-handler
+```
+
+Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation) — it needs `<GestureHandlerRootView>` near the root of your app.
+
+## `useDrag`
+
+Drag a Motion primitive on one or two axes, with optional bounds and rubber-band overshoot.
+
+```tsx
+import { GestureDetector } from 'react-native-gesture-handler'
+import { Motion } from '@onlynative/inertia'
+import { useDrag } from '@onlynative/inertia-gestures'
+
+function DraggableBox() {
+  const drag = useDrag({
+    axis: 'both',
+    constraints: { left: -100, right: 100, top: -60, bottom: 60 },
+    elastic: 0.4,
+  })
+  return (
+    <GestureDetector gesture={drag.gesture}>
+      <Motion.View style={[styles.box, drag.animatedStyle]} />
+    </GestureDetector>
+  )
+}
+```
+
+| Option        | Type                                           | Default  | Notes                                                                                               |
+| ------------- | ---------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `axis`        | `'x' \| 'y' \| 'both'`                         | `'both'` | Lock the gesture to one axis.                                                                       |
+| `constraints` | `{ left?, right?, top?, bottom? }`             | none     | Bounds in px from the resting position. Each side independently optional.                           |
+| `elastic`     | `number` (0–1)                                 | `0`      | Rubber-band coefficient past `constraints`. `0` hard-clamps; `0.4` is a typical Framer-Motion feel. |
+| `onDragStart` | `() => void`                                   | none     | Fires on JS thread when drag begins.                                                                |
+| `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends.                                                                  |
+| `onRelease`   | `(info) => ReleaseResult \| void` (worklet)    | none     | UI-thread release transition — see below.                                                           |
+
+Returns `{ gesture, animatedStyle, dragX, dragY, isDragging }`. The shared values are exposed for power use cases (deriving secondary effects from drag position).
+
+### Release transitions (`onRelease`)
+
+By default `useDrag` leaves the shared values exactly where the finger lifted. Pass `onRelease` to animate them to a settled position via Inertia's transition vocabulary — spring snap-to-tick, decay with bounds, timing settle. The callback runs as a **worklet** so the release velocity stays on the UI thread (no JS round-trip):
+
+```tsx
+const drag = useDrag({
+  axis: 'x',
+  constraints: { left: 0, right: trackWidth },
+  onRelease: (e) => {
+    'worklet'
+    // Snap to the nearest tick using the release velocity for natural continuation.
+    const snap = nearestTick(e.x, ticks)
+    return {
+      x: { type: 'spring', to: snap, velocity: e.velocity.x },
+    }
+  },
+})
+```
+
+Return per-axis release transitions in a `ReleaseResult` shape — omit an axis (or return nothing) to leave that SV where it landed. The transition shapes mirror the core `transition` prop:
+
+```ts
+type ReleaseTransition =
+  | (SpringTransition & { to: number })
+  | (TimingTransition & { to: number })
+  | DecayTransition // no `to` — decay decelerates from current position
+  | (NoAnimationTransition & { to: number })
+```
+
+Decay-on-release (for free-flick behaviour without snapping):
+
+```tsx
+onRelease: (e) => {
+  'worklet'
+  return {
+    x: { type: 'decay', velocity: e.velocity.x, clamp: [0, trackWidth] },
+  }
+}
+```
+
+`onRelease` composes additively with `onDragEnd` — both fire on release. Use `onRelease` for the SV animation; use `onDragEnd` for JS-thread side effects (analytics, state updates).
+
+Internally this routes through `buildReleaseAnimation` exported from `@onlynative/inertia` — a worklet-safe builder that covers spring / timing / decay / no-animation single-step transitions. Reach for it directly if you're writing a custom `Gesture.Pan().onEnd(...)` worklet outside `useDrag`.
+
+## `useSwipe`
+
+Directional commit-or-snap-back gesture. Tracks live translation while the user drags; on release, fires `onSwipe` if either the distance or velocity threshold is met along an allowed axis. Whether or not it commits, the position springs back to zero — the consumer drives the side effect (delete, dismiss, advance).
+
+```tsx
+const swipe = useSwipe({
+  directions: ['left', 'right'],
+  distanceThreshold: 100,
+  onSwipe: (direction) => {
+    if (direction === 'left') dismiss()
+    if (direction === 'right') accept()
+  },
+})
+
+return (
+  <GestureDetector gesture={swipe.gesture}>
+    <Motion.View style={[styles.card, swipe.animatedStyle]}>
+      {children}
+    </Motion.View>
+  </GestureDetector>
+)
+```
+
+| Option              | Type                                          | Default  | Notes                                                             |
+| ------------------- | --------------------------------------------- | -------- | ----------------------------------------------------------------- |
+| `directions`        | `Array<'left' \| 'right' \| 'up' \| 'down'>`  | all four | Only commits along listed directions. Off-axis swipes do nothing. |
+| `distanceThreshold` | `number` (px)                                 | `80`     | Distance past which a release commits.                            |
+| `velocityThreshold` | `number` (px/sec)                             | `800`    | Flick velocity that commits even before distance threshold.       |
+| `onSwipe`           | `(direction, { distance, velocity }) => void` | none     | JS-thread callback. Direction is one of the allowed values.       |
+
+The dominant axis (whichever of \|tx\|, \|ty\| is larger at release) decides which direction is checked.
+
+## `usePan`
+
+Camera-style pan with momentum on release. Position **persists across separate gestures** — the next pan starts from the current offset, not zero — and on release the position continues gliding via Reanimated's `withDecay`.
+
+```tsx
+const pan = usePan({
+  constraints: { left: -240, right: 240, top: -240, bottom: 240 },
+  deceleration: 0.997,
+})
+
+return (
+  <GestureDetector gesture={pan.gesture}>
+    <Motion.View style={[styles.canvas, pan.animatedStyle]}>
+      {/* large content */}
+    </Motion.View>
+  </GestureDetector>
+)
+```
+
+| Option            | Type                               | Default            | Notes                                                                         |
+| ----------------- | ---------------------------------- | ------------------ | ----------------------------------------------------------------------------- |
+| `constraints`     | `{ left?, right?, top?, bottom? }` | none               | Hard clamp during gesture and during decay.                                   |
+| `deceleration`    | `number`                           | Reanimated default | Higher = momentum dies faster. Roughly `0.99` (slow) to `0.999` (long glide). |
+| `disableMomentum` | `boolean`                          | `false`            | Hard stop on release (drag-like).                                             |
+
+For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-clamps because it composes with `withDecay`'s `clamp` parameter, which doesn't have an overshoot mode.
+
+## When to pick which
+
+| Gesture    | Snap back on release? | Momentum on release?         | Typical UX                                         |
+| ---------- | --------------------- | ---------------------------- | -------------------------------------------------- |
+| `useDrag`  | No — stays where left | No                           | Move-to-position, sliders, sortable handles.       |
+| `useSwipe` | Yes — always          | No (springs back)            | Swipe-to-delete rows, card stacks, dismiss sheets. |
+| `usePan`   | No — stays where left | Yes — coasts via `withDecay` | Maps, zoomable canvases, large-image navigation.   |
+
+## Try it
+
+
+
+## Why a separate package?
+
+The core library's `gesture` prop covers `pressed` / `focused` / `focusVisible` / `hovered` — boolean state-overlay gestures with no continuous translation. Drag, swipe, and pan are **value-driven**: the gesture publishes a continuous position that the consumer composes into the view's style. They don't fit the boolean-state model, and they need `react-native-gesture-handler` (which we don't want as a required peer of core).
+
+Splitting them off keeps core's surface area minimal and lets the gesture-handler dependency stay opt-in. The hooks return primitives (`gesture`, `animatedStyle`, shared values) rather than wrapping Motion in a new component, so they layer cleanly on the existing `Motion.*` set.

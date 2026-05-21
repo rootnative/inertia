@@ -1,0 +1,156 @@
+> @onlynative/inertia-svg — adapter package for @onlynative/inertia.
+> This file is generated from the matching docs page by scripts/build-llms.mjs — do not edit by hand.
+
+> Full docs:    https://onlynative.github.io/inertia/
+> Core overview: see @onlynative/inertia/llms.txt (or docs/static/llms.txt in the repo)
+> Source:        https://github.com/onlynative/inertia
+
+---
+# SVG
+
+`@onlynative/inertia-svg` adds animatable SVG primitives built on [`react-native-svg`](https://github.com/software-mansion/react-native-svg). It is an **optional** sibling package — install it only when you need to morph paths or animate `fill` / `stroke`. The core library has no required `react-native-svg` dependency.
+
+`MotionPath` wraps `<Path>` and accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for the path data (`d`) plus color and numeric paint properties.
+
+## Install
+
+```bash
+yarn add @onlynative/inertia-svg react-native-svg
+```
+
+`react-native-svg` works in bare React Native projects as well as Expo.
+
+## Usage
+
+```tsx
+import Svg from 'react-native-svg'
+import { MotionPath } from '@onlynative/inertia-svg'
+
+function Toggle({ open }) {
+  return (
+    <Svg viewBox="0 0 100 100" width={120} height={120}>
+      <MotionPath
+        d="M 20 30 L 50 60 L 80 30 L 80 30 L 50 60 L 20 30"
+        animate={{
+          d: open
+            ? 'M 20 30 L 50 60 L 80 30 L 80 30 L 50 60 L 20 30'
+            : 'M 20 50 L 50 20 L 80 50 L 80 50 L 50 80 L 20 50',
+          fill: open ? '#0ea5e9' : '#1f2937',
+        }}
+        transition={{ type: 'spring', tension: 140, friction: 12 }}
+        fill="#1f2937"
+      />
+    </Svg>
+  )
+}
+```
+
+The static `d` prop is required. Its **command sequence is locked at first render** — every target `d` you pass via `animate` or `initial` must produce the same command letters in the same order after implicit-repeat expansion. Element-wise scalar interpolation is the entire morphing model.
+
+## Structural compatibility
+
+Two paths are morphable iff their normalized template (command letters, in order, with case preserved) is equal. Examples:
+
+```
+✅ M 0 0 L 10 10 Z       ↔ M 50 50 L 80 80 Z       same: M L Z
+✅ M 0 0 L 10 10 L 20 20 ↔ M 0 0 50 50 60 60       same: M L L
+                                                   (implicit repeats after M expand to L)
+❌ M 0 0 L 10 10 Z       ↔ M 0 0 L 10 10           differs: count
+❌ M 0 0 L 10 10         ↔ M 0 0 l 10 10           differs: absolute L vs relative l
+❌ M 0 0 L 10 10         ↔ M 0 0 C 1 1 2 2 3 3     differs: L vs C
+```
+
+The component throws in dev when the templates diverge — either at mount (if `initial.d` mismatches the static `d`), when `animate.d` changes shape, or when the static `d` prop itself changes shape between renders. In production those throws degrade to a no-op snap so a single bad target doesn't crash the screen, but you should treat dev errors as bugs.
+
+To switch between structurally different shapes, **remount with a new `key`**:
+
+```tsx
+<MotionPath
+  key={open ? 'hexagon' : 'circle'}
+  d={open ? HEXAGON_D : CIRCLE_AS_QUADS_D}
+/>
+```
+
+Path normalization that resamples between arbitrary shapes (the flubber-style approach) is out of scope for v0.2.
+
+## Animatable props
+
+| Key                | Shape    | Notes                                                                                                                       |
+| ------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `d`                | `string` | Path data. Source and target must share the same template — see above. Each scalar param springs / times independently.     |
+| `fill`             | `string` | Color, interpolated via Reanimated's color setter. Defaults to `'transparent'` if neither static nor `initial` is supplied. |
+| `stroke`           | `string` | Same as `fill`.                                                                                                             |
+| `strokeWidth`      | `number` | Numeric. Default seed `1`.                                                                                                  |
+| `strokeOpacity`    | `number` | Numeric, 0–1.                                                                                                               |
+| `fillOpacity`      | `number` | Numeric, 0–1.                                                                                                               |
+| `opacity`          | `number` | Numeric, 0–1.                                                                                                               |
+| `strokeDashoffset` | `number` | Useful for "draw" animations on a dashed stroke.                                                                            |
+
+Per-property transitions work just like the core primitives:
+
+```tsx
+<MotionPath
+  d={SOURCE_D}
+  fill="#000"
+  animate={{ d: TARGET_D, fill: '#7c3aed' }}
+  transition={{
+    d: { type: 'spring', tension: 160, friction: 14 },
+    fill: { type: 'timing', duration: 300 },
+  }}
+/>
+```
+
+## `initial`
+
+Pass `initial` to override the mount-frame values (so the component starts somewhere other than the static props), or `initial={false}` to start at the `animate` target with no mount animation.
+
+```tsx
+<MotionPath
+  d={STAR_D}
+  initial={{ d: TINY_STAR_D, opacity: 0 }}    // hatch from a smaller star, fading in
+  animate={{ d: STAR_D, opacity: 1 }}
+/>
+
+<MotionPath
+  d={STAR_D}
+  initial={false}                              // skip the mount animation
+  animate={{ d: HEART_D }}
+/>
+```
+
+If `initial.d` is provided, it must be template-compatible with the static `d` — same rule as `animate.d`.
+
+## Reduced motion
+
+`MotionPath` participates in [`<MotionConfig reducedMotion>`](./motion-config.md) the same way the core primitives do — when the OS reduce-motion setting is on (or you pass `reducedMotion="always"`), transitions resolve as direct assignment instead of `withSpring` / `withTiming`.
+
+## What this primitive doesn't do (v0.2)
+
+- **Path resampling** between structurally different shapes. Same-template morphs only — the rest is your `key` to remount.
+- **Other SVG shapes** (`Circle`, `Rect`, `Line`, `Ellipse`). They land in a follow-up release; pencil them in if you need them.
+- **Gradient fills inside the SVG**. For gradient fills use `<Defs>` + `<LinearGradient>` from `react-native-svg` and animate the stops via [`MotionLinearGradient`](./gradients.mdx)'s patterns; the path itself just references the gradient by `url(#id)`.
+- **Path command interpolation** (e.g. morphing an `L` into a `C`). Element-wise scalar interpolation is intentional — it's predictable, cheap, and matches what designers reach for 95% of the time.
+
+## Path utilities
+
+The tokenizer and template helpers are exported for downstream tooling:
+
+```ts
+import {
+  parsePathD,
+  templateOf,
+  diffTemplate,
+  flattenParams,
+  serializePath,
+} from '@onlynative/inertia-svg'
+
+const segs = parsePathD('M 0 0 L 10 10 Z') // [{ cmd: 'M', args: [0, 0] }, …]
+const t = templateOf(segs) // { cmds: ['M','L','Z'], widths: [2,2,0], size: 4 }
+const params = flattenParams(segs) // [0, 0, 10, 10]
+const out = serializePath(t, [5, 5, 20, 20]) // 'M 5 5L 20 20Z'
+
+const err = diffTemplate(t, templateOf(parsePathD('M 0 0 L 1 1')))
+// → 'command count differs: …'
+```
+
+`serializePath` is a worklet — call it inside `useAnimatedProps` if you build your own SVG primitives on top of this layer.

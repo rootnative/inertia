@@ -9,6 +9,11 @@
  *                                         downstream tooling reading from
  *                                         `node_modules` picks up the same
  *                                         overview.
+ * - `packages/<sibling>/llms.txt`      — per-package slice for each optional
+ *                                         adapter (gestures, gradients, svg).
+ *                                         Auto-generated from the matching
+ *                                         doc page so the npm tarball ships a
+ *                                         self-contained reference.
  * - `docs/static/llms-full.txt`        — auto-generated from the
  *                                         docs/docs/*.{md,mdx} page set, in
  *                                         sidebar order. Mirrors the rendered
@@ -29,6 +34,26 @@ const docsDir = join(repoRoot, 'docs')
 const docsContentDir = join(docsDir, 'docs')
 const staticDir = join(docsDir, 'static')
 const corePkgDir = join(repoRoot, 'packages', 'core')
+
+// Sibling adapter packages — each gets its own llms.txt sourced from one doc
+// page. Listed in the order they appear in the sidebar.
+const SIBLING_PACKAGES = [
+  {
+    pkg: 'gestures',
+    docId: 'gestures-adapter',
+    name: '@onlynative/inertia-gestures',
+  },
+  {
+    pkg: 'gradients',
+    docId: 'gradients',
+    name: '@onlynative/inertia-gradients',
+  },
+  {
+    pkg: 'svg',
+    docId: 'svg',
+    name: '@onlynative/inertia-svg',
+  },
+]
 
 // Doc page order — mirrors docs/sidebars.ts. Keep in sync when adding pages.
 // Entries are doc IDs relative to docs/docs/, no extension.
@@ -130,6 +155,28 @@ function buildLlmsFull() {
   return header + body + '\n'
 }
 
+function buildSiblingLlms({ docId, name }) {
+  const path = resolveDocPath(docId)
+  const raw = readFileSync(path, 'utf8')
+  const body = expandJsxComponents(
+    stripMdxImports(stripFrontmatter(raw)),
+  ).trimEnd()
+
+  const header = [
+    `> ${name} — adapter package for @onlynative/inertia.`,
+    '> This file is generated from the matching docs page by scripts/build-llms.mjs — do not edit by hand.',
+    '',
+    '> Full docs:    https://onlynative.github.io/inertia/',
+    '> Core overview: see @onlynative/inertia/llms.txt (or docs/static/llms.txt in the repo)',
+    '> Source:        https://github.com/onlynative/inertia',
+    '',
+    '---',
+    '',
+  ].join('\n')
+
+  return header + body + '\n'
+}
+
 const llmsTxtPath = join(staticDir, 'llms.txt')
 const llmsFullPath = join(staticDir, 'llms-full.txt')
 const corePackageLlmsPath = join(corePkgDir, 'llms.txt')
@@ -141,5 +188,11 @@ console.log(
   '[build-llms] copying docs/static/llms.txt → packages/core/llms.txt …',
 )
 copyFileSync(llmsTxtPath, corePackageLlmsPath)
+
+for (const sibling of SIBLING_PACKAGES) {
+  const outPath = join(repoRoot, 'packages', sibling.pkg, 'llms.txt')
+  console.log(`[build-llms] writing packages/${sibling.pkg}/llms.txt …`)
+  writeFileSync(outPath, buildSiblingLlms(sibling))
+}
 
 console.log('[build-llms] done.')
