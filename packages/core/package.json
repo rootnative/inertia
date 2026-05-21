@@ -79,11 +79,15 @@
       "import": "./dist/testing/index.mjs",
       "require": "./dist/testing/index.js"
     },
+    "./jest-preset": "./jest-preset.js",
+    "./jest-setup": "./jest-setup.js",
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "src",
+    "jest-preset.js",
+    "jest-setup.js",
     "llms.txt",
     "README.md",
     "LICENSE",
