@@ -46,9 +46,17 @@ export function buildReleaseAnimation(
     return withDecay(cfg)
   }
   if (transition.type === 'timing') {
+    // Reanimated 4's `Easing.bezier(...)` returns an `EasingFunctionFactory`
+    // rather than the function itself. Unwrap inline so consumers calling
+    // `buildReleaseAnimation` from a gesture worklet don't have to.
+    const e = transition.easing
+    const easingFn =
+      e && typeof e === 'object' && 'factory' in e
+        ? e.factory()
+        : (e ?? Easing.inOut(Easing.ease))
     return withTiming(toValue, {
       duration: transition.duration ?? DEFAULT_TIMING_DURATION,
-      easing: transition.easing ?? Easing.inOut(Easing.ease),
+      easing: easingFn,
     })
   }
   return withSpring(toValue, springToReanimated(transition))

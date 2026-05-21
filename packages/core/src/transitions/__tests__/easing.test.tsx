@@ -36,6 +36,30 @@ describe('ensureWorkletEasing', () => {
     expect(ensureWorkletEasing(fn)).toBe(fn)
     isWorklet.mockRestore()
   })
+
+  it('unwraps a Reanimated 4 EasingFunctionFactory and wraps the inner fn', () => {
+    // `Easing.bezier(0.4, 0, 0.2, 1)` in Reanimated 4 returns
+    // `{ factory: () => (t) => number }`, not the function itself. The helper
+    // unwraps before deciding whether to worklet-wrap.
+    const inner = jest.fn((t: number) => t * 3)
+    const factory = { factory: () => inner }
+    const wrapped = ensureWorkletEasing(factory)
+    expect(wrapped).toBeDefined()
+    expect(wrapped).not.toBe(inner) // wrapped, since inner isn't a worklet
+    expect(wrapped!(0.25)).toBe(0.75)
+    expect(inner).toHaveBeenCalledWith(0.25)
+  })
+
+  it('returns an EasingFunctionFactory inner fn unchanged when it is already a worklet', () => {
+    const isWorklet = jest
+      .spyOn(Worklets, 'isWorkletFunction')
+      .mockReturnValue(true)
+    const inner = (t: number) => t
+    const factory = { factory: () => inner }
+    // Inner is unwrapped and recognized as a worklet — no extra wrapping.
+    expect(ensureWorkletEasing(factory)).toBe(inner)
+    isWorklet.mockRestore()
+  })
 })
 
 describe('custom easing inside variant transition (Phase-2 acceptance)', () => {

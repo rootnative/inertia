@@ -32,10 +32,24 @@ export interface SpringTransition {
   repeat?: RepeatConfig
 }
 
+/**
+ * Easing input accepted by `TimingTransition`. Either a plain easing function
+ * `(t: number) => number` (the pre-Reanimated-4 shape and the shape consumers
+ * author by hand) or an `EasingFunctionFactory` (the Reanimated 4 shape
+ * returned by `Easing.bezier(...)` and similar builders). The resolver
+ * unwraps the factory automatically — consumers don't have to call
+ * `.factory()` themselves.
+ */
+export type EasingFunction = (t: number) => number
+export interface EasingFunctionFactory {
+  factory: () => EasingFunction
+}
+export type EasingInput = EasingFunction | EasingFunctionFactory
+
 export interface TimingTransition {
   type: 'timing'
   duration?: number
-  easing?: (t: number) => number
+  easing?: EasingInput
   delay?: number
   repeat?: RepeatConfig
 }
