@@ -190,6 +190,9 @@ importers:
 
   packages/gestures:
     devDependencies:
+      '@onlynative/inertia':
+        specifier: workspace:*
+        version: link:../core
       '@react-native/babel-preset':
         specifier: ^0.81.5
         version: 0.81.5(@babel/core@7.29.0)

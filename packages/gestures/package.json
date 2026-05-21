@@ -56,12 +56,14 @@
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "peerDependencies": {
+    "@onlynative/inertia": ">=0.0.1-alpha.5",
     "react": ">=19.0.0",
     "react-native": ">=0.81.0",
     "react-native-gesture-handler": ">=2.0.0",
     "react-native-reanimated": ">=4.0.0"
   },
   "devDependencies": {
+    "@onlynative/inertia": "workspace:*",
     "@react-native/babel-preset": "^0.81.5",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.14",

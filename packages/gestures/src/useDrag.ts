@@ -6,6 +6,7 @@ import {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
+import { buildReleaseAnimation } from '@onlynative/inertia'
 import type { DragConstraints, DragOptions } from './types'
 
 export interface UseDragResult {
@@ -50,6 +51,7 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
     elastic = 0,
     onDragStart,
     onDragEnd,
+    onRelease,
   } = options
 
   const dragX = useSharedValue(0)
@@ -100,11 +102,33 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
       .onEnd((e) => {
         'worklet'
         isDragging.value = false
+        const x = dragX.value
+        const y = dragY.value
+        const vx = e.velocityX
+        const vy = e.velocityY
+        if (onRelease) {
+          const result = onRelease({ x, y, velocity: { x: vx, y: vy } })
+          if (result) {
+            // Decay ignores `toValue` (it has no target); spring/timing/no-animation
+            // use it. Build per axis off the SV's current position when no `to`
+            // is given (decay branch), the destination otherwise.
+            if (result.x && lockX) {
+              const toX = 'to' in result.x ? result.x.to : x
+              dragX.value = buildReleaseAnimation(
+                result.x,
+                toX,
+              ) as unknown as number
+            }
+            if (result.y && lockY) {
+              const toY = 'to' in result.y ? result.y.to : y
+              dragY.value = buildReleaseAnimation(
+                result.y,
+                toY,
+              ) as unknown as number
+            }
+          }
+        }
         if (onDragEnd) {
-          const x = dragX.value
-          const y = dragY.value
-          const vx = e.velocityX
-          const vy = e.velocityY
           runOnJS(onDragEnd)({ x, y, velocity: { x: vx, y: vy } })
         }
       })
@@ -119,6 +143,7 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
     elasticCoef,
     onDragStart,
     onDragEnd,
+    onRelease,
     dragX,
     dragY,
     startX,

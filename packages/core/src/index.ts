@@ -23,6 +23,7 @@ export type { MotionConfigValue, ReducedMotion } from './config'
 export { Presence, usePresence } from './presence'
 export type { PresenceContextValue } from './presence'
 export {
+  buildReleaseAnimation,
   resolveTransition,
   resolveAnimatableValue,
   ensureWorkletEasing,

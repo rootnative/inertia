@@ -2,6 +2,13 @@
  * Public types for `@onlynative/inertia-gestures`.
  */
 
+import type {
+  DecayTransition,
+  NoAnimationTransition,
+  SpringTransition,
+  TimingTransition,
+} from '@onlynative/inertia'
+
 /**
  * Bounds the dragged value can reach. Each side is optional — omit to leave
  * that direction unbounded. Coordinates are in the same space the drag
@@ -14,6 +21,38 @@ export interface DragConstraints {
   right?: number
   top?: number
   bottom?: number
+}
+
+/**
+ * UI-thread payload delivered to `onRelease` when the drag finishes. `x` and
+ * `y` are the final translations the SVs are sitting at; `velocity.x` /
+ * `velocity.y` are the release velocities in px/sec.
+ */
+export interface ReleaseInfo {
+  x: number
+  y: number
+  velocity: { x: number; y: number }
+}
+
+/**
+ * Per-axis release transition. Spring / timing / no-animation animate to a
+ * target value (`to`); decay decelerates from the current position via its
+ * own physics and has no `to`. Pass the release velocity from `ReleaseInfo`
+ * into the transition's own `velocity` field for natural continuation.
+ */
+export type ReleaseTransition =
+  | (SpringTransition & { to: number })
+  | (TimingTransition & { to: number })
+  | DecayTransition
+  | (NoAnimationTransition & { to: number })
+
+/**
+ * Per-axis release transitions returned by `onRelease`. Omit an axis to leave
+ * its SV where it landed (no release animation on that axis).
+ */
+export interface ReleaseResult {
+  x?: ReleaseTransition
+  y?: ReleaseTransition
 }
 
 /**
@@ -46,9 +85,19 @@ export interface DragOptions {
    * Fired on the JS thread when the drag finishes (release or cancel). The
    * payload is the final translation and the release velocity in px/sec.
    */
-  onDragEnd?: (info: {
-    x: number
-    y: number
-    velocity: { x: number; y: number }
-  }) => void
+  onDragEnd?: (info: ReleaseInfo) => void
+  /**
+   * UI-thread callback fired on release. Return per-axis release transitions
+   * to animate the SVs to a settled position via Inertia's transition
+   * resolver — spring snap-to-tick, decay with bounds, timing settle, etc.
+   * Omit an axis (or return nothing) to leave that SV where it landed.
+   *
+   * This callback runs as a worklet so the release velocity stays on the UI
+   * thread. Author it with the `'worklet'` directive at the top of the body.
+   *
+   * Composes with `onDragEnd`: both fire on release. `onRelease` controls SV
+   * animation on the UI thread; `onDragEnd` is for JS-thread side effects
+   * (analytics, state updates).
+   */
+  onRelease?: (info: ReleaseInfo) => ReleaseResult | void
 }

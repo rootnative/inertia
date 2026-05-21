@@ -30,6 +30,7 @@ export const DEFAULT_SPRING: Required<
  * what designers and prior-art consumers expect.
  */
 export function springToReanimated(t: SpringTransition) {
+  'worklet'
   return {
     stiffness: t.tension ?? DEFAULT_SPRING.tension,
     damping: t.friction ?? DEFAULT_SPRING.friction,

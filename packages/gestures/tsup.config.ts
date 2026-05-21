@@ -13,6 +13,7 @@ export default defineConfig({
   target: 'es2021',
   platform: 'neutral',
   external: [
+    '@onlynative/inertia',
     'react',
     'react/jsx-runtime',
     'react-native',

@@ -98,4 +98,83 @@ describe('useDrag', () => {
       velocity: { x: 800, y: -200 },
     })
   })
+
+  it('fires onRelease on the UI thread with the same payload as onDragEnd', () => {
+    const onRelease = jest.fn()
+    const { result } = renderHook(() => useDrag({ onRelease }))
+    const handlers = (
+      result.current.gesture as unknown as {
+        handlers: Record<string, (e: unknown) => void>
+      }
+    ).handlers
+
+    handlers.onStart?.({})
+    handlers.onUpdate?.({ translationX: 70, translationY: -10 })
+    handlers.onEnd?.({ velocityX: 1500, velocityY: 200 })
+
+    expect(onRelease).toHaveBeenCalledWith({
+      x: 70,
+      y: -10,
+      velocity: { x: 1500, y: 200 },
+    })
+  })
+
+  it('composes onRelease with onDragEnd — both fire on release', () => {
+    const onRelease = jest.fn()
+    const onDragEnd = jest.fn()
+    const { result } = renderHook(() => useDrag({ onRelease, onDragEnd }))
+    const handlers = (
+      result.current.gesture as unknown as {
+        handlers: Record<string, (e: unknown) => void>
+      }
+    ).handlers
+
+    handlers.onStart?.({})
+    handlers.onEnd?.({ velocityX: 100, velocityY: 100 })
+
+    expect(onRelease).toHaveBeenCalledTimes(1)
+    expect(onDragEnd).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips onRelease axes that the axis lock excludes', () => {
+    // axis: 'x' — only the x SV should pick up the release transition; the y
+    // entry in the returned ReleaseResult is ignored.
+    const onRelease = jest.fn(() => ({
+      x: { type: 'spring' as const, to: 200 },
+      y: { type: 'spring' as const, to: 999 },
+    }))
+    const { result } = renderHook(() => useDrag({ axis: 'x', onRelease }))
+    const handlers = (
+      result.current.gesture as unknown as {
+        handlers: Record<string, (e: unknown) => void>
+      }
+    ).handlers
+
+    handlers.onStart?.({})
+    handlers.onUpdate?.({ translationX: 50, translationY: 0 })
+    handlers.onEnd?.({ velocityX: 0, velocityY: 0 })
+
+    expect(onRelease).toHaveBeenCalled()
+    // y SV stays untouched (locked out by axis: 'x').
+    expect(result.current.dragY.value).toBe(0)
+  })
+
+  it('leaves SVs alone when onRelease returns void / undefined', () => {
+    // Consumer wants gesture velocity for analytics but no SV animation.
+    const onRelease = jest.fn(() => undefined)
+    const { result } = renderHook(() => useDrag({ onRelease }))
+    const handlers = (
+      result.current.gesture as unknown as {
+        handlers: Record<string, (e: unknown) => void>
+      }
+    ).handlers
+
+    handlers.onStart?.({})
+    handlers.onUpdate?.({ translationX: 25, translationY: 25 })
+    handlers.onEnd?.({ velocityX: 0, velocityY: 0 })
+
+    // SVs sit at the release position — no withSpring/withDecay assignment.
+    expect(result.current.dragX.value).toBe(25)
+    expect(result.current.dragY.value).toBe(25)
+  })
 })

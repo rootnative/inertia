@@ -15,4 +15,10 @@ export { useSwipe } from './useSwipe'
 export type { SwipeDirection, SwipeOptions, UseSwipeResult } from './useSwipe'
 export { usePan } from './usePan'
 export type { PanOptions, UsePanResult } from './usePan'
-export type { DragConstraints, DragOptions } from './types'
+export type {
+  DragConstraints,
+  DragOptions,
+  ReleaseInfo,
+  ReleaseResult,
+  ReleaseTransition,
+} from './types'
