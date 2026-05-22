@@ -6,6 +6,22 @@ sidebar_position: 11
 
 Inertia ships a Reanimated Jest mock and a `renderWithMotion` helper so existing test suites don't need to learn how the mock is wired before they can assert on animated UI.
 
+:::tip Asserting post-animation styles? Use `renderWithMotion`.
+
+Plain `render(...)` returns `initial` styles only — the mock doesn't flush effects synchronously. If your tests appear to "see" pre-animation state and you've been writing comments like _"don't assert post-interaction styles, the mock is static-render"_, that's the wrong workaround. Swap `render` for `renderWithMotion` and the rendered tree settles on the `animate` target.
+
+```ts
+import { renderWithMotion } from '@onlynative/inertia/testing'
+
+const { getByTestId } = renderWithMotion(<Card />)
+// getByTestId('card').props.style now reflects the animate target,
+// not the initial seed.
+```
+
+For prop changes after mount (a `useState` toggling `animate`, a controller transition), pair with `flushMotion(result, nextUi)` — see [below](#flushmotionresult-nextui).
+
+:::
+
 ## Setup
 
 Inertia ships a Jest preset that wires everything up — the Reanimated mock, the `react-native-worklets` stub, the `Easing.bezier()` factory shape, and the `transformIgnorePatterns` widening needed to let Jest transform `@onlynative/inertia*`'s published ESM bundles. Point Jest at it with one line:
