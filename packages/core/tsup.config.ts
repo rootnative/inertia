@@ -9,6 +9,7 @@ export default defineConfig({
     'motion/Pressable': 'src/motion/Pressable.tsx',
     'motion/ScrollView': 'src/motion/ScrollView.tsx',
     'testing/index': 'src/testing/index.ts',
+    'touch/index': 'src/touch/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

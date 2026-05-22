@@ -28,6 +28,7 @@ import { ShadowScreen } from './screens/ShadowScreen'
 import { SliderScreen } from './screens/SliderScreen'
 import { SwipeScreen } from './screens/SwipeScreen'
 import { TextScreen } from './screens/TextScreen'
+import { TouchDragScreen } from './screens/TouchDragScreen'
 import { TransformsScreen } from './screens/TransformsScreen'
 import { UseGestureScreen } from './screens/UseGestureScreen'
 import { VariantsScreen } from './screens/VariantsScreen'
@@ -46,6 +47,7 @@ type Route =
   | 'decay'
   | 'drag'
   | 'slider'
+  | 'touch-drag'
   | 'swipe'
   | 'pan'
   | 'gesture'
@@ -73,6 +75,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'decay',
   'drag',
   'slider',
+  'touch-drag',
   'swipe',
   'pan',
   'gesture',
@@ -219,6 +222,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         description: 'snap-to-tick or free decay via release transitions',
       },
       {
+        route: 'touch-drag',
+        label: 'Touch drag — useTouchDrag',
+        description: 'PanResponder-backed drag, no gesture-handler dep',
+      },
+      {
         route: 'swipe',
         label: 'Swipe',
         description: 'card-stack swipe gesture',
@@ -274,6 +282,7 @@ export default function App() {
   if (route === 'decay') return <DecayScreen onBack={goHome} />
   if (route === 'drag') return <DragScreen onBack={goHome} />
   if (route === 'slider') return <SliderScreen onBack={goHome} />
+  if (route === 'touch-drag') return <TouchDragScreen onBack={goHome} />
   if (route === 'swipe') return <SwipeScreen onBack={goHome} />
   if (route === 'pan') return <PanScreen onBack={goHome} />
   if (route === 'gesture') return <GestureScreen onBack={goHome} />

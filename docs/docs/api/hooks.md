@@ -366,3 +366,47 @@ For decay transitions, the second argument is ignored — decay decelerates from
 | `buildReleaseAnimation(transition: TransitionConfig, toValue: number)` | Reanimated animation value (assign to a `SharedValue<number>` directly). |
 
 Most consumers reach for `useDrag({ onRelease })` from `@onlynative/inertia-gestures` instead — it wraps this builder behind a per-axis return shape. Use `buildReleaseAnimation` directly when you're authoring a custom `Gesture.*().onEnd(...)` worklet outside the adapter hooks.
+
+## `useTouchDrag(options?)`
+
+PanResponder-backed drag hook. The keyboard-a11y and zero-extra-peer-dep counterpart to `useDrag` from `@onlynative/inertia-gestures` — both share the same `onRelease` shape, but `useTouchDrag` lives in core (`@onlynative/inertia/touch`) and returns `panHandlers` to spread on a `Pressable` / `View` instead of a `gesture` object for `<GestureDetector>`.
+
+```tsx
+import { Motion } from '@onlynative/inertia'
+import { useTouchDrag } from '@onlynative/inertia/touch'
+import { Pressable } from 'react-native'
+
+function Slider({ ticks }: { ticks: number[] }) {
+  const drag = useTouchDrag({
+    axis: 'x',
+    constraints: { left: 0, right: 280 },
+    onRelease: (e) => {
+      const snap = nearestTick(e.x, ticks)
+      return { x: { type: 'spring', to: snap, velocity: e.velocity.x } }
+    },
+  })
+
+  return (
+    <Pressable
+      accessibilityRole="adjustable"
+      onKeyDown={handleKey} // arrow keys compose alongside the drag
+      {...drag.panHandlers}
+    >
+      <Motion.View style={[styles.thumb, drag.animatedStyle]} />
+    </Pressable>
+  )
+}
+```
+
+| Option        | Type                                           | Default  | Notes                                                                                    |
+| ------------- | ---------------------------------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `axis`        | `'x' \| 'y' \| 'both'`                         | `'both'` | Lock the gesture to one axis.                                                            |
+| `constraints` | `{ left?, right?, top?, bottom? }`             | none     | Bounds in px from the resting position. Each side independently optional.                |
+| `elastic`     | `number` (0–1)                                 | `0`      | Rubber-band coefficient past `constraints`. `0` hard-clamps.                             |
+| `onDragStart` | `() => void`                                   | none     | Fires on JS thread when drag begins.                                                     |
+| `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends. Velocity normalized to px/sec.                        |
+| `onRelease`   | `(info) => ReleaseResult \| void`              | none     | JS-thread release transition. Same shape as the gesture-handler `useDrag`'s `onRelease`. |
+
+Returns `{ panHandlers, animatedStyle, dragX, dragY, isDragging }`.
+
+**When to pick `useTouchDrag` over `useDrag` from `@onlynative/inertia-gestures`:** you need keyboard a11y on the dragged element (arrow keys, `PageUp` / `PageDown`), OR you don't want to take `react-native-gesture-handler` as a peer dep. **When to skip it:** you're already using `react-native-gesture-handler` elsewhere — the gesture-handler `useDrag`'s release velocity is UI-thread and slightly more precise; consistency across the app trumps a small per-call win.

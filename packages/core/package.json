@@ -79,6 +79,13 @@
       "import": "./dist/testing/index.mjs",
       "require": "./dist/testing/index.js"
     },
+    "./touch": {
+      "types": "./dist/touch/index.d.ts",
+      "react-native": "./src/touch/index.ts",
+      "source": "./src/touch/index.ts",
+      "import": "./dist/touch/index.mjs",
+      "require": "./dist/touch/index.js"
+    },
     "./jest-preset": "./jest-preset.js",
     "./jest-setup": "./jest-setup.js",
     "./package.json": "./package.json"

@@ -167,13 +167,16 @@ For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-c
 
 ## Scope: touch + mouse only
 
-All three hooks layer on `react-native-gesture-handler`, which surfaces touch and mouse events but **not keyboard**. For controls that need keyboard a11y in addition to drag — a Slider with arrow-key increment / decrement, a scrollbar with `PageUp` / `PageDown`, a range input — you'll want to keep `PanResponder` for the pointer track and add `onKeyDown` handling alongside it. That doesn't preclude using Inertia's value-layer hooks (`useAnimation`, `useSpring`) to drive the release animation off the JS-thread state the keyboard handlers maintain; the boundary is just that this adapter package can't deliver the keyboard half.
+All three hooks layer on `react-native-gesture-handler`, which surfaces touch and mouse events but **not keyboard**. For controls that need keyboard a11y in addition to drag — a Slider with arrow-key increment / decrement, a scrollbar with `PageUp` / `PageDown`, a range input — reach for [`useTouchDrag`](./api/hooks#usetouchdragoptions) from `@onlynative/inertia/touch` instead. It's a PanResponder-backed counterpart to `useDrag` that lives in core (no `react-native-gesture-handler` peer required) and composes cleanly with `onKeyDown` on the wrapping `Pressable`.
 
-When you outgrow that boundary, the typical migration ladder is:
+The full ladder:
 
 1. `Motion.View` + `gesture` prop — pure state-overlay UX (hover, focus, press).
-2. `useDrag` / `useSwipe` / `usePan` from this package — pointer-driven continuous gestures, no keyboard needs.
-3. `PanResponder` + `useAnimation` — pointer + keyboard, full a11y surface, design-your-own gesture lifecycle.
+2. `useTouchDrag` from `@onlynative/inertia/touch` — pointer + keyboard drag, no extra peer dep.
+3. `useDrag` / `useSwipe` / `usePan` from this package — pointer-only, gesture-handler-backed. Best for projects already using gesture-handler; the UI-thread release path is more precise than PanResponder's JS-thread velocity.
+4. Raw `PanResponder` + `useAnimation` — drop here when the gesture lifecycle itself needs customizing (multi-touch composition, custom capture predicates beyond axis lock).
+
+Both `useTouchDrag` and the gesture-handler `useDrag` accept the same `onRelease` shape and route through `buildReleaseAnimation`, so swapping between them only touches the wiring, not the release animation config.
 
 ## Try it
 
