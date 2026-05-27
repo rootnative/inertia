@@ -22,12 +22,15 @@ import {
   useMotionValue,
   useAnimation,
   useSpring,
+  useBooleanSpring,
   useTransform,
   useShadow,
   useColorTransition,
   useScroll,
 } from '@onlynative/inertia'
-// or for tree-shaking:
+// Opt-in MD3 / iOS state-layer overlay helper:
+import { useGestureLayer } from '@onlynative/inertia/gesture-layer'
+// or for tree-shaking the primitives:
 import { MotionView } from '@onlynative/inertia/view'
 import { MotionText } from '@onlynative/inertia/text'
 import { MotionImage } from '@onlynative/inertia/image'
@@ -41,10 +44,12 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 - `<Presence>` — mount / unmount transitions; children need explicit `key`s. Exiting children get `pointerEvents: 'none'` automatically.
 - `<MotionConfig reducedMotion="user" | "never" | "always">` — gates motion against the OS reduce-motion setting (default `"user"`).
 - `useGesture(transition?)` — hook-form of the `gesture` prop. Returns 0↔1 progress shared values (`pressed`, `focused`, `focusVisible`, `hovered`) plus a `handlers` bag to spread on a `Pressable`. Use when one gesture needs to drive multiple animated siblings (focus rings, MD3 state-layer halos, multi-element compositions).
+- `useGestureLayer(states, options?)` — opt-in helper at `@onlynative/inertia/gesture-layer` for the **strongest-active-layer-wins** composition (MD3 state-layer haloes, iOS-translucent overlays). Supply per-state target maps (`rest` / `hovered` / `focused` / `focusVisible` / `pressed` / `disabled`); the hook owns the worklet. Numeric keys compose via clamped-max with `rest` as the floor; color keys compose via priority cascade with `interpolateColor`; `disabled` (JS-side flag) overrides every gesture layer. Returns `{ style, handlers }`. Reach for plain `useGesture` for additive blends or per-key custom rules.
 - `useVariants(variants, initial?)` — returns `{ current, transitionTo }` controller for the `controller` prop.
 - `useMotionValue(initial)` — thin pass-through over `useSharedValue<T>`. Returns a `SharedValue<T>` directly so it interops with every Reanimated API without unwrapping.
 - `useAnimation(target, transition?)` — drive a `SharedValue<number>` toward `target` with any `TransitionConfig` (spring / timing / decay / no-animation, plus `repeat`). The general-purpose value-layer hook for boolean-state progress, indeterminate loops, and anywhere the same value needs to feed multiple `useAnimatedStyle` blocks.
 - `useSpring(target, config?)` — spring-only shorthand. Animates a `SharedValue<number>` toward `target` with react-spring vocab. `target` may be a plain number (effect-driven) or a `SharedValue<number>` (UI-thread reaction); the latter is the gesture-smoothing path.
+- `useBooleanSpring(active, config?)` — sugar over `useSpring` for the recurring "spring 0↔1 progress from a boolean" shape (checkbox checks, accordion expansions, drawer open/closed). Identical mechanics to `useSpring(active ? 1 : 0, config)` — the named form so the call site reads as the boolean it represents.
 - `useTransform(value, inputRange, outputRange, options?)` / `useTransform(transformer)` — interpolate a numeric shared value onto a number or color range, or derive any value from any number of shared values via a worklet. Non-worklet transformers are auto-wrapped.
 - `useShadow({ from, to, progress })` — pure value-layer interpolator between two `ShadowConfig`s (`shadowOpacity` / `shadowRadius` / `shadowOffset` / `elevation` / `shadowColor`) driven by a `SharedValue<number>` (0→1). Returns an animated style fragment to spread onto `style`; only emits keys present on either side, absent sides default to natural zero. The hook does not animate on its own — drive `progress` with a spring, a scroll-derived `useTransform`, or any other shared value source.
 - `useColorTransition(progress, [from, to], options?)` — pure value-layer interpolator for a single color channel, driven by a `SharedValue<number>` (0→1). Returns an animated style fragment with one color key (default `backgroundColor`; configurable via `options.key` to `color` / `borderColor` / `tintColor` / `shadowColor` / per-side border colors). For raw `SharedValue<string>` output, use `useTransform(progress, [0, 1], [from, to])` instead.
@@ -111,7 +116,7 @@ transition={{
 
 ## Caveats
 
-- `Motion.Pressable` does **not** support function-form `style={({ pressed }) => ...}`. Reanimated's animated-component wrapper silently drops it. Drive press/focus/hover styling through `gesture` instead, or compute conditional styles once in render.
+- Every `Motion.*` primitive **throws in dev** when `style` is a function. Reanimated's animated-component wrapper would silently drop the function-form `style={({ pressed }) => ...}` that RN's `Pressable` accepts, so the throw catches the footgun at the source. Drive press/focus/hover styling through `gesture` instead, or compute conditional styles once in render. Production builds skip the check (the styles would still be dropped — catching it in dev is the safety net).
 - `initial` is read once on mount and intentionally non-reactive. To reset after a state change, change the component `key`, remount via `<Presence>`, or drive the value through a controller. Pass `initial={false}` to skip the initial-mount animation.
 
 ## Animatable properties (alpha)

@@ -6,7 +6,7 @@ sidebar_position: 1
 
 The escape-hatch surface — drop here when you need imperative control beyond what the props expose.
 
-The value-layer hooks (`useMotionValue`, `useSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
+The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
 
 ## `useMotionValue(initial)`
 
@@ -75,6 +75,45 @@ function Chained() {
 | `useSpring(target: number \| SharedValue<number>, config?: SpringTransition)` | `SharedValue<number>` |
 
 Config accepts every field of [`SpringTransition`](../transitions): `tension`, `friction`, `mass`, `velocity`, `restSpeedThreshold`, `restDisplacementThreshold`. Reanimated's raw `stiffness` / `damping` names are never accepted — that conversion is private to the library.
+
+## `useBooleanSpring(active, config?)`
+
+Sugar over `useSpring` for the recurring "spring 0↔1 progress from a boolean" shape — checkbox checks, accordion expansions, drawer open/closed states, focus rings, and every other binary UI flip that wants spring physics rather than a hard cut.
+
+```tsx
+import {
+  useBooleanSpring,
+  useColorTransition,
+  useShadow,
+} from '@onlynative/inertia'
+
+function Card({ raised }: { raised: boolean }) {
+  // One driver, multiple downstream styles. The same progress feeds the
+  // shadow tween and the surface-color shift in lockstep.
+  const progress = useBooleanSpring(raised, { tension: 180, friction: 18 })
+
+  const shadowStyle = useShadow({
+    from: REST_SHADOW,
+    to: RAISED_SHADOW,
+    progress,
+  })
+  const fillStyle = useColorTransition(progress, ['#ffffff', '#f8fafc'])
+
+  return <Motion.View style={[styles.card, fillStyle, shadowStyle]} />
+}
+```
+
+The returned shared value sits at `0` when `active` is `false` and animates toward `1` when it flips to `true` (and back on the reverse flip). The spring re-runs whenever `active` changes.
+
+| Signature                                                      | Returns               |
+| -------------------------------------------------------------- | --------------------- |
+| `useBooleanSpring(active: boolean, config?: SpringTransition)` | `SharedValue<number>` |
+
+Config follows the same react-spring vocabulary as `useSpring` (`tension` / `friction` / `mass`); omit it for the library defaults. Reduced motion (`<MotionConfig reducedMotion>`) snaps to `0` / `1` rather than interpolating.
+
+**`useBooleanSpring` vs `useSpring(active ? 1 : 0)`.** Identical mechanics — `useBooleanSpring` is the named version of the pattern so the call site reads as the boolean it represents, not as a ternary. Reach for it whenever the source is a boolean prop and the target is a 0↔1 progress value to feed into `useShadow` / `useColorTransition` / `useTransform` / a hand-rolled `useAnimatedStyle`.
+
+**`useBooleanSpring` vs `useAnimation(active ? 1 : 0, { type: 'spring', ... })`.** Same animation either way; `useBooleanSpring` is the shorter spelling for the spring-only case. Drop to `useAnimation` if you need a `timing` curve, a `decay`, or a `repeat`.
 
 ## `useTransform(...)`
 
@@ -361,6 +400,75 @@ The shared values and the handler bag are **identity-stable** across renders —
 ```
 
 When `useGesture` and the `gesture` prop describe the same scenario, prefer the prop — fewer moving parts. The hook is the escape hatch for compositions the prop can't express.
+
+## `useGestureLayer(states, options?)`
+
+A higher-level helper over `useGesture` for the **strongest-active-layer-wins** composition model used by MD3 state-layer haloes and iOS-translucent overlays. You supply per-state target maps; the hook owns the four gesture progress shared values, the `disabled` override, the worklet, and the transition. Lives at the `@onlynative/inertia/gesture-layer` subpath so apps that don't need it don't pay for it.
+
+```tsx
+import { Pressable } from 'react-native'
+import Animated from 'react-native-reanimated'
+import { useGestureLayer } from '@onlynative/inertia/gesture-layer'
+
+function SwitchHalo({ disabled }: { disabled?: boolean }) {
+  const { style, handlers } = useGestureLayer(
+    {
+      rest: { opacity: 0, backgroundColor: 'transparent' },
+      hovered: { opacity: 0.08, backgroundColor: '#000' },
+      focused: { opacity: 0.1, backgroundColor: '#000' },
+      pressed: { opacity: 0.12, backgroundColor: '#000' },
+    },
+    { disabled, transition: { type: 'timing', duration: 150 } },
+  )
+
+  return (
+    <Pressable {...handlers}>
+      <Animated.View style={style} />
+    </Pressable>
+  )
+}
+```
+
+### Composition model
+
+- **Numeric keys** (`opacity`, `scale`, `borderWidth`, …) compose via clamped-max with `rest` as the floor: `out = max(rest, …for each active layer: lerp(rest, layer, progress))`. Multiple states active simultaneously raise the value to the strongest layer, not the sum — this is the MD3 halo pattern.
+- **Color keys** (any string value) compose via priority cascade with `interpolateColor`, lowest priority first: `hovered → focused → focusVisible → pressed`. Clamped-max doesn't apply to colors; this matches the cascade used by the declarative `gesture` prop.
+- **Disabled** sits at the top of the cascade for both numeric and color keys — when active, it lerps the composed value toward the `disabled` target. The `disabled` flag is JS-side, not gesture-driven.
+
+### States
+
+| Key            | Notes                                                                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rest`         | Base values, applied when no other layer is active. Missing keys default to `0` (numeric) / `'transparent'` (color).                                |
+| `hovered`      | Web-only hover. No-op on native.                                                                                                                    |
+| `focused`      | Any focus modality (mouse, touch, keyboard).                                                                                                        |
+| `focusVisible` | Keyboard-only focus (W3C `:focus-visible`). On native, behaves identically to `focused`.                                                            |
+| `pressed`      | Active touch / pointer-down.                                                                                                                        |
+| `disabled`     | Gated by `options.disabled`. Overrides every gesture layer when active; per-layer transitions don't apply (top-level transition or default spring). |
+
+Every state key is optional. Values inside each state are a flat map of style keys to either a number (numeric layer) or a string (color layer). The hook doesn't validate that string values are valid colors — passing `borderStyle: 'solid'` will crash inside the worklet. Keep string values to color strings.
+
+### Options
+
+| Field        | Type                                          | Notes                                                                                                                                                                                                                                                                                                                     |
+| ------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `disabled`   | `boolean`                                     | Activates the `disabled` layer (or `rest` if `disabled` is undefined).                                                                                                                                                                                                                                                    |
+| `transition` | `TransitionConfig \| GestureLayerTransitions` | Forwarded to the underlying `useGesture`. Either one config for every gesture layer, or per-layer (`{ pressed, focused, focusVisible, hovered }`). Reduced motion collapses every transition to `'no-animation'`. Per-layer transitions don't apply to `disabled` — it uses the top-level config (or the default spring). |
+
+### Returns
+
+| Field      | Type                 | Notes                                                                                                |
+| ---------- | -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `style`    | Animated style       | Spread onto an `Animated.View` or a `Motion.*`'s `style`.                                            |
+| `handlers` | `UseGestureHandlers` | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on the host `Pressable`. |
+
+```tsx
+import { useGestureLayer } from '@onlynative/inertia/gesture-layer'
+```
+
+**`useGestureLayer` vs the declarative `gesture` prop.** The prop layers states **additively** — pressing while hovered sums both layers' contributions. `useGestureLayer` layers them via **clamped-max** — pressing while hovered shows whichever target is stronger per-key, not the sum. The MD3 / iOS-translucent halo wants clamped-max so simultaneously hovered + pressed doesn't double the opacity into something visually wrong. Reach for the prop for additive button feedback (`{ scale: 0.96 }` on press composes cleanly with an opacity hover); reach for this hook when targets are state-layer overlays that need to top out at a single ceiling.
+
+**`useGestureLayer` vs `useGesture` + custom worklet.** `useGesture` returns the raw 0↔1 progress shared values. Use it for compositions this hook doesn't express — additive blends, per-key custom rules, multi-target outputs (e.g. a halo plus a separate ring that uses different math). `useGestureLayer` is the convenience layer for the one composition model it owns.
 
 ## `useVariants(variants, initial?)`
 

@@ -102,6 +102,22 @@ const { pressed, focused, hovered, handlers } = useGesture()
 
 The prop and the hook share the layered-blend model, the `isFocusVisible()` semantics, and the `<MotionConfig reducedMotion>` gating — they're the same machinery, two surfaces.
 
+## When you want MD3 state-layer overlays — `useGestureLayer`
+
+The `gesture` prop and `useGesture` both layer states **additively** — pressing while hovered sums both layers. MD3 state-layer haloes and iOS-translucent overlays want the opposite: **clamped-max**, where simultaneously hovered + pressed shows whichever target is stronger per-key (not the sum, which would visibly double the opacity). [`useGestureLayer`](./api/hooks#usegesturelayerstates-options) at `@onlynative/inertia/gesture-layer` is the convenience layer for that model — supply per-state target maps (`rest` / `hovered` / `focused` / `focusVisible` / `pressed` / `disabled`), the hook owns the worklet, the disabled override, and the transition.
+
+```tsx
+import { useGestureLayer } from '@onlynative/inertia/gesture-layer'
+
+const { style, handlers } = useGestureLayer({
+  rest: { opacity: 0, backgroundColor: 'transparent' },
+  hovered: { opacity: 0.08, backgroundColor: '#000' },
+  pressed: { opacity: 0.12, backgroundColor: '#000' },
+})
+```
+
+Numeric keys compose via clamped-max; color keys compose via priority cascade (`hovered → focused → focusVisible → pressed`); `disabled` sits on top of both. Reach for plain `useGesture` if the composition model doesn't fit (additive blends, multiply, per-key custom rules).
+
 ## When you need drag, pan, or swipe
 
 The `gesture` prop covers Pressable-shaped states — anything that boils down to "active / inactive / focused / hovered". For continuous, value-bearing gestures (a thumb that follows the finger, a sheet that flicks closed, a carousel with momentum), reach for the [gestures adapter](./gestures-adapter): `useDrag`, `usePan`, `useSwipe`. It's an opt-in sibling package so the core library doesn't ship a `react-native-gesture-handler` peer for apps that only animate buttons.

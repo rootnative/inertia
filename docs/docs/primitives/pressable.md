@@ -32,10 +32,10 @@ import { MotionPressable } from '@onlynative/inertia/pressable'
 
 ## `style` must be a value, not a function
 
-This is the **#1 footgun** for users coming from RN's `Pressable` and the single most important thing to know about `Motion.Pressable`. RN's `Pressable` accepts a function-form `style={(state) => ...}` that re-runs on every press to derive styles from the press/focus/hover state. **`Motion.Pressable` silently drops the function form** — Reanimated's `createAnimatedComponent` wrapper does not invoke it, and you'll see no error.
+This is the **#1 footgun** for users coming from RN's `Pressable`. RN's `Pressable` accepts a function-form `style={(state) => ...}` that re-runs on every press to derive styles from the press/focus/hover state. Reanimated's `createAnimatedComponent` wrapper doesn't invoke it — the function would be silently dropped — so `Motion.Pressable` (and every other `Motion.*` primitive) **throws in dev** when `style` is a function, rather than ship the footgun.
 
 ```tsx
-// ❌ Silently broken — the function is never called.
+// ❌ Throws in dev. Drive press-state through `gesture` instead.
 <Motion.Pressable
   style={({ pressed }) => [
     styles.button,
@@ -43,14 +43,14 @@ This is the **#1 footgun** for users coming from RN's `Pressable` and the single
   ]}
 />
 
-// ✅ Drive press-state through `gesture` instead.
+// ✅
 <Motion.Pressable
   style={styles.button}
   gesture={{ pressed: { scale: 0.96, opacity: 0.85 } }}
 />
 ```
 
-This applies to `style` only. Plain values, arrays, and `StyleSheet.create` outputs all work as expected. If you genuinely need conditional styles that aren't animatable through `gesture`, compute them once in render and pass the resulting style array.
+The throw happens behind `__DEV__`, so production builds don't pay the check — the styles would still be dropped silently there, which is why catching it in dev is load-bearing. This applies to `style` only. Plain values, arrays, and `StyleSheet.create` outputs all work as expected. If you genuinely need conditional styles that aren't animatable through `gesture`, compute them once in render and pass the resulting style array.
 
 ## Notes
 

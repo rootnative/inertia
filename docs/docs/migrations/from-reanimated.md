@@ -98,7 +98,7 @@ Without per-layer entries, layers inherit the top-level `transition` (or fall ba
 
 ### `style` must be a value, not a function
 
-`Motion.Pressable` inherits Reanimated's `createAnimatedComponent` wrapper, which silently drops the function-form `style={({ pressed }) => ...}` that RN's `Pressable` accepts. Drive press/focus/hover styling through `gesture` (as above) or compute conditional styles once in render. See [primitives/pressable](../primitives/pressable#style-must-be-a-value-not-a-function) for the full caveat.
+Every `Motion.*` primitive **throws in dev** when `style` is a function, rather than let Reanimated's `createAnimatedComponent` wrapper silently drop the function-form `style={({ pressed }) => ...}` that RN's `Pressable` accepts. Drive press/focus/hover styling through `gesture` (as above) or compute conditional styles once in render. See [primitives/pressable](../primitives/pressable#style-must-be-a-value-not-a-function) for the full caveat.
 
 ### When the gesture drives sibling overlays — `useGesture`
 
