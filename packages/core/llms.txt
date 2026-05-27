@@ -23,6 +23,7 @@ import {
   useAnimation,
   useSpring,
   useTransform,
+  useShadow,
   useScroll,
 } from '@onlynative/inertia'
 // or for tree-shaking:
@@ -44,6 +45,7 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 - `useAnimation(target, transition?)` — drive a `SharedValue<number>` toward `target` with any `TransitionConfig` (spring / timing / decay / no-animation, plus `repeat`). The general-purpose value-layer hook for boolean-state progress, indeterminate loops, and anywhere the same value needs to feed multiple `useAnimatedStyle` blocks.
 - `useSpring(target, config?)` — spring-only shorthand. Animates a `SharedValue<number>` toward `target` with react-spring vocab. `target` may be a plain number (effect-driven) or a `SharedValue<number>` (UI-thread reaction); the latter is the gesture-smoothing path.
 - `useTransform(value, inputRange, outputRange, options?)` / `useTransform(transformer)` — interpolate a numeric shared value onto a number or color range, or derive any value from any number of shared values via a worklet. Non-worklet transformers are auto-wrapped.
+- `useShadow({ from, to, progress })` — pure value-layer interpolator between two `ShadowConfig`s (`shadowOpacity` / `shadowRadius` / `shadowOffset` / `elevation` / `shadowColor`) driven by a `SharedValue<number>` (0→1). Returns an animated style fragment to spread onto `style`; only emits keys present on either side, absent sides default to natural zero. The hook does not animate on its own — drive `progress` with a spring, a scroll-derived `useTransform`, or any other shared value source.
 - `useScroll()` — returns `{ scrollX, scrollY, onScroll }` for use with `Motion.ScrollView`. Scroll events fire on the UI thread.
 - `createMotionComponent<C>(C)` — wrap any component with the same Motion prop surface, inferring style from `C`.
 - `buildReleaseAnimation(transition, toValue)` — worklet-safe single-step animation builder (spring / timing / decay / no-animation). For assigning Inertia-resolved animations to shared values from inside a gesture worklet. Used internally by `@onlynative/inertia-gestures`'s `useDrag({ onRelease })`.

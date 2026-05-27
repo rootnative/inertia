@@ -33,15 +33,18 @@ export {
   useGesture,
   useMotionValue,
   useScroll,
+  useShadow,
   useSpring,
   useTransform,
   useVariants,
 } from './values'
 export type {
   ExtrapolationMode,
+  ShadowConfig,
   UseGestureHandlers,
   UseGestureResult,
   UseScrollResult,
+  UseShadowOptions,
   UseTransformOptions,
 } from './values'
 export type {

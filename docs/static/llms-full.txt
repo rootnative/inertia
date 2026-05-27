@@ -2235,7 +2235,7 @@ Open an issue with the before/after pair you're trying to migrate. The patterns 
 
 The escape-hatch surface — drop here when you need imperative control beyond what the props expose.
 
-The value-layer hooks (`useMotionValue`, `useSpring`, `useTransform`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values, not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
+The value-layer hooks (`useMotionValue`, `useSpring`, `useTransform`, `useShadow`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
 
 ## `useMotionValue(initial)`
 
@@ -2350,6 +2350,57 @@ const distance = useTransform(() => Math.sqrt(x.value ** 2 + y.value ** 2))
 | `useTransform<T>(transformer: () => T)` | `SharedValue<T>` |
 
 The transformer must be a worklet. Plain functions are auto-wrapped with the `'worklet'` directive at JS time — the same treatment user-supplied easing gets — so you don't need to remember it. The transformer must be pure: no captured JS-thread refs, no calls to non-worklet APIs.
+
+## `useShadow({ from, to, progress })`
+
+Interpolate between two shadow configs as `progress` moves 0→1. Returns an animated style fragment you spread onto any Reanimated-aware view (`Motion.*` or a hand-rolled `Animated.View`) — no other props required on the host.
+
+```tsx
+import { Motion, useShadow, useSpring } from '@onlynative/inertia'
+
+function ElevatedCard({ raised }: { raised: boolean }) {
+  // Whatever drives `progress` is your concern — a spring, a scroll-derived
+  // useTransform, a gesture progress value. The hook is a pure interpolator;
+  // it does not animate on its own.
+  const progress = useSpring(raised ? 1 : 0, { tension: 180, friction: 18 })
+
+  const shadowStyle = useShadow({
+    from: {
+      shadowOpacity: 0.08,
+      shadowRadius: 2,
+      shadowOffset: { width: 0, height: 1 },
+      elevation: 1,
+    },
+    to: {
+      shadowOpacity: 0.24,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: 10,
+    },
+    progress,
+  })
+
+  return <Motion.View style={[styles.card, shadowStyle]} />
+}
+```
+
+`ShadowConfig` accepts the same flat shadow keys as `Motion.View`'s `animate` surface, plus the nested `shadowOffset` source:
+
+| Field           | Type                                  | Notes                                                      |
+| --------------- | ------------------------------------- | ---------------------------------------------------------- |
+| `shadowOpacity` | `number`                              | Standard iOS shadow opacity.                               |
+| `shadowRadius`  | `number`                              | Blur radius in points.                                     |
+| `shadowOffset`  | `{ width?: number; height?: number }` | Single-value form — width/height each tween independently. |
+| `elevation`     | `number`                              | Android elevation. iOS-only consumers can leave it off.    |
+| `shadowColor`   | `string`                              | Color string. Interpolated via `interpolateColor`.         |
+
+Only keys present on at least one side appear in the output style — there's no overhead for keys you don't use. A key present on one side and absent from the other tweens from / to the absent side's natural zero (`0`, `'transparent'`, or `{ width: 0, height: 0 }`).
+
+| Signature                                                                            | Returns                               |
+| ------------------------------------------------------------------------------------ | ------------------------------------- |
+| `useShadow({ from: ShadowConfig; to: ShadowConfig; progress: SharedValue<number> })` | Animated style (spread onto `style`). |
+
+**`useShadow` vs the declarative `animate` path.** If a state change in your component already swaps between two shadow configs (`animate={raised ? RAISED : REST}`), the `animate` prop is simpler — no hook needed. Reach for `useShadow` when the source of progress isn't a render-driven state swap: scroll position, drag progress, a `useSpring` driven by a shared value, or anywhere else the value-layer is the right abstraction. The example screen in the gallery drives it from a `useSpring`; wiring it to `useScroll` + `useTransform` for a scroll-driven elevation cascade is a one-line change.
 
 ## `useAnimation(target, transition?)`
 

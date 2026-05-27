@@ -12,4 +12,9 @@ export {
   type UseTransformOptions,
 } from './useTransform'
 export { useScroll, type UseScrollResult } from './useScroll'
+export {
+  useShadow,
+  type ShadowConfig,
+  type UseShadowOptions,
+} from './useShadow'
 export { useVariants } from './useVariants'

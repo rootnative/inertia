@@ -32,6 +32,7 @@ import { TextScreen } from './screens/TextScreen'
 import { TouchDragScreen } from './screens/TouchDragScreen'
 import { TransformsScreen } from './screens/TransformsScreen'
 import { UseGestureScreen } from './screens/UseGestureScreen'
+import { UseShadowScreen } from './screens/UseShadowScreen'
 import { VariantsScreen } from './screens/VariantsScreen'
 import { ViewScreen } from './screens/ViewScreen'
 
@@ -53,6 +54,7 @@ type Route =
   | 'pan'
   | 'gesture'
   | 'use-gesture'
+  | 'use-shadow'
   | 'pressable'
   | 'scroll-view'
   | 'presence'
@@ -82,6 +84,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'pan',
   'gesture',
   'use-gesture',
+  'use-shadow',
   'pressable',
   'scroll-view',
   'presence',
@@ -151,6 +154,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         label: 'Shadow & elevation',
         description:
           'MD3 cascade — shadowOpacity / Radius / Offset / elevation',
+      },
+      {
+        route: 'use-shadow',
+        label: 'useShadow',
+        description: 'value-layer shadow tween driven by any progress source',
       },
       {
         route: 'linear-gradient',
@@ -295,6 +303,7 @@ export default function App() {
   if (route === 'pan') return <PanScreen onBack={goHome} />
   if (route === 'gesture') return <GestureScreen onBack={goHome} />
   if (route === 'use-gesture') return <UseGestureScreen onBack={goHome} />
+  if (route === 'use-shadow') return <UseShadowScreen onBack={goHome} />
   if (route === 'pressable') return <PressableScreen onBack={goHome} />
   if (route === 'scroll-view') return <ScrollViewScreen onBack={goHome} />
   if (route === 'presence') return <PresenceScreen onBack={goHome} />

@@ -1,7 +1,13 @@
 import { render } from '@testing-library/react-native'
 import { useEffect } from 'react'
 import * as Reanimated from 'react-native-reanimated'
-import { useMotionValue, useScroll, useSpring, useTransform } from '../values'
+import {
+  useMotionValue,
+  useScroll,
+  useShadow,
+  useSpring,
+  useTransform,
+} from '../values'
 
 // Value-layer hooks acceptance: each hook must return a Reanimated-shaped
 // shared value (`{ value: ... }`) and react to inputs in the way the docs
@@ -151,6 +157,79 @@ describe('useTransform', () => {
     }
     render(<Setup />)
     expect(probe.current!.value).toBe(9)
+  })
+})
+
+describe('useShadow', () => {
+  it('interpolates flat shadow keys plus shadowOffset between two configs', () => {
+    const probe: Probe<Record<string, unknown>> = {}
+    function Setup() {
+      const progress = useMotionValue(0)
+      progress.value = 1 // drive to `to` under the mock (interpolate returns last output)
+      const style = useShadow({
+        from: {
+          shadowOpacity: 0,
+          shadowRadius: 0,
+          shadowOffset: { width: 0, height: 0 },
+          elevation: 0,
+          shadowColor: 'rgba(0,0,0,0)',
+        },
+        to: {
+          shadowOpacity: 0.24,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: 8,
+          shadowColor: '#000000',
+        },
+        progress,
+      })
+      probe.current = style as Record<string, unknown>
+      return null
+    }
+    render(<Setup />)
+    const style = probe.current!
+    expect(style.shadowOpacity).toBe(0.24)
+    expect(style.shadowRadius).toBe(12)
+    expect(style.elevation).toBe(8)
+    expect(style.shadowColor).toBe('#000000')
+    expect(style.shadowOffset).toEqual({ width: 0, height: 8 })
+  })
+
+  it('omits keys that are absent from both from and to', () => {
+    const probe: Probe<Record<string, unknown>> = {}
+    function Setup() {
+      const progress = useMotionValue(1)
+      const style = useShadow({
+        from: { shadowOpacity: 0 },
+        to: { shadowOpacity: 0.5 },
+        progress,
+      })
+      probe.current = style as Record<string, unknown>
+      return null
+    }
+    render(<Setup />)
+    const keys = Object.keys(probe.current!)
+    expect(keys).toEqual(['shadowOpacity'])
+  })
+
+  it('defaults the absent side to zero for one-sided keys', () => {
+    const interpolate = jest.spyOn(Reanimated, 'interpolate')
+    function Setup() {
+      const progress = useMotionValue(1)
+      // `shadowRadius` only on `to` — the `from` side defaults to 0.
+      useShadow({
+        from: { shadowOpacity: 0 },
+        to: { shadowOpacity: 0.5, shadowRadius: 8 },
+        progress,
+      })
+      return null
+    }
+    render(<Setup />)
+    const radiusCall = interpolate.mock.calls.find(
+      ([, , output]) => Array.isArray(output) && output[1] === 8,
+    )
+    expect(radiusCall).toBeDefined()
+    expect(radiusCall![2]).toEqual([0, 8])
   })
 })
 
