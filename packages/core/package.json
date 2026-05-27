@@ -86,6 +86,13 @@
       "import": "./dist/touch/index.mjs",
       "require": "./dist/touch/index.js"
     },
+    "./gesture-layer": {
+      "types": "./dist/gestureLayer/index.d.ts",
+      "react-native": "./src/gestureLayer/index.ts",
+      "source": "./src/gestureLayer/index.ts",
+      "import": "./dist/gestureLayer/index.mjs",
+      "require": "./dist/gestureLayer/index.js"
+    },
     "./jest-preset": "./jest-preset.js",
     "./jest-setup": "./jest-setup.js",
     "./package.json": "./package.json"

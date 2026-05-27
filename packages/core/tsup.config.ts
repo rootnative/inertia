@@ -10,6 +10,7 @@ export default defineConfig({
     'motion/ScrollView': 'src/motion/ScrollView.tsx',
     'testing/index': 'src/testing/index.ts',
     'touch/index': 'src/touch/index.ts',
+    'gestureLayer/index': 'src/gestureLayer/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,
