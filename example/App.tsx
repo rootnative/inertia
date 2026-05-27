@@ -31,6 +31,7 @@ import { SwipeScreen } from './screens/SwipeScreen'
 import { TextScreen } from './screens/TextScreen'
 import { TouchDragScreen } from './screens/TouchDragScreen'
 import { TransformsScreen } from './screens/TransformsScreen'
+import { UseColorTransitionScreen } from './screens/UseColorTransitionScreen'
 import { UseGestureScreen } from './screens/UseGestureScreen'
 import { UseShadowScreen } from './screens/UseShadowScreen'
 import { VariantsScreen } from './screens/VariantsScreen'
@@ -53,6 +54,7 @@ type Route =
   | 'swipe'
   | 'pan'
   | 'gesture'
+  | 'use-color-transition'
   | 'use-gesture'
   | 'use-shadow'
   | 'pressable'
@@ -83,6 +85,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'swipe',
   'pan',
   'gesture',
+  'use-color-transition',
   'use-gesture',
   'use-shadow',
   'pressable',
@@ -159,6 +162,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         route: 'use-shadow',
         label: 'useShadow',
         description: 'value-layer shadow tween driven by any progress source',
+      },
+      {
+        route: 'use-color-transition',
+        label: 'useColorTransition',
+        description: 'value-layer color tween for a single color channel',
       },
       {
         route: 'linear-gradient',
@@ -302,6 +310,8 @@ export default function App() {
   if (route === 'swipe') return <SwipeScreen onBack={goHome} />
   if (route === 'pan') return <PanScreen onBack={goHome} />
   if (route === 'gesture') return <GestureScreen onBack={goHome} />
+  if (route === 'use-color-transition')
+    return <UseColorTransitionScreen onBack={goHome} />
   if (route === 'use-gesture') return <UseGestureScreen onBack={goHome} />
   if (route === 'use-shadow') return <UseShadowScreen onBack={goHome} />
   if (route === 'pressable') return <PressableScreen onBack={goHome} />

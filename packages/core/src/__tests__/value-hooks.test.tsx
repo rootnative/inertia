@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import * as Reanimated from 'react-native-reanimated'
 import {
   useBooleanSpring,
+  useColorTransition,
   useMotionValue,
   useScroll,
   useShadow,
@@ -274,6 +275,52 @@ describe('useShadow', () => {
     )
     expect(radiusCall).toBeDefined()
     expect(radiusCall![2]).toEqual([0, 8])
+  })
+})
+
+describe('useColorTransition', () => {
+  it('interpolates between two colors under the default backgroundColor key', () => {
+    const interpolateColor = jest.spyOn(Reanimated, 'interpolateColor')
+    const probe: Probe<Record<string, unknown>> = {}
+    function Setup() {
+      const progress = useMotionValue(0)
+      progress.value = 1
+      const style = useColorTransition(progress, ['#ffffff', '#000000'])
+      probe.current = style as Record<string, unknown>
+      return null
+    }
+    render(<Setup />)
+    expect(interpolateColor).toHaveBeenCalled()
+    expect(probe.current!.backgroundColor).toBe('#000000')
+    expect(Object.keys(probe.current!)).toEqual(['backgroundColor'])
+  })
+
+  it('routes the interpolated color into the configured key', () => {
+    const probe: Probe<Record<string, unknown>> = {}
+    function Setup() {
+      const progress = useMotionValue(1)
+      const style = useColorTransition(progress, ['#ffffff', '#4f46e5'], {
+        key: 'borderColor',
+      })
+      probe.current = style as Record<string, unknown>
+      return null
+    }
+    render(<Setup />)
+    expect(probe.current!.borderColor).toBe('#4f46e5')
+    expect(probe.current!.backgroundColor).toBeUndefined()
+  })
+
+  it('passes the [0, 1] domain and the from/to range straight through', () => {
+    const interpolateColor = jest.spyOn(Reanimated, 'interpolateColor')
+    function Setup() {
+      const progress = useMotionValue(0.5)
+      useColorTransition(progress, ['#ff0000', '#00ff00'])
+      return null
+    }
+    render(<Setup />)
+    const call = interpolateColor.mock.calls.at(-1)!
+    expect(call[1]).toEqual([0, 1])
+    expect(call[2]).toEqual(['#ff0000', '#00ff00'])
   })
 })
 

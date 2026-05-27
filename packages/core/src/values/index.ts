@@ -1,6 +1,11 @@
 export { useAnimation } from './useAnimation'
 export { useBooleanSpring } from './useBooleanSpring'
 export {
+  useColorTransition,
+  type ColorStyleKey,
+  type UseColorTransitionOptions,
+} from './useColorTransition'
+export {
   useGesture,
   type UseGestureHandlers,
   type UseGestureResult,

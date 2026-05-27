@@ -31,6 +31,7 @@ export {
 export {
   useAnimation,
   useBooleanSpring,
+  useColorTransition,
   useGesture,
   useMotionValue,
   useScroll,
@@ -40,8 +41,10 @@ export {
   useVariants,
 } from './values'
 export type {
+  ColorStyleKey,
   ExtrapolationMode,
   ShadowConfig,
+  UseColorTransitionOptions,
   UseGestureHandlers,
   UseGestureResult,
   UseScrollResult,

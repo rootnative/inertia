@@ -2235,7 +2235,7 @@ Open an issue with the before/after pair you're trying to migrate. The patterns 
 
 The escape-hatch surface — drop here when you need imperative control beyond what the props expose.
 
-The value-layer hooks (`useMotionValue`, `useSpring`, `useTransform`, `useShadow`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
+The value-layer hooks (`useMotionValue`, `useSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
 
 ## `useMotionValue(initial)`
 
@@ -2401,6 +2401,51 @@ Only keys present on at least one side appear in the output style — there's no
 | `useShadow({ from: ShadowConfig; to: ShadowConfig; progress: SharedValue<number> })` | Animated style (spread onto `style`). |
 
 **`useShadow` vs the declarative `animate` path.** If a state change in your component already swaps between two shadow configs (`animate={raised ? RAISED : REST}`), the `animate` prop is simpler — no hook needed. Reach for `useShadow` when the source of progress isn't a render-driven state swap: scroll position, drag progress, a `useSpring` driven by a shared value, or anywhere else the value-layer is the right abstraction. The example screen in the gallery drives it from a `useSpring`; wiring it to `useScroll` + `useTransform` for a scroll-driven elevation cascade is a one-line change.
+
+## `useColorTransition(progress, [from, to], options?)`
+
+Interpolate a single color channel between `from` and `to` as `progress` moves 0→1. Returns an animated style fragment with one color key — spread it onto any Reanimated-aware view alongside other style fragments (a `useShadow` result, a hand-rolled `useAnimatedStyle`, plain `StyleSheet` entries).
+
+```tsx
+import {
+  Motion,
+  useBooleanSpring,
+  useColorTransition,
+} from '@onlynative/inertia'
+
+function Chip({ active }: { active: boolean }) {
+  // Drive the tween from a boolean spring. The same progress feeds two
+  // independent color channels — fill and ring shift in lockstep.
+  const progress = useBooleanSpring(active, { tension: 200, friction: 18 })
+
+  const fillStyle = useColorTransition(progress, ['#e5e7eb', '#4f46e5'])
+  const ringStyle = useColorTransition(progress, ['#d1d5db', '#312e81'], {
+    key: 'borderColor',
+  })
+
+  return <Motion.View style={[styles.chip, fillStyle, ringStyle]} />
+}
+```
+
+The hook is a pure interpolator; it does not animate on its own. Drive `progress` upstream with a `useSpring`, `useBooleanSpring`, scroll-derived `useTransform`, gesture progress, or anything else producing a 0↔1 shared value. Values outside `[0, 1]` clamp.
+
+`options.key` chooses which RN style slot the interpolated color is emitted under:
+
+| Key                                                                                             | Default | Notes                                                              |
+| ----------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------ |
+| `backgroundColor`                                                                               | ✓       | State-layer haloes, card fills, chip surfaces.                     |
+| `color`                                                                                         |         | Animate text color (combine with `Motion.Text` or a plain text).   |
+| `borderColor` / `borderTopColor` / `borderRightColor` / `borderBottomColor` / `borderLeftColor` |         | Focus rings, outline transitions.                                  |
+| `tintColor`                                                                                     |         | `Motion.Image` tint.                                               |
+| `shadowColor`                                                                                   |         | Shadow color shifts. (For full shadow tweens, prefer `useShadow`.) |
+
+| Signature                                                                                                                  | Returns                               |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `useColorTransition(progress: SharedValue<number>, range: readonly [string, string], options?: UseColorTransitionOptions)` | Animated style (spread onto `style`). |
+
+**`useColorTransition` vs `useTransform` with a color output range.** `useTransform(progress, [0, 1], [from, to])` returns a raw `SharedValue<string>` — reach for it when you need to compose the color into a hand-rolled `useAnimatedStyle` (mixing with a `Math.max(...)` halo opacity, feeding into a gradient, etc.). `useColorTransition` is the one-call convenience for the dominant case: tween a single color slot and spread the result onto `style`.
+
+**`useColorTransition` vs the declarative `animate` path.** If a state change already swaps between two colors (`animate={active ? { backgroundColor: A } : { backgroundColor: B }}`), the `animate` prop is simpler. Reach for `useColorTransition` when the source of progress isn't a render-driven state swap, or when several color slots need to shift in lockstep from one shared driver (the chip example above — one spring, three color channels).
 
 ## `useAnimation(target, transition?)`
 
