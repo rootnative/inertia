@@ -240,6 +240,20 @@ export function createMotionComponent<C extends ComponentType<any>>(
       onLayout?: (event: LayoutChangeEvent) => void
     }
 
+    // Function-form `style={(state) => ...}` is the Pressable render-prop API.
+    // Inertia drives press/focus state through `gesture.*` and merges its own
+    // animated style; a function passed here lands inside a style array where
+    // the underlying component never invokes it, so the resulting styles are
+    // silently dropped. Throw loudly in dev rather than ship the footgun.
+    if (__DEV__ && typeof style === 'function') {
+      throw new Error(
+        '[inertia] `style` must be a style object or array of style objects, ' +
+          'not a function. The function-form `style={(state) => ...}` Pressable ' +
+          'API is not supported — use `gesture.pressed` (or `gesture.focused`, ' +
+          'etc.) to drive state-dependent styling instead.',
+      )
+    }
+
     // <Presence> contract: when an ancestor flips `isPresent` to false the
     // child stays rendered until `safeToRemove` is called, giving the exit
     // animation time to play. `null` when there is no <Presence> ancestor.
