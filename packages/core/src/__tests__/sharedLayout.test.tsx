@@ -11,6 +11,8 @@ import {
   SHARED_LAYOUT_TTL_MS,
 } from '../layout'
 
+const boxStyle = { width: 50, height: 50 }
+
 // Helper: fire the rendered Motion primitive's `onLayout` with a synthetic
 // nativeEvent. The hook's fallback path (when there's no real
 // `measureInWindow` available) uses these coords directly, so we don't
@@ -92,11 +94,7 @@ describe('Motion.* — layoutId integration', () => {
   it('no-op when no source rect is in the registry', () => {
     const withSpring = jest.spyOn(Reanimated, 'withSpring')
     const view = render(
-      <Motion.View
-        testID="el"
-        layoutId="hero"
-        style={{ width: 50, height: 50 }}
-      />,
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
     )
     const node = view.getByTestId('el')
     fireMeasuredLayout(node as never, { x: 100, y: 100, width: 50, height: 50 })
@@ -121,11 +119,7 @@ describe('Motion.* — layoutId integration', () => {
     registerLayout('hero', { x: 0, y: 0, width: 50, height: 50 })
 
     const view = render(
-      <Motion.View
-        testID="el"
-        layoutId="hero"
-        style={{ width: 50, height: 50 }}
-      />,
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
     )
     const node = view.getByTestId('el')
     fireMeasuredLayout(node as never, {
@@ -149,11 +143,7 @@ describe('Motion.* — layoutId integration', () => {
     registerLayout('hero', { x: 0, y: 0, width: 50, height: 50 })
 
     const view = render(
-      <Motion.View
-        testID="el"
-        layoutId="hero"
-        style={{ width: 50, height: 50 }}
-      />,
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
     )
     fireMeasuredLayout(view.getByTestId('el') as never, {
       x: 100,
@@ -171,11 +161,7 @@ describe('Motion.* — layoutId integration', () => {
     registerLayout('hero', { x: 0, y: 0, width: 50, height: 50 })
 
     const view = render(
-      <Motion.View
-        testID="el"
-        layoutId="hero"
-        style={{ width: 50, height: 50 }}
-      />,
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
     )
     const node = view.getByTestId('el')
     fireMeasuredLayout(node as never, {
@@ -201,11 +187,7 @@ describe('Motion.* — layoutId integration', () => {
 
   it('unmount releases the latest measured rect under the same id', () => {
     const view = render(
-      <Motion.View
-        testID="el"
-        layoutId="hero"
-        style={{ width: 50, height: 50 }}
-      />,
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
     )
     fireMeasuredLayout(view.getByTestId('el') as never, {
       x: 100,
@@ -240,7 +222,7 @@ describe('Motion.* — layoutId integration', () => {
         layoutId="hero"
         ref={userRef as never}
         onLayout={userOnLayout}
-        style={{ width: 50, height: 50 }}
+        style={boxStyle}
       />,
     )
     // The mock forwards the ref callback to the rendered host node — userRef
@@ -264,9 +246,7 @@ describe('Motion.* — layoutId omitted', () => {
   })
 
   it('does not touch the registry when layoutId is omitted', () => {
-    const view = render(
-      <Motion.View testID="el" style={{ width: 50, height: 50 }} />,
-    )
+    const view = render(<Motion.View testID="el" style={boxStyle} />)
     fireMeasuredLayout(view.getByTestId('el') as never, {
       x: 100,
       y: 100,
