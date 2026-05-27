@@ -25,6 +25,7 @@ import { PressableScreen } from './screens/PressableScreen'
 import { ScrollViewScreen } from './screens/ScrollViewScreen'
 import { SequenceScreen } from './screens/SequenceScreen'
 import { ShadowScreen } from './screens/ShadowScreen'
+import { SharedElementScreen } from './screens/SharedElementScreen'
 import { SliderScreen } from './screens/SliderScreen'
 import { SwipeScreen } from './screens/SwipeScreen'
 import { TextScreen } from './screens/TextScreen'
@@ -58,6 +59,7 @@ type Route =
   | 'linear-gradient'
   | 'path-morph'
   | 'layout'
+  | 'shared-element'
   | 'md3-switch'
   | 'motion-config'
   | 'perf-bench'
@@ -86,6 +88,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'linear-gradient',
   'path-morph',
   'layout',
+  'shared-element',
   'md3-switch',
   'motion-config',
   'perf-bench',
@@ -189,6 +192,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         route: 'layout',
         label: 'Layout',
         description: 'auto-layout transitions on position + size changes',
+      },
+      {
+        route: 'shared-element',
+        label: 'Shared element (layoutId)',
+        description: 'FLIP transition between two views with the same layoutId',
       },
     ],
   },
@@ -294,6 +302,7 @@ export default function App() {
     return <LinearGradientScreen onBack={goHome} />
   if (route === 'path-morph') return <PathMorphScreen onBack={goHome} />
   if (route === 'layout') return <LayoutScreen onBack={goHome} />
+  if (route === 'shared-element') return <SharedElementScreen onBack={goHome} />
   if (route === 'md3-switch') return <MD3SwitchScreen onBack={goHome} />
   if (route === 'motion-config') return <MotionConfigScreen onBack={goHome} />
   if (route === 'perf-bench') return <PerfBenchScreen onBack={goHome} />

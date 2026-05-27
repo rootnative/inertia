@@ -118,7 +118,7 @@ Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only), `sha
 
 Nested object: `shadowOffset: { width, height }`. The only nested-object style on the surface — internally decomposes into two synthetic axis SVs that the worklet recomposes into a single `shadowOffset` prop. v0.1 supports the **single-value form only** (`{ width: 0, height: 4 }`); sequences / array keyframes / per-axis transition splits are out of scope, drop to `useMotionValue` for those.
 
-Auto-layout transitions ship via the `layout` prop (`true` / `TransitionConfig`) on every `Motion.*` primitive — see Layout. Shared element transitions (`layoutId`) are deferred: Reanimated 4 dropped the `sharedTransitionTag` API the previous design relied on.
+Auto-layout transitions ship via the `layout` prop (`true` / `TransitionConfig`) on every `Motion.*` primitive — see Layout. Shared element transitions ship via the `layoutId` prop: pair the same id on a source and target `Motion.*` and Inertia FLIPs between them on mount (parent-relative coords, rect-only animation, 1s TTL).
 
 ## Optional adapter packages
 

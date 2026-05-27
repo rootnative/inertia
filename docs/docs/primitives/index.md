@@ -49,4 +49,4 @@ When `initial` is omitted, color slots seed with `'transparent'` — fine for fa
 
 **Auto-layout transitions:** the [`layout` prop](../layout) animates position + size changes that come from outside the `animate` flow — siblings reordering, dimensions toggling, etc.
 
-**Out of scope for alpha:** shared element transitions across screens (`layoutId`). Reanimated 4 dropped the `sharedTransitionTag` API; the Inertia-side measure-based replacement is in design.
+**Shared element transitions:** the [`layoutId` prop](../layout#shared-element-transitions-layoutid) FLIPs between two `Motion.*` primitives that mount with the same id — cross-mount or cross-screen, without any explicit animation config beyond the shared id.

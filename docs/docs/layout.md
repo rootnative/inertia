@@ -52,9 +52,40 @@ The `animate` flow is independent. A `Motion.View` can have both `animate={{ opa
 
 `layout` participates in [`<MotionConfig reducedMotion>`](./motion-config.md) — when reduced motion is active, the prop resolves to no builder and changes snap. We pass `undefined` to the underlying component rather than a `.duration(0)` builder because Reanimated still runs commit-tracking machinery in the latter case; the snap path is genuinely cheaper.
 
-## What this prop doesn't do (yet)
+## Shared element transitions (`layoutId`)
 
-- **Shared element transitions across screens (`layoutId`)** — Reanimated 4 dropped the `sharedTransitionTag` API the previous design relied on. A measure-based Inertia-side registry is the in-flight replacement, but it ships separately.
+The `layoutId` prop is a separate but related mechanism for transitioning a logical element between two screens or two layouts.
+
+```tsx
+// Screen A
+<Motion.View layoutId="hero" style={styles.thumb} />
+
+// Screen B (after navigation)
+<Motion.View layoutId="hero" style={styles.heroLarge} />
+```
+
+When the first `Motion.View` unmounts and a second `Motion.View` with the same `layoutId` mounts within ~1 second, the new element FLIPs into place from the previous element's last measured rect — a Hero-style transition without any explicit animation config beyond the shared id.
+
+How it differs from `layout`:
+
+- `layout` animates **this** element's own size/position changes between commits (no id needed).
+- `layoutId` animates from **another** element's last rect to this element's current rect (cross-mount or cross-screen).
+
+The `transition` prop on either element controls the FLIP animation (spring by default; `'timing'` honored; `'decay'` downgrades to spring; reduced motion skips the transition).
+
+### Caveats and current scope
+
+- **Rect-only.** v1 animates the four FLIP transforms (`translateX/Y`, `scaleX/Y`) only. Other style props — `borderRadius`, `backgroundColor`, `padding` — snap. Style-prop interpolation lands in v2.
+- **Parent-relative coordinates.** Rects come from `onLayout`, which reports parent-relative coords. For the common case where source and target screens share an outer container (e.g. React Navigation's content area), the deltas match what the user perceives. Nested-parent setups where source and target screens sit under containers at different screen offsets will be off by that offset.
+- **One mount per id.** Two `Motion.*` primitives with the same `layoutId` mounted simultaneously is undefined behavior. The most-recent layout commit wins as the source for the next consumer.
+- **TTL.** Released rects are consumable for ~1 second. If the new mount lands later (a slow navigation, a paused transition), no FLIP runs and the element just appears at its natural position — graceful degradation.
+
+### Why not `sharedTransitionTag`?
+
+Reanimated 4 removed `sharedTransitionTag` / `SharedTransition` entirely; `layoutId` is the Inertia-side replacement. It's a JS-side measure registry rather than a native handoff, so it doesn't require a native screen-transition harness — it works with any navigator (React Navigation, Expo Router, hand-rolled) that mounts and unmounts screens.
+
+## What `layout` doesn't do (yet)
+
 - **Per-axis control (`layout="position"` / `layout="size"`)** — `LinearTransition` doesn't expose an axis filter; the whole frame animates together. If you need to gate a specific dimension, animate it through `animate` instead.
 - **Layout-tied callbacks** — `onAnimationEnd` fires for `animate` keys, not for layout commits. Reanimated's `withCallback` is what backs that on the layout side; we haven't surfaced it yet.
 

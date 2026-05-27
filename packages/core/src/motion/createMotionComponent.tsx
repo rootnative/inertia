@@ -13,9 +13,14 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
+import { type LayoutChangeEvent } from 'react-native'
 import { useShouldReduceMotion } from '../config'
 import { isFocusVisible } from '../gestures'
-import { resolveLayoutTransition, type LayoutProp } from '../layout'
+import {
+  resolveLayoutTransition,
+  type LayoutProp,
+  useSharedLayout,
+} from '../layout'
 import { usePresence } from '../presence'
 import {
   isTopLevelTransition,
@@ -223,10 +228,17 @@ export function createMotionComponent<C extends ComponentType<any>>(
       controller,
       gesture,
       layout,
+      layoutId,
       onAnimationEnd,
       style,
+      onLayout: userOnLayout,
       ...rest
-    } = props as Props & { style?: unknown; layout?: LayoutProp }
+    } = props as Props & {
+      style?: unknown
+      layout?: LayoutProp
+      layoutId?: string
+      onLayout?: (event: LayoutChangeEvent) => void
+    }
 
     // <Presence> contract: when an ancestor flips `isPresent` to false the
     // child stays rendered until `safeToRemove` is called, giving the exit
@@ -531,6 +543,23 @@ export function createMotionComponent<C extends ComponentType<any>>(
       shouldReduceMotion,
     )
 
+    // Shared-element transition wiring. `useSharedLayout` allocates FLIP
+    // shared values (identity at rest), measures via the merged `onLayout`,
+    // and on first-mount snaps the FLIP transform to a source rect popped
+    // from the registry. The worklet below appends those entries to the
+    // transform array so they compose with the user's animate transforms —
+    // multiple `translateX` entries sum, multiple `scaleX` entries multiply,
+    // which is exactly the FLIP semantic.
+    const sharedLayout = useSharedLayout({
+      layoutId,
+      userRef: ref,
+      transition: isTopLevelTransition(transition) ? transition : undefined,
+      shouldReduceMotion,
+      userOnLayout,
+    })
+    const flip = sharedLayout.flip
+    const hasLayoutId = layoutId !== undefined
+
     const animatedStyle = useAnimatedStyle(() => {
       const activeKeys = activeKeysRef.current!
       const hasTransform = hasTransformRef.current
@@ -611,7 +640,19 @@ export function createMotionComponent<C extends ComponentType<any>>(
           out[key] = v
         }
       }
-      if (hasTransform) out.transform = transform
+      // Shared-element FLIP transforms append after the user's transform
+      // entries so they compose multiplicatively in the same `transform`
+      // array — separate style entries with `transform` keys would
+      // last-write-wins, which is what we explicitly avoid here. At rest
+      // (dx, dy, sx, sy) = (0, 0, 1, 1) so the contribution is a no-op
+      // when no shared-element transition is active.
+      if (hasLayoutId) {
+        transform.push({ translateX: flip.dx.value })
+        transform.push({ translateY: flip.dy.value })
+        transform.push({ scaleX: flip.sx.value })
+        transform.push({ scaleY: flip.sy.value })
+      }
+      if (hasTransform || hasLayoutId) out.transform = transform
       if (hasShadowOffset) {
         out.shadowOffset = { width: shadowOffsetW, height: shadowOffsetH }
       }
@@ -654,9 +695,10 @@ export function createMotionComponent<C extends ComponentType<any>>(
 
     return (
       <AnimatedComponent
-        ref={ref as never}
+        ref={sharedLayout.setRef as never}
         {...(rest as object)}
         {...gestureHandlers}
+        onLayout={sharedLayout.onLayout}
         layout={layoutTransition}
         style={mergedStyle}
       />

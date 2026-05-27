@@ -88,7 +88,7 @@ Plus, on any transition: `delay`, `repeat`. Per-property transitions take preced
 
 Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only — `Motion.View` rejects it at compile time). Layout transforms via `transform: [...]`. Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
 
-SVG path morphing ships in the [`@onlynative/inertia-svg`](../svg) adapter (`MotionPath`). Out of scope for `0.x`: shared-element transitions across screens (Reanimated 4 dropped `sharedTransitionTag`; a measure-based replacement is in design).
+SVG path morphing ships in the [`@onlynative/inertia-svg`](../svg) adapter (`MotionPath`). Shared-element transitions across screens are wired through the `layoutId` prop — pair the same id on a source and target `Motion.*` and Inertia FLIPs between them on mount.
 
 ## When not to use the core package alone
 

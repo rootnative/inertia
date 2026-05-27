@@ -298,11 +298,31 @@ export interface MotionProps<C> {
    * — decay is downgraded to spring (no clear target). Reduced motion gates
    * the prop the same way it gates `animate`.
    *
-   * `layoutId` for shared element transitions across screens is deferred:
-   * Reanimated 4 dropped the underlying `sharedTransitionTag` API and a
-   * Inertia-side measure-based registry is the in-flight design.
+   * `layoutId` (below) is a related but distinct mechanism for shared
+   * element transitions across screens — `layout` animates this element's
+   * own layout changes, `layoutId` animates from a different element's
+   * last measured rect to this element's current rect.
    */
   layout?: boolean | TransitionConfig
+  /**
+   * Shared-element transition id. When a Motion primitive with `layoutId`
+   * unmounts, its last on-screen rect is recorded under that id; the next
+   * mount of any Motion primitive with the same id animates from the
+   * recorded rect to its natural position via a FLIP transform stack.
+   *
+   * Reanimated 4 removed the `sharedTransitionTag` API — `layoutId` is the
+   * Inertia-side measure-based replacement. Rects are stored in window
+   * coordinates so the source and target can live on different screens.
+   *
+   * The same `transition` prop drives the FLIP animation (spring by
+   * default; `'timing'` honored; `'decay'` downgrades to spring; reduced
+   * motion skips the transition). Out of scope for the first iteration:
+   * style-prop interpolation (border radius, colors, etc.) — only the
+   * rect-to-rect transform is animated. Two simultaneously-mounted
+   * primitives sharing the same `layoutId` are undefined behavior; pick a
+   * primitive per id at a time.
+   */
+  layoutId?: string
   /**
    * Fired once per logical animation completion. See `AnimationCallbackInfo`
    * for the payload shape — transform parents fire once, not per axis.
