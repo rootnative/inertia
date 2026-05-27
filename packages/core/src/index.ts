@@ -30,6 +30,7 @@ export {
 } from './transitions'
 export {
   useAnimation,
+  useBooleanSpring,
   useGesture,
   useMotionValue,
   useScroll,

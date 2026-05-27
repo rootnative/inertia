@@ -2,6 +2,7 @@ import { render } from '@testing-library/react-native'
 import { useEffect } from 'react'
 import * as Reanimated from 'react-native-reanimated'
 import {
+  useBooleanSpring,
   useMotionValue,
   useScroll,
   useShadow,
@@ -112,6 +113,49 @@ describe('useSpring', () => {
     // withSpring was invoked at least once with the read source value.
     expect(withSpring).toHaveBeenCalled()
     expect(typeof probe.current!.value).toBe('number')
+  })
+})
+
+describe('useBooleanSpring', () => {
+  it('drives the output to 1 when active is true', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const probe: Probe<{ value: number }> = {}
+    render(<HookProbe use={() => useBooleanSpring(true)} probe={probe} />)
+    expect(probe.current!.value).toBe(1)
+    expect(withSpring).toHaveBeenCalled()
+    expect(withSpring.mock.calls[0][0]).toBe(1)
+  })
+
+  it('drives the output to 0 when active is false', () => {
+    const probe: Probe<{ value: number }> = {}
+    render(<HookProbe use={() => useBooleanSpring(false)} probe={probe} />)
+    expect(probe.current!.value).toBe(0)
+  })
+
+  it('re-targets when active flips', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const probe: Probe<{ value: number }> = {}
+    const { rerender } = render(
+      <HookProbe use={() => useBooleanSpring(false)} probe={probe} />,
+    )
+    const callsBefore = withSpring.mock.calls.length
+    rerender(<HookProbe use={() => useBooleanSpring(true)} probe={probe} />)
+    expect(probe.current!.value).toBe(1)
+    expect(withSpring.mock.calls.length).toBeGreaterThan(callsBefore)
+    expect(withSpring.mock.calls.at(-1)![0]).toBe(1)
+  })
+
+  it('forwards the spring config to withSpring with react-spring vocabulary', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const probe: Probe<{ value: number }> = {}
+    render(
+      <HookProbe
+        use={() => useBooleanSpring(true, { tension: 240, friction: 22 })}
+        probe={probe}
+      />,
+    )
+    const [, config] = withSpring.mock.calls.at(-1)!
+    expect(config).toMatchObject({ stiffness: 240, damping: 22 })
   })
 })
 

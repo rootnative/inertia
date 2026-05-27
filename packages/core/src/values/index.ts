@@ -1,4 +1,5 @@
 export { useAnimation } from './useAnimation'
+export { useBooleanSpring } from './useBooleanSpring'
 export {
   useGesture,
   type UseGestureHandlers,
