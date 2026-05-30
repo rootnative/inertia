@@ -324,8 +324,11 @@ export interface MotionProps<C, V extends VariantsMap<C> = VariantsMap<C>> {
    * recorded rect to its natural position via a FLIP transform stack.
    *
    * Reanimated 4 removed the `sharedTransitionTag` API — `layoutId` is the
-   * Inertia-side measure-based replacement. Rects are stored in window
-   * coordinates so the source and target can live on different screens.
+   * Inertia-side measure-based replacement. Rects are recorded in
+   * parent-relative coordinates (from `onLayout`), which composes when the
+   * source and target screens share an outer content container (the common
+   * stack-navigator case); nested-parent layouts need the v2
+   * window-coordinate path.
    *
    * The same `transition` prop drives the FLIP animation (spring by
    * default; `'timing'` honored; `'decay'` downgrades to spring; reduced

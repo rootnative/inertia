@@ -14,12 +14,15 @@
  *      it becomes the FLIP source rect; the entry is removed so a third
  *      mount with the same id doesn't re-animate from a stale snapshot.
  *
- * Rects are stored in **window coordinates** (what `measureInWindow`
- * returns). Cross-screen transitions need this — parent-relative
- * coordinates are different on each screen and wouldn't compose.
+ * Rects are stored in **parent-relative coordinates** (what `onLayout`'s
+ * `nativeEvent.layout` reports). This composes for the common case where the
+ * source and target share an outer content container — e.g. a typical stack
+ * navigator. Nested-parent setups, where the two parents sit at different
+ * window offsets, need a window-coordinate path (`measureInWindow`); that is
+ * punted to v2 per the roadmap.
  */
 
-/** Window-relative rect of a measured element. */
+/** Parent-relative rect of a measured element (from `onLayout`). */
 export interface SharedRect {
   x: number
   y: number
