@@ -300,43 +300,73 @@ export function createMotionComponent<C extends ComponentType<any>>(
     const [focusVisible, setFocusVisible] = useState(false)
     const [hovered, setHovered] = useState(false)
 
-    // The set of keys this instance animates is locked at first render. With
-    // variants in play the union across all variants is what matters — a key
-    // touched by any variant must be active so the worklet picks it up when
-    // the controller transitions. Gesture sub-states join the same union so
-    // pressed/focused/focusVisible/hovered targets can drive any key they
-    // declare even when the base `animate` doesn't touch it.
-    const activeKeysRef = useRef<readonly AnimatableKey[] | null>(null)
-    if (activeKeysRef.current === null) {
-      const touched = new Set<AnimatableKey>()
-      collectTouchedKeys(touched, animateRecord)
-      if (initialRecord) collectTouchedKeys(touched, initialRecord)
-      if (variants) {
-        for (const variant of Object.values(variants) as object[]) {
-          if (!variant) continue
-          collectTouchedKeys(touched, variant as Record<string, unknown>)
-        }
+    // The set of keys this instance animates is a *monotonically growing*
+    // union, recomputed every render and expanded when a render introduces a
+    // key not seen before. It never shrinks. Two requirements meet here:
+    //
+    //   1. Variants and gesture sub-states contribute the union across *all*
+    //      their branches up front — a key touched by any variant must be
+    //      active so the worklet picks it up when the controller transitions
+    //      to a branch the base `animate` never mentions.
+    //   2. A literal `animate` object is reactive: a parent that changes
+    //      `animate={{ opacity: 1 }}` to `animate={{ opacity: 1, scale: 2 }}`
+    //      after mount must get `scale` animating. Freezing the set at first
+    //      render silently dropped the new key (its SV updated, but the
+    //      worklet — which iterates this set — never read it).
+    //
+    // Growing-only keeps the worklet stable: the `activeKeysRef.current` array
+    // identity only changes on the renders that actually add a key, so the
+    // `useAnimatedStyle` worklet (which reads `.current` each frame) sees the
+    // expansion without churning frame-to-frame.
+    const touched = new Set<AnimatableKey>()
+    collectTouchedKeys(touched, animateRecord)
+    if (initialRecord) collectTouchedKeys(touched, initialRecord)
+    if (variants) {
+      for (const variant of Object.values(variants) as object[]) {
+        if (!variant) continue
+        collectTouchedKeys(touched, variant as Record<string, unknown>)
       }
-      if (gesture) {
-        for (const subState of [
-          gesture.pressed,
-          gesture.focused,
-          gesture.focusVisible,
-          gesture.hovered,
-        ] as Array<object | undefined>) {
-          if (!subState) continue
-          collectTouchedKeys(touched, subState as Record<string, unknown>)
-        }
-      }
-      if (exitRecord) collectTouchedKeys(touched, exitRecord)
-      activeKeysRef.current = ALL_KEYS.filter((k) => touched.has(k))
     }
-    const hasTransformRef = useRef<boolean>(
-      activeKeysRef.current.some((k) => TRANSFORM_KEY_SET.has(k)),
-    )
-    const hasShadowOffsetRef = useRef<boolean>(
-      activeKeysRef.current.some((k) => SHADOW_OFFSET_KEY_SET.has(k)),
-    )
+    if (gesture) {
+      for (const subState of [
+        gesture.pressed,
+        gesture.focused,
+        gesture.focusVisible,
+        gesture.hovered,
+      ] as Array<object | undefined>) {
+        if (!subState) continue
+        collectTouchedKeys(touched, subState as Record<string, unknown>)
+      }
+    }
+    if (exitRecord) collectTouchedKeys(touched, exitRecord)
+
+    const activeKeysRef = useRef<readonly AnimatableKey[] | null>(null)
+    const hasTransformRef = useRef<boolean>(false)
+    const hasShadowOffsetRef = useRef<boolean>(false)
+    // Expand the active set only when this render touched a key we haven't
+    // recorded yet. When nothing new appears we keep the existing array
+    // identity so the worklet's captured ref doesn't see a fresh value.
+    const prevActive = activeKeysRef.current
+    let grew = prevActive === null
+    if (!grew && prevActive) {
+      for (const k of touched) {
+        if (!prevActive.includes(k)) {
+          grew = true
+          break
+        }
+      }
+    }
+    if (grew) {
+      const merged = new Set<AnimatableKey>(prevActive ?? [])
+      for (const k of touched) merged.add(k)
+      activeKeysRef.current = ALL_KEYS.filter((k) => merged.has(k))
+      hasTransformRef.current = activeKeysRef.current.some((k) =>
+        TRANSFORM_KEY_SET.has(k),
+      )
+      hasShadowOffsetRef.current = activeKeysRef.current.some((k) =>
+        SHADOW_OFFSET_KEY_SET.has(k),
+      )
+    }
 
     const sharedValues = useAnimatableSharedValues((key) => {
       // Shadow offset synthetics seed from the corresponding axis on the
