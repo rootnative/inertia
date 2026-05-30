@@ -1,4 +1,9 @@
-import { type ComponentType } from 'react'
+import {
+  type ComponentProps,
+  type ComponentType,
+  type ReactElement,
+  type Ref,
+} from 'react'
 import { type StyleProp } from 'react-native'
 
 /**
@@ -239,8 +244,15 @@ export interface VariantController<K extends string = string> {
 
 /**
  * Props injected onto every Motion primitive.
+ *
+ * The second type parameter `V` is the concrete `variants` map. It is inferred
+ * from the `variants` prop at each JSX use (see `MotionComponent`), which is
+ * what lets `animate` narrow to the variant key union and reject typos. When
+ * no `variants` prop is passed, `V` falls back to `VariantsMap<C>` — whose key
+ * type is the open `string`, so `animate` still accepts any string and nothing
+ * regresses for the variant-less case.
  */
-export interface MotionProps<C> {
+export interface MotionProps<C, V extends VariantsMap<C> = VariantsMap<C>> {
   /**
    * Initial values applied on mount. Read once on mount and intentionally
    * non-reactive — to reset after a state change, change the component `key`,
@@ -251,10 +263,11 @@ export interface MotionProps<C> {
   initial?: AnimateStyle<C> | false
   /**
    * The animation target. A style object, a variant key (when `variants` is
-   * supplied), or an array of sequence steps. Variant keys autocomplete when
-   * `variants` is annotated `as const`.
+   * supplied), or an array of sequence steps. When `variants` is set, the
+   * string form is narrowed to the map's keys, so a key typo is a compile
+   * error and the keys autocomplete — no `as const` required.
    */
-  animate?: AnimateStyle<C> | string
+  animate?: AnimateStyle<C> | (keyof V & string)
   /**
    * Values applied while the component exits via `<Presence>`.
    */
@@ -263,13 +276,13 @@ export interface MotionProps<C> {
    * Named animation states. With `variants` set, `animate` accepts a key from
    * this map.
    */
-  variants?: VariantsMap<C>
+  variants?: V
   /**
    * Imperative controller from `useVariants(...)`. When supplied, `animate`
    * is read from `controller.current` and re-applied whenever the controller
    * transitions. `animate` and `controller` should not both be set.
    */
-  controller?: VariantController
+  controller?: VariantController<keyof V & string>
   /**
    * Gesture-driven sub-states (`pressed`, `focused`, `focusVisible`,
    * `hovered`). When omitted, no handlers are mounted on the underlying
@@ -331,14 +344,37 @@ export interface MotionProps<C> {
 }
 
 /**
- * The component type produced by `createMotionComponent`. Combines the
- * underlying component's props (minus `style`, which we replace with an
- * animated style) with the Motion-specific props above.
+ * Props of a Motion primitive for a given underlying component `C` and a
+ * concrete variants map `V`: the component's own props (minus `style`, which
+ * we replace with an animated style) intersected with the Motion props.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type MotionComponent<C extends ComponentType<any>> = ComponentType<
-  Omit<React.ComponentProps<C>, 'style'> &
-    MotionProps<React.ComponentProps<C>> & {
-      style?: React.ComponentProps<C>['style']
-    }
->
+export type MotionComponentProps<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  C extends ComponentType<any>,
+  V extends VariantsMap<ComponentProps<C>> = VariantsMap<ComponentProps<C>>,
+> = Omit<ComponentProps<C>, 'style'> &
+  MotionProps<ComponentProps<C>, V> & {
+    style?: ComponentProps<C>['style']
+    ref?: Ref<unknown>
+  }
+
+/**
+ * The component type produced by `createMotionComponent`.
+ *
+ * It is a **generic call signature**, not a plain `ComponentType`: the variant
+ * map `V` is inferred from the `variants` prop at each JSX use. That inference
+ * is what narrows `animate`'s string form to the variant keys, so
+ * `<Motion.View variants={{ open, closed }} animate="opne" />` is a compile
+ * error and `open` / `closed` autocomplete. With no `variants` prop, `V` falls
+ * back to the open `VariantsMap`, so `animate` still accepts any string and the
+ * variant-less call site is unchanged.
+ */
+export interface MotionComponent<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  C extends ComponentType<any>,
+> {
+  <V extends VariantsMap<ComponentProps<C>> = VariantsMap<ComponentProps<C>>>(
+    props: MotionComponentProps<C, V>,
+  ): ReactElement | null
+  displayName?: string
+}
