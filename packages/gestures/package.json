@@ -1,6 +1,6 @@
 {
   "name": "@onlynative/inertia-gestures",
-  "version": "0.0.1-alpha.8",
+  "version": "0.0.1-alpha.9",
   "description": "Gesture-handler-driven drag / pan / swipe adapters for @onlynative/inertia.",
   "license": "MIT",
   "author": "OnlyNative",
@@ -58,7 +58,7 @@
     "prepublishOnly": "node ../../scripts/build-llms.mjs"
   },
   "peerDependencies": {
-    "@onlynative/inertia": ">=0.0.1-alpha.8",
+    "@onlynative/inertia": ">=0.0.1-alpha.9",
     "react": ">=19.0.0",
     "react-native": ">=0.81.0",
     "react-native-gesture-handler": ">=2.0.0",
