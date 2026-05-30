@@ -104,6 +104,10 @@ jest.mock('react-native-reanimated', () => {
       }
     },
     useReducedMotion: () => false,
+    // Inertia's dev-time install check reads this to detect a too-old
+    // Reanimated. The check is skipped under NODE_ENV=test, but the named
+    // import must still resolve for consumers' test suites.
+    reanimatedVersion: '4.0.0',
     isWorkletFunction: () => false,
     cancelAnimation: () => {},
     runOnJS: (fn) => fn,

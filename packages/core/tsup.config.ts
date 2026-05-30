@@ -25,6 +25,10 @@ export default defineConfig({
     'react/jsx-runtime',
     'react-native',
     'react-native-reanimated',
+    // Required peer of Reanimated 4. Must stay external — bundling it inlines
+    // Reanimated's Metro-internal `__require.resolveWeak`/`getModules` calls,
+    // which throw `Dynamic require is not supported` on web bundlers (Expo web).
+    'react-native-worklets',
     '@testing-library/react-native',
   ],
   esbuildOptions(options) {

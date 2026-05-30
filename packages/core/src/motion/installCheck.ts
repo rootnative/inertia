@@ -1,6 +1,7 @@
+import { reanimatedVersion } from 'react-native-reanimated'
+
 declare const __DEV__: boolean
 declare const process: { env?: Record<string, string | undefined> }
-declare const require: (path: string) => unknown
 
 let alreadyChecked = false
 
@@ -30,16 +31,11 @@ export function ensureReanimatedInstalled(): void {
   }
   alreadyChecked = true
 
-  let version: string | undefined
-  try {
-    const pkg = require('react-native-reanimated/package.json') as {
-      version?: string
-    }
-    version = pkg.version
-  } catch {
-    // package.json subpath blocked by `exports` field — skip the version
-    // probe rather than emit a misleading error.
-  }
+  // Read the version off Reanimated's own runtime export rather than reaching
+  // into its `package.json`. A `require('.../package.json')` here would make
+  // esbuild emit a `__require` shim that throws on web bundlers (Expo web), and
+  // Reanimated's `exports` field may block the subpath anyway.
+  const version: string | undefined = reanimatedVersion
 
   if (version) {
     const major = parseInt(version.split('.')[0] ?? '0', 10)

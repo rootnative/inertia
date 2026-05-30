@@ -123,7 +123,13 @@
   "peerDependencies": {
     "react": ">=19.0.0",
     "react-native": ">=0.81.0",
-    "react-native-reanimated": ">=4.0.0"
+    "react-native-reanimated": ">=4.0.0",
+    "react-native-worklets": ">=0.5.0"
+  },
+  "peerDependenciesMeta": {
+    "react-native-worklets": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@react-native/babel-preset": "^0.81.5",
