@@ -1,4 +1,5 @@
-export { resolveTransition, resolveAnimatableValue } from './resolve'
+export { resolveTransition } from './resolve'
+export { resolveAnimatableValue } from './resolveSequence'
 export { ensureWorkletEasing } from './easing'
 export { isTopLevelTransition, TRANSITION_CONFIG_KEYS } from './keys'
 export { buildReleaseAnimation } from './runtime'
