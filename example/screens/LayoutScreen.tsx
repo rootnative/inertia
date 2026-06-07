@@ -45,29 +45,29 @@ export function LayoutScreen({ onBack }: { onBack: () => void }) {
       </View>
 
       <View style={styles.list}>
-        {items.map((item) => (
-          <Motion.Pressable
-            key={item.id}
-            layout={{ type: 'spring', tension: 200, friction: 22 }}
-            onPress={() => toggle(item.id)}
-            style={[
-              styles.row,
-              {
-                backgroundColor: item.color,
-                height: expanded === item.id ? 96 : 56,
-              },
-            ]}
-          >
-            <Text style={styles.rowLabel}>{item.label}</Text>
-            <Text style={styles.rowHint}>
-              {expanded === item.id ? 'Tap to collapse' : 'Tap to expand'}
-            </Text>
-          </Motion.Pressable>
-        ))}
+        {items.map((item) => {
+          const rowStyle = {
+            backgroundColor: item.color,
+            height: expanded === item.id ? 96 : 56,
+          }
+          return (
+            <Motion.Pressable
+              key={item.id}
+              layout={{ type: 'spring', tension: 200, friction: 22 }}
+              onPress={() => toggle(item.id)}
+              style={[styles.row, rowStyle]}
+            >
+              <Text style={styles.rowLabel}>{item.label}</Text>
+              <Text style={styles.rowHint}>
+                {expanded === item.id ? 'Tap to collapse' : 'Tap to expand'}
+              </Text>
+            </Motion.Pressable>
+          )
+        })}
       </View>
 
       <View style={styles.note}>
-        <Text style={styles.noteTitle}>What's animating</Text>
+        <Text style={styles.noteTitle}>What&apos;s animating</Text>
         <Text style={styles.noteBody}>
           Position changes when the order shuffles — every row springs to its
           new slot.
