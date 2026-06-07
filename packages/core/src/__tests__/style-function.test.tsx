@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 import { Motion } from '../motion'
 
 // `style={(state) => ...}` is the Pressable render-prop API. Inertia owns
@@ -19,29 +20,24 @@ describe('style function-form is rejected in dev', () => {
   })
 
   it('Motion.View throws when style is a function', () => {
-    expect(() =>
-      render(
-        <Motion.View
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          style={(() => ({ opacity: 0.5 })) as any}
-        />,
-      ),
-    ).toThrow(/style.*function/i)
+    // The function form is exactly what we're rejecting at runtime, so it
+    // isn't part of the public style type — cast through `unknown` to feed it
+    // in without an `any` escape hatch.
+    const fnStyle = (() => ({
+      opacity: 0.5,
+    })) as unknown as StyleProp<ViewStyle>
+    expect(() => render(<Motion.View style={fnStyle} />)).toThrow(
+      /style.*function/i,
+    )
   })
 
   it('Motion.Pressable throws when style is a function', () => {
-    expect(() =>
-      render(
-        <Motion.Pressable
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          style={
-            ((state: { pressed: boolean }) => ({
-              opacity: state.pressed ? 0.5 : 1,
-            })) as any
-          }
-        />,
-      ),
-    ).toThrow(/gesture\.pressed/)
+    const fnStyle = ((state: { pressed: boolean }) => ({
+      opacity: state.pressed ? 0.5 : 1,
+    })) as unknown as StyleProp<ViewStyle>
+    expect(() => render(<Motion.Pressable style={fnStyle} />)).toThrow(
+      /gesture\.pressed/,
+    )
   })
 
   it('object-form style still works', () => {

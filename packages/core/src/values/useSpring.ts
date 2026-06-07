@@ -32,6 +32,11 @@ export function useSpring(
   // ticks, not a JS-thread reference that would go stale.
   const reanimConfig = useMemo(
     () => springToReanimated(config ?? {}),
+    // Keyed on the resolved primitive fields rather than the `config` object
+    // identity: callers routinely pass a fresh object literal each render, so
+    // depending on `config` itself would rebuild the Reanimated config on
+    // every render and defeat the memo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       config?.tension,
       config?.friction,
