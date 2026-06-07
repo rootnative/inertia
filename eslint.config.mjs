@@ -5,6 +5,7 @@ import reactPlugin from 'eslint-plugin-react'
 import reactHooksPlugin from 'eslint-plugin-react-hooks'
 import reactNativePlugin from 'eslint-plugin-react-native'
 import prettierConfig from 'eslint-config-prettier'
+import globals from 'globals'
 
 export default [
   {
@@ -12,6 +13,8 @@ export default [
       '**/dist/**',
       '**/.turbo/**',
       '**/.expo/**',
+      '**/.docusaurus/**',
+      '**/static/example/**',
       '**/node_modules/**',
       '**/build/**',
       '**/coverage/**',
@@ -82,6 +85,15 @@ export default [
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/consistent-type-imports': 'off',
+    },
+  },
+  {
+    files: ['**/*.{js,cjs,mjs}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
     },
   },
   prettierConfig,

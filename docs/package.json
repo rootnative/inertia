@@ -9,6 +9,7 @@
     "dev": "pnpm build:llms && pnpm prepare:demo && docusaurus start",
     "build": "pnpm build:llms && pnpm prepare:demo:force && docusaurus build",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "serve": "docusaurus serve",
     "clean": "rm -rf build .docusaurus static/example"
   },

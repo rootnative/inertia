@@ -53,7 +53,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "lint": "eslint src",
+    "lint": "eslint .",
     "clean": "rm -rf dist .turbo *.tsbuildinfo",
     "prepublishOnly": "node ../../scripts/build-llms.mjs"
   },

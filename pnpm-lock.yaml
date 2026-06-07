@@ -35,6 +35,9 @@ importers:
       eslint-plugin-react-native:
         specifier: ^5.0.0
         version: 5.0.0(eslint@9.39.4(jiti@2.7.0))
+      globals:
+        specifier: ^14.0.0
+        version: 14.0.0
       prettier:
         specifier: ^3.4.2
         version: 3.8.3

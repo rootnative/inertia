@@ -2,6 +2,7 @@
   "extends": "@docusaurus/tsconfig",
   "compilerOptions": {
     "baseUrl": ".",
+    "strict": true,
     "skipLibCheck": true,
     "noEmit": true
   }
