@@ -1,27 +1,27 @@
-# @onlynative/inertia-gradients
+# @rootnative/inertia-gradients
 
-[![npm](https://img.shields.io/npm/v/@onlynative/inertia-gradients.svg)](https://www.npmjs.com/package/@onlynative/inertia-gradients)
+[![npm](https://img.shields.io/npm/v/@rootnative/inertia-gradients.svg)](https://www.npmjs.com/package/@rootnative/inertia-gradients)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-Animatable linear gradient primitive for [`@onlynative/inertia`](../core), built on [`expo-linear-gradient`](https://docs.expo.dev/versions/latest/sdk/linear-gradient/).
+Animatable linear gradient primitive for [`@rootnative/inertia`](../core), built on [`expo-linear-gradient`](https://docs.expo.dev/versions/latest/sdk/linear-gradient/).
 
 `MotionLinearGradient` accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
 ## Install
 
 ```sh
-pnpm add @onlynative/inertia-gradients expo-linear-gradient
+pnpm add @rootnative/inertia-gradients expo-linear-gradient
 ```
 
 `expo-linear-gradient` works in bare React Native projects as well as Expo — no `expo-modules-core` runtime is required.
 
-**Peer dependencies:** `@onlynative/inertia` (workspace or installed), `react >=19.0.0`, `react-native >=0.81.0`, `react-native-reanimated >=4.0.0`, `expo-linear-gradient >=14.0.0`.
+**Peer dependencies:** `@rootnative/inertia` (workspace or installed), `react >=19.0.0`, `react-native >=0.81.0`, `react-native-reanimated >=4.0.0`, `expo-linear-gradient >=14.0.0`.
 
 ## Usage
 
 ```tsx
 import { StyleSheet } from 'react-native'
-import { MotionLinearGradient } from '@onlynative/inertia-gradients'
+import { MotionLinearGradient } from '@rootnative/inertia-gradients'
 
 export function Hero() {
   return (
@@ -88,9 +88,9 @@ Pass `initial` to override the mount-frame values (so the component starts somew
 
 ## Documentation
 
-- Full docs: [https://onlynative.github.io/inertia/docs/gradients](https://onlynative.github.io/inertia/docs/gradients)
-- Core library: [`@onlynative/inertia`](../core)
+- Full docs: [https://rootnative.github.io/inertia/docs/gradients](https://rootnative.github.io/inertia/docs/gradients)
+- Core library: [`@rootnative/inertia`](../core)
 
 ## License
 
-[MIT](./LICENSE) © OnlyNative
+[MIT](./LICENSE) © RootNative

@@ -5,11 +5,11 @@ import Animated, {
   interpolateColor,
   useAnimatedStyle,
 } from 'react-native-reanimated'
-import { useAnimation, useGesture } from '@onlynative/inertia'
+import { useAnimation, useGesture } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 // Material Design 3 spec — track / thumb / halo geometry. Pulled from the
-// onlynative/ui Switch (packages/components/src/switch/styles.ts) so this
+// rootnative/ui Switch (packages/components/src/switch/styles.ts) so this
 // demo lines up pixel-for-pixel with the real component.
 const TRACK_WIDTH = 52
 const TRACK_HEIGHT = 32
@@ -69,7 +69,7 @@ export function MD3SwitchScreen({ onBack }: { onBack: () => void }) {
   return (
     <ScreenShell
       title="MD3 Switch — ported"
-      description="Faithful port of the @onlynative/ui Switch using useAnimation (toggle progress) and useGesture (state layers). The animation plumbing shrinks from ~37 lines to 2 hook calls."
+      description="Faithful port of the @rootnative/ui Switch using useAnimation (toggle progress) and useGesture (state layers). The animation plumbing shrinks from ~37 lines to 2 hook calls."
       onBack={onBack}
     >
       <View style={styles.demo}>

@@ -1,5 +1,5 @@
 /**
- * `@onlynative/inertia` — declarative animation primitives for React Native.
+ * `@rootnative/inertia` — declarative animation primitives for React Native.
  *
  * v0.1 surface: `Motion.View` / `Motion.Text` / `Motion.Image` /
  * `Motion.Pressable` / `Motion.ScrollView`, with `initial` / `animate` /

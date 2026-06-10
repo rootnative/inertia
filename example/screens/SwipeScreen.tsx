@@ -4,8 +4,8 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler'
-import { Motion } from '@onlynative/inertia'
-import { useSwipe, type SwipeDirection } from '@onlynative/inertia-gestures'
+import { Motion } from '@rootnative/inertia'
+import { useSwipe, type SwipeDirection } from '@rootnative/inertia-gestures'
 import { ScreenShell } from './ScreenShell'
 
 interface Card {

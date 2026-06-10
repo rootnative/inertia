@@ -5,7 +5,7 @@ import type { Config } from '@docusaurus/types'
 const config: Config = {
   title: 'Inertia',
   tagline: 'Declarative animation primitives for React Native',
-  url: 'https://onlynative.github.io',
+  url: 'https://rootnative.github.io',
   baseUrl: '/inertia/',
   onBrokenLinks: 'throw',
 
@@ -28,7 +28,7 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           routeBasePath: '/',
-          editUrl: 'https://github.com/onlynative/inertia/edit/main/docs/',
+          editUrl: 'https://github.com/rootnative/inertia/edit/main/docs/',
         },
         blog: false,
         theme: {
@@ -80,12 +80,12 @@ const config: Config = {
           position: 'left',
         },
         {
-          href: 'https://onlynative.github.io/inertia/example/',
+          href: 'https://rootnative.github.io/inertia/example/',
           label: 'Example',
           position: 'right',
         },
         {
-          href: 'https://github.com/onlynative/inertia',
+          href: 'https://github.com/rootnative/inertia',
           label: 'GitHub',
           position: 'right',
         },
@@ -93,7 +93,7 @@ const config: Config = {
     },
     footer: {
       style: 'dark',
-      copyright: `Copyright © ${new Date().getFullYear()} OnlyNative`,
+      copyright: `Copyright © ${new Date().getFullYear()} RootNative`,
     },
     prism: {
       additionalLanguages: ['bash'],

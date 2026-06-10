@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 const ROWS = Array.from({ length: 24 }, (_, i) => i + 1)

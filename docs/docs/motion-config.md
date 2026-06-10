@@ -15,7 +15,7 @@ Apps moving from hand-rolled `useSharedValue` + `useAnimatedStyle` to Inertia pr
 By default (and without any provider in the tree), Inertia respects the OS reduce-motion setting. When the user enables it, every per-key transition is swapped for `'no-animation'` — values snap to their target instantly. Sequences still iterate, but each step settles immediately.
 
 ```tsx
-import { MotionConfig } from '@onlynative/inertia'
+import { MotionConfig } from '@rootnative/inertia'
 
 export function App() {
   return <MotionConfig reducedMotion="user">{/* Your app */}</MotionConfig>
@@ -51,7 +51,7 @@ export function App() {
 Two hooks are available for components that want to react to the active mode:
 
 ```tsx
-import { useMotionConfig, useShouldReduceMotion } from '@onlynative/inertia'
+import { useMotionConfig, useShouldReduceMotion } from '@rootnative/inertia'
 
 function MyComponent() {
   const { reducedMotion } = useMotionConfig()

@@ -4,7 +4,7 @@ import Animated, {
   interpolateColor,
   useAnimatedStyle,
 } from 'react-native-reanimated'
-import { useGesture } from '@onlynative/inertia'
+import { useGesture } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 const PALETTE = {

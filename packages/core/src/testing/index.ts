@@ -14,10 +14,10 @@
  * `useAnimatedStyle` re-evaluates against the post-animation state and the
  * rendered styles match what a real device would settle on.
  *
- * Use this from `@onlynative/inertia/testing`:
+ * Use this from `@rootnative/inertia/testing`:
  *
  * ```ts
- * import { renderWithMotion } from '@onlynative/inertia/testing'
+ * import { renderWithMotion } from '@rootnative/inertia/testing'
  *
  * const { getByTestId } = renderWithMotion(
  *   <Motion.View testID="card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} />,

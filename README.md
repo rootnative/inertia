@@ -9,7 +9,7 @@
 
 **Declarative animation primitives for React Native**, built as a thin, ergonomic wrapper around [`react-native-reanimated`](https://docs.swmansion.com/react-native-reanimated/). Inertia takes design cues from Framer Motion and React Spring and ships the props-driven surface — `<Motion.View animate={{ ... }} transition={{ ... }} />` — without making you hand-roll worklets, shared values, or `useAnimatedStyle`.
 
-> [Documentation](https://onlynative.github.io/inertia/) &nbsp;|&nbsp; [GitHub](https://github.com/onlynative/inertia)
+> [Documentation](https://rootnative.github.io/inertia/) &nbsp;|&nbsp; [GitHub](https://github.com/rootnative/inertia)
 
 > **Status:** `0.0.1-alpha`. The published surface is intentionally small while `v0.1` acceptance criteria lock in. Pre-1.0 minor versions may break.
 
@@ -24,13 +24,13 @@
 - `<Presence>` for mount/unmount with auto `pointerEvents: 'none'` on exiting children
 - `<MotionConfig reducedMotion="user">` respects OS reduce-motion settings end-to-end
 - JS-thread resolver, memoized worklets — re-renders with unchanged values produce zero new UI-thread closures
-- Subpath exports for tree-shaking (`@onlynative/inertia/view`, `/text`, `/image`, `/pressable`, `/scroll-view`)
+- Subpath exports for tree-shaking (`@rootnative/inertia/view`, `/text`, `/image`, `/pressable`, `/scroll-view`)
 - TypeScript-first with strict mode and end-to-end inference
 
 ## Install
 
 ```bash
-yarn add @onlynative/inertia react-native-reanimated
+yarn add @rootnative/inertia react-native-reanimated
 ```
 
 Then follow the [Reanimated install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation) to enable its Babel plugin.
@@ -44,25 +44,25 @@ npx expo install react react-native react-native-reanimated
 **Optional** — only needed for drag/swipe/pan gestures:
 
 ```bash
-yarn add @onlynative/inertia-gestures react-native-gesture-handler
+yarn add @rootnative/inertia-gestures react-native-gesture-handler
 ```
 
 **Optional** — animated gradients (`MotionLinearGradient`):
 
 ```bash
-yarn add @onlynative/inertia-gradients expo-linear-gradient
+yarn add @rootnative/inertia-gradients expo-linear-gradient
 ```
 
 **Optional** — animated SVG path morphing:
 
 ```bash
-yarn add @onlynative/inertia-svg react-native-svg
+yarn add @rootnative/inertia-svg react-native-svg
 ```
 
 ## Quick Start
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 
 export function FadeIn() {
   return (
@@ -81,10 +81,10 @@ export function FadeIn() {
 Tree-shaking when only one primitive is used:
 
 ```ts
-import { MotionView } from '@onlynative/inertia/view'
+import { MotionView } from '@rootnative/inertia/view'
 ```
 
-See the [docs](https://onlynative.github.io/inertia/) for sequences, variants, gestures, `<Presence>`, and reduce-motion examples.
+See the [docs](https://rootnative.github.io/inertia/) for sequences, variants, gestures, `<Presence>`, and reduce-motion examples.
 
 ## Transition shapes
 
@@ -97,14 +97,14 @@ See the [docs](https://onlynative.github.io/inertia/) for sequences, variants, g
 
 Plus, on any transition: `delay`, `repeat` (`number | 'infinite' | { count, alternate }`). Per-property transitions take precedence over the top-level transition.
 
-**Animatable properties** — numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter handles RGBA interpolation natively. Gradient interpolation lives in [`@onlynative/inertia-gradients`](packages/gradients); SVG path morphing lives in [`@onlynative/inertia-svg`](packages/svg). Shared-element transitions across screens are deferred to `v1.x`.
+**Animatable properties** — numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter handles RGBA interpolation natively. Gradient interpolation lives in [`@rootnative/inertia-gradients`](packages/gradients); SVG path morphing lives in [`@rootnative/inertia-svg`](packages/svg). Shared-element transitions across screens are deferred to `v1.x`.
 
 ## When _not_ to use Inertia
 
 Inertia is a declarative wrapper. Some patterns work better one layer down:
 
-- **Continuous gesture-driven UI** (sliders, swipe-to-dismiss, pinch-zoom) — use [`@onlynative/inertia-gestures`](packages/gestures) or drop down to `react-native-gesture-handler` + raw Reanimated.
-- **Frame-by-frame data viz** — keep SVG attribute interpolation in raw Reanimated, or use [`@onlynative/inertia-svg`](packages/svg) for declarative path morphing of structurally-compatible paths.
+- **Continuous gesture-driven UI** (sliders, swipe-to-dismiss, pinch-zoom) — use [`@rootnative/inertia-gestures`](packages/gestures) or drop down to `react-native-gesture-handler` + raw Reanimated.
+- **Frame-by-frame data viz** — keep SVG attribute interpolation in raw Reanimated, or use [`@rootnative/inertia-svg`](packages/svg) for declarative path morphing of structurally-compatible paths.
 - **Custom physics** — drop down to the `useMotionValue` / `useSpring` / `useTransform` hooks layer.
 - **Layout / shared-element transitions** — deferred to `v1.x`; use Reanimated's `Layout` API for now.
 
@@ -114,10 +114,10 @@ The hooks layer mirrors Reanimated's shape, so dropping down doesn't feel like s
 
 | Package                                               | Description                                                                                                                |
 | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| [`@onlynative/inertia`](packages/core)                | Animation primitives (`Motion.*`), transition resolvers, `<Presence>`, `<MotionConfig>`, `useVariants`.                    |
-| [`@onlynative/inertia-gestures`](packages/gestures)   | Optional `react-native-gesture-handler` adapter — `useDrag`, `useSwipe`, `usePan`.                                         |
-| [`@onlynative/inertia-gradients`](packages/gradients) | Optional `expo-linear-gradient` adapter — `MotionLinearGradient` with animatable `colors` / `start` / `end` / `locations`. |
-| [`@onlynative/inertia-svg`](packages/svg)             | Optional `react-native-svg` adapter — `MotionPath` with animatable `d` (path morphing), `fill`, `stroke`.                  |
+| [`@rootnative/inertia`](packages/core)                | Animation primitives (`Motion.*`), transition resolvers, `<Presence>`, `<MotionConfig>`, `useVariants`.                    |
+| [`@rootnative/inertia-gestures`](packages/gestures)   | Optional `react-native-gesture-handler` adapter — `useDrag`, `useSwipe`, `usePan`.                                         |
+| [`@rootnative/inertia-gradients`](packages/gradients) | Optional `expo-linear-gradient` adapter — `MotionLinearGradient` with animatable `colors` / `start` / `end` / `locations`. |
+| [`@rootnative/inertia-svg`](packages/svg)             | Optional `react-native-svg` adapter — `MotionPath` with animatable `d` (path morphing), `fill`, `stroke`.                  |
 | [`example`](example)                                  | Expo Router app with one screen per primitive — manual validation harness.                                                 |
 | [`docs`](docs)                                        | Docusaurus documentation site. Hosts `/llms.txt` and `/llms-full.txt`.                                                     |
 
@@ -128,7 +128,7 @@ The hooks layer mirrors Reanimated's shape, so dropping down doesn't feel like s
 ├── docs/                  # Docusaurus documentation site
 ├── example/               # Expo Router validation app (one screen per primitive)
 ├── packages/
-│   ├── core/              # @onlynative/inertia
+│   ├── core/              # @rootnative/inertia
 │   │   └── src/
 │   │       ├── motion/        # Motion.View / Text / Image / Pressable / ScrollView + factory
 │   │       ├── transitions/   # spring / timing / decay / no-animation resolvers
@@ -136,11 +136,11 @@ The hooks layer mirrors Reanimated's shape, so dropping down doesn't feel like s
 │   │       ├── presence/      # <Presence>
 │   │       ├── config/        # <MotionConfig>, reduce-motion gating
 │   │       └── types.ts       # Public type surface
-│   ├── gestures/          # @onlynative/inertia-gestures
+│   ├── gestures/          # @rootnative/inertia-gestures
 │   │   └── src/           # useDrag / useSwipe / usePan (gesture-handler adapter)
-│   ├── gradients/         # @onlynative/inertia-gradients
+│   ├── gradients/         # @rootnative/inertia-gradients
 │   │   └── src/           # MotionLinearGradient (expo-linear-gradient adapter)
-│   └── svg/               # @onlynative/inertia-svg
+│   └── svg/               # @rootnative/inertia-svg
 │       └── src/           # MotionPath + path utils (react-native-svg adapter)
 ├── scripts/               # build-llms.mjs (per-package + aggregated llms docs)
 ├── turbo.json
@@ -186,8 +186,8 @@ After editing source, run Prettier on just the files you changed: `npx prettier 
 pnpm run example            # Start Expo dev server
 
 # Or target a specific platform
-pnpm --filter @onlynative/inertia-example ios
-pnpm --filter @onlynative/inertia-example android
+pnpm --filter @rootnative/inertia-example ios
+pnpm --filter @rootnative/inertia-example android
 ```
 
 Each `Motion.*` primitive, sequence behaviour, variant flow, gesture sub-state, presence transition, and the decay + reduce-motion paths have a dedicated screen under [example/screens/](example/screens/). Frame-level animation correctness is validated here — Jest with the Reanimated mock can only assert final state.
@@ -195,7 +195,7 @@ Each `Motion.*` primitive, sequence behaviour, variant flow, gesture sub-state, 
 ### Testing
 
 ```ts
-import { renderWithMotion } from '@onlynative/inertia/testing'
+import { renderWithMotion } from '@rootnative/inertia/testing'
 
 const { getByTestId } = renderWithMotion(
   <Motion.View testID="card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} />,
@@ -219,7 +219,7 @@ Tests live in `src/__tests__/` per package. The Reanimated mock resolves animati
 
 ## Contributing
 
-Conventions inherited from [`@onlynative/ui`](https://github.com/onlynative/ui): no semicolons, single quotes, trailing commas; ESLint flat config; no inline `style={{ ... }}` objects in JSX (extract to a `const` / `useMemo` / `StyleSheet.create`); strict TypeScript everywhere.
+Conventions inherited from [`@rootnative/ui`](https://github.com/rootnative/ui): no semicolons, single quotes, trailing commas; ESLint flat config; no inline `style={{ ... }}` objects in JSX (extract to a `const` / `useMemo` / `StyleSheet.create`); strict TypeScript everywhere.
 
 When working on UI-thread code, three rules catch the silent breakages:
 

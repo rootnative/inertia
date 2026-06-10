@@ -112,14 +112,14 @@ jobs:
             fi
           done
 
-          # Update @onlynative/inertia peer dep in any package that references it
+          # Update @rootnative/inertia peer dep in any package that references it
           for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
             node -e "
               const fs = require('fs');
               const pkgPath = 'packages/$PKG_DIR/package.json';
               const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-              if (pkg.peerDependencies?.['@onlynative/inertia']) {
-                pkg.peerDependencies['@onlynative/inertia'] = '>=$NEW_VERSION';
+              if (pkg.peerDependencies?.['@rootnative/inertia']) {
+                pkg.peerDependencies['@rootnative/inertia'] = '>=$NEW_VERSION';
                 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
               }
             "
@@ -145,9 +145,9 @@ jobs:
 
       - name: Publish packages
         run: |
-          # Publish core first (other packages may depend on @onlynative/inertia)
+          # Publish core first (other packages may depend on @rootnative/inertia)
           if [ -d packages/core ]; then
-            echo "Publishing @onlynative/inertia..."
+            echo "Publishing @rootnative/inertia..."
             (cd packages/core && pnpm publish --provenance --access public --tag ${{ inputs.tag }} --no-git-checks)
           fi
 

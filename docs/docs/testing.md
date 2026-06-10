@@ -11,7 +11,7 @@ Inertia ships a Reanimated Jest mock and a `renderWithMotion` helper so existing
 Plain `render(...)` returns `initial` styles only — the mock doesn't flush effects synchronously. If your tests appear to "see" pre-animation state and you've been writing comments like _"don't assert post-interaction styles, the mock is static-render"_, that's the wrong workaround. Swap `render` for `renderWithMotion` and the rendered tree settles on the `animate` target.
 
 ```ts
-import { renderWithMotion } from '@onlynative/inertia/testing'
+import { renderWithMotion } from '@rootnative/inertia/testing'
 
 const { getByTestId } = renderWithMotion(<Card />)
 // getByTestId('card').props.style now reflects the animate target,
@@ -24,25 +24,25 @@ For prop changes after mount (a `useState` toggling `animate`, a controller tran
 
 ## Setup
 
-Inertia ships a Jest preset that wires everything up — the Reanimated mock, the `react-native-worklets` stub, the `Easing.bezier()` factory shape, and the `transformIgnorePatterns` widening needed to let Jest transform `@onlynative/inertia*`'s published ESM bundles. Point Jest at it with one line:
+Inertia ships a Jest preset that wires everything up — the Reanimated mock, the `react-native-worklets` stub, the `Easing.bezier()` factory shape, and the `transformIgnorePatterns` widening needed to let Jest transform `@rootnative/inertia*`'s published ESM bundles. Point Jest at it with one line:
 
 ```js
 // jest.config.js
 module.exports = {
-  preset: require.resolve('@onlynative/inertia/jest-preset'),
+  preset: require.resolve('@rootnative/inertia/jest-preset'),
 }
 ```
 
 The preset internally extends `react-native`'s own preset, so you don't need to reference both. If you already have setup files or `transformIgnorePatterns` of your own, extend the preset:
 
 ```js
-const inertia = require('@onlynative/inertia/jest-preset')
+const inertia = require('@rootnative/inertia/jest-preset')
 
 module.exports = {
   ...inertia,
   setupFiles: [...inertia.setupFiles, '<rootDir>/my-setup.js'],
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-native-community|@onlynative/inertia|@onlynative/inertia-gestures|@onlynative/inertia-gradients|@onlynative/inertia-svg|react-native-worklets|my-other-esm-pkg)/)',
+    'node_modules/(?!(react-native|@react-native|@react-native-community|@rootnative/inertia|@rootnative/inertia-gestures|@rootnative/inertia-gradients|@rootnative/inertia-svg|react-native-worklets|my-other-esm-pkg)/)',
   ],
 }
 ```
@@ -52,9 +52,9 @@ If you can't use the preset (e.g. you have a custom transform pipeline that conf
 ```js
 module.exports = {
   preset: 'react-native',
-  setupFiles: [require.resolve('@onlynative/inertia/jest-setup')],
+  setupFiles: [require.resolve('@rootnative/inertia/jest-setup')],
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-native-community|@onlynative/inertia|@onlynative/inertia-gestures|@onlynative/inertia-gradients|@onlynative/inertia-svg|react-native-worklets)/)',
+    'node_modules/(?!(react-native|@react-native|@react-native-community|@rootnative/inertia|@rootnative/inertia-gestures|@rootnative/inertia-gradients|@rootnative/inertia-svg|react-native-worklets)/)',
   ],
 }
 ```
@@ -66,8 +66,8 @@ The mock is **static-render**: animations don't actually run, but `useSharedValu
 Use it as a drop-in for `@testing-library/react-native`'s `render`. It returns the same render result, with the rendered tree already flushed to the `animate` target.
 
 ```ts
-import { renderWithMotion } from '@onlynative/inertia/testing'
-import { Motion } from '@onlynative/inertia'
+import { renderWithMotion } from '@rootnative/inertia/testing'
+import { Motion } from '@rootnative/inertia'
 
 it('fades in to opacity: 1', () => {
   const { getByTestId } = renderWithMotion(
@@ -117,7 +117,7 @@ You cannot:
 - ❌ Make timing-based assertions — there is no timer to advance
 - ❌ Snapshot the gesture-driven UI (`gesture.pressed`) without firing the corresponding RN event first; the mock doesn't simulate input
 
-For frame-level correctness, validate manually in the example app — there's a screen per primitive in [`example/screens/`](https://github.com/onlynative/inertia/tree/main/example/screens).
+For frame-level correctness, validate manually in the example app — there's a screen per primitive in [`example/screens/`](https://github.com/rootnative/inertia/tree/main/example/screens).
 
 ## Migrating existing tests
 
@@ -125,7 +125,7 @@ If your test suite was previously asserting against raw `react-native-reanimated
 
 ```diff
 - import { render } from '@testing-library/react-native'
-+ import { renderWithMotion } from '@onlynative/inertia/testing'
++ import { renderWithMotion } from '@rootnative/inertia/testing'
 
 - const { getByTestId } = render(<Card />)
 + const { getByTestId } = renderWithMotion(<Card />)

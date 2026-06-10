@@ -7,7 +7,7 @@ sidebar_position: 2
 Animatable `View`. The default primitive — use it for boxes, surfaces, and anything that doesn't need to be `Text` / `Image` / scrolling / pressable.
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 
 export function Card() {
   return (
@@ -24,7 +24,7 @@ export function Card() {
 ## Tree-shaken import
 
 ```ts
-import { MotionView } from '@onlynative/inertia/view'
+import { MotionView } from '@rootnative/inertia/view'
 ```
 
 ## Animatable keys

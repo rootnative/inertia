@@ -1,4 +1,4 @@
-import type { TransitionConfig } from '@onlynative/inertia'
+import type { TransitionConfig } from '@rootnative/inertia'
 
 /**
  * A 2D point on the gradient's `[0, 1]` square. `{ x: 0, y: 0 }` is the

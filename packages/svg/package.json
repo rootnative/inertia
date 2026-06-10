@@ -1,17 +1,17 @@
 {
-  "name": "@onlynative/inertia-svg",
+  "name": "@rootnative/inertia-svg",
   "version": "0.0.1-alpha.9",
-  "description": "Animatable SVG primitives (path morphing, fill/stroke) for @onlynative/inertia, built on react-native-svg.",
+  "description": "Animatable SVG primitives (path morphing, fill/stroke) for @rootnative/inertia, built on react-native-svg.",
   "license": "MIT",
-  "author": "OnlyNative",
-  "homepage": "https://github.com/onlynative/inertia",
+  "author": "RootNative",
+  "homepage": "https://github.com/rootnative/inertia",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/onlynative/inertia.git",
+    "url": "git+https://github.com/rootnative/inertia.git",
     "directory": "packages/svg"
   },
   "bugs": {
-    "url": "https://github.com/onlynative/inertia/issues"
+    "url": "https://github.com/rootnative/inertia/issues"
   },
   "keywords": [
     "react-native",
@@ -58,14 +58,14 @@
     "prepublishOnly": "node ../../scripts/build-llms.mjs"
   },
   "peerDependencies": {
-    "@onlynative/inertia": ">=0.0.1-alpha.9",
+    "@rootnative/inertia": ">=0.0.1-alpha.9",
     "react": ">=19.0.0",
     "react-native": ">=0.81.0",
     "react-native-reanimated": ">=4.0.0",
     "react-native-svg": ">=15.0.0"
   },
   "devDependencies": {
-    "@onlynative/inertia": "workspace:*",
+    "@rootnative/inertia": "workspace:*",
     "@react-native/babel-preset": "^0.81.5",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.14",

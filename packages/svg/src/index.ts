@@ -1,6 +1,6 @@
 /**
- * `@onlynative/inertia-svg` — animatable SVG primitives for
- * `@onlynative/inertia`.
+ * `@rootnative/inertia-svg` — animatable SVG primitives for
+ * `@rootnative/inertia`.
  *
  * v0.2 surface:
  * - `MotionPath` / `MotionSvg.Path` — animatable `<Path>` over

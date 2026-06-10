@@ -60,7 +60,7 @@ export interface UseGestureResult {
  * @example
  * ```tsx
  * import { useAnimatedStyle } from 'react-native-reanimated'
- * import { useGesture } from '@onlynative/inertia'
+ * import { useGesture } from '@rootnative/inertia'
  *
  * function Card() {
  *   const { pressed, focused, hovered, handlers } = useGesture({

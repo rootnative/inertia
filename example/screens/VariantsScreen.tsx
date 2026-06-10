@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text } from 'react-native'
-import { Motion, useVariants } from '@onlynative/inertia'
+import { Motion, useVariants } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 const cardVariants = {

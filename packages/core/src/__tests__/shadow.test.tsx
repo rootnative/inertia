@@ -4,7 +4,7 @@ import { renderWithMotion } from '../testing'
 
 // Shadow animation unblocks the elevation-cascade pattern (Card / FAB / Chip
 // in MD3) that drove three independent `containerMotion` workarounds in the
-// `@onlynative/ui` migration. The flat shadow keys (`shadowOpacity`,
+// `@rootnative/ui` migration. The flat shadow keys (`shadowOpacity`,
 // `shadowRadius`, `shadowColor`, `elevation`) ride the existing numeric /
 // color resolver paths. `shadowOffset: { width, height }` is the only
 // nested-object style on the v0.1 surface and decomposes into two synthetic

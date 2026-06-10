@@ -1,4 +1,4 @@
-import { renderWithMotion } from '@onlynative/inertia/testing'
+import { renderWithMotion } from '@rootnative/inertia/testing'
 import * as Reanimated from 'react-native-reanimated'
 import { MotionPath } from '../MotionPath'
 

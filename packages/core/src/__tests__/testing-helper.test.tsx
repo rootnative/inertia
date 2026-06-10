@@ -2,7 +2,7 @@ import { render } from '@testing-library/react-native'
 import { Motion } from '../motion'
 import { flushMotion, renderWithMotion } from '../testing'
 
-// Phase-3 polish: the test helper exposed at `@onlynative/inertia/testing`
+// Phase-3 polish: the test helper exposed at `@rootnative/inertia/testing`
 // must let consumers assert on **target** styles without manually triggering
 // a re-render to flush the static-render Reanimated mock.
 //

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { StyleSheet, Text } from 'react-native'
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 export function PressableScreen({ onBack }: { onBack: () => void }) {

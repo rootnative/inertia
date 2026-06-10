@@ -171,12 +171,12 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
       {
         route: 'linear-gradient',
         label: 'MotionLinearGradient',
-        description: 'animatable gradient via @onlynative/inertia-gradients',
+        description: 'animatable gradient via @rootnative/inertia-gradients',
       },
       {
         route: 'path-morph',
         label: 'MotionPath',
-        description: 'path morphing via @onlynative/inertia-svg',
+        description: 'path morphing via @rootnative/inertia-svg',
       },
     ],
   },
@@ -330,7 +330,7 @@ export default function App() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <StatusBar style="auto" />
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>@onlynative/inertia</Text>
+        <Text style={styles.eyebrow}>@rootnative/inertia</Text>
         <Text style={styles.title}>Example gallery</Text>
         <Text style={styles.subtitle}>
           One screen per piece of the v0.1 surface. Tap through to see each

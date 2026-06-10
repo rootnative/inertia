@@ -4,8 +4,8 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler'
-import { Motion } from '@onlynative/inertia'
-import { useDrag } from '@onlynative/inertia-gestures'
+import { Motion } from '@rootnative/inertia'
+import { useDrag } from '@rootnative/inertia-gestures'
 import { ScreenShell } from './ScreenShell'
 
 type Mode = 'free' | 'x-only' | 'clamped' | 'rubber-band'

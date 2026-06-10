@@ -4,7 +4,7 @@ import * as Reanimated from 'react-native-reanimated'
 import { Motion } from '../motion'
 import { renderWithMotion } from '../testing'
 
-// Phase-3 acceptance for the `@onlynative/ui` migration: gesture sub-states
+// Phase-3 acceptance for the `@rootnative/ui` migration: gesture sub-states
 // must layer additively, not select a single winner. Each declared sub-state
 // owns an independent progress (0↔1) SV that fades in/out with its own
 // transition; the worklet composites the layers in priority order

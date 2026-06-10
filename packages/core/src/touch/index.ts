@@ -5,7 +5,7 @@
  * `react-native-gesture-handler` as a dependency.
  *
  * For pointer-only drag in a project that already uses gesture-handler,
- * prefer `useDrag` from `@onlynative/inertia-gestures` — its UI-thread
+ * prefer `useDrag` from `@rootnative/inertia-gestures` — its UI-thread
  * release path is more precise.
  */
 export { useTouchDrag } from './useTouchDrag'

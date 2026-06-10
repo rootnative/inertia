@@ -1,17 +1,17 @@
 {
-  "name": "@onlynative/inertia-gradients",
+  "name": "@rootnative/inertia-gradients",
   "version": "0.0.1-alpha.9",
-  "description": "Animated linear gradient primitive for @onlynative/inertia, built on expo-linear-gradient.",
+  "description": "Animated linear gradient primitive for @rootnative/inertia, built on expo-linear-gradient.",
   "license": "MIT",
-  "author": "OnlyNative",
-  "homepage": "https://github.com/onlynative/inertia",
+  "author": "RootNative",
+  "homepage": "https://github.com/rootnative/inertia",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/onlynative/inertia.git",
+    "url": "git+https://github.com/rootnative/inertia.git",
     "directory": "packages/gradients"
   },
   "bugs": {
-    "url": "https://github.com/onlynative/inertia/issues"
+    "url": "https://github.com/rootnative/inertia/issues"
   },
   "keywords": [
     "react-native",
@@ -60,14 +60,14 @@
     "prepublishOnly": "node ../../scripts/build-llms.mjs"
   },
   "peerDependencies": {
-    "@onlynative/inertia": ">=0.0.1-alpha.9",
+    "@rootnative/inertia": ">=0.0.1-alpha.9",
     "expo-linear-gradient": ">=14.0.0",
     "react": ">=19.0.0",
     "react-native": ">=0.81.0",
     "react-native-reanimated": ">=4.0.0"
   },
   "devDependencies": {
-    "@onlynative/inertia": "workspace:*",
+    "@rootnative/inertia": "workspace:*",
     "@react-native/babel-preset": "^0.81.5",
     "@size-limit/preset-small-lib": "^11.1.0",
     "@testing-library/react-native": "^13.3.3",

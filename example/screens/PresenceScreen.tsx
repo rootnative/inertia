@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { Motion, Presence } from '@onlynative/inertia'
+import { Motion, Presence } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 export function PresenceScreen({ onBack }: { onBack: () => void }) {

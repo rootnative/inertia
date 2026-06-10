@@ -31,7 +31,7 @@ function Hero() {
             </Link>
             <Link
               className={styles.ctaSecondary}
-              href="https://github.com/onlynative/inertia"
+              href="https://github.com/rootnative/inertia"
             >
               GitHub
             </Link>
@@ -67,13 +67,13 @@ const steps = [
     number: '01',
     title: 'Install',
     description: 'Add Inertia and Reanimated, then enable the Babel plugin.',
-    command: 'yarn add @onlynative/inertia react-native-reanimated',
+    command: 'yarn add @rootnative/inertia react-native-reanimated',
   },
   {
     number: '02',
     title: 'Import',
     description: 'Pull in the Motion namespace — or a tree-shakable subpath.',
-    command: "import { Motion } from '@onlynative/inertia'",
+    command: "import { Motion } from '@rootnative/inertia'",
   },
   {
     number: '03',
@@ -185,7 +185,7 @@ const features = [
   {
     title: 'Tree-shakable subpaths',
     description:
-      'Import only what you animate via @onlynative/inertia/view, /text, /image, /pressable, /scroll-view. Bundle size is verified per primitive in CI.',
+      'Import only what you animate via @rootnative/inertia/view, /text, /image, /pressable, /scroll-view. Bundle size is verified per primitive in CI.',
     icon: (
       <svg
         viewBox="0 0 24 24"
@@ -281,7 +281,7 @@ function CodePreview() {
               <span className={styles.codeKeyword}>import</span>
               {' { Motion } '}
               <span className={styles.codeKeyword}>from</span>
-              {" '@onlynative/inertia'\n\n"}
+              {" '@rootnative/inertia'\n\n"}
               <span className={styles.codeKeyword}>export function</span>{' '}
               <span className={styles.codeFunction}>FadeInCard</span>
               {'() {\n'}

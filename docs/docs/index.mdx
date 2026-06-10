@@ -8,9 +8,9 @@ description: Declarative animation primitives for React Native, built on react-n
 import PackageManagerTabs from '@site/src/components/PackageManagerTabs'
 import RunnableExample from '@site/src/components/RunnableExample'
 
-Inertia (`@onlynative/inertia`) is a thin, ergonomic wrapper around `react-native-reanimated`. Animations are expressed as props on a component — no shared values, no worklets, no `useAnimatedStyle` boilerplate. The vocabulary takes cues from **Framer Motion** (web) and **react-spring** (cross-platform).
+Inertia (`@rootnative/inertia`) is a thin, ergonomic wrapper around `react-native-reanimated`. Animations are expressed as props on a component — no shared values, no worklets, no `useAnimatedStyle` boilerplate. The vocabulary takes cues from **Framer Motion** (web) and **react-spring** (cross-platform).
 
-> **Status:** `0.0.1-alpha`. The full v0.1 surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, and the value-layer hooks. APIs may still shift before `0.1.0`; see the [roadmap](https://github.com/onlynative/inertia/blob/main/CLAUDE.md#roadmap) for graduation gates.
+> **Status:** `0.0.1-alpha`. The full v0.1 surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, and the value-layer hooks. APIs may still shift before `0.1.0`; see the [roadmap](https://github.com/rootnative/inertia/blob/main/CLAUDE.md#roadmap) for graduation gates.
 
 ## What you get
 
@@ -18,21 +18,21 @@ Inertia (`@onlynative/inertia`) is a thin, ergonomic wrapper around `react-nativ
 - **Per-primitive style inference.** `Motion.View` accepts `ViewStyle` keys, `Motion.Text` accepts `TextStyle`, `Motion.Image` accepts `ImageStyle`. No shared union fallback that lets wrong props slip through.
 - **react-spring vocabulary.** Spring config uses `tension`, `friction`, `mass`, `velocity`. Reanimated's raw `stiffness` / `damping` never appear in the public surface.
 - **One `gesture` prop on every primitive.** `pressed`, `focused`, `focusVisible` (keyboard focus only — W3C `:focus-visible`), `hovered` (web) sub-states; no `whileTap` / `whilePress` soup, no separate "pressable" variant.
-- **Per-primitive tree-shaking.** Subpath imports (`@onlynative/inertia/view`, `/text`, `/image`, `/pressable`, `/scroll-view`) so apps that animate one element don't ship the whole library.
+- **Per-primitive tree-shaking.** Subpath imports (`@rootnative/inertia/view`, `/text`, `/image`, `/pressable`, `/scroll-view`) so apps that animate one element don't ship the whole library.
 - **Stable worklets.** The factory hashes resolved animate / transition objects and memoizes the generated worklet + `useAnimatedStyle` — re-renders with unchanged values produce zero new UI-thread closures.
 
 ## Install
 
 Pick your package manager — Yarn is the default. The selection syncs across every install snippet in the docs.
 
-<PackageManagerTabs packages="@onlynative/inertia react-native-reanimated" />
+<PackageManagerTabs packages="@rootnative/inertia react-native-reanimated" />
 
 Then enable the Reanimated Babel plugin per its [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation).
 
 ## A first animation
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 
 export function FadeIn() {
   return (
@@ -51,7 +51,7 @@ export function FadeIn() {
 For tree-shaking when only one primitive is used:
 
 ```ts
-import { MotionView } from '@onlynative/inertia/view'
+import { MotionView } from '@rootnative/inertia/view'
 ```
 
 ## Runnable example

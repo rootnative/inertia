@@ -2,7 +2,7 @@
   "name": "inertia-monorepo",
   "private": true,
   "version": "0.0.0",
-  "description": "Workspace root for @onlynative/inertia — a wrapper around react-native-reanimated that makes the animation system easier.",
+  "description": "Workspace root for @rootnative/inertia — a wrapper around react-native-reanimated that makes the animation system easier.",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=20",
@@ -17,12 +17,12 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "clean": "turbo run clean && rm -rf node_modules",
-    "example": "pnpm --filter @onlynative/inertia-example start",
-    "example:ios": "pnpm --filter @onlynative/inertia-example ios",
-    "example:android": "pnpm --filter @onlynative/inertia-example android",
-    "docs:dev": "pnpm --filter @onlynative/inertia-docs dev",
-    "docs:build": "pnpm --filter @onlynative/inertia-docs build",
-    "docs:serve": "pnpm --filter @onlynative/inertia-docs serve",
+    "example": "pnpm --filter @rootnative/inertia-example start",
+    "example:ios": "pnpm --filter @rootnative/inertia-example ios",
+    "example:android": "pnpm --filter @rootnative/inertia-example android",
+    "docs:dev": "pnpm --filter @rootnative/inertia-docs dev",
+    "docs:build": "pnpm --filter @rootnative/inertia-docs build",
+    "docs:serve": "pnpm --filter @rootnative/inertia-docs serve",
     "build:llms": "node scripts/build-llms.mjs"
   },
   "devDependencies": {

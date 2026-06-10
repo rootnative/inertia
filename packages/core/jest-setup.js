@@ -1,4 +1,4 @@
-// Inertia's Jest setup. Loaded automatically by `@onlynative/inertia/jest-preset`,
+// Inertia's Jest setup. Loaded automatically by `@rootnative/inertia/jest-preset`,
 // or addable to a hand-rolled config via `setupFiles`.
 //
 // The mocks here cover everything the core, gestures, gradients, and svg
@@ -30,7 +30,7 @@ jest.mock('react-native/Libraries/Text/Text', () => {
 // `useAnimatedStyle` invokes the worklet exactly once per render and returns
 // a plain object. It does not subscribe to shared-value mutations — to
 // observe a post-mount target value you must trigger a re-render (the
-// `renderWithMotion` / `flushMotion` helpers in `@onlynative/inertia/testing`
+// `renderWithMotion` / `flushMotion` helpers in `@rootnative/inertia/testing`
 // do this for you).
 //
 // `useSharedValue` is backed by `useRef` so the same `{ value }` object

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text } from 'react-native'
-import { Motion, useShadow, useSpring } from '@onlynative/inertia'
+import { Motion, useShadow, useSpring } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 /**

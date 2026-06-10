@@ -2,7 +2,7 @@ import * as Reanimated from 'react-native-reanimated'
 import { Motion } from '../motion'
 import { renderWithMotion } from '../testing'
 
-// Color animation is the gating capability for migrating `@onlynative/ui`'s
+// Color animation is the gating capability for migrating `@rootnative/ui`'s
 // state-layer components (Button / Card / Chip / etc.) onto Inertia. Reanimated
 // 3+ recognizes color strings inside `withSpring` / `withTiming` natively, so
 // the factory's job is to (a) seed the shared value with a string, (b) forward

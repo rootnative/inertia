@@ -6,20 +6,20 @@ import PackageManagerTabs from '@site/src/components/PackageManagerTabs'
 
 # Gradients
 
-`@onlynative/inertia-gradients` adds an animatable linear gradient built on `expo-linear-gradient`. It is an **optional** sibling package — install it only when you need to animate gradient stops. The core library has no required `expo-linear-gradient` dependency.
+`@rootnative/inertia-gradients` adds an animatable linear gradient built on `expo-linear-gradient`. It is an **optional** sibling package — install it only when you need to animate gradient stops. The core library has no required `expo-linear-gradient` dependency.
 
 `MotionLinearGradient` accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
 ## Install
 
-<PackageManagerTabs packages="@onlynative/inertia-gradients expo-linear-gradient" />
+<PackageManagerTabs packages="@rootnative/inertia-gradients expo-linear-gradient" />
 
 `expo-linear-gradient` works in bare React Native projects as well as Expo — no `expo-modules-core` runtime is required.
 
 ## Usage
 
 ```tsx
-import { MotionLinearGradient } from '@onlynative/inertia-gradients'
+import { MotionLinearGradient } from '@rootnative/inertia-gradients'
 
 function Hero() {
   return (

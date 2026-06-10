@@ -6,7 +6,7 @@ import {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
-import { buildReleaseAnimation } from '@onlynative/inertia'
+import { buildReleaseAnimation } from '@rootnative/inertia'
 import type { DragConstraints, DragOptions } from './types'
 
 export interface UseDragResult {

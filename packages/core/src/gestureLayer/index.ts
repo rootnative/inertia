@@ -1,5 +1,5 @@
 /**
- * Opt-in subpath: `@onlynative/inertia/gesture-layer`.
+ * Opt-in subpath: `@rootnative/inertia/gesture-layer`.
  *
  * `useGestureLayer` is a generic interactive-feedback primitive that sits one
  * step above `useGesture()` — consumer supplies per-state target values; the

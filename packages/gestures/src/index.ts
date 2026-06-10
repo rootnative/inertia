@@ -1,6 +1,6 @@
 /**
- * `@onlynative/inertia-gestures` — gesture-handler-driven adapters for
- * `@onlynative/inertia`.
+ * `@rootnative/inertia-gestures` — gesture-handler-driven adapters for
+ * `@rootnative/inertia`.
  *
  * v0.2 surface:
  * - `useDrag` — one- or two-axis drag with optional constraints and

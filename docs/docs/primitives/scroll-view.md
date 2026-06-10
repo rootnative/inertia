@@ -7,7 +7,7 @@ sidebar_position: 6
 Animatable `ScrollView`. Animations apply to the scroll **container** itself — useful for entrance transforms, exit fades, or scaling the entire scrollable region.
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 
 export function AnimatedFeed() {
   return (
@@ -26,7 +26,7 @@ export function AnimatedFeed() {
 ## Tree-shaken import
 
 ```ts
-import { MotionScrollView } from '@onlynative/inertia/scroll-view'
+import { MotionScrollView } from '@rootnative/inertia/scroll-view'
 ```
 
 ## Notes

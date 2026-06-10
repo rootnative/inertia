@@ -1,5 +1,5 @@
 /**
- * Public types for `@onlynative/inertia-gestures`.
+ * Public types for `@rootnative/inertia-gestures`.
  */
 
 import type {
@@ -7,7 +7,7 @@ import type {
   NoAnimationTransition,
   SpringTransition,
   TimingTransition,
-} from '@onlynative/inertia'
+} from '@rootnative/inertia'
 
 /**
  * Bounds the dragged value can reach. Each side is optional — omit to leave

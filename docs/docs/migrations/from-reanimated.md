@@ -4,13 +4,13 @@ sidebar_position: 1
 
 # Migrating from raw Reanimated
 
-Inertia is a thin wrapper over `react-native-reanimated` — every animation it produces could have been written by hand with `useSharedValue` + `useAnimatedStyle`. The win is that the common patterns collapse into props. This page maps the patterns we keep rewriting in `@onlynative/ui` and other downstream consumers onto the Inertia equivalents.
+Inertia is a thin wrapper over `react-native-reanimated` — every animation it produces could have been written by hand with `useSharedValue` + `useAnimatedStyle`. The win is that the common patterns collapse into props. This page maps the patterns we keep rewriting in `@rootnative/ui` and other downstream consumers onto the Inertia equivalents.
 
 If a pattern below isn't covered, the likely answer is "drop down to the hooks layer" — Inertia exposes `useMotionValue` / `useSpring` / `useTransform` / `useAnimation` / `useGesture` so you don't have to leave the package.
 
 ## State-layer fills (Material Design 3)
 
-The bread-and-butter pattern: a `Pressable` with a coloured layer that fades in on hover, focus, and press. Roughly 13 components in `@onlynative/ui` share this exact shape.
+The bread-and-butter pattern: a `Pressable` with a coloured layer that fades in on hover, focus, and press. Roughly 13 components in `@rootnative/ui` share this exact shape.
 
 ### Before — raw Reanimated
 
@@ -58,7 +58,7 @@ export function Button({ onPress, label }: Props) {
 ### After — Inertia
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 
 export function Button({ onPress, label }: Props) {
   return (
@@ -105,7 +105,7 @@ Every `Motion.*` primitive **throws in dev** when `style` is a function, rather 
 The `gesture` prop animates the receiver's _own_ style. If you have a focus ring rendered as a sibling, an MD3 state-layer halo overlaid on the content, or a content tint that needs to live on a child View, the prop can't reach those siblings — but [`useGesture`](../api/hooks#usegesturetransition) can. It returns the same four 0↔1 progress shared values the prop is built on, plus a handler bag to spread on a `Pressable`. Feed the shared values into as many `useAnimatedStyle` blocks as you need.
 
 ```tsx
-import { useGesture } from '@onlynative/inertia'
+import { useGesture } from '@rootnative/inertia'
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
@@ -242,7 +242,7 @@ controller.transitionTo(checked ? 'on' : 'off')
 `variants` lives on one Motion primitive. A real Switch / Checkbox is three or four views (track, thumb, ripple halo) that all read the same progress. The native pattern with [`useAnimation`](../api/hooks#useanimationtarget-transition) — Inertia's general-purpose "drive a `SharedValue<number>` toward a target with any transition" hook — keeps the progress shared across as many `useAnimatedStyle` blocks as you need.
 
 ```tsx
-import { useAnimation, useGesture } from '@onlynative/inertia'
+import { useAnimation, useGesture } from '@rootnative/inertia'
 import Animated, {
   interpolate,
   interpolateColor,
@@ -304,10 +304,10 @@ What collapsed:
 
 ## Drag / pan / swipe
 
-These wait for the [`@onlynative/inertia-gestures`](../gestures-adapter) adapter (PanGestureHandler under the hood). The hooks return ready-made shared values you wire into the same props — no `setNativeProps`, no manual `withDecay` after release.
+These wait for the [`@rootnative/inertia-gestures`](../gestures-adapter) adapter (PanGestureHandler under the hood). The hooks return ready-made shared values you wire into the same props — no `setNativeProps`, no manual `withDecay` after release.
 
 ```tsx
-import { useDrag } from '@onlynative/inertia-gestures'
+import { useDrag } from '@rootnative/inertia-gestures'
 
 const { gesture, animatedStyle } = useDrag({
   axis: 'x',
@@ -360,7 +360,7 @@ The three `withRepeat` flags collapse into one shape. See [sequences and repeat]
 When the loop has to drive a shared value the rest of your component reads — an indeterminate `LinearProgress` slide, a `CircularProgress` rotation, an idle spinner whose rotation feeds multiple animated styles — there's no Motion primitive to attach `animate` to. [`useAnimation`](../api/hooks#useanimationtarget-transition) carries the same repeat config to a standalone `SharedValue<number>`:
 
 ```tsx
-import { useAnimation } from '@onlynative/inertia'
+import { useAnimation } from '@rootnative/inertia'
 import Animated, { useAnimatedStyle } from 'react-native-reanimated'
 
 export function Spinner() {
@@ -420,7 +420,7 @@ If you have an existing `AnimatePresence` from another lib, swap the import:
 
 ```diff
 - import { AnimatePresence } from 'some-other-lib'
-+ import { Presence } from '@onlynative/inertia'
++ import { Presence } from '@rootnative/inertia'
 
   function Toast({ visible }: Props) {
     return (
@@ -449,7 +449,7 @@ Some patterns are still better off as raw Reanimated:
 - **Frame-by-frame data viz** — d3-style charts that read shared values inside `useDerivedValue` and feed them into SVG props. The Inertia public surface targets `style` keys; SVG attribute interpolation lives in the hooks layer or in raw Reanimated.
 - **Custom physics simulations** — anything where you'd be reaching into `withDecay` callback signatures, `cancelAnimation`, or `runOnUI` directly. Drop down to the hooks.
 - **Layout / shared-element transitions** — deferred to v1.x. If you're animating list reordering or screen-to-screen hero transitions, keep using Reanimated's `Layout` API directly for now.
-- **Slider / continuous gesture range UI** — until [`@onlynative/inertia-gestures`](../gestures-adapter) covers the pattern (v0.2 still in flight), keep the hand-rolled PanResponder + `useSharedValue` flow.
+- **Slider / continuous gesture range UI** — until [`@rootnative/inertia-gestures`](../gestures-adapter) covers the pattern (v0.2 still in flight), keep the hand-rolled PanResponder + `useSharedValue` flow.
 
 The hooks layer is intentionally the same shape as Reanimated's so dropping down doesn't feel like switching tools.
 
@@ -461,4 +461,4 @@ Inertia ships a test helper that flushes animations to their target state in one
 
 ## Stuck?
 
-Open an issue with the before/after pair you're trying to migrate. The patterns in this guide came from `@onlynative/ui`'s real components — if your shape isn't covered, it should be.
+Open an issue with the before/after pair you're trying to migrate. The patterns in this guide came from `@rootnative/ui`'s real components — if your shape isn't covered, it should be.

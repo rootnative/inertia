@@ -5,7 +5,7 @@
 ## Install
 
 ```sh
-pnpm add @onlynative/inertia react-native-reanimated
+pnpm add @rootnative/inertia react-native-reanimated
 ```
 
 Enable the Reanimated Babel plugin per its install guide.
@@ -27,15 +27,15 @@ import {
   useShadow,
   useColorTransition,
   useScroll,
-} from '@onlynative/inertia'
+} from '@rootnative/inertia'
 // Opt-in MD3 / iOS state-layer overlay helper:
-import { useGestureLayer } from '@onlynative/inertia/gesture-layer'
+import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
 // or for tree-shaking the primitives:
-import { MotionView } from '@onlynative/inertia/view'
-import { MotionText } from '@onlynative/inertia/text'
-import { MotionImage } from '@onlynative/inertia/image'
-import { MotionPressable } from '@onlynative/inertia/pressable'
-import { MotionScrollView } from '@onlynative/inertia/scroll-view'
+import { MotionView } from '@rootnative/inertia/view'
+import { MotionText } from '@rootnative/inertia/text'
+import { MotionImage } from '@rootnative/inertia/image'
+import { MotionPressable } from '@rootnative/inertia/pressable'
+import { MotionScrollView } from '@rootnative/inertia/scroll-view'
 ```
 
 ## Public API
@@ -44,7 +44,7 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 - `<Presence>` — mount / unmount transitions; children need explicit `key`s. Exiting children get `pointerEvents: 'none'` automatically.
 - `<MotionConfig reducedMotion="user" | "never" | "always">` — gates motion against the OS reduce-motion setting (default `"user"`).
 - `useGesture(transition?)` — hook-form of the `gesture` prop. Returns 0↔1 progress shared values (`pressed`, `focused`, `focusVisible`, `hovered`) plus a `handlers` bag to spread on a `Pressable`. Use when one gesture needs to drive multiple animated siblings (focus rings, MD3 state-layer halos, multi-element compositions).
-- `useGestureLayer(states, options?)` — opt-in helper at `@onlynative/inertia/gesture-layer` for the **strongest-active-layer-wins** composition (MD3 state-layer haloes, iOS-translucent overlays). Supply per-state target maps (`rest` / `hovered` / `focused` / `focusVisible` / `pressed` / `disabled`); the hook owns the worklet. Numeric keys compose via clamped-max with `rest` as the floor; color keys compose via priority cascade with `interpolateColor`; `disabled` (JS-side flag) overrides every gesture layer. Returns `{ style, handlers }`. Reach for plain `useGesture` for additive blends or per-key custom rules.
+- `useGestureLayer(states, options?)` — opt-in helper at `@rootnative/inertia/gesture-layer` for the **strongest-active-layer-wins** composition (MD3 state-layer haloes, iOS-translucent overlays). Supply per-state target maps (`rest` / `hovered` / `focused` / `focusVisible` / `pressed` / `disabled`); the hook owns the worklet. Numeric keys compose via clamped-max with `rest` as the floor; color keys compose via priority cascade with `interpolateColor`; `disabled` (JS-side flag) overrides every gesture layer. Returns `{ style, handlers }`. Reach for plain `useGesture` for additive blends or per-key custom rules.
 - `useVariants(variants, initial?)` — returns `{ current, transitionTo }` controller for the `controller` prop.
 - `useMotionValue(initial)` — thin pass-through over `useSharedValue<T>`. Returns a `SharedValue<T>` directly so it interops with every Reanimated API without unwrapping.
 - `useAnimation(target, transition?)` — drive a `SharedValue<number>` toward `target` with any `TransitionConfig` (spring / timing / decay / no-animation, plus `repeat`). The general-purpose value-layer hook for boolean-state progress, indeterminate loops, and anywhere the same value needs to feed multiple `useAnimatedStyle` blocks.
@@ -55,7 +55,7 @@ import { MotionScrollView } from '@onlynative/inertia/scroll-view'
 - `useColorTransition(progress, [from, to], options?)` — pure value-layer interpolator for a single color channel, driven by a `SharedValue<number>` (0→1). Returns an animated style fragment with one color key (default `backgroundColor`; configurable via `options.key` to `color` / `borderColor` / `tintColor` / `shadowColor` / per-side border colors). For raw `SharedValue<string>` output, use `useTransform(progress, [0, 1], [from, to])` instead.
 - `useScroll()` — returns `{ scrollX, scrollY, onScroll }` for use with `Motion.ScrollView`. Scroll events fire on the UI thread.
 - `createMotionComponent<C>(C)` — wrap any component with the same Motion prop surface, inferring style from `C`.
-- `buildReleaseAnimation(transition, toValue)` — worklet-safe single-step animation builder (spring / timing / decay / no-animation). For assigning Inertia-resolved animations to shared values from inside a gesture worklet. Used internally by `@onlynative/inertia-gestures`'s `useDrag({ onRelease })`.
+- `buildReleaseAnimation(transition, toValue)` — worklet-safe single-step animation builder (spring / timing / decay / no-animation). For assigning Inertia-resolved animations to shared values from inside a gesture worklet. Used internally by `@rootnative/inertia-gestures`'s `useDrag({ onRelease })`.
 
 ## Motion props
 
@@ -131,12 +131,12 @@ Auto-layout transitions ship via the `layout` prop (`true` / `TransitionConfig`)
 
 ## Optional adapter packages
 
-- `@onlynative/inertia-gradients` — `MotionLinearGradient` over `expo-linear-gradient`. Animatable: `colors`, `start`, `end`, `locations`.
-- `@onlynative/inertia-svg` — `MotionPath` over `react-native-svg`. Animatable: `d` (path morphing on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
-- `@onlynative/inertia-gestures` — `useDrag`, `useSwipe`, `usePan` over `react-native-gesture-handler`. `useDrag` accepts an `onRelease` worklet that returns per-axis Inertia release transitions (snap-to-tick spring, decay with bounds, etc.) — the release velocity stays on the UI thread, no JS round-trip.
+- `@rootnative/inertia-gradients` — `MotionLinearGradient` over `expo-linear-gradient`. Animatable: `colors`, `start`, `end`, `locations`.
+- `@rootnative/inertia-svg` — `MotionPath` over `react-native-svg`. Animatable: `d` (path morphing on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
+- `@rootnative/inertia-gestures` — `useDrag`, `useSwipe`, `usePan` over `react-native-gesture-handler`. `useDrag` accepts an `onRelease` worklet that returns per-axis Inertia release transitions (snap-to-tick spring, decay with bounds, etc.) — the release velocity stays on the UI thread, no JS round-trip.
 
 ## Docs
 
-- Full docs: https://onlynative.github.io/inertia/
-- Per-page LLM reference: https://onlynative.github.io/inertia/llms-full.txt
-- Source: https://github.com/onlynative/inertia
+- Full docs: https://rootnative.github.io/inertia/
+- Per-page LLM reference: https://rootnative.github.io/inertia/llms-full.txt
+- Source: https://github.com/rootnative/inertia

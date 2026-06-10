@@ -44,37 +44,37 @@ const PEERS_IGNORE = [
 /** @type {import('size-limit').SizeLimitConfig} */
 module.exports = [
   {
-    name: 'Motion.View (subpath) — @onlynative/inertia/view',
+    name: 'Motion.View (subpath) — @rootnative/inertia/view',
     path: 'dist/motion/View.mjs',
     ignore: PEERS_IGNORE,
     limit: '13 kB',
   },
   {
-    name: 'Motion.Text (subpath) — @onlynative/inertia/text',
+    name: 'Motion.Text (subpath) — @rootnative/inertia/text',
     path: 'dist/motion/Text.mjs',
     ignore: PEERS_IGNORE,
     limit: '13 kB',
   },
   {
-    name: 'Motion.Image (subpath) — @onlynative/inertia/image',
+    name: 'Motion.Image (subpath) — @rootnative/inertia/image',
     path: 'dist/motion/Image.mjs',
     ignore: PEERS_IGNORE,
     limit: '13 kB',
   },
   {
-    name: 'Motion.Pressable (subpath) — @onlynative/inertia/pressable',
+    name: 'Motion.Pressable (subpath) — @rootnative/inertia/pressable',
     path: 'dist/motion/Pressable.mjs',
     ignore: PEERS_IGNORE,
     limit: '13 kB',
   },
   {
-    name: 'Motion.ScrollView (subpath) — @onlynative/inertia/scroll-view',
+    name: 'Motion.ScrollView (subpath) — @rootnative/inertia/scroll-view',
     path: 'dist/motion/ScrollView.mjs',
     ignore: PEERS_IGNORE,
     limit: '13 kB',
   },
   {
-    name: 'Full Motion namespace — @onlynative/inertia (root entry)',
+    name: 'Full Motion namespace — @rootnative/inertia (root entry)',
     path: 'dist/index.mjs',
     ignore: PEERS_IGNORE,
     limit: '14 kB',
@@ -101,7 +101,7 @@ module.exports = [
     limit: '13 kB',
   },
   {
-    name: 'Testing helpers — @onlynative/inertia/testing',
+    name: 'Testing helpers — @rootnative/inertia/testing',
     path: 'dist/testing/index.mjs',
     ignore: [...PEERS_IGNORE, '@testing-library/react-native'],
     limit: '1 kB',

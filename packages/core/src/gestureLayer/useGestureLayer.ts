@@ -101,7 +101,7 @@ export interface UseGestureLayerResult {
  *
  * @example MD3 state-layer halo
  * ```tsx
- * import { useGestureLayer } from '@onlynative/inertia/gesture-layer'
+ * import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
  * import Animated from 'react-native-reanimated'
  * import { Pressable } from 'react-native'
  *

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { Motion, MotionConfig, type ReducedMotion } from '@onlynative/inertia'
+import { Motion, MotionConfig, type ReducedMotion } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 const MODES: ReducedMotion[] = ['user', 'never', 'always']

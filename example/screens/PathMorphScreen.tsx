@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Svg from 'react-native-svg'
-import { MotionPath } from '@onlynative/inertia-svg'
+import { MotionPath } from '@rootnative/inertia-svg'
 import { ScreenShell } from './ScreenShell'
 
 // Three structurally-compatible silhouettes (M + 5 Ls + Z). Element-wise
@@ -35,7 +35,7 @@ export function PathMorphScreen({ onBack }: { onBack: () => void }) {
   return (
     <ScreenShell
       title="Path morphing"
-      description="MotionPath animates the d attribute element-wise via withSpring. Source and target paths must share the same command sequence — see CLAUDE.md for the structural-compatibility rule. Lives in @onlynative/inertia-svg."
+      description="MotionPath animates the d attribute element-wise via withSpring. Source and target paths must share the same command sequence — see CLAUDE.md for the structural-compatibility rule. Lives in @rootnative/inertia-svg."
       onBack={onBack}
     >
       <Text style={styles.caption}>Shape: {shape.name}</Text>

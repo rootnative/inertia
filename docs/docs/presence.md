@@ -7,7 +7,7 @@ sidebar_position: 8
 `<Presence>` keeps a child mounted long enough to play its `exit` animation when it's removed from the tree. Half the noise of `<AnimatePresence>`, same role.
 
 ```tsx
-import { Motion, Presence } from '@onlynative/inertia'
+import { Motion, Presence } from '@rootnative/inertia'
 
 export function Toast({ visible }: { visible: boolean }) {
   return (
@@ -71,7 +71,7 @@ Any component that consumes `usePresence()` and calls `safeToRemove()` when its 
 Custom components can read presence state directly:
 
 ```tsx
-import { usePresence } from '@onlynative/inertia'
+import { usePresence } from '@rootnative/inertia'
 
 function MyExitable() {
   const presence = usePresence()

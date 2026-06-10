@@ -9,7 +9,7 @@ Named animation states. Define them once, then drive transitions by passing a ke
 ## Declarative
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 
 const variants = {
   closed: { translateY: 100, opacity: 0 },
@@ -35,7 +35,7 @@ Annotate the variants map with `as const` so variant keys autocomplete on `anima
 For chaining, async transitions, or driving variants from non-React code (event handlers, gesture callbacks, network responses), build a controller with `useVariants` and pass it through the `controller` prop:
 
 ```tsx
-import { Motion, useVariants } from '@onlynative/inertia'
+import { Motion, useVariants } from '@rootnative/inertia'
 
 const variants = {
   resting: { scale: 1, opacity: 1 },

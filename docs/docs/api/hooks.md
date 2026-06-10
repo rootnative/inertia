@@ -13,7 +13,7 @@ The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTr
 Create an animatable value owned by JS but readable from worklets. A thin pass-through over Reanimated's `useSharedValue` — the returned `SharedValue<T>` works anywhere a shared value is accepted (`useAnimatedStyle`, `useDerivedValue`, the other value hooks below).
 
 ```tsx
-import { useMotionValue, Motion } from '@onlynative/inertia'
+import { useMotionValue, Motion } from '@rootnative/inertia'
 import { useAnimatedStyle } from 'react-native-reanimated'
 
 function Draggable() {
@@ -45,7 +45,7 @@ Animate a shared value toward `target` with spring physics, using Inertia's reac
 `target` can be a plain number — the spring re-runs whenever the prop changes — or another `SharedValue<number>`, in which case the spring is driven by a UI-thread reaction. Both paths bottom out at the same `withSpring` call; the split is just which thread observes the source.
 
 ```tsx
-import { useMotionValue, useSpring, Motion } from '@onlynative/inertia'
+import { useMotionValue, useSpring, Motion } from '@rootnative/inertia'
 import { useAnimatedStyle } from 'react-native-reanimated'
 
 function Followable({ targetX }: { targetX: number }) {
@@ -85,7 +85,7 @@ import {
   useBooleanSpring,
   useColorTransition,
   useShadow,
-} from '@onlynative/inertia'
+} from '@rootnative/inertia'
 
 function Card({ raised }: { raised: boolean }) {
   // One driver, multiple downstream styles. The same progress feeds the
@@ -124,7 +124,7 @@ Derive a value from one or more shared values. Two overloads:
 Map a numeric shared value onto a range of numbers or colors. Output type drives whether the underlying call is `interpolate` (numerics) or `interpolateColor` (color strings).
 
 ```tsx
-import { useMotionValue, useTransform } from '@onlynative/inertia'
+import { useMotionValue, useTransform } from '@rootnative/inertia'
 
 const scroll = useMotionValue(0)
 const headerOpacity = useTransform(scroll, [0, 100], [1, 0])
@@ -166,7 +166,7 @@ The transformer must be a worklet. Plain functions are auto-wrapped with the `'w
 Interpolate between two shadow configs as `progress` moves 0→1. Returns an animated style fragment you spread onto any Reanimated-aware view (`Motion.*` or a hand-rolled `Animated.View`) — no other props required on the host.
 
 ```tsx
-import { Motion, useShadow, useSpring } from '@onlynative/inertia'
+import { Motion, useShadow, useSpring } from '@rootnative/inertia'
 
 function ElevatedCard({ raised }: { raised: boolean }) {
   // Whatever drives `progress` is your concern — a spring, a scroll-derived
@@ -221,7 +221,7 @@ import {
   Motion,
   useBooleanSpring,
   useColorTransition,
-} from '@onlynative/inertia'
+} from '@rootnative/inertia'
 
 function Chip({ active }: { active: boolean }) {
   // Drive the tween from a boolean spring. The same progress feeds two
@@ -262,7 +262,7 @@ The hook is a pure interpolator; it does not animate on its own. Drive `progress
 The general-purpose value-layer hook: drive a `SharedValue<number>` toward `target` with any `TransitionConfig`. Reach for it when you need raw `useSharedValue + useEffect + withTiming` (or `withSpring`, or `withRepeat`) **outside** the declarative `animate` flow — boolean state progress on a widget with multiple animated children, indeterminate progress on a list of `useAnimatedStyle` consumers, anywhere the value layer is the right abstraction.
 
 ```tsx
-import { useAnimation } from '@onlynative/inertia'
+import { useAnimation } from '@rootnative/inertia'
 
 // Toggle progress driven by a prop. Spring physics, react-spring vocab.
 const progress = useAnimation(isChecked ? 1 : 0, {
@@ -300,7 +300,7 @@ The hook re-runs the animation whenever `target` changes or the transition's str
 Track the scroll offset of a `Motion.ScrollView` as shared values. Scroll events fire on the UI thread, so the returned values are safe to read from any worklet without a JS-thread bounce.
 
 ```tsx
-import { useScroll, useTransform, Motion } from '@onlynative/inertia'
+import { useScroll, useTransform, Motion } from '@rootnative/inertia'
 import { useAnimatedStyle } from 'react-native-reanimated'
 
 function StickyHeader() {
@@ -339,7 +339,7 @@ Set `scrollEventThrottle={16}` on the `ScrollView` for steady 60 Hz updates; wit
 The hook-form of the [`gesture` prop](../gestures). Reach for it when one Pressable's gesture state needs to drive multiple animated views — a focus ring rendered as a sibling, an MD3 state-layer halo that overlays the content, a content tint and a separate icon-color animation, etc. The prop-form only animates the receiver's own style; the hook gives you the underlying 0↔1 progress shared values to feed into any number of `useAnimatedStyle` blocks.
 
 ```tsx
-import { useGesture } from '@onlynative/inertia'
+import { useGesture } from '@rootnative/inertia'
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
@@ -403,12 +403,12 @@ When `useGesture` and the `gesture` prop describe the same scenario, prefer the 
 
 ## `useGestureLayer(states, options?)`
 
-A higher-level helper over `useGesture` for the **strongest-active-layer-wins** composition model used by MD3 state-layer haloes and iOS-translucent overlays. You supply per-state target maps; the hook owns the four gesture progress shared values, the `disabled` override, the worklet, and the transition. Lives at the `@onlynative/inertia/gesture-layer` subpath so apps that don't need it don't pay for it.
+A higher-level helper over `useGesture` for the **strongest-active-layer-wins** composition model used by MD3 state-layer haloes and iOS-translucent overlays. You supply per-state target maps; the hook owns the four gesture progress shared values, the `disabled` override, the worklet, and the transition. Lives at the `@rootnative/inertia/gesture-layer` subpath so apps that don't need it don't pay for it.
 
 ```tsx
 import { Pressable } from 'react-native'
 import Animated from 'react-native-reanimated'
-import { useGestureLayer } from '@onlynative/inertia/gesture-layer'
+import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
 
 function SwitchHalo({ disabled }: { disabled?: boolean }) {
   const { style, handlers } = useGestureLayer(
@@ -463,7 +463,7 @@ Every state key is optional. Values inside each state are a flat map of style ke
 | `handlers` | `UseGestureHandlers` | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on the host `Pressable`. |
 
 ```tsx
-import { useGestureLayer } from '@onlynative/inertia/gesture-layer'
+import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
 ```
 
 **`useGestureLayer` vs the declarative `gesture` prop.** The prop layers states **additively** — pressing while hovered sums both layers' contributions. `useGestureLayer` layers them via **clamped-max** — pressing while hovered shows whichever target is stronger per-key, not the sum. The MD3 / iOS-translucent halo wants clamped-max so simultaneously hovered + pressed doesn't double the opacity into something visually wrong. Reach for the prop for additive button feedback (`{ scale: 0.96 }` on press composes cleanly with an opacity hover); reach for this hook when targets are state-layer overlays that need to top out at a single ceiling.
@@ -475,7 +475,7 @@ import { useGestureLayer } from '@onlynative/inertia/gesture-layer'
 Build a controller for a variants map. Pass it through `controller={...}` to drive transitions imperatively.
 
 ```ts
-import { useVariants } from '@onlynative/inertia'
+import { useVariants } from '@rootnative/inertia'
 
 const variants = {
   open: { opacity: 1, translateY: 0 },
@@ -504,7 +504,7 @@ See [Variants](../variants) for the props-side usage.
 Read the active `<MotionConfig>` value:
 
 ```ts
-import { useMotionConfig } from '@onlynative/inertia'
+import { useMotionConfig } from '@rootnative/inertia'
 
 const { reducedMotion } = useMotionConfig()
 // 'user' | 'never' | 'always'
@@ -517,7 +517,7 @@ Returns the default (`{ reducedMotion: 'user' }`) when no provider is in the tre
 Resolve the active reduced-motion mode to a boolean. `'user'` consults Reanimated's OS-backed hook; `'never'` and `'always'` shortcut to `false` / `true`.
 
 ```ts
-import { useShouldReduceMotion } from '@onlynative/inertia'
+import { useShouldReduceMotion } from '@rootnative/inertia'
 
 function MyVideoIntro() {
   const reduce = useShouldReduceMotion()
@@ -533,7 +533,7 @@ This is what every Motion primitive uses to decide whether to swap transitions f
 Read the per-child presence context inside a custom component you'd like to behave like a Motion primitive under `<Presence>`:
 
 ```ts
-import { usePresence } from '@onlynative/inertia'
+import { usePresence } from '@rootnative/inertia'
 
 function CustomExitable() {
   const presence = usePresence()
@@ -550,7 +550,7 @@ See [Presence](../presence) for the higher-level prop-driven usage.
 Worklet-safe single-step animation builder. Mirrors a subset of the internal `resolveTransition` for the UI-thread path where the transition config is picked at gesture-release time, not at render time. Supports `spring` / `timing` / `decay` / `no-animation`; sequences, top-level `repeat`, and easing-function auto-worklet-wrapping are not.
 
 ```ts
-import { buildReleaseAnimation } from '@onlynative/inertia'
+import { buildReleaseAnimation } from '@rootnative/inertia'
 import { Gesture } from 'react-native-gesture-handler'
 
 const pan = Gesture.Pan().onEnd((e) => {
@@ -569,15 +569,15 @@ For decay transitions, the second argument is ignored — decay decelerates from
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `buildReleaseAnimation(transition: TransitionConfig, toValue: number)` | Reanimated animation value (assign to a `SharedValue<number>` directly). |
 
-Most consumers reach for `useDrag({ onRelease })` from `@onlynative/inertia-gestures` instead — it wraps this builder behind a per-axis return shape. Use `buildReleaseAnimation` directly when you're authoring a custom `Gesture.*().onEnd(...)` worklet outside the adapter hooks.
+Most consumers reach for `useDrag({ onRelease })` from `@rootnative/inertia-gestures` instead — it wraps this builder behind a per-axis return shape. Use `buildReleaseAnimation` directly when you're authoring a custom `Gesture.*().onEnd(...)` worklet outside the adapter hooks.
 
 ## `useTouchDrag(options?)`
 
-PanResponder-backed drag hook. The keyboard-a11y and zero-extra-peer-dep counterpart to `useDrag` from `@onlynative/inertia-gestures` — both share the same `onRelease` shape, but `useTouchDrag` lives in core (`@onlynative/inertia/touch`) and returns `panHandlers` to spread on a `Pressable` / `View` instead of a `gesture` object for `<GestureDetector>`.
+PanResponder-backed drag hook. The keyboard-a11y and zero-extra-peer-dep counterpart to `useDrag` from `@rootnative/inertia-gestures` — both share the same `onRelease` shape, but `useTouchDrag` lives in core (`@rootnative/inertia/touch`) and returns `panHandlers` to spread on a `Pressable` / `View` instead of a `gesture` object for `<GestureDetector>`.
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
-import { useTouchDrag } from '@onlynative/inertia/touch'
+import { Motion } from '@rootnative/inertia'
+import { useTouchDrag } from '@rootnative/inertia/touch'
 import { Pressable } from 'react-native'
 
 function Slider({ ticks }: { ticks: number[] }) {
@@ -613,4 +613,4 @@ function Slider({ ticks }: { ticks: number[] }) {
 
 Returns `{ panHandlers, animatedStyle, dragX, dragY, isDragging }`.
 
-**When to pick `useTouchDrag` over `useDrag` from `@onlynative/inertia-gestures`:** you need keyboard a11y on the dragged element (arrow keys, `PageUp` / `PageDown`), OR you don't want to take `react-native-gesture-handler` as a peer dep. **When to skip it:** you're already using `react-native-gesture-handler` elsewhere — the gesture-handler `useDrag`'s release velocity is UI-thread and slightly more precise; consistency across the app trumps a small per-call win.
+**When to pick `useTouchDrag` over `useDrag` from `@rootnative/inertia-gestures`:** you need keyboard a11y on the dragged element (arrow keys, `PageUp` / `PageDown`), OR you don't want to take `react-native-gesture-handler` as a peer dep. **When to skip it:** you're already using `react-native-gesture-handler` elsewhere — the gesture-handler `useDrag`'s release velocity is UI-thread and slightly more precise; consistency across the app trumps a small per-call win.

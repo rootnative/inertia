@@ -13,7 +13,7 @@ export default defineConfig({
   target: 'es2021',
   platform: 'neutral',
   external: [
-    '@onlynative/inertia',
+    '@rootnative/inertia',
     'expo-linear-gradient',
     'react',
     'react/jsx-runtime',

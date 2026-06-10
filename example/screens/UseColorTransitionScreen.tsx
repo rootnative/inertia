@@ -4,7 +4,7 @@ import {
   Motion,
   useBooleanSpring,
   useColorTransition,
-} from '@onlynative/inertia'
+} from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 /**

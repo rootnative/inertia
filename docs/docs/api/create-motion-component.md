@@ -20,7 +20,7 @@ Most third-party RN primitives can be animated as long as they forward `style` t
 
 ```tsx
 import { Image } from 'expo-image'
-import { createMotionComponent } from '@onlynative/inertia'
+import { createMotionComponent } from '@rootnative/inertia'
 
 export const MotionExpoImage = createMotionComponent(Image)
 
@@ -38,7 +38,7 @@ export const MotionExpoImage = createMotionComponent(Image)
 If you have a wrapper component that exposes `style`, the same applies:
 
 ```tsx
-import { createMotionComponent } from '@onlynative/inertia'
+import { createMotionComponent } from '@rootnative/inertia'
 import { Card } from './Card'
 
 export const MotionCard = createMotionComponent(Card)

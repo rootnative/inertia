@@ -1,4 +1,4 @@
-import type { TransitionConfig } from '@onlynative/inertia'
+import type { TransitionConfig } from '@rootnative/inertia'
 
 /**
  * Animatable target snapshot for a `MotionSvg.Path`. Every field is optional

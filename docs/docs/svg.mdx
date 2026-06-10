@@ -6,13 +6,13 @@ import PackageManagerTabs from '@site/src/components/PackageManagerTabs'
 
 # SVG
 
-`@onlynative/inertia-svg` adds animatable SVG primitives built on [`react-native-svg`](https://github.com/software-mansion/react-native-svg). It is an **optional** sibling package — install it only when you need to morph paths or animate `fill` / `stroke`. The core library has no required `react-native-svg` dependency.
+`@rootnative/inertia-svg` adds animatable SVG primitives built on [`react-native-svg`](https://github.com/software-mansion/react-native-svg). It is an **optional** sibling package — install it only when you need to morph paths or animate `fill` / `stroke`. The core library has no required `react-native-svg` dependency.
 
 `MotionPath` wraps `<Path>` and accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for the path data (`d`) plus color and numeric paint properties.
 
 ## Install
 
-<PackageManagerTabs packages="@onlynative/inertia-svg react-native-svg" />
+<PackageManagerTabs packages="@rootnative/inertia-svg react-native-svg" />
 
 `react-native-svg` works in bare React Native projects as well as Expo.
 
@@ -20,7 +20,7 @@ import PackageManagerTabs from '@site/src/components/PackageManagerTabs'
 
 ```tsx
 import Svg from 'react-native-svg'
-import { MotionPath } from '@onlynative/inertia-svg'
+import { MotionPath } from '@rootnative/inertia-svg'
 
 function Toggle({ open }) {
   return (
@@ -138,7 +138,7 @@ import {
   diffTemplate,
   flattenParams,
   serializePath,
-} from '@onlynative/inertia-svg'
+} from '@rootnative/inertia-svg'
 
 const segs = parsePathD('M 0 0 L 10 10 Z') // [{ cmd: 'M', args: [0, 0] }, …]
 const t = templateOf(segs) // { cmds: ['M','L','Z'], widths: [2,2,0], size: 4 }

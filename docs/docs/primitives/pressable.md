@@ -7,7 +7,7 @@ sidebar_position: 5
 Animatable `Pressable`. The `gesture.pressed` sub-state hooks directly into Pressable's `onPressIn` / `onPressOut`, picking up touch slop and accessibility semantics from React Native for free.
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 
 export function PrimaryButton({ onPress }: { onPress: () => void }) {
   return (
@@ -27,7 +27,7 @@ export function PrimaryButton({ onPress }: { onPress: () => void }) {
 ## Tree-shaken import
 
 ```ts
-import { MotionPressable } from '@onlynative/inertia/pressable'
+import { MotionPressable } from '@rootnative/inertia/pressable'
 ```
 
 ## `style` must be a value, not a function

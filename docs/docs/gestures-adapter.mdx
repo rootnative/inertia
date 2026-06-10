@@ -7,13 +7,13 @@ import RunnableExample from '@site/src/components/RunnableExample'
 
 # Gestures adapter
 
-`@onlynative/inertia-gestures` adds drag / swipe / pan hooks built on `react-native-gesture-handler`. It is an **optional** sibling package — install it only if you need richer-than-`pressable` gestures. The core library has no required `gesture-handler` dependency.
+`@rootnative/inertia-gestures` adds drag / swipe / pan hooks built on `react-native-gesture-handler`. It is an **optional** sibling package — install it only if you need richer-than-`pressable` gestures. The core library has no required `gesture-handler` dependency.
 
 The hooks compose with any `Motion.*` primitive via a `<GestureDetector>` and a single `style` slot — they don't replace the `gesture` prop, they extend what's reachable beside it.
 
 ## Install
 
-<PackageManagerTabs packages="@onlynative/inertia-gestures react-native-gesture-handler" />
+<PackageManagerTabs packages="@rootnative/inertia-gestures react-native-gesture-handler" />
 
 Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation) — it needs `<GestureHandlerRootView>` near the root of your app.
 
@@ -23,8 +23,8 @@ Drag a Motion primitive on one or two axes, with optional bounds and rubber-band
 
 ```tsx
 import { GestureDetector } from 'react-native-gesture-handler'
-import { Motion } from '@onlynative/inertia'
-import { useDrag } from '@onlynative/inertia-gestures'
+import { Motion } from '@rootnative/inertia'
+import { useDrag } from '@rootnative/inertia-gestures'
 
 function DraggableBox() {
   const drag = useDrag({
@@ -93,7 +93,7 @@ onRelease: (e) => {
 
 `onRelease` composes additively with `onDragEnd` — both fire on release. Use `onRelease` for the SV animation; use `onDragEnd` for JS-thread side effects (analytics, state updates).
 
-Internally this routes through `buildReleaseAnimation` exported from `@onlynative/inertia` — a worklet-safe builder that covers spring / timing / decay / no-animation single-step transitions. Reach for it directly if you're writing a custom `Gesture.Pan().onEnd(...)` worklet outside `useDrag`.
+Internally this routes through `buildReleaseAnimation` exported from `@rootnative/inertia` — a worklet-safe builder that covers spring / timing / decay / no-animation single-step transitions. Reach for it directly if you're writing a custom `Gesture.Pan().onEnd(...)` worklet outside `useDrag`.
 
 ## `useSwipe`
 
@@ -164,12 +164,12 @@ For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-c
 
 ## Scope: touch + mouse only
 
-All three hooks layer on `react-native-gesture-handler`, which surfaces touch and mouse events but **not keyboard**. For controls that need keyboard a11y in addition to drag — a Slider with arrow-key increment / decrement, a scrollbar with `PageUp` / `PageDown`, a range input — reach for [`useTouchDrag`](./api/hooks#usetouchdragoptions) from `@onlynative/inertia/touch` instead. It's a PanResponder-backed counterpart to `useDrag` that lives in core (no `react-native-gesture-handler` peer required) and composes cleanly with `onKeyDown` on the wrapping `Pressable`.
+All three hooks layer on `react-native-gesture-handler`, which surfaces touch and mouse events but **not keyboard**. For controls that need keyboard a11y in addition to drag — a Slider with arrow-key increment / decrement, a scrollbar with `PageUp` / `PageDown`, a range input — reach for [`useTouchDrag`](./api/hooks#usetouchdragoptions) from `@rootnative/inertia/touch` instead. It's a PanResponder-backed counterpart to `useDrag` that lives in core (no `react-native-gesture-handler` peer required) and composes cleanly with `onKeyDown` on the wrapping `Pressable`.
 
 The full ladder:
 
 1. `Motion.View` + `gesture` prop — pure state-overlay UX (hover, focus, press).
-2. `useTouchDrag` from `@onlynative/inertia/touch` — pointer + keyboard drag, no extra peer dep.
+2. `useTouchDrag` from `@rootnative/inertia/touch` — pointer + keyboard drag, no extra peer dep.
 3. `useDrag` / `useSwipe` / `usePan` from this package — pointer-only, gesture-handler-backed. Best for projects already using gesture-handler; the UI-thread release path is more precise than PanResponder's JS-thread velocity.
 4. Raw `PanResponder` + `useAnimation` — drop here when the gesture lifecycle itself needs customizing (multi-touch composition, custom capture predicates beyond axis lock).
 

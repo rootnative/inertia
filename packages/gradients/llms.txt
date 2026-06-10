@@ -1,21 +1,21 @@
-> @onlynative/inertia-gradients — adapter package for @onlynative/inertia.
+> @rootnative/inertia-gradients — adapter package for @rootnative/inertia.
 > This file is generated from the matching docs page by scripts/build-llms.mjs — do not edit by hand.
 
-> Full docs:    https://onlynative.github.io/inertia/
-> Core overview: see @onlynative/inertia/llms.txt (or docs/static/llms.txt in the repo)
-> Source:        https://github.com/onlynative/inertia
+> Full docs:    https://rootnative.github.io/inertia/
+> Core overview: see @rootnative/inertia/llms.txt (or docs/static/llms.txt in the repo)
+> Source:        https://github.com/rootnative/inertia
 
 ---
 # Gradients
 
-`@onlynative/inertia-gradients` adds an animatable linear gradient built on `expo-linear-gradient`. It is an **optional** sibling package — install it only when you need to animate gradient stops. The core library has no required `expo-linear-gradient` dependency.
+`@rootnative/inertia-gradients` adds an animatable linear gradient built on `expo-linear-gradient`. It is an **optional** sibling package — install it only when you need to animate gradient stops. The core library has no required `expo-linear-gradient` dependency.
 
 `MotionLinearGradient` accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
 ## Install
 
 ```bash
-yarn add @onlynative/inertia-gradients expo-linear-gradient
+yarn add @rootnative/inertia-gradients expo-linear-gradient
 ```
 
 `expo-linear-gradient` works in bare React Native projects as well as Expo — no `expo-modules-core` runtime is required.
@@ -23,7 +23,7 @@ yarn add @onlynative/inertia-gradients expo-linear-gradient
 ## Usage
 
 ```tsx
-import { MotionLinearGradient } from '@onlynative/inertia-gradients'
+import { MotionLinearGradient } from '@rootnative/inertia-gradients'
 
 function Hero() {
   return (

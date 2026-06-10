@@ -41,7 +41,7 @@ export function ensureReanimatedInstalled(): void {
     const major = parseInt(version.split('.')[0] ?? '0', 10)
     if (major < 4) {
       console.error(
-        `[inertia] react-native-reanimated v${version} is installed, but @onlynative/inertia requires v4.0.0 or later. ` +
+        `[inertia] react-native-reanimated v${version} is installed, but @rootnative/inertia requires v4.0.0 or later. ` +
           `Upgrade with \`pnpm add react-native-reanimated@^4\` (or your package manager's equivalent).`,
       )
       return

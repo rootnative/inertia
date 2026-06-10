@@ -7,7 +7,7 @@ sidebar_position: 11
 The `layout` prop animates position and size changes that come from outside the `animate` flow — a flex sibling growing, a list reordering, a column toggling its width. Without it, those changes snap; with it, they interpolate.
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 
 function ReorderableRow({ item, onPress }: Props) {
   return (

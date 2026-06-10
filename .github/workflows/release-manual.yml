@@ -126,7 +126,7 @@ jobs:
             fi
           done
 
-          # Update @onlynative/inertia peer dep in selected packages if core was bumped
+          # Update @rootnative/inertia peer dep in selected packages if core was bumped
           CORE_BUMPED=false
           for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
             if [ "$PKG_DIR" = "core" ]; then CORE_BUMPED=true; break; fi
@@ -139,8 +139,8 @@ jobs:
                 const fs = require('fs');
                 const pkgPath = 'packages/$PKG_DIR/package.json';
                 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-                if (pkg.peerDependencies?.['@onlynative/inertia']) {
-                  pkg.peerDependencies['@onlynative/inertia'] = '>=$CORE_VERSION';
+                if (pkg.peerDependencies?.['@rootnative/inertia']) {
+                  pkg.peerDependencies['@rootnative/inertia'] = '>=$CORE_VERSION';
                   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
                 }
               "
@@ -173,10 +173,10 @@ jobs:
 
       - name: Publish packages
         run: |
-          # Publish core first if included (other packages may depend on @onlynative/inertia)
+          # Publish core first if included (other packages may depend on @rootnative/inertia)
           for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
             if [ "$PKG_DIR" = "core" ]; then
-              echo "Publishing @onlynative/inertia..."
+              echo "Publishing @rootnative/inertia..."
               (cd packages/core && pnpm publish --provenance --access public --tag ${{ inputs.tag }} --no-git-checks)
               break
             fi

@@ -9,7 +9,7 @@ import {
   resolveTransition,
   useShouldReduceMotion,
   type TransitionConfig,
-} from '@onlynative/inertia'
+} from '@rootnative/inertia'
 import type {
   GradientPoint,
   LinearGradientAnimate,

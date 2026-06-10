@@ -19,7 +19,7 @@ Inertia is a thin wrapper around `react-native-reanimated`. The Reanimated insta
 
 Yarn is the default. Switch tabs for npm, pnpm, or Bun — your selection persists across the docs.
 
-<PackageManagerTabs packages="@onlynative/inertia react-native-reanimated" />
+<PackageManagerTabs packages="@rootnative/inertia react-native-reanimated" />
 
 Then enable the Reanimated Babel plugin per its [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation). The plugin is what transforms `'worklet'`-marked functions into UI-thread code; without it, every animation crashes at runtime.
 
@@ -40,7 +40,7 @@ The Reanimated plugin must be **last** in the plugins array.
 ## First animation
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 
 export function FadeIn() {
   return (
@@ -67,42 +67,42 @@ The example app runs in the iframe below — tap any screen to interact with the
 Each primitive is reachable directly so apps that animate one element don't pull in the rest:
 
 ```ts
-import { MotionView } from '@onlynative/inertia/view'
-import { MotionText } from '@onlynative/inertia/text'
-import { MotionImage } from '@onlynative/inertia/image'
-import { MotionPressable } from '@onlynative/inertia/pressable'
-import { MotionScrollView } from '@onlynative/inertia/scroll-view'
+import { MotionView } from '@rootnative/inertia/view'
+import { MotionText } from '@rootnative/inertia/text'
+import { MotionImage } from '@rootnative/inertia/image'
+import { MotionPressable } from '@rootnative/inertia/pressable'
+import { MotionScrollView } from '@rootnative/inertia/scroll-view'
 ```
 
-`@onlynative/inertia` is `sideEffects: false`, so a bundler with tree-shaking enabled (Metro 0.79+, Webpack, Rollup) will drop primitives you don't reference. The named imports above tree-shake to within ~0.1 kB of the subpath equivalents, verified per-primitive in CI.
+`@rootnative/inertia` is `sideEffects: false`, so a bundler with tree-shaking enabled (Metro 0.79+, Webpack, Rollup) will drop primitives you don't reference. The named imports above tree-shake to within ~0.1 kB of the subpath equivalents, verified per-primitive in CI.
 
-One caveat: the `Motion` namespace object cannot tree-shake. `import { Motion } from '@onlynative/inertia'` followed by `Motion.View` holds the whole namespace live (it's a literal object — bundlers can't eliminate property accesses). Use it for ergonomics; reach for `import { MotionView } from '@onlynative/inertia'` (or the subpath) when bundle size matters.
+One caveat: the `Motion` namespace object cannot tree-shake. `import { Motion } from '@rootnative/inertia'` followed by `Motion.View` holds the whole namespace live (it's a literal object — bundlers can't eliminate property accesses). Use it for ergonomics; reach for `import { MotionView } from '@rootnative/inertia'` (or the subpath) when bundle size matters.
 
 ## Optional adapter packages
 
 Two sibling packages extend Inertia for capabilities that need extra peer dependencies. The core library has no required dependency on either — install only what you need.
 
-### Gestures (`@onlynative/inertia-gestures`)
+### Gestures (`@rootnative/inertia-gestures`)
 
 Drag / pan / swipe hooks built on [`react-native-gesture-handler`](https://docs.swmansion.com/react-native-gesture-handler). Compose with any `Motion.*` primitive via `<GestureDetector>`.
 
-<PackageManagerTabs packages="@onlynative/inertia-gestures react-native-gesture-handler" />
+<PackageManagerTabs packages="@rootnative/inertia-gestures react-native-gesture-handler" />
 
 Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation) — it needs `<GestureHandlerRootView>` near the root of your app. See [Gestures adapter](./gestures-adapter) for the hooks.
 
-### Gradients (`@onlynative/inertia-gradients`)
+### Gradients (`@rootnative/inertia-gradients`)
 
 `MotionLinearGradient` wraps [`expo-linear-gradient`](https://docs.expo.dev/versions/latest/sdk/linear-gradient/) with animatable `colors` / `start` / `end` / `locations`. Works in bare React Native as well as Expo.
 
-<PackageManagerTabs packages="@onlynative/inertia-gradients expo-linear-gradient" />
+<PackageManagerTabs packages="@rootnative/inertia-gradients expo-linear-gradient" />
 
 See [Gradients](./gradients) for the primitive.
 
-### SVG (`@onlynative/inertia-svg`)
+### SVG (`@rootnative/inertia-svg`)
 
 `MotionPath` wraps [`react-native-svg`](https://github.com/software-mansion/react-native-svg)'s `<Path>` with animatable `d` (path morphing on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, and `strokeDashoffset`. Works in bare React Native as well as Expo.
 
-<PackageManagerTabs packages="@onlynative/inertia-svg react-native-svg" />
+<PackageManagerTabs packages="@rootnative/inertia-svg react-native-svg" />
 
 See [SVG](./svg) for the primitive.
 

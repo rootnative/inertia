@@ -1,5 +1,5 @@
 import { StyleSheet, Text } from 'react-native'
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 export function GestureScreen({ onBack }: { onBack: () => void }) {

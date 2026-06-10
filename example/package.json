@@ -1,5 +1,5 @@
 {
-  "name": "@onlynative/inertia-example",
+  "name": "@rootnative/inertia-example",
   "version": "1.0.0",
   "private": true,
   "main": "index.ts",
@@ -13,10 +13,10 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@onlynative/inertia": "workspace:*",
-    "@onlynative/inertia-gestures": "workspace:*",
-    "@onlynative/inertia-gradients": "workspace:*",
-    "@onlynative/inertia-svg": "workspace:*",
+    "@rootnative/inertia": "workspace:*",
+    "@rootnative/inertia-gestures": "workspace:*",
+    "@rootnative/inertia-gradients": "workspace:*",
+    "@rootnative/inertia-svg": "workspace:*",
     "expo": "~54.0.33",
     "expo-linear-gradient": "~14.0.2",
     "expo-status-bar": "~3.0.9",

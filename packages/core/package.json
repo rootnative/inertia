@@ -1,17 +1,17 @@
 {
-  "name": "@onlynative/inertia",
+  "name": "@rootnative/inertia",
   "version": "0.0.1-alpha.9",
   "description": "Declarative animation primitives for React Native, built on react-native-reanimated.",
   "license": "MIT",
-  "author": "OnlyNative",
-  "homepage": "https://github.com/onlynative/inertia",
+  "author": "RootNative",
+  "homepage": "https://github.com/rootnative/inertia",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/onlynative/inertia.git",
+    "url": "git+https://github.com/rootnative/inertia.git",
     "directory": "packages/core"
   },
   "bugs": {
-    "url": "https://github.com/onlynative/inertia/issues"
+    "url": "https://github.com/rootnative/inertia/issues"
   },
   "keywords": [
     "react-native",

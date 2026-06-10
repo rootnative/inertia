@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { MotionLinearGradient } from '@onlynative/inertia-gradients'
+import { MotionLinearGradient } from '@rootnative/inertia-gradients'
 import { ScreenShell } from './ScreenShell'
 
 const PALETTES = [
@@ -37,7 +37,7 @@ export function LinearGradientScreen({ onBack }: { onBack: () => void }) {
   return (
     <ScreenShell
       title="Linear gradient"
-      description="MotionLinearGradient animates colors, start, and end with the same animate/transition shape as the core Motion.* primitives. Lives in @onlynative/inertia-gradients."
+      description="MotionLinearGradient animates colors, start, and end with the same animate/transition shape as the core Motion.* primitives. Lives in @rootnative/inertia-gradients."
       onBack={onBack}
     >
       <Text style={styles.caption}>Palette: {palette.name}</Text>

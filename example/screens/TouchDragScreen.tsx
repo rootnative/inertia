@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { Motion } from '@onlynative/inertia'
-import { useTouchDrag } from '@onlynative/inertia/touch'
+import { Motion } from '@rootnative/inertia'
+import { useTouchDrag } from '@rootnative/inertia/touch'
 import { ScreenShell } from './ScreenShell'
 
 const TRACK_WIDTH = 280
@@ -12,7 +12,7 @@ const TICKS = Array.from({ length: STEPS }, (_, i) => i * SPACING)
 
 /**
  * PanResponder-backed drag demo. Mirrors the gesture-handler `SliderScreen`
- * but uses `useTouchDrag` from `@onlynative/inertia/touch` — no
+ * but uses `useTouchDrag` from `@rootnative/inertia/touch` — no
  * `react-native-gesture-handler` peer required, and keyboard a11y composes
  * cleanly via `onKeyDown` on the wrapping `Pressable`.
  *

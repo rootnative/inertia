@@ -7,7 +7,7 @@ sidebar_position: 4
 Animatable `Image`. `animate` / `initial` / `exit` / `gesture` are typed against `ImageStyle`, so `tintColor` autocompletes here (and is rejected on other primitives).
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 
 export function Avatar({ source }: { source: { uri: string } }) {
   return (
@@ -28,7 +28,7 @@ export function Avatar({ source }: { source: { uri: string } }) {
 ## Tree-shaken import
 
 ```ts
-import { MotionImage } from '@onlynative/inertia/image'
+import { MotionImage } from '@rootnative/inertia/image'
 ```
 
 ## Animatable keys (alpha)

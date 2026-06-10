@@ -7,7 +7,7 @@ sidebar_position: 3
 Animatable `Text`. `animate` / `initial` / `exit` / `gesture` are typed against `TextStyle`.
 
 ```tsx
-import { Motion } from '@onlynative/inertia'
+import { Motion } from '@rootnative/inertia'
 
 export function Heading({ visible }: { visible: boolean }) {
   return (
@@ -26,7 +26,7 @@ export function Heading({ visible }: { visible: boolean }) {
 ## Tree-shaken import
 
 ```ts
-import { MotionText } from '@onlynative/inertia/text'
+import { MotionText } from '@rootnative/inertia/text'
 ```
 
 ## Animatable keys (alpha)

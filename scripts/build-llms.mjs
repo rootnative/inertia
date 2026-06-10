@@ -41,17 +41,17 @@ const SIBLING_PACKAGES = [
   {
     pkg: 'gestures',
     docId: 'gestures-adapter',
-    name: '@onlynative/inertia-gestures',
+    name: '@rootnative/inertia-gestures',
   },
   {
     pkg: 'gradients',
     docId: 'gradients',
-    name: '@onlynative/inertia-gradients',
+    name: '@rootnative/inertia-gradients',
   },
   {
     pkg: 'svg',
     docId: 'svg',
-    name: '@onlynative/inertia-svg',
+    name: '@rootnative/inertia-svg',
   },
 ]
 
@@ -144,8 +144,8 @@ function buildLlmsFull() {
     '',
     '> This file aggregates every documentation page in source order. Generated from docs/docs/*.md by scripts/build-llms.mjs — do not edit by hand.',
     '',
-    `> Source: https://github.com/onlynative/inertia`,
-    `> Site:   https://onlynative.github.io/inertia/`,
+    `> Source: https://github.com/rootnative/inertia`,
+    `> Site:   https://rootnative.github.io/inertia/`,
     '',
     '---',
     '',
@@ -163,12 +163,12 @@ function buildSiblingLlms({ docId, name }) {
   ).trimEnd()
 
   const header = [
-    `> ${name} — adapter package for @onlynative/inertia.`,
+    `> ${name} — adapter package for @rootnative/inertia.`,
     '> This file is generated from the matching docs page by scripts/build-llms.mjs — do not edit by hand.',
     '',
-    '> Full docs:    https://onlynative.github.io/inertia/',
-    '> Core overview: see @onlynative/inertia/llms.txt (or docs/static/llms.txt in the repo)',
-    '> Source:        https://github.com/onlynative/inertia',
+    '> Full docs:    https://rootnative.github.io/inertia/',
+    '> Core overview: see @rootnative/inertia/llms.txt (or docs/static/llms.txt in the repo)',
+    '> Source:        https://github.com/rootnative/inertia',
     '',
     '---',
     '',

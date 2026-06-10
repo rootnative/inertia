@@ -10,7 +10,7 @@ A manual harness for the Phase-3 acceptance bar:
 
 The example app's **Perf bench** screen renders 1000 list rows with a press-state scale animation. A toggle flips the row implementation between Inertia (`Motion.Pressable` + `gesture`) and a hand-rolled equivalent (`Pressable` + `useSharedValue` + `useAnimatedStyle` + `withSpring`). The spring physics are byte-identical so the only difference is which library drives the shared value.
 
-The harness uses React Native's built-in `FlatList` so it runs in Expo Go without a custom dev client. For the canonical moti #322 / #336 reproduction (the issues were against FlashList specifically), swap `FlatList` → `@shopify/flash-list`'s `FlashList` in [example/screens/PerfBenchScreen.tsx](https://github.com/onlynative/inertia/blob/main/example/screens/PerfBenchScreen.tsx) and run a custom dev client (`pnpm --filter @onlynative/inertia-example android`). Same row code; the list-virtualization tax is held constant across both row variants either way.
+The harness uses React Native's built-in `FlatList` so it runs in Expo Go without a custom dev client. For the canonical moti #322 / #336 reproduction (the issues were against FlashList specifically), swap `FlatList` → `@shopify/flash-list`'s `FlashList` in [example/screens/PerfBenchScreen.tsx](https://github.com/rootnative/inertia/blob/main/example/screens/PerfBenchScreen.tsx) and run a custom dev client (`pnpm --filter @rootnative/inertia-example android`). Same row code; the list-virtualization tax is held constant across both row variants either way.
 
 ## What "within 5%" means
 
@@ -21,7 +21,7 @@ If Inertia regresses past 5%, the abstraction is leaking work onto the UI thread
 ## How to run
 
 1. **Real device.** Simulators don't reproduce the GPU/CPU pressure that surfaces frame drops. Use a mid-range Android (e.g. Pixel 6a or older). Plug into USB so React Native's PerfMonitor can attach.
-2. **Release build.** `pnpm --filter @onlynative/inertia-example android --variant release`. PerfMonitor numbers from the dev build are dominated by hot-reload and inspector overhead and won't track production behavior.
+2. **Release build.** `pnpm --filter @rootnative/inertia-example android --variant release`. PerfMonitor numbers from the dev build are dominated by hot-reload and inspector overhead and won't track production behavior.
 3. **Open the screen.** Tap **Perf bench** on the example app's home. The default build uses `FlatList`; see the swap recipe below if you need the canonical FlashList reproduction.
 4. **Enable PerfMonitor.** Open the dev menu (shake / volume keys), enable "Perf Monitor". JS frame rate and UI frame rate appear as overlays.
 5. **First pass — Inertia.** With the toggle on **Inertia**, scroll fast for ~10 seconds. Note the JS dropped-frame count and the UI dropped-frame count.
@@ -45,6 +45,6 @@ The two paths are:
 
 If Inertia regresses, suspect (in this order):
 
-1. Worklet recreation per render — should be memoized via `mergedSig` / `transitionSig`. Re-check the [memoization regression test](https://github.com/onlynative/inertia/blob/main/packages/core/src/__tests__/memoization.test.tsx).
+1. Worklet recreation per render — should be memoized via `mergedSig` / `transitionSig`. Re-check the [memoization regression test](https://github.com/rootnative/inertia/blob/main/packages/core/src/__tests__/memoization.test.tsx).
 2. Animated style cost — ensure the worklet body doesn't allocate per frame.
 3. Resolver cost — `resolveAnimatableValue` runs on the JS thread, but per-render not per-frame. Check the effect dep array.

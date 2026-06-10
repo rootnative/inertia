@@ -1,6 +1,6 @@
 /**
- * `@onlynative/inertia-gradients` — animated gradient primitives for
- * `@onlynative/inertia`.
+ * `@rootnative/inertia-gradients` — animated gradient primitives for
+ * `@rootnative/inertia`.
  *
  * v0.2 surface:
  * - `MotionLinearGradient` — animatable linear gradient over

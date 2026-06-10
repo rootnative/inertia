@@ -13,7 +13,7 @@ import { buildReleaseAnimation } from '../transitions'
 import type { TransitionConfig } from '../types'
 
 /**
- * Same drag-result shape as `useDrag` from `@onlynative/inertia-gestures`,
+ * Same drag-result shape as `useDrag` from `@rootnative/inertia-gestures`,
  * minus the `gesture` field (PanResponder spreads handlers, no
  * `<GestureDetector>` wrapper). The shared values + animatedStyle are
  * interchangeable across both hooks; consumers can swap implementations
@@ -83,7 +83,7 @@ export interface UseTouchDragOptions {
   /**
    * Fires when the user releases or the gesture terminates. JS thread.
    *
-   * Velocity is in px/sec to match the `@onlynative/inertia-gestures` API
+   * Velocity is in px/sec to match the `@rootnative/inertia-gestures` API
    * (PanResponder's native `vx` / `vy` are px/ms; the hook normalizes).
    */
   onDragEnd?: (info: TouchReleaseInfo) => void
@@ -101,7 +101,7 @@ export interface UseTouchDragOptions {
 
 /**
  * PanResponder-backed drag hook. Pointer-equivalent of `useDrag` from
- * `@onlynative/inertia-gestures`, with two differences:
+ * `@rootnative/inertia-gestures`, with two differences:
  *
  *   1. No `react-native-gesture-handler` peer dep required — PanResponder is
  *      built into React Native, so this lives in core.
@@ -117,14 +117,14 @@ export interface UseTouchDragOptions {
  *
  * Skip this when:
  *   - You're already using `react-native-gesture-handler` elsewhere (use
- *     `useDrag` from `@onlynative/inertia-gestures` for consistency and
+ *     `useDrag` from `@rootnative/inertia-gestures` for consistency and
  *     better worklet-thread fidelity on release velocity).
  *   - You need momentum semantics like the gesture-handler `usePan` —
  *     PanResponder's release velocity is JS-thread and slightly less precise.
  *
  * @example
  * ```tsx
- * import { useTouchDrag } from '@onlynative/inertia/touch'
+ * import { useTouchDrag } from '@rootnative/inertia/touch'
  *
  * function Slider({ ticks }: { ticks: number[] }) {
  *   const drag = useTouchDrag({
@@ -193,7 +193,7 @@ export function useTouchDrag(
       const x = dragX.value
       const y = dragY.value
       // PanResponder velocity is px/ms; multiply to match the
-      // `@onlynative/inertia-gestures` API (px/sec from gesture-handler).
+      // `@rootnative/inertia-gestures` API (px/sec from gesture-handler).
       const vx = g.vx * 1000
       const vy = g.vy * 1000
       if (onRelease) {
