@@ -21,6 +21,28 @@ const config: Config = {
     locales: ['en'],
   },
 
+  headTags: [
+    {
+      tagName: 'link',
+      attributes: {
+        rel: 'preconnect',
+        href: 'https://fonts.googleapis.com',
+      },
+    },
+    {
+      tagName: 'link',
+      attributes: {
+        rel: 'preconnect',
+        href: 'https://fonts.gstatic.com',
+        crossorigin: 'anonymous',
+      },
+    },
+  ],
+
+  stylesheets: [
+    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap',
+  ],
+
   presets: [
     [
       'classic',
@@ -92,8 +114,44 @@ const config: Config = {
       ],
     },
     footer: {
-      style: 'dark',
-      copyright: `Copyright © ${new Date().getFullYear()} RootNative`,
+      links: [
+        {
+          title: 'Docs',
+          items: [
+            { label: 'Introduction', to: '/introduction' },
+            { label: 'Installation', to: '/installation' },
+            { label: 'Transitions', to: '/transitions' },
+            { label: 'Variants', to: '/variants' },
+          ],
+        },
+        {
+          title: 'Primitives',
+          items: [
+            { label: 'Motion.View', to: '/primitives/view' },
+            { label: 'Motion.Text', to: '/primitives/text' },
+            { label: 'Motion.Pressable', to: '/primitives/pressable' },
+            { label: 'All primitives', to: '/primitives' },
+          ],
+        },
+        {
+          title: 'More',
+          items: [
+            {
+              label: 'Example app',
+              href: 'https://rootnative.github.io/inertia/example/',
+            },
+            {
+              label: 'GitHub',
+              href: 'https://github.com/rootnative/inertia',
+            },
+            {
+              label: 'npm',
+              href: 'https://www.npmjs.com/package/@rootnative/inertia',
+            },
+          ],
+        },
+      ],
+      copyright: `Copyright © ${new Date().getFullYear()} RootNative — MIT Licensed`,
     },
     prism: {
       additionalLanguages: ['bash'],

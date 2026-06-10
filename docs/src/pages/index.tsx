@@ -5,23 +5,76 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 import Layout from '@theme/Layout'
 import styles from './index.module.css'
 
+const INSTALL_COMMAND = 'npm install @rootnative/inertia'
+
+function CopyCommand() {
+  const [copied, setCopied] = React.useState(false)
+
+  const handleCopy = React.useCallback(() => {
+    navigator.clipboard.writeText(INSTALL_COMMAND).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [])
+
+  return (
+    <button
+      type="button"
+      className={styles.copyCommand}
+      onClick={handleCopy}
+      aria-label="Copy install command"
+    >
+      <span className={styles.copyPrompt}>$</span>
+      <code className={styles.copyText}>{INSTALL_COMMAND}</code>
+      <span className={styles.copyIcon} aria-hidden>
+        {copied ? (
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        ) : (
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+        )}
+      </span>
+    </button>
+  )
+}
+
 function Hero() {
   const { siteConfig } = useDocusaurusContext()
   const exampleUrl = useBaseUrl('/example/')
 
   return (
     <header className={styles.hero}>
+      <div className={styles.heroGrid} aria-hidden />
       <div className={styles.heroInner}>
         <div className={styles.heroContent}>
-          <span className={styles.heroBadge}>
-            <span className={styles.heroBadgeDot} aria-hidden />
-            v0.0.1-alpha — full v0.1 surface implemented
+          <span className={styles.eyebrow}>
+            v0.0.1-alpha · React Native · Reanimated 4
           </span>
-          <h1 className={styles.heroTitle}>{siteConfig.title}</h1>
-          <p className={styles.heroTagline}>{siteConfig.tagline}</p>
-          <p className={styles.heroSubtext}>
-            A thin wrapper around react-native-reanimated. Animations are props
-            on a component — no shared values, no worklets, no{' '}
+          <h1 className={styles.heroTitle}>
+            Declarative animations for React Native.
+          </h1>
+          <p className={styles.heroTagline}>
+            {siteConfig.tagline}. A thin wrapper around react-native-reanimated
+            — animations are props on a component. No shared values, no
+            worklets, no{' '}
             <code className={styles.inlineCode}>useAnimatedStyle</code>{' '}
             boilerplate.
           </p>
@@ -29,13 +82,11 @@ function Hero() {
             <Link className={styles.ctaPrimary} to="/introduction">
               Get Started
             </Link>
-            <Link
-              className={styles.ctaSecondary}
-              href="https://github.com/rootnative/inertia"
-            >
-              GitHub
+            <Link className={styles.ctaSecondary} to="/primitives">
+              Browse Primitives
             </Link>
           </div>
+          <CopyCommand />
         </div>
         <div className={styles.heroVisual}>
           <div className={styles.phoneFrame} aria-label="Live example preview">
@@ -59,6 +110,28 @@ function Hero() {
         </div>
       </div>
     </header>
+  )
+}
+
+const stats = [
+  { value: '5', label: 'Primitives' },
+  { value: '0', label: 'Worklets to write' },
+  { value: '100%', label: 'TypeScript' },
+  { value: 'MIT', label: 'Licensed' },
+]
+
+function Stats() {
+  return (
+    <section className={styles.stats}>
+      <div className={styles.statsInner}>
+        {stats.map((stat) => (
+          <div key={stat.label} className={styles.statItem}>
+            <span className={styles.statValue}>{stat.value}</span>
+            <span className={styles.statLabel}>{stat.label}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -380,6 +453,7 @@ export default function Home(): React.JSX.Element {
     <Layout title={siteConfig.title} description={siteConfig.tagline}>
       <Hero />
       <main>
+        <Stats />
         <HowItWorks />
         <Features />
         <CodePreview />

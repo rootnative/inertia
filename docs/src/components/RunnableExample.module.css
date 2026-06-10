@@ -1,20 +1,16 @@
 .frame {
   position: relative;
   width: 100%;
-  border: 1px solid var(--ifm-color-emphasis-300);
+  border: 1px solid var(--inertia-border-strong);
   border-radius: 16px;
   overflow: hidden;
-  background: var(--ifm-background-surface-color);
+  background: var(--inertia-surface);
   margin: 1.75rem 0;
-  box-shadow:
-    0 24px 60px -30px rgba(15, 23, 42, 0.3),
-    0 4px 16px -8px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 24px 60px -30px rgba(10, 10, 10, 0.25);
 }
 
 [data-theme='dark'] .frame {
-  box-shadow:
-    0 30px 80px -30px rgba(0, 0, 0, 0.8),
-    0 4px 16px -8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.8);
 }
 
 .chrome {
@@ -22,10 +18,10 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.65rem 0.95rem;
-  border-bottom: 1px solid var(--ifm-color-emphasis-200);
-  background: var(--ifm-color-emphasis-100);
+  border-bottom: 1px solid var(--inertia-border);
+  background: var(--inertia-surface-muted);
   font-size: 0.78rem;
-  color: var(--ifm-color-emphasis-700);
+  color: var(--inertia-fg-muted);
 }
 
 .dot {
@@ -48,9 +44,8 @@
 
 .label {
   margin-left: 0.4rem;
-  font-family:
-    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-  color: var(--ifm-color-emphasis-600);
+  font-family: var(--ifm-font-family-monospace);
+  color: var(--inertia-fg-subtle);
 }
 
 .iframe {
