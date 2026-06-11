@@ -14,14 +14,15 @@ Inertia is a thin wrapper around `react-native-reanimated`. The Reanimated insta
 - React Native `>= 0.81` (or Expo SDK `54+`)
 - React `>= 19`
 - `react-native-reanimated >= 4.0.0`
+- `react-native-worklets >= 0.5.0` — the worklet runtime Reanimated 4 is built on. It is a **peer** of both Reanimated and Inertia, so Yarn and pnpm will not install it for you.
 
 ## Install
 
 Yarn is the default. Switch tabs for npm, pnpm, or Bun — your selection persists across the docs.
 
-<PackageManagerTabs packages="@rootnative/inertia react-native-reanimated" />
+<PackageManagerTabs packages="@rootnative/inertia react-native-reanimated react-native-worklets" />
 
-Then enable the Reanimated Babel plugin per its [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation). The plugin is what transforms `'worklet'`-marked functions into UI-thread code; without it, every animation crashes at runtime.
+Then enable the worklets Babel plugin per the Reanimated [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation). The plugin is what transforms `'worklet'`-marked functions into UI-thread code; without it, every animation crashes at runtime.
 
 A typical `babel.config.js` for a managed Expo app:
 
@@ -30,12 +31,12 @@ module.exports = function (api) {
   api.cache(true)
   return {
     presets: ['babel-preset-expo'],
-    plugins: ['react-native-reanimated/plugin'],
+    plugins: ['react-native-worklets/plugin'],
   }
 }
 ```
 
-The Reanimated plugin must be **last** in the plugins array.
+The worklets plugin must be **last** in the plugins array. (`react-native-reanimated/plugin` still works in Reanimated 4 — it is a one-line shim that forwards to `react-native-worklets/plugin` — but the worklets name is the canonical one, and it's the one Inertia's own dev-time install check tells you to add.)
 
 ## First animation
 
@@ -80,7 +81,7 @@ One caveat: the `Motion` namespace object cannot tree-shake. `import { Motion } 
 
 ## Optional adapter packages
 
-Two sibling packages extend Inertia for capabilities that need extra peer dependencies. The core library has no required dependency on either — install only what you need.
+Three sibling packages extend Inertia for capabilities that need extra peer dependencies. The core library has no required dependency on any of them — install only what you need.
 
 ### Gestures (`@rootnative/inertia-gestures`)
 

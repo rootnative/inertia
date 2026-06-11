@@ -29,11 +29,11 @@ export function Toast({ visible }: { visible: boolean }) {
 
 ## How it works
 
-`Presence` snapshots children that disappear from its `children` array, holds them in place, and waits for each to finish its exit animation before unmounting. It uses Reanimated's `entering` / `exiting` lifecycle for the underlying frames.
+`Presence` snapshots children that disappear from its `children` array, holds them in a JS-thread map, and waits for each to call `safeToRemove()` after finishing its exit animation before unmounting. It deliberately does **not** use Reanimated's `entering` / `exiting` lifecycle — the exit frames are ordinary Motion animations driven by the child's `exit` prop, which is what lets an interrupted exit reverse smoothly on re-entry.
 
 ## Required: `key`
 
-Every direct child of `<Presence>` must have an explicit `key`. Without one, React falls back to positional identity and removal looks like a prop change — nothing to mark exiting. In dev, keyless children produce a warning and are skipped.
+Every direct child of `<Presence>` must have an explicit `key`. Without one, React falls back to positional identity and removal looks like a prop change — nothing to mark exiting. Keyless children are always skipped (not rendered); dev builds additionally log a warning, production builds drop them silently.
 
 ## Tap-deaf exits
 

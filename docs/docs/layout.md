@@ -71,7 +71,7 @@ How it differs from `layout`:
 - `layout` animates **this** element's own size/position changes between commits (no id needed).
 - `layoutId` animates from **another** element's last rect to this element's current rect (cross-mount or cross-screen).
 
-The `transition` prop on either element controls the FLIP animation (spring by default; `'timing'` honored; `'decay'` downgrades to spring; reduced motion skips the transition).
+The **incoming** element's `transition` prop controls the FLIP animation (spring by default; `'timing'` honored; `'decay'` downgrades to spring; reduced motion skips the transition) — the outgoing element contributes only its last rect. Note it must be a top-level transition object (`transition={{ type: 'timing', duration: 250 }}`); a per-property map is ignored for the FLIP and the default spring applies.
 
 ### Caveats and current scope
 

@@ -109,7 +109,7 @@ The returned shared value sits at `0` when `active` is `false` and animates towa
 | -------------------------------------------------------------- | --------------------- |
 | `useBooleanSpring(active: boolean, config?: SpringTransition)` | `SharedValue<number>` |
 
-Config follows the same react-spring vocabulary as `useSpring` (`tension` / `friction` / `mass`); omit it for the library defaults. Reduced motion (`<MotionConfig reducedMotion>`) snaps to `0` / `1` rather than interpolating.
+Config follows the same react-spring vocabulary as `useSpring` (`tension` / `friction` / `mass`); omit it for the library defaults. Note that like `useSpring`, this hook does **not** consult `<MotionConfig reducedMotion>` — it always interpolates. If the value must respect reduced motion, drive it through `useAnimation` (which gates on the config) or gate the target yourself with `useShouldReduceMotion()`.
 
 **`useBooleanSpring` vs `useSpring(active ? 1 : 0)`.** Identical mechanics — `useBooleanSpring` is the named version of the pattern so the call site reads as the boolean it represents, not as a ternary. Reach for it whenever the source is a boolean prop and the target is a 0↔1 progress value to feed into `useShadow` / `useColorTransition` / `useTransform` / a hand-rolled `useAnimatedStyle`.
 
@@ -466,7 +466,7 @@ Every state key is optional. Values inside each state are a flat map of style ke
 import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
 ```
 
-**`useGestureLayer` vs the declarative `gesture` prop.** The prop layers states **additively** — pressing while hovered sums both layers' contributions. `useGestureLayer` layers them via **clamped-max** — pressing while hovered shows whichever target is stronger per-key, not the sum. The MD3 / iOS-translucent halo wants clamped-max so simultaneously hovered + pressed doesn't double the opacity into something visually wrong. Reach for the prop for additive button feedback (`{ scale: 0.96 }` on press composes cleanly with an opacity hover); reach for this hook when targets are state-layer overlays that need to top out at a single ceiling.
+**`useGestureLayer` vs the declarative `gesture` prop.** The prop composites states as a fixed **priority cascade** (`hovered → focused → focusVisible → pressed`) — when two layers are fully active, the value converges to the higher-priority layer's target, regardless of which is numerically stronger. `useGestureLayer` composites numerics via **clamped-max** — pressing while hovered shows whichever target is _stronger_ per-key, whatever its priority. The MD3 / iOS-translucent halo wants clamped-max so a weaker press target can't visually "dim" an active hover layer. Reach for the prop for ordinary button feedback (`{ scale: 0.96 }` on press layering over an opacity hover); reach for this hook when targets are state-layer overlays whose strongest value should win.
 
 **`useGestureLayer` vs `useGesture` + custom worklet.** `useGesture` returns the raw 0↔1 progress shared values. Use it for compositions this hook doesn't express — additive blends, per-key custom rules, multi-target outputs (e.g. a halo plus a separate ring that uses different math). `useGestureLayer` is the convenience layer for the one composition model it owns.
 

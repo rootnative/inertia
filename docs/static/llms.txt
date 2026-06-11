@@ -101,7 +101,7 @@ Spring uses react-spring vocabulary (`tension`, `friction`, `mass`). Reanimated'
 />
 ```
 
-Sub-states layer **additively** in priority order: `hovered → focused → focusVisible → pressed`. Each declared sub-state owns an independent progress (0↔1) that fades in/out with its own transition; the worklet composites layers via `lerp` (numerics) / `interpolateColor` (colors). MD3 release-while-hovered behaves correctly — the press layer fades out without disturbing the hover layer.
+Sub-states composite as a **priority cascade** in the order `hovered → focused → focusVisible → pressed` (highest-priority active layer's target wins — values are never summed). Each declared sub-state owns an independent progress (0↔1) that fades in/out with its own transition; the worklet composites layers via `lerp` (numerics) / `interpolateColor` (colors). MD3 release-while-hovered behaves correctly — the press layer fades out without disturbing the hover layer.
 
 Per-layer transitions via `transition.<stateName>`:
 

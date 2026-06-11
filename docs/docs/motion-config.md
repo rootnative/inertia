@@ -7,7 +7,7 @@ sidebar_position: 9
 A provider that gates how descendant Motion primitives respond to the OS reduce-motion accessibility setting.
 
 :::tip Free accessibility win for migrators
-Apps moving from hand-rolled `useSharedValue` + `useAnimatedStyle` to Inertia primitives pick up reduce-motion compliance automatically — every `Motion.*` component subscribes to the OS setting via [`useShouldReduceMotion()`](#reading-the-resolved-value) without any per-component plumbing. If you previously had no reduce-motion handling, you have it now.
+Apps moving from hand-rolled `useSharedValue` + `useAnimatedStyle` to Inertia primitives pick up reduce-motion compliance automatically — every `Motion.*` component reads the OS setting via [`useShouldReduceMotion()`](#reading-the-resolved-value) without any per-component plumbing. If you previously had no reduce-motion handling, you have it now.
 :::
 
 ## Default — respect the OS
@@ -60,4 +60,4 @@ function MyComponent() {
 }
 ```
 
-`useShouldReduceMotion()` is what every Motion primitive uses internally. It subscribes to OS changes via Reanimated's `useReducedMotion()`, so toggling the accessibility setting at runtime re-renders subscribed primitives.
+`useShouldReduceMotion()` is what every Motion primitive uses internally. In `'user'` mode it reads the OS setting via Reanimated's `useReducedMotion()`, which captures the value **once at app start** — toggling the accessibility setting while the app is running takes effect on the next launch, not immediately. (`'never'` and `'always'` don't consult the OS at all, and changing the `reducedMotion` prop itself re-renders normally.)

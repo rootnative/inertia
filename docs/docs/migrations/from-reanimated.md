@@ -304,7 +304,7 @@ What collapsed:
 
 ## Drag / pan / swipe
 
-These wait for the [`@rootnative/inertia-gestures`](../gestures-adapter) adapter (PanGestureHandler under the hood). The hooks return ready-made shared values you wire into the same props — no `setNativeProps`, no manual `withDecay` after release.
+These are covered by the [`@rootnative/inertia-gestures`](../gestures-adapter) adapter (PanGestureHandler under the hood). The hooks return ready-made shared values you wire into the same props — no `setNativeProps`, no manual `withDecay` after release.
 
 ```tsx
 import { useDrag } from '@rootnative/inertia-gestures'
@@ -448,8 +448,8 @@ Some patterns are still better off as raw Reanimated:
 
 - **Frame-by-frame data viz** — d3-style charts that read shared values inside `useDerivedValue` and feed them into SVG props. The Inertia public surface targets `style` keys; SVG attribute interpolation lives in the hooks layer or in raw Reanimated.
 - **Custom physics simulations** — anything where you'd be reaching into `withDecay` callback signatures, `cancelAnimation`, or `runOnUI` directly. Drop down to the hooks.
-- **Layout / shared-element transitions** — deferred to v1.x. If you're animating list reordering or screen-to-screen hero transitions, keep using Reanimated's `Layout` API directly for now.
-- **Slider / continuous gesture range UI** — until [`@rootnative/inertia-gestures`](../gestures-adapter) covers the pattern (v0.2 still in flight), keep the hand-rolled PanResponder + `useSharedValue` flow.
+- **Style-prop-interpolating shared elements** — the [`layout` prop and `layoutId`](../layout) cover auto-layout and rect-only hero transitions, but interpolating `borderRadius` / colors between shared elements (and window-coordinate measurement across differently-offset parents) is v2 scope. For those cases, raw Reanimated is still the tool.
+- **Slider / continuous gesture range UI with exotic requirements** — [`useDrag`](../gestures-adapter) and [`useTouchDrag`](../api/hooks#usetouchdragoptions) cover the standard drag/slider shapes; keep the hand-rolled PanResponder + `useSharedValue` flow only when you need custom gesture arbitration those hooks don't express.
 
 The hooks layer is intentionally the same shape as Reanimated's so dropping down doesn't feel like switching tools.
 

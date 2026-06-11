@@ -33,7 +33,7 @@ Use `focused` for state-layer fills (any focus, including click-focus on web) an
 
 ## Priority
 
-When multiple sub-states are active at once, they layer **additively** in this order — later layers composite over earlier ones:
+When multiple sub-states are active at once, they composite as a **priority cascade** in this order — later layers composite over earlier ones:
 
 `hovered` → `focused` → `focusVisible` → `pressed`
 
@@ -104,7 +104,7 @@ The prop and the hook share the layered-blend model, the `isFocusVisible()` sema
 
 ## When you want MD3 state-layer overlays — `useGestureLayer`
 
-The `gesture` prop and `useGesture` both layer states **additively** — pressing while hovered sums both layers. MD3 state-layer haloes and iOS-translucent overlays want the opposite: **clamped-max**, where simultaneously hovered + pressed shows whichever target is stronger per-key (not the sum, which would visibly double the opacity). [`useGestureLayer`](./api/hooks#usegesturelayerstates-options) at `@rootnative/inertia/gesture-layer` is the convenience layer for that model — supply per-state target maps (`rest` / `hovered` / `focused` / `focusVisible` / `pressed` / `disabled`), the hook owns the worklet, the disabled override, and the transition.
+The `gesture` prop composites states as a fixed **priority cascade** — when hovered and pressed are both fully active, the value converges to the `pressed` target because it sits highest in the cascade, regardless of which target is numerically stronger. MD3 state-layer haloes and iOS-translucent overlays want a different model: **clamped-max**, where simultaneously hovered + pressed shows whichever target is _stronger_ per-key, whatever its priority. [`useGestureLayer`](./api/hooks#usegesturelayerstates-options) at `@rootnative/inertia/gesture-layer` is the convenience layer for that model — supply per-state target maps (`rest` / `hovered` / `focused` / `focusVisible` / `pressed` / `disabled`), the hook owns the worklet, the disabled override, and the transition.
 
 ```tsx
 import { useGestureLayer } from '@rootnative/inertia/gesture-layer'

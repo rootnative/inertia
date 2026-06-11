@@ -56,7 +56,7 @@ Two paths are morphable iff their normalized template (command letters, in order
 ❌ M 0 0 L 10 10         ↔ M 0 0 C 1 1 2 2 3 3     differs: L vs C
 ```
 
-The component throws in dev when the templates diverge — either at mount (if `initial.d` mismatches the static `d`), when `animate.d` changes shape, or when the static `d` prop itself changes shape between renders. In production those throws degrade to a no-op snap so a single bad target doesn't crash the screen, but you should treat dev errors as bugs.
+The component throws in dev when the templates diverge — either at mount (if `initial.d` mismatches the static `d`), when `animate.d` changes shape, or when the static `d` prop itself changes shape between renders. In production the bad target is skipped instead — the path simply keeps its current `d` (a mismatched `initial.d` falls back to the static `d`) so a single bad value doesn't crash the screen — but you should treat dev errors as bugs.
 
 To switch between structurally different shapes, **remount with a new `key`**:
 

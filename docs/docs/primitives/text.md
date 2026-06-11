@@ -31,7 +31,7 @@ import { MotionText } from '@rootnative/inertia/text'
 
 ## Animatable keys (alpha)
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `color`. `fontSize` interpolation is deferred — drop to a `useSharedValue` + `useAnimatedStyle` workflow if you need it today.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `color`, `backgroundColor`. `fontSize` interpolation is deferred — drop to a `useSharedValue` + `useAnimatedStyle` workflow if you need it today.
 
 ```tsx
 <Motion.Text

@@ -87,7 +87,7 @@ transition={{
 }}
 ```
 
-The exported types are `EasingFunction`, `EasingFunctionFactory`, and the union `EasingInput`.
+Any of the three forms — a plain `(t: number) => number` function, a pre-worklet'd easing, or a Reanimated `Easing.bezier(...)`-style factory — is accepted wherever `easing` appears.
 
 ### `'decay'`
 
@@ -139,4 +139,4 @@ A unified shape — one prop, no flags soup. See [sequences and repeat](./sequen
 | timing | `duration` | `250`                       |
 | timing | `easing`   | `Easing.inOut(Easing.ease)` |
 
-If those defaults move, the source of truth is `packages/core/src/transitions/resolve.ts`.
+If those defaults move, the sources of truth are `packages/core/src/transitions/spring.ts` (`DEFAULT_SPRING`) for the spring rows and `packages/core/src/transitions/resolve.ts` for the timing rows.

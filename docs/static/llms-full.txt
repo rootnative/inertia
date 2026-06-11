@@ -24,10 +24,10 @@ Inertia (`@rootnative/inertia`) is a thin, ergonomic wrapper around `react-nativ
 Pick your package manager — Yarn is the default. The selection syncs across every install snippet in the docs.
 
 ```bash
-yarn add @rootnative/inertia react-native-reanimated
+yarn add @rootnative/inertia react-native-reanimated react-native-worklets
 ```
 
-Then enable the Reanimated Babel plugin per its [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation).
+Then enable the `react-native-worklets/plugin` Babel plugin per the Reanimated [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation) — see [Installation](./installation) for a full `babel.config.js`.
 
 ## A first animation
 
@@ -89,16 +89,17 @@ Inertia is a thin wrapper around `react-native-reanimated`. The Reanimated insta
 - React Native `>= 0.81` (or Expo SDK `54+`)
 - React `>= 19`
 - `react-native-reanimated >= 4.0.0`
+- `react-native-worklets >= 0.5.0` — the worklet runtime Reanimated 4 is built on. It is a **peer** of both Reanimated and Inertia, so Yarn and pnpm will not install it for you.
 
 ## Install
 
 Yarn is the default. Switch tabs for npm, pnpm, or Bun — your selection persists across the docs.
 
 ```bash
-yarn add @rootnative/inertia react-native-reanimated
+yarn add @rootnative/inertia react-native-reanimated react-native-worklets
 ```
 
-Then enable the Reanimated Babel plugin per its [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation). The plugin is what transforms `'worklet'`-marked functions into UI-thread code; without it, every animation crashes at runtime.
+Then enable the worklets Babel plugin per the Reanimated [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation). The plugin is what transforms `'worklet'`-marked functions into UI-thread code; without it, every animation crashes at runtime.
 
 A typical `babel.config.js` for a managed Expo app:
 
@@ -107,12 +108,12 @@ module.exports = function (api) {
   api.cache(true)
   return {
     presets: ['babel-preset-expo'],
-    plugins: ['react-native-reanimated/plugin'],
+    plugins: ['react-native-worklets/plugin'],
   }
 }
 ```
 
-The Reanimated plugin must be **last** in the plugins array.
+The worklets plugin must be **last** in the plugins array. (`react-native-reanimated/plugin` still works in Reanimated 4 — it is a one-line shim that forwards to `react-native-worklets/plugin` — but the worklets name is the canonical one, and it's the one Inertia's own dev-time install check tells you to add.)
 
 ## First animation
 
@@ -157,7 +158,7 @@ One caveat: the `Motion` namespace object cannot tree-shake. `import { Motion } 
 
 ## Optional adapter packages
 
-Two sibling packages extend Inertia for capabilities that need extra peer dependencies. The core library has no required dependency on either — install only what you need.
+Three sibling packages extend Inertia for capabilities that need extra peer dependencies. The core library has no required dependency on any of them — install only what you need.
 
 ### Gestures (`@rootnative/inertia-gestures`)
 
@@ -197,7 +198,7 @@ Inertia respects the OS reduce-motion accessibility setting by default — no ex
 
 # Primitives
 
-Every animatable surface is a `Motion.*` component. Each one is an animatable mirror of an underlying React Native primitive — the prop surface (other than `style`) is unchanged, plus the Motion-specific props (`initial`, `animate`, `exit`, `variants`, `controller`, `gesture`, `transition`, `onAnimationEnd`).
+Every animatable surface is a `Motion.*` component. Each one is an animatable mirror of an underlying React Native primitive — the prop surface (other than `style`) is unchanged, plus the Motion-specific props (`initial`, `animate`, `exit`, `variants`, `controller`, `gesture`, `transition`, `onAnimationEnd`, `layout`, `layoutId`).
 
 | Component                            | Wraps RN's   | Style type   |
 | ------------------------------------ | ------------ | ------------ |
@@ -224,9 +225,11 @@ Wrap any component with `createMotionComponent(C)` to get the same prop surface 
 
 The alpha supports the properties below across every primitive that accepts them.
 
-**Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Rotation values are degrees as numbers — the runtime wraps with `'deg'` before handing to Reanimated.
+**Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`. Rotation values are degrees as numbers — the runtime wraps with `'deg'` before handing to Reanimated.
 
-**Color:** `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only). Any color string Reanimated recognizes works — hex (`'#4f46e5'`, `'#fff'`), `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors including `'transparent'`. The target is forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
+**Shadow offset:** `shadowOffset` accepts the nested `{ width, height }` object (single-value form only — see [Motion.View](./view) for the contract).
+
+**Color:** `backgroundColor`, `borderColor`, `color`, `shadowColor`, `tintColor` (Image only). Any color string Reanimated recognizes works — hex (`'#4f46e5'`, `'#fff'`), `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors including `'transparent'`. The target is forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
 
 ```tsx
 <Motion.View
@@ -345,7 +348,7 @@ import { MotionText } from '@rootnative/inertia/text'
 
 ## Animatable keys (alpha)
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `color`. `fontSize` interpolation is deferred — drop to a `useSharedValue` + `useAnimatedStyle` workflow if you need it today.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `color`, `backgroundColor`. `fontSize` interpolation is deferred — drop to a `useSharedValue` + `useAnimatedStyle` workflow if you need it today.
 
 ```tsx
 <Motion.Text
@@ -390,7 +393,7 @@ import { MotionImage } from '@rootnative/inertia/image'
 
 ## Animatable keys (alpha)
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `tintColor`.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `tintColor`, `backgroundColor`, `borderColor`.
 
 ```tsx
 <Motion.Image
@@ -581,7 +584,7 @@ transition={{
 }}
 ```
 
-The exported types are `EasingFunction`, `EasingFunctionFactory`, and the union `EasingInput`.
+Any of the three forms — a plain `(t: number) => number` function, a pre-worklet'd easing, or a Reanimated `Easing.bezier(...)`-style factory — is accepted wherever `easing` appears.
 
 ### `'decay'`
 
@@ -633,7 +636,7 @@ A unified shape — one prop, no flags soup. See [sequences and repeat](./sequen
 | timing | `duration` | `250`                       |
 | timing | `easing`   | `Easing.inOut(Easing.ease)` |
 
-If those defaults move, the source of truth is `packages/core/src/transitions/resolve.ts`.
+If those defaults move, the sources of truth are `packages/core/src/transitions/spring.ts` (`DEFAULT_SPRING`) for the spring rows and `packages/core/src/transitions/resolve.ts` for the timing rows.
 
 ---
 
@@ -757,7 +760,7 @@ export function Sheet({ isOpen }: { isOpen: boolean }) {
 }
 ```
 
-Annotate the variants map with `as const` so variant keys autocomplete on `animate`.
+Variant keys autocomplete on `animate` (and a typo is a compile error) with no annotation required — the map's keys are inferred at the JSX call site. `as const` is optional; add it only if you also want the variant _values_ readonly.
 
 ## Programmatic — `useVariants`
 
@@ -793,7 +796,7 @@ export function SaveButton() {
 }
 ```
 
-`useVariants(variants, initial?)` returns a `{ current, transitionTo, subscribe }` controller. `current` is the active key; `transitionTo(next)` re-applies the matching variant on every subscribed Motion primitive.
+`useVariants(variants, initial?)` returns a `{ current, transitionTo }` controller. `current` is the active key; `transitionTo(next)` re-applies the matching variant on every Motion primitive the controller is attached to. (The controller also carries an internal `subscribe` used by the primitives themselves — not part of the public contract.)
 
 When both `controller` and `animate` are set on the same primitive, the controller wins. Don't mix them — the typed contract is "either drive imperatively or declaratively, not both".
 
@@ -812,7 +815,7 @@ When both `controller` and `animate` are set on the same primitive, the controll
 />
 ```
 
-Per-variant transitions land in v0.2; today, switch the wrapping primitive's `transition` based on `current` if you need it.
+Per-variant transitions (a different transition per variant target) aren't supported; switch the wrapping primitive's `transition` based on the active key if you need that.
 
 ---
 
@@ -847,7 +850,7 @@ Use `focused` for state-layer fills (any focus, including click-focus on web) an
 
 ## Priority
 
-When multiple sub-states are active at once, they layer **additively** in this order — later layers composite over earlier ones:
+When multiple sub-states are active at once, they composite as a **priority cascade** in this order — later layers composite over earlier ones:
 
 `hovered` → `focused` → `focusVisible` → `pressed`
 
@@ -918,7 +921,7 @@ The prop and the hook share the layered-blend model, the `isFocusVisible()` sema
 
 ## When you want MD3 state-layer overlays — `useGestureLayer`
 
-The `gesture` prop and `useGesture` both layer states **additively** — pressing while hovered sums both layers. MD3 state-layer haloes and iOS-translucent overlays want the opposite: **clamped-max**, where simultaneously hovered + pressed shows whichever target is stronger per-key (not the sum, which would visibly double the opacity). [`useGestureLayer`](./api/hooks#usegesturelayerstates-options) at `@rootnative/inertia/gesture-layer` is the convenience layer for that model — supply per-state target maps (`rest` / `hovered` / `focused` / `focusVisible` / `pressed` / `disabled`), the hook owns the worklet, the disabled override, and the transition.
+The `gesture` prop composites states as a fixed **priority cascade** — when hovered and pressed are both fully active, the value converges to the `pressed` target because it sits highest in the cascade, regardless of which target is numerically stronger. MD3 state-layer haloes and iOS-translucent overlays want a different model: **clamped-max**, where simultaneously hovered + pressed shows whichever target is _stronger_ per-key, whatever its priority. [`useGestureLayer`](./api/hooks#usegesturelayerstates-options) at `@rootnative/inertia/gesture-layer` is the convenience layer for that model — supply per-state target maps (`rest` / `hovered` / `focused` / `focusVisible` / `pressed` / `disabled`), the hook owns the worklet, the disabled override, and the transition.
 
 ```tsx
 import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
@@ -1136,7 +1139,7 @@ Splitting them off keeps core's surface area minimal and lets the gesture-handle
 yarn add @rootnative/inertia-gradients expo-linear-gradient
 ```
 
-`expo-linear-gradient` works in bare React Native projects as well as Expo — no `expo-modules-core` runtime is required.
+`expo-linear-gradient` works in bare React Native projects as well as Expo, but it is an Expo Module — bare projects need the Expo modules runtime installed (see [Installing Expo modules](https://docs.expo.dev/bare/installing-expo-modules/)).
 
 ## Usage
 
@@ -1268,7 +1271,7 @@ Two paths are morphable iff their normalized template (command letters, in order
 ❌ M 0 0 L 10 10         ↔ M 0 0 C 1 1 2 2 3 3     differs: L vs C
 ```
 
-The component throws in dev when the templates diverge — either at mount (if `initial.d` mismatches the static `d`), when `animate.d` changes shape, or when the static `d` prop itself changes shape between renders. In production those throws degrade to a no-op snap so a single bad target doesn't crash the screen, but you should treat dev errors as bugs.
+The component throws in dev when the templates diverge — either at mount (if `initial.d` mismatches the static `d`), when `animate.d` changes shape, or when the static `d` prop itself changes shape between renders. In production the bad target is skipped instead — the path simply keeps its current `d` (a mismatched `initial.d` falls back to the static `d`) so a single bad value doesn't crash the screen — but you should treat dev errors as bugs.
 
 To switch between structurally different shapes, **remount with a new `key`**:
 
@@ -1392,11 +1395,11 @@ export function Toast({ visible }: { visible: boolean }) {
 
 ## How it works
 
-`Presence` snapshots children that disappear from its `children` array, holds them in place, and waits for each to finish its exit animation before unmounting. It uses Reanimated's `entering` / `exiting` lifecycle for the underlying frames.
+`Presence` snapshots children that disappear from its `children` array, holds them in a JS-thread map, and waits for each to call `safeToRemove()` after finishing its exit animation before unmounting. It deliberately does **not** use Reanimated's `entering` / `exiting` lifecycle — the exit frames are ordinary Motion animations driven by the child's `exit` prop, which is what lets an interrupted exit reverse smoothly on re-entry.
 
 ## Required: `key`
 
-Every direct child of `<Presence>` must have an explicit `key`. Without one, React falls back to positional identity and removal looks like a prop change — nothing to mark exiting. In dev, keyless children produce a warning and are skipped.
+Every direct child of `<Presence>` must have an explicit `key`. Without one, React falls back to positional identity and removal looks like a prop change — nothing to mark exiting. Keyless children are always skipped (not rendered); dev builds additionally log a warning, production builds drop them silently.
 
 ## Tap-deaf exits
 
@@ -1515,7 +1518,7 @@ How it differs from `layout`:
 - `layout` animates **this** element's own size/position changes between commits (no id needed).
 - `layoutId` animates from **another** element's last rect to this element's current rect (cross-mount or cross-screen).
 
-The `transition` prop on either element controls the FLIP animation (spring by default; `'timing'` honored; `'decay'` downgrades to spring; reduced motion skips the transition).
+The **incoming** element's `transition` prop controls the FLIP animation (spring by default; `'timing'` honored; `'decay'` downgrades to spring; reduced motion skips the transition) — the outgoing element contributes only its last rect. Note it must be a top-level transition object (`transition={{ type: 'timing', duration: 250 }}`); a per-property map is ignored for the FLIP and the default spring applies.
 
 ### Caveats and current scope
 
@@ -1545,7 +1548,7 @@ Reanimated 4 removed `sharedTransitionTag` / `SharedTransition` entirely; `layou
 A provider that gates how descendant Motion primitives respond to the OS reduce-motion accessibility setting.
 
 :::tip Free accessibility win for migrators
-Apps moving from hand-rolled `useSharedValue` + `useAnimatedStyle` to Inertia primitives pick up reduce-motion compliance automatically — every `Motion.*` component subscribes to the OS setting via [`useShouldReduceMotion()`](#reading-the-resolved-value) without any per-component plumbing. If you previously had no reduce-motion handling, you have it now.
+Apps moving from hand-rolled `useSharedValue` + `useAnimatedStyle` to Inertia primitives pick up reduce-motion compliance automatically — every `Motion.*` component reads the OS setting via [`useShouldReduceMotion()`](#reading-the-resolved-value) without any per-component plumbing. If you previously had no reduce-motion handling, you have it now.
 :::
 
 ## Default — respect the OS
@@ -1598,7 +1601,7 @@ function MyComponent() {
 }
 ```
 
-`useShouldReduceMotion()` is what every Motion primitive uses internally. It subscribes to OS changes via Reanimated's `useReducedMotion()`, so toggling the accessibility setting at runtime re-renders subscribed primitives.
+`useShouldReduceMotion()` is what every Motion primitive uses internally. In `'user'` mode it reads the OS setting via Reanimated's `useReducedMotion()`, which captures the value **once at app start** — toggling the accessibility setting while the app is running takes effect on the next launch, not immediately. (`'never'` and `'always'` don't consult the OS at all, and changing the `reducedMotion` prop itself re-renders normally.)
 
 ---
 
@@ -1610,7 +1613,7 @@ A manual harness for the Phase-3 acceptance bar:
 
 The example app's **Perf bench** screen renders 1000 list rows with a press-state scale animation. A toggle flips the row implementation between Inertia (`Motion.Pressable` + `gesture`) and a hand-rolled equivalent (`Pressable` + `useSharedValue` + `useAnimatedStyle` + `withSpring`). The spring physics are byte-identical so the only difference is which library drives the shared value.
 
-The harness uses React Native's built-in `FlatList` so it runs in Expo Go without a custom dev client. For the canonical moti #322 / #336 reproduction (the issues were against FlashList specifically), swap `FlatList` → `@shopify/flash-list`'s `FlashList` in [example/screens/PerfBenchScreen.tsx](https://github.com/rootnative/inertia/blob/main/example/screens/PerfBenchScreen.tsx) and run a custom dev client (`pnpm --filter @rootnative/inertia-example android`). Same row code; the list-virtualization tax is held constant across both row variants either way.
+The harness uses React Native's built-in `FlatList` so it runs in Expo Go without a custom dev client. For the canonical moti #322 / #336 reproduction (the issues were against FlashList specifically), swap `FlatList` → `@shopify/flash-list`'s `FlashList` in [example/screens/PerfBenchScreen.tsx](https://github.com/rootnative/inertia/blob/main/example/screens/PerfBenchScreen.tsx) and run a custom dev client (`pnpm --filter @rootnative/inertia-example exec expo run:android`). Same row code; the list-virtualization tax is held constant across both row variants either way.
 
 ## What "within 5%" means
 
@@ -1621,7 +1624,7 @@ If Inertia regresses past 5%, the abstraction is leaking work onto the UI thread
 ## How to run
 
 1. **Real device.** Simulators don't reproduce the GPU/CPU pressure that surfaces frame drops. Use a mid-range Android (e.g. Pixel 6a or older). Plug into USB so React Native's PerfMonitor can attach.
-2. **Release build.** `pnpm --filter @rootnative/inertia-example android --variant release`. PerfMonitor numbers from the dev build are dominated by hot-reload and inspector overhead and won't track production behavior.
+2. **Release build.** `pnpm --filter @rootnative/inertia-example exec expo run:android --variant release` (the package's `android` script only starts the dev server — a release build needs `expo run:android`). PerfMonitor numbers from the dev build are dominated by hot-reload and inspector overhead and won't track production behavior.
 3. **Open the screen.** Tap **Perf bench** on the example app's home. The default build uses `FlatList`; see the swap recipe below if you need the canonical FlashList reproduction.
 4. **Enable PerfMonitor.** Open the dev menu (shake / volume keys), enable "Perf Monitor". JS frame rate and UI frame rate appear as overlays.
 5. **First pass — Inertia.** With the toggle on **Inertia**, scroll fast for ~10 seconds. Note the JS dropped-frame count and the UI dropped-frame count.
@@ -1645,7 +1648,7 @@ The two paths are:
 
 If Inertia regresses, suspect (in this order):
 
-1. Worklet recreation per render — should be memoized via `mergedSig` / `transitionSig`. Re-check the [memoization regression test](https://github.com/rootnative/inertia/blob/main/packages/core/src/__tests__/memoization.test.tsx).
+1. Worklet recreation per render — should be memoized via `baseSig` / `transitionSig`. Re-check the [memoization regression test](https://github.com/rootnative/inertia/blob/main/packages/core/src/__tests__/memoization.test.tsx).
 2. Animated style cost — ensure the worklet body doesn't allocate per frame.
 3. Resolver cost — `resolveAnimatableValue` runs on the JS thread, but per-render not per-frame. Check the effect dep array.
 
@@ -2086,7 +2089,7 @@ What collapsed:
 
 ## Drag / pan / swipe
 
-These wait for the [`@rootnative/inertia-gestures`](../gestures-adapter) adapter (PanGestureHandler under the hood). The hooks return ready-made shared values you wire into the same props — no `setNativeProps`, no manual `withDecay` after release.
+These are covered by the [`@rootnative/inertia-gestures`](../gestures-adapter) adapter (PanGestureHandler under the hood). The hooks return ready-made shared values you wire into the same props — no `setNativeProps`, no manual `withDecay` after release.
 
 ```tsx
 import { useDrag } from '@rootnative/inertia-gestures'
@@ -2230,8 +2233,8 @@ Some patterns are still better off as raw Reanimated:
 
 - **Frame-by-frame data viz** — d3-style charts that read shared values inside `useDerivedValue` and feed them into SVG props. The Inertia public surface targets `style` keys; SVG attribute interpolation lives in the hooks layer or in raw Reanimated.
 - **Custom physics simulations** — anything where you'd be reaching into `withDecay` callback signatures, `cancelAnimation`, or `runOnUI` directly. Drop down to the hooks.
-- **Layout / shared-element transitions** — deferred to v1.x. If you're animating list reordering or screen-to-screen hero transitions, keep using Reanimated's `Layout` API directly for now.
-- **Slider / continuous gesture range UI** — until [`@rootnative/inertia-gestures`](../gestures-adapter) covers the pattern (v0.2 still in flight), keep the hand-rolled PanResponder + `useSharedValue` flow.
+- **Style-prop-interpolating shared elements** — the [`layout` prop and `layoutId`](../layout) cover auto-layout and rect-only hero transitions, but interpolating `borderRadius` / colors between shared elements (and window-coordinate measurement across differently-offset parents) is v2 scope. For those cases, raw Reanimated is still the tool.
+- **Slider / continuous gesture range UI with exotic requirements** — [`useDrag`](../gestures-adapter) and [`useTouchDrag`](../api/hooks#usetouchdragoptions) cover the standard drag/slider shapes; keep the hand-rolled PanResponder + `useSharedValue` flow only when you need custom gesture arbitration those hooks don't express.
 
 The hooks layer is intentionally the same shape as Reanimated's so dropping down doesn't feel like switching tools.
 
@@ -2354,7 +2357,7 @@ The returned shared value sits at `0` when `active` is `false` and animates towa
 | -------------------------------------------------------------- | --------------------- |
 | `useBooleanSpring(active: boolean, config?: SpringTransition)` | `SharedValue<number>` |
 
-Config follows the same react-spring vocabulary as `useSpring` (`tension` / `friction` / `mass`); omit it for the library defaults. Reduced motion (`<MotionConfig reducedMotion>`) snaps to `0` / `1` rather than interpolating.
+Config follows the same react-spring vocabulary as `useSpring` (`tension` / `friction` / `mass`); omit it for the library defaults. Note that like `useSpring`, this hook does **not** consult `<MotionConfig reducedMotion>` — it always interpolates. If the value must respect reduced motion, drive it through `useAnimation` (which gates on the config) or gate the target yourself with `useShouldReduceMotion()`.
 
 **`useBooleanSpring` vs `useSpring(active ? 1 : 0)`.** Identical mechanics — `useBooleanSpring` is the named version of the pattern so the call site reads as the boolean it represents, not as a ternary. Reach for it whenever the source is a boolean prop and the target is a 0↔1 progress value to feed into `useShadow` / `useColorTransition` / `useTransform` / a hand-rolled `useAnimatedStyle`.
 
@@ -2711,7 +2714,7 @@ Every state key is optional. Values inside each state are a flat map of style ke
 import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
 ```
 
-**`useGestureLayer` vs the declarative `gesture` prop.** The prop layers states **additively** — pressing while hovered sums both layers' contributions. `useGestureLayer` layers them via **clamped-max** — pressing while hovered shows whichever target is stronger per-key, not the sum. The MD3 / iOS-translucent halo wants clamped-max so simultaneously hovered + pressed doesn't double the opacity into something visually wrong. Reach for the prop for additive button feedback (`{ scale: 0.96 }` on press composes cleanly with an opacity hover); reach for this hook when targets are state-layer overlays that need to top out at a single ceiling.
+**`useGestureLayer` vs the declarative `gesture` prop.** The prop composites states as a fixed **priority cascade** (`hovered → focused → focusVisible → pressed`) — when two layers are fully active, the value converges to the higher-priority layer's target, regardless of which is numerically stronger. `useGestureLayer` composites numerics via **clamped-max** — pressing while hovered shows whichever target is _stronger_ per-key, whatever its priority. The MD3 / iOS-translucent halo wants clamped-max so a weaker press target can't visually "dim" an active hover layer. Reach for the prop for ordinary button feedback (`{ scale: 0.96 }` on press layering over an opacity hover); reach for this hook when targets are state-layer overlays whose strongest value should win.
 
 **`useGestureLayer` vs `useGesture` + custom worklet.** `useGesture` returns the raw 0↔1 progress shared values. Use it for compositions this hook doesn't express — additive blends, per-key custom rules, multi-target outputs (e.g. a halo plus a separate ring that uses different math). `useGestureLayer` is the convenience layer for the one composition model it owns.
 

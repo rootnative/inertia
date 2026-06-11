@@ -28,7 +28,7 @@ export function Sheet({ isOpen }: { isOpen: boolean }) {
 }
 ```
 
-Annotate the variants map with `as const` so variant keys autocomplete on `animate`.
+Variant keys autocomplete on `animate` (and a typo is a compile error) with no annotation required — the map's keys are inferred at the JSX call site. `as const` is optional; add it only if you also want the variant _values_ readonly.
 
 ## Programmatic — `useVariants`
 
@@ -64,7 +64,7 @@ export function SaveButton() {
 }
 ```
 
-`useVariants(variants, initial?)` returns a `{ current, transitionTo, subscribe }` controller. `current` is the active key; `transitionTo(next)` re-applies the matching variant on every subscribed Motion primitive.
+`useVariants(variants, initial?)` returns a `{ current, transitionTo }` controller. `current` is the active key; `transitionTo(next)` re-applies the matching variant on every Motion primitive the controller is attached to. (The controller also carries an internal `subscribe` used by the primitives themselves — not part of the public contract.)
 
 When both `controller` and `animate` are set on the same primitive, the controller wins. Don't mix them — the typed contract is "either drive imperatively or declaratively, not both".
 
@@ -83,4 +83,4 @@ When both `controller` and `animate` are set on the same primitive, the controll
 />
 ```
 
-Per-variant transitions land in v0.2; today, switch the wrapping primitive's `transition` based on `current` if you need it.
+Per-variant transitions (a different transition per variant target) aren't supported; switch the wrapping primitive's `transition` based on the active key if you need that.

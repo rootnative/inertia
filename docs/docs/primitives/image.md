@@ -33,7 +33,7 @@ import { MotionImage } from '@rootnative/inertia/image'
 
 ## Animatable keys (alpha)
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `tintColor`.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `tintColor`, `backgroundColor`, `borderColor`.
 
 ```tsx
 <Motion.Image

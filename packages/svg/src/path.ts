@@ -208,7 +208,7 @@ export function flattenParams(segments: ReadonlyArray<PathSegment>): number[] {
 /**
  * Verify a target template matches the source. Returns `null` on match or a
  * descriptive error string on mismatch — callers throw in `__DEV__` and
- * silently snap to the target in production.
+ * skip the bad target in production (the path keeps its current `d`).
  */
 export function diffTemplate(
   source: PathTemplate,

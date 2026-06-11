@@ -262,9 +262,9 @@ export function createMotionComponent<C extends ComponentType<any>>(
 
     // Resolved reduced-motion preference for this subtree. When true, every
     // per-key transition is replaced with `no-animation` below, so values
-    // snap to target without interpolation. The hook also subscribes to OS
-    // changes (via Reanimated's `useReducedMotion`), so toggling the
-    // accessibility setting at runtime re-renders this component.
+    // snap to target without interpolation. In 'user' mode the OS setting is
+    // read via Reanimated's `useReducedMotion`, which captures the value once
+    // at app start — a runtime toggle takes effect on the next launch.
     const shouldReduceMotion = useShouldReduceMotion()
 
     // Pin the latest `onAnimationEnd` in a ref so the worklet callback always
