@@ -66,7 +66,7 @@ function Hero() {
       <div className={styles.heroInner}>
         <div className={styles.heroContent}>
           <span className={styles.eyebrow}>
-            v0.0.1-alpha · React Native · Reanimated 4
+            React Native · Reanimated 4
           </span>
           <h1 className={styles.heroTitle}>
             Declarative animations for React Native.

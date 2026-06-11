@@ -4,7 +4,7 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
-## [0.0.1-alpha.0] — 2026-05-07
+## [0.0.0-alpha.0]
 
 Initial alpha publish. The full v0.1 surface is in place; APIs are still subject to change before `0.1.0`.
 
@@ -29,5 +29,5 @@ Initial alpha publish. The full v0.1 surface is in place; APIs are still subject
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/v0.0.1-alpha.0...HEAD
-[0.0.1-alpha.0]: https://github.com/rootnative/inertia/releases/tag/v0.0.1-alpha.0
+[unreleased]: https://github.com/rootnative/inertia/compare/v0.0.0-alpha.0...HEAD
+[0.0.0-alpha.0]: https://github.com/rootnative/inertia/releases/tag/v0.0.0-alpha.0

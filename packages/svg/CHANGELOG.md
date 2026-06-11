@@ -6,11 +6,11 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
-## [0.0.1-alpha.6] — 2026-05-22
+## [0.0.0-alpha.0]
 
 ### Added
 
 - `MotionPath` over `react-native-svg`. Animatable: `d` (element-wise scalar interpolation on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/v0.0.1-alpha.6...HEAD
-[0.0.1-alpha.6]: https://github.com/rootnative/inertia/releases/tag/v0.0.1-alpha.6
+[unreleased]: https://github.com/rootnative/inertia/compare/v0.0.0-alpha.0...HEAD
+[0.0.0-alpha.0]: https://github.com/rootnative/inertia/releases/tag/v0.0.0-alpha.0

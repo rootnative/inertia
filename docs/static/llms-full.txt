@@ -8,7 +8,7 @@
 ---
 Inertia (`@rootnative/inertia`) is a thin, ergonomic wrapper around `react-native-reanimated`. Animations are expressed as props on a component — no shared values, no worklets, no `useAnimatedStyle` boilerplate. The vocabulary takes cues from **Framer Motion** (web) and **react-spring** (cross-platform).
 
-> **Status:** `0.0.1-alpha`. The full v0.1 surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, and the value-layer hooks. APIs may still shift before `0.1.0`; see the [roadmap](https://github.com/rootnative/inertia/blob/main/CLAUDE.md#roadmap) for graduation gates.
+> **Status:** `0.0.0-alpha`. The full v0.1 surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, and the value-layer hooks. APIs may still shift before `0.1.0`; see the [roadmap](https://github.com/rootnative/inertia/blob/main/CLAUDE.md#roadmap) for graduation gates.
 
 ## What you get
 

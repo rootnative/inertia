@@ -6,11 +6,11 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
-## [0.0.1-alpha.6] — 2026-05-22
+## [0.0.0-alpha.0]
 
 ### Added
 
 - `MotionLinearGradient` over `expo-linear-gradient`. Accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/v0.0.1-alpha.6...HEAD
-[0.0.1-alpha.6]: https://github.com/rootnative/inertia/releases/tag/v0.0.1-alpha.6
+[unreleased]: https://github.com/rootnative/inertia/compare/v0.0.0-alpha.0...HEAD
+[0.0.0-alpha.0]: https://github.com/rootnative/inertia/releases/tag/v0.0.0-alpha.0

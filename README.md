@@ -11,7 +11,6 @@
 
 > [Documentation](https://rootnative.github.io/inertia/) &nbsp;|&nbsp; [GitHub](https://github.com/rootnative/inertia)
 
-> **Status:** `0.0.1-alpha`. The published surface is intentionally small while `v0.1` acceptance criteria lock in. Pre-1.0 minor versions may break.
 
 ## Features
 

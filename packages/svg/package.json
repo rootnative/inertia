@@ -1,6 +1,6 @@
 {
   "name": "@rootnative/inertia-svg",
-  "version": "0.0.1-alpha.9",
+  "version": "0.0.0-alpha.0",
   "description": "Animatable SVG primitives (path morphing, fill/stroke) for @rootnative/inertia, built on react-native-svg.",
   "license": "MIT",
   "author": "RootNative",
@@ -58,7 +58,7 @@
     "prepublishOnly": "node ../../scripts/build-llms.mjs"
   },
   "peerDependencies": {
-    "@rootnative/inertia": ">=0.0.1-alpha.9",
+    "@rootnative/inertia": ">=0.0.0-alpha.0",
     "react": ">=19.0.0",
     "react-native": ">=0.81.0",
     "react-native-reanimated": ">=4.0.0",

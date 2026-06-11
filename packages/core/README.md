@@ -6,7 +6,7 @@
 
 Declarative animation primitives for React Native, built as a thin wrapper around [`react-native-reanimated`](https://docs.swmansion.com/react-native-reanimated/). Inspired by Framer Motion (web) and react-spring (cross-platform).
 
-> **Status:** `0.0.1-alpha`. Pre-1.0 minor versions may break — see the root [README](https://github.com/rootnative/inertia#versioning--release).
+> **Status:** `0.0.0-alpha`. Pre-1.0 minor versions may break — see the root [README](https://github.com/rootnative/inertia#versioning--release).
 
 ## Install
 
