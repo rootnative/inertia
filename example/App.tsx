@@ -1,13 +1,7 @@
 import { useState } from 'react'
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
+import { Motion } from '@rootnative/inertia'
 import { ColorScreen } from './screens/ColorScreen'
 import { DecayScreen } from './screens/DecayScreen'
 import { DragScreen } from './screens/DragScreen'
@@ -364,36 +358,95 @@ export default function App() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <StatusBar style="auto" />
-      <View style={styles.hero}>
+      <Motion.View
+        initial={{ opacity: 0, translateY: 16 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{
+          opacity: { type: 'timing', duration: 320 },
+          translateY: { type: 'spring', tension: 190, friction: 20 },
+        }}
+        style={styles.hero}
+      >
         <Text style={styles.eyebrow}>@rootnative/inertia</Text>
         <Text style={styles.title}>Example gallery</Text>
         <Text style={styles.subtitle}>
           One screen per piece of the v0.1 surface. Tap through to see each
           primitive, transition, and gesture in isolation.
         </Text>
-      </View>
+        <View style={styles.dotRow}>
+          {DOTS.map((dot, i) => (
+            <Motion.View
+              key={dot.key}
+              animate={{ translateY: [0, -7, 0] }}
+              transition={{
+                type: 'timing',
+                duration: 520,
+                delay: i * 160,
+                repeat: 'infinite',
+              }}
+              style={[styles.dot, dot.style]}
+            />
+          ))}
+          <Text style={styles.dotCaption}>this screen runs on Inertia too</Text>
+        </View>
+      </Motion.View>
 
-      {SECTIONS.map((section) => (
-        <View key={section.title} style={styles.section}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
+      {SECTIONS.map((section, sectionIndex) => (
+        <Motion.View
+          key={section.title}
+          initial={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{
+            opacity: {
+              type: 'timing',
+              duration: 280,
+              delay: 120 + sectionIndex * 90,
+            },
+            translateY: {
+              type: 'spring',
+              tension: 190,
+              friction: 20,
+              delay: 120 + sectionIndex * 90,
+            },
+          }}
+          style={styles.section}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <View style={styles.countChip}>
+              <Text style={styles.countChipLabel}>{section.links.length}</Text>
+            </View>
+          </View>
           <Text style={styles.sectionBlurb}>{section.blurb}</Text>
           <View style={styles.linkList}>
             {section.links.map((link) => (
-              <Pressable
+              <Motion.Pressable
                 key={link.route}
                 onPress={() => setRoute(link.route)}
-                style={({ pressed }) => [
-                  styles.link,
-                  pressed && styles.linkPressed,
-                ]}
+                gesture={{
+                  pressed: { scaleX: 0.97, scaleY: 0.97, opacity: 0.85 },
+                }}
+                transition={{
+                  scaleX: { type: 'spring', tension: 260, friction: 18 },
+                  scaleY: { type: 'spring', tension: 260, friction: 18 },
+                  opacity: { type: 'timing', duration: 100 },
+                }}
+                style={styles.link}
               >
-                <Text style={styles.linkLabel}>{link.label}</Text>
-                <Text style={styles.linkDescription}>{link.description}</Text>
-              </Pressable>
+                <View style={styles.linkText}>
+                  <Text style={styles.linkLabel}>{link.label}</Text>
+                  <Text style={styles.linkDescription}>{link.description}</Text>
+                </View>
+                <Text style={styles.linkArrow}>→</Text>
+              </Motion.Pressable>
             ))}
           </View>
-        </View>
+        </Motion.View>
       ))}
+
+      <Text style={styles.footer}>
+        v0.0.0-alpha.0 · React Native · Reanimated 4
+      </Text>
     </ScrollView>
   )
 }
@@ -401,15 +454,19 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8fafc',
   },
   content: {
-    paddingHorizontal: 24,
-    paddingTop: 72,
-    paddingBottom: 48,
-    gap: 32,
+    paddingHorizontal: 12,
+    paddingTop: 64,
+    paddingBottom: 40,
+    gap: 28,
   },
   hero: {
+    backgroundColor: '#111827',
+    borderRadius: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
     gap: 8,
   },
   eyebrow: {
@@ -417,19 +474,49 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    color: '#6b7280',
+    color: '#a5b4fc',
   },
   title: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#111827',
+    color: '#ffffff',
   },
   subtitle: {
     fontSize: 15,
     lineHeight: 22,
-    color: '#4b5563',
+    color: '#9ca3af',
+  },
+  dotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 14,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  dotIndigo: {
+    backgroundColor: '#818cf8',
+  },
+  dotGreen: {
+    backgroundColor: '#34d399',
+  },
+  dotAmber: {
+    backgroundColor: '#fbbf24',
+  },
+  dotCaption: {
+    marginLeft: 6,
+    fontSize: 12,
+    color: '#6b7280',
   },
   section: {
+    gap: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   sectionTitle: {
@@ -438,6 +525,19 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
     textTransform: 'uppercase',
     color: '#111827',
+  },
+  countChip: {
+    minWidth: 22,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 11,
+    backgroundColor: '#e0e7ff',
+    alignItems: 'center',
+  },
+  countChipLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4f46e5',
   },
   sectionBlurb: {
     fontSize: 13,
@@ -448,23 +548,45 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   link: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  linkText: {
+    flex: 1,
     gap: 4,
   },
-  linkPressed: {
-    backgroundColor: '#e5e7eb',
-  },
   linkLabel: {
-    fontSize: 17,
-    color: '#4f46e5',
+    fontSize: 16,
+    color: '#111827',
     fontWeight: '600',
   },
   linkDescription: {
     fontSize: 13,
-    color: '#4b5563',
+    color: '#6b7280',
     lineHeight: 18,
   },
+  linkArrow: {
+    fontSize: 17,
+    color: '#4f46e5',
+    fontWeight: '600',
+  },
+  footer: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#9ca3af',
+  },
 })
+
+const DOTS = [
+  { key: 'indigo', style: styles.dotIndigo },
+  { key: 'green', style: styles.dotGreen },
+  { key: 'amber', style: styles.dotAmber },
+] as const
