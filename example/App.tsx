@@ -32,7 +32,10 @@ import { TextScreen } from './screens/TextScreen'
 import { TouchDragScreen } from './screens/TouchDragScreen'
 import { TransformsScreen } from './screens/TransformsScreen'
 import { UseColorTransitionScreen } from './screens/UseColorTransitionScreen'
+import { UseGestureLayerScreen } from './screens/UseGestureLayerScreen'
 import { UseGestureScreen } from './screens/UseGestureScreen'
+import { UseMotionValueScreen } from './screens/UseMotionValueScreen'
+import { UseScrollScreen } from './screens/UseScrollScreen'
 import { UseShadowScreen } from './screens/UseShadowScreen'
 import { VariantsScreen } from './screens/VariantsScreen'
 import { ViewScreen } from './screens/ViewScreen'
@@ -56,6 +59,9 @@ type Route =
   | 'gesture'
   | 'use-color-transition'
   | 'use-gesture'
+  | 'use-gesture-layer'
+  | 'use-motion-value'
+  | 'use-scroll'
   | 'use-shadow'
   | 'pressable'
   | 'scroll-view'
@@ -87,6 +93,9 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'gesture',
   'use-color-transition',
   'use-gesture',
+  'use-gesture-layer',
+  'use-motion-value',
+  'use-scroll',
   'use-shadow',
   'pressable',
   'scroll-view',
@@ -159,16 +168,6 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
           'MD3 cascade — shadowOpacity / Radius / Offset / elevation',
       },
       {
-        route: 'use-shadow',
-        label: 'useShadow',
-        description: 'value-layer shadow tween driven by any progress source',
-      },
-      {
-        route: 'use-color-transition',
-        label: 'useColorTransition',
-        description: 'value-layer color tween for a single color channel',
-      },
-      {
         route: 'linear-gradient',
         label: 'MotionLinearGradient',
         description: 'animatable gradient via @rootnative/inertia-gradients',
@@ -217,6 +216,32 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
     ],
   },
   {
+    title: 'Value layer',
+    blurb: 'Escape-hatch hooks for driving animation outside the props.',
+    links: [
+      {
+        route: 'use-motion-value',
+        label: 'useMotionValue + useTransform',
+        description: 'JS-owned shared value with derived scale and color',
+      },
+      {
+        route: 'use-scroll',
+        label: 'useScroll',
+        description: 'scroll offset interpolated onto a collapsing header',
+      },
+      {
+        route: 'use-shadow',
+        label: 'useShadow',
+        description: 'value-layer shadow tween driven by any progress source',
+      },
+      {
+        route: 'use-color-transition',
+        label: 'useColorTransition',
+        description: 'value-layer color tween for a single color channel',
+      },
+    ],
+  },
+  {
     title: 'Gestures',
     blurb: 'The gesture prop and the optional gesture-handler adapter.',
     links: [
@@ -229,6 +254,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         route: 'use-gesture',
         label: 'useGesture',
         description: 'hook-form for siblings + multi-target compositions',
+      },
+      {
+        route: 'use-gesture-layer',
+        label: 'useGestureLayer',
+        description: 'MD3 state-layer halo with clamped-max composition',
       },
       {
         route: 'md3-switch',
@@ -313,6 +343,11 @@ export default function App() {
   if (route === 'use-color-transition')
     return <UseColorTransitionScreen onBack={goHome} />
   if (route === 'use-gesture') return <UseGestureScreen onBack={goHome} />
+  if (route === 'use-gesture-layer')
+    return <UseGestureLayerScreen onBack={goHome} />
+  if (route === 'use-motion-value')
+    return <UseMotionValueScreen onBack={goHome} />
+  if (route === 'use-scroll') return <UseScrollScreen onBack={goHome} />
   if (route === 'use-shadow') return <UseShadowScreen onBack={goHome} />
   if (route === 'pressable') return <PressableScreen onBack={goHome} />
   if (route === 'scroll-view') return <ScrollViewScreen onBack={goHome} />

@@ -25,16 +25,23 @@ export interface UseScrollResult {
  * ```tsx
  * const { scrollY, onScroll } = useScroll()
  * const headerOpacity = useTransform(scrollY, [0, 100], [1, 0])
+ * const headerStyle = useAnimatedStyle(() => ({
+ *   opacity: headerOpacity.value,
+ * }))
  *
  * return (
  *   <>
- *     <Motion.View animate={{ opacity: headerOpacity }} />
+ *     <Animated.View style={headerStyle} />
  *     <Motion.ScrollView onScroll={onScroll} scrollEventThrottle={16}>
  *       …
  *     </Motion.ScrollView>
  *   </>
  * )
  * ```
+ *
+ * The derived shared values are consumed through Reanimated interop
+ * (`useAnimatedStyle` / `useDerivedValue`) — the declarative `animate` prop
+ * takes target values, not shared values.
  *
  * Scroll events fire on the UI thread, so `scrollX` / `scrollY` are safe to
  * read from any worklet (`useAnimatedStyle`, `useDerivedValue`,

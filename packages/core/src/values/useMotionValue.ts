@@ -26,6 +26,17 @@ import { useSharedValue, type SharedValue } from 'react-native-reanimated'
  * onPress={() => { x.value = 100 }}
  * ```
  */
+// Overloads widen primitive literals: with a bare generic constrained to
+// `number | string`, TS skips literal widening, so `useMotionValue(0)` would
+// infer `SharedValue<0>` and reject every subsequent write. The primitive
+// overloads make `useMotionValue(0)` / `useMotionValue('#fff')` come back as
+// `SharedValue<number>` / `SharedValue<string>`; the generic overload stays
+// last for callers who want an explicit narrower type (e.g. a string union).
+export function useMotionValue(initial: number): SharedValue<number>
+export function useMotionValue(initial: string): SharedValue<string>
+export function useMotionValue<T extends number | string>(
+  initial: T,
+): SharedValue<T>
 export function useMotionValue<T extends number | string>(
   initial: T,
 ): SharedValue<T> {
