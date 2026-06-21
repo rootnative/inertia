@@ -11,7 +11,6 @@
 
 > [Documentation](https://rootnative.github.io/inertia/) &nbsp;|&nbsp; [GitHub](https://github.com/rootnative/inertia)
 
-
 ## Features
 
 - Props-driven API — `initial`, `animate`, `exit`, `transition`, `variants`, `gesture`, `controller`, `onAnimationEnd`

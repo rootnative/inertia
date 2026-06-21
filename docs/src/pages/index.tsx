@@ -65,9 +65,7 @@ function Hero() {
       <div className={styles.heroGrid} aria-hidden />
       <div className={styles.heroInner}>
         <div className={styles.heroContent}>
-          <span className={styles.eyebrow}>
-            React Native · Reanimated 4
-          </span>
+          <span className={styles.eyebrow}>React Native · Reanimated 4</span>
           <h1 className={styles.heroTitle}>
             Declarative animations for React Native.
           </h1>
