@@ -547,7 +547,7 @@ See [Presence](../presence) for the higher-level prop-driven usage.
 
 ## `buildReleaseAnimation(transition, toValue)`
 
-Worklet-safe single-step animation builder. Mirrors a subset of the internal `resolveTransition` for the UI-thread path where the transition config is picked at gesture-release time, not at render time. Supports `spring` / `timing` / `decay` / `no-animation`; sequences, top-level `repeat`, and easing-function auto-worklet-wrapping are not.
+Worklet-safe single-step animation builder. Mirrors a subset of [`resolveTransition`](./transition-utilities.md#resolvetransitionconfig-tovalue-callback) for the UI-thread path where the transition config is picked at gesture-release time, not at render time. Supports `spring` / `timing` / `decay` / `no-animation`; sequences, top-level `repeat`, and easing-function auto-worklet-wrapping are not.
 
 ```ts
 import { buildReleaseAnimation } from '@rootnative/inertia'

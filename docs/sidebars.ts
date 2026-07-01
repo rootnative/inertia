@@ -39,7 +39,11 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'API',
       collapsed: false,
-      items: ['api/hooks', 'api/create-motion-component'],
+      items: [
+        'api/hooks',
+        'api/create-motion-component',
+        'api/transition-utilities',
+      ],
     },
   ],
 }

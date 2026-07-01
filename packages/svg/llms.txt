@@ -45,6 +45,15 @@ function Toggle({ open }) {
 }
 ```
 
+The package also exports a `MotionSvg` namespace for autocomplete-friendly grouping — `MotionSvg.Path` and `MotionPath` point at the same component, so pick whichever import style matches your codebase:
+
+```tsx
+import { MotionSvg } from '@rootnative/inertia-svg'
+;<MotionSvg.Path d={SOURCE_D} animate={{ d: TARGET_D }} />
+```
+
+Additional shape primitives (`Circle`, `Rect`, `Line`, `Ellipse`) will join the namespace in a follow-up release once the path morphing API is validated.
+
 The static `d` prop is required. Its **command sequence is locked at first render** — every target `d` you pass via `animate` or `initial` must produce the same command letters in the same order after implicit-repeat expansion. Element-wise scalar interpolation is the entire morphing model.
 
 ## Structural compatibility
