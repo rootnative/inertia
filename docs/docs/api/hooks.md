@@ -70,11 +70,13 @@ function Chained() {
 }
 ```
 
-| Signature                                                                     | Returns               |
-| ----------------------------------------------------------------------------- | --------------------- |
-| `useSpring(target: number \| SharedValue<number>, config?: SpringTransition)` | `SharedValue<number>` |
+| Signature                                                                                       | Returns               |
+| ----------------------------------------------------------------------------------------------- | --------------------- |
+| `useSpring(target: number \| SharedValue<number>, config?: SpringTransition \| TransitionName)` | `SharedValue<number>` |
 
 Config accepts every field of [`SpringTransition`](../transitions): `tension`, `friction`, `mass`, `velocity`, `restSpeedThreshold`, `restDisplacementThreshold`. Reanimated's raw `stiffness` / `damping` names are never accepted — that conversion is private to the library.
+
+`config` also accepts a [named transition](../motion-config#named-transitions). Because the hook is spring-only, the name must be registered as a spring — a timing / decay / no-animation name warns in dev and falls back to the default spring (use `useAnimation` to honor the registered type). The same applies to `useBooleanSpring`.
 
 ## `useBooleanSpring(active, config?)`
 
@@ -105,9 +107,9 @@ function Card({ raised }: { raised: boolean }) {
 
 The returned shared value sits at `0` when `active` is `false` and animates toward `1` when it flips to `true` (and back on the reverse flip). The spring re-runs whenever `active` changes.
 
-| Signature                                                      | Returns               |
-| -------------------------------------------------------------- | --------------------- |
-| `useBooleanSpring(active: boolean, config?: SpringTransition)` | `SharedValue<number>` |
+| Signature                                                                        | Returns               |
+| -------------------------------------------------------------------------------- | --------------------- |
+| `useBooleanSpring(active: boolean, config?: SpringTransition \| TransitionName)` | `SharedValue<number>` |
 
 Config follows the same react-spring vocabulary as `useSpring` (`tension` / `friction` / `mass`); omit it for the library defaults. Note that like `useSpring`, this hook does **not** consult `<MotionConfig reducedMotion>` — it always interpolates. If the value must respect reduced motion, drive it through `useAnimation` (which gates on the config) or gate the target yourself with `useShouldReduceMotion()`.
 
@@ -285,11 +287,13 @@ const slide = useAnimation(1, {
 })
 ```
 
-| Signature                                                     | Returns               |
-| ------------------------------------------------------------- | --------------------- |
-| `useAnimation(target: number, transition?: TransitionConfig)` | `SharedValue<number>` |
+| Signature                                                                       | Returns               |
+| ------------------------------------------------------------------------------- | --------------------- |
+| `useAnimation(target: number, transition?: TransitionConfig \| TransitionName)` | `SharedValue<number>` |
 
 The hook re-runs the animation whenever `target` changes or the transition's structural signature changes. A fresh literal each render (`{ type: 'timing', duration: 200 }` rebuilt on every call) doesn't re-fire — only structural changes do. Reduced motion (`<MotionConfig reducedMotion>`) collapses the transition to `'no-animation'` and snaps the value.
+
+`transition` also accepts a [named transition](../motion-config#named-transitions); unlike the spring-only hooks, the registered config's type is honored whatever it is.
 
 **`useAnimation` vs `useSpring`.** They overlap on the spring case — `useAnimation(target, { type: 'spring', ... })` and `useSpring(target, { ... })` produce the same animation. Prefer `useSpring` when you only want spring physics; it also accepts a `SharedValue<number>` as the target for UI-thread-reactive smoothing (a gesture-driven smoothing source). `useAnimation` is the general-purpose hook — accepts any `TransitionConfig` including `timing`, `decay`, `no-animation`, and `repeat` — but is JS-thread-driven only.
 
@@ -384,6 +388,7 @@ Transitions follow the same shape as the `gesture` prop's accompanying `transiti
 
 - `useGesture({ type: 'timing', duration: 150 })` — same config for every layer.
 - `useGesture({ pressed: {...}, hovered: {...}, focused: {...}, focusVisible: {...} })` — per-layer.
+- A [named transition](../motion-config#named-transitions) is accepted in both positions: `useGesture('state-press')` or `useGesture({ pressed: 'state-press' })`.
 - Layers without an explicit transition fall back to the library default spring.
 - `<MotionConfig reducedMotion>` is respected — when reduced motion is active, every transition collapses to `'no-animation'` and progress snaps instead of interpolating.
 
@@ -450,10 +455,10 @@ Every state key is optional. Values inside each state are a flat map of style ke
 
 ### Options
 
-| Field        | Type                                          | Notes                                                                                                                                                                                                                                                                                                                     |
-| ------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `disabled`   | `boolean`                                     | Activates the `disabled` layer (or `rest` if `disabled` is undefined).                                                                                                                                                                                                                                                    |
-| `transition` | `TransitionConfig \| GestureLayerTransitions` | Forwarded to the underlying `useGesture`. Either one config for every gesture layer, or per-layer (`{ pressed, focused, focusVisible, hovered }`). Reduced motion collapses every transition to `'no-animation'`. Per-layer transitions don't apply to `disabled` — it uses the top-level config (or the default spring). |
+| Field        | Type                                                            | Notes                                                                                                                                                                                                                                                                                                                     |
+| ------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `disabled`   | `boolean`                                                       | Activates the `disabled` layer (or `rest` if `disabled` is undefined).                                                                                                                                                                                                                                                    |
+| `transition` | `TransitionConfig \| TransitionName \| GestureLayerTransitions` | Forwarded to the underlying `useGesture`. Either one config for every gesture layer, or per-layer (`{ pressed, focused, focusVisible, hovered }`). Reduced motion collapses every transition to `'no-animation'`. Per-layer transitions don't apply to `disabled` — it uses the top-level config (or the default spring). |
 
 ### Returns
 
@@ -506,11 +511,12 @@ Read the active `<MotionConfig>` value:
 ```ts
 import { useMotionConfig } from '@rootnative/inertia'
 
-const { reducedMotion } = useMotionConfig()
-// 'user' | 'never' | 'always'
+const { reducedMotion, transitions } = useMotionConfig()
+// reducedMotion: 'user' | 'never' | 'always'
+// transitions: the merged named-transition registry from ancestor providers
 ```
 
-Returns the default (`{ reducedMotion: 'user' }`) when no provider is in the tree.
+Returns the default (`{ reducedMotion: 'user', transitions: {} }`) when no provider is in the tree.
 
 ## `useShouldReduceMotion()`
 

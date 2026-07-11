@@ -521,6 +521,22 @@ A `transition` prop decides **how** an `animate` value reaches its target. The d
 />
 ```
 
+## Named transitions
+
+Anywhere a config object is accepted — top-level, per-property, per gesture layer, the `layout` prop, and the value-layer hooks — a name registered on the nearest [`<MotionConfig transitions>`](./motion-config#named-transitions) is accepted too:
+
+```tsx
+<MotionConfig transitions={{ selection: { type: 'spring', tension: 380, friction: 33 } }}>
+  <Motion.View animate={{ scale: 1 }} transition="selection" />
+  <Motion.View
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ opacity: { type: 'timing', duration: 150 }, scale: 'selection' }}
+  />
+</MotionConfig>
+```
+
+Unknown names warn in development and fall back to the default spring. See [MotionConfig → Named transitions](./motion-config#named-transitions) for merge semantics and typed-name augmentation.
+
 ## Types
 
 ### `'spring'` (default)
@@ -1554,7 +1570,7 @@ Reanimated 4 removed `sharedTransitionTag` / `SharedTransition` entirely; `layou
 
 # MotionConfig
 
-A provider that gates how descendant Motion primitives respond to the OS reduce-motion accessibility setting.
+A provider for subtree-wide animation config: how descendant Motion primitives respond to the OS reduce-motion accessibility setting, and a registry of [named transitions](#named-transitions) usable anywhere a transition config is accepted.
 
 :::tip Free accessibility win for migrators
 Apps moving from hand-rolled `useSharedValue` + `useAnimatedStyle` to Inertia primitives pick up reduce-motion compliance automatically — every `Motion.*` component reads the OS setting via [`useShouldReduceMotion()`](#reading-the-resolved-value) without any per-component plumbing. If you previously had no reduce-motion handling, you have it now.
@@ -1594,6 +1610,74 @@ export function App() {
     <CriticalOnboardingFlow />
   </MotionConfig>
 </MotionConfig>
+```
+
+## Named transitions
+
+`transitions` registers named transition configs for the subtree. Every place that accepts a `TransitionConfig` also accepts a registered name: the `transition` prop (top-level **and** per-property / per gesture layer), the `layout` prop, and the value-layer hooks (`useAnimation`, `useSpring`, `useBooleanSpring`, `useGesture`, `useGestureLayer`).
+
+```tsx
+<MotionConfig
+  transitions={{
+    'state-hover': { type: 'timing', duration: 150 },
+    'state-press': { type: 'timing', duration: 100 },
+    selection: { type: 'spring', tension: 380, friction: 33 },
+  }}
+>
+  {/* Anywhere below the provider: */}
+  <Motion.View animate={{ scale: isSelected ? 1 : 0.8 }} transition="selection" />
+  <Motion.View
+    animate={{ opacity: 1, translateY: 0 }}
+    transition={{ opacity: 'state-hover', translateY: 'selection' }}
+  />
+</MotionConfig>
+```
+
+```ts
+const progress = useBooleanSpring(checked, 'selection')
+const fade = useAnimation(visible ? 1 : 0, 'state-hover')
+```
+
+The names are **your** vocabulary — design-system tokens, semantic roles, whatever your app standardizes on. Inertia ships no presets; the registry is the mechanism that lets a theme file (MD3, iOS-style, Fluent, your own) be the single source of truth for motion values instead of copy-pasted config objects at every call site.
+
+Semantics:
+
+- **Nearest provider wins.** Names resolve against the merged registry of all ancestor `<MotionConfig>` providers.
+- **Nested providers merge.** A child provider's `transitions` map merges into the ancestor registry; same-named entries are overridden by the child.
+- **Unknown names degrade softly.** An unregistered name warns in development and falls back to the library default spring — the animation still runs.
+- **Spring-only hooks stay spring-only.** `useSpring` / `useBooleanSpring` accept names, but a name registered as `timing` / `decay` / `no-animation` warns in dev and falls back to the default spring. Use `useAnimation` when the named transition's type should be honored.
+
+### Typed names (optional)
+
+Out of the box, any string is accepted where a name is (`TransitionName` is `string`). To get autocomplete and compile-time typo checking, augment the `RegisteredTransitions` interface with your registry's keys:
+
+```ts
+// motion.d.ts (anywhere in your app's include path)
+import type { TransitionConfig } from '@rootnative/inertia'
+
+declare module '@rootnative/inertia' {
+  interface RegisteredTransitions {
+    'state-hover': TransitionConfig
+    'state-press': TransitionConfig
+    selection: TransitionConfig
+  }
+}
+```
+
+With the augmentation in place, `transition="selectoin"` is a compile error. The value type is ignored — only the keys matter.
+
+### Consuming the registry from custom components
+
+Adapter packages and custom animated components can support names on their own surface with `useNamedTransitions()` + `resolveNamedTransition()`:
+
+```ts
+import { resolveNamedTransition, useNamedTransitions } from '@rootnative/inertia'
+
+function useMyAnimatedThing(transition?: TransitionConfig | TransitionName) {
+  const registry = useNamedTransitions()
+  const config = resolveNamedTransition(transition, registry)
+  // config is a concrete TransitionConfig | undefined
+}
 ```
 
 ## Reading the resolved value
@@ -2329,9 +2413,11 @@ function Chained() {
 
 | Signature                                                                     | Returns               |
 | ----------------------------------------------------------------------------- | --------------------- |
-| `useSpring(target: number \| SharedValue<number>, config?: SpringTransition)` | `SharedValue<number>` |
+| `useSpring(target: number \| SharedValue<number>, config?: SpringTransition \| TransitionName)` | `SharedValue<number>` |
 
 Config accepts every field of [`SpringTransition`](../transitions): `tension`, `friction`, `mass`, `velocity`, `restSpeedThreshold`, `restDisplacementThreshold`. Reanimated's raw `stiffness` / `damping` names are never accepted — that conversion is private to the library.
+
+`config` also accepts a [named transition](../motion-config#named-transitions). Because the hook is spring-only, the name must be registered as a spring — a timing / decay / no-animation name warns in dev and falls back to the default spring (use `useAnimation` to honor the registered type). The same applies to `useBooleanSpring`.
 
 ## `useBooleanSpring(active, config?)`
 
@@ -2364,7 +2450,7 @@ The returned shared value sits at `0` when `active` is `false` and animates towa
 
 | Signature                                                      | Returns               |
 | -------------------------------------------------------------- | --------------------- |
-| `useBooleanSpring(active: boolean, config?: SpringTransition)` | `SharedValue<number>` |
+| `useBooleanSpring(active: boolean, config?: SpringTransition \| TransitionName)` | `SharedValue<number>` |
 
 Config follows the same react-spring vocabulary as `useSpring` (`tension` / `friction` / `mass`); omit it for the library defaults. Note that like `useSpring`, this hook does **not** consult `<MotionConfig reducedMotion>` — it always interpolates. If the value must respect reduced motion, drive it through `useAnimation` (which gates on the config) or gate the target yourself with `useShouldReduceMotion()`.
 
@@ -2544,9 +2630,11 @@ const slide = useAnimation(1, {
 
 | Signature                                                     | Returns               |
 | ------------------------------------------------------------- | --------------------- |
-| `useAnimation(target: number, transition?: TransitionConfig)` | `SharedValue<number>` |
+| `useAnimation(target: number, transition?: TransitionConfig \| TransitionName)` | `SharedValue<number>` |
 
 The hook re-runs the animation whenever `target` changes or the transition's structural signature changes. A fresh literal each render (`{ type: 'timing', duration: 200 }` rebuilt on every call) doesn't re-fire — only structural changes do. Reduced motion (`<MotionConfig reducedMotion>`) collapses the transition to `'no-animation'` and snaps the value.
+
+`transition` also accepts a [named transition](../motion-config#named-transitions); unlike the spring-only hooks, the registered config's type is honored whatever it is.
 
 **`useAnimation` vs `useSpring`.** They overlap on the spring case — `useAnimation(target, { type: 'spring', ... })` and `useSpring(target, { ... })` produce the same animation. Prefer `useSpring` when you only want spring physics; it also accepts a `SharedValue<number>` as the target for UI-thread-reactive smoothing (a gesture-driven smoothing source). `useAnimation` is the general-purpose hook — accepts any `TransitionConfig` including `timing`, `decay`, `no-animation`, and `repeat` — but is JS-thread-driven only.
 
@@ -2641,6 +2729,7 @@ Transitions follow the same shape as the `gesture` prop's accompanying `transiti
 
 - `useGesture({ type: 'timing', duration: 150 })` — same config for every layer.
 - `useGesture({ pressed: {...}, hovered: {...}, focused: {...}, focusVisible: {...} })` — per-layer.
+- A [named transition](../motion-config#named-transitions) is accepted in both positions: `useGesture('state-press')` or `useGesture({ pressed: 'state-press' })`.
 - Layers without an explicit transition fall back to the library default spring.
 - `<MotionConfig reducedMotion>` is respected — when reduced motion is active, every transition collapses to `'no-animation'` and progress snaps instead of interpolating.
 
@@ -2710,7 +2799,7 @@ Every state key is optional. Values inside each state are a flat map of style ke
 | Field        | Type                                          | Notes                                                                                                                                                                                                                                                                                                                     |
 | ------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `disabled`   | `boolean`                                     | Activates the `disabled` layer (or `rest` if `disabled` is undefined).                                                                                                                                                                                                                                                    |
-| `transition` | `TransitionConfig \| GestureLayerTransitions` | Forwarded to the underlying `useGesture`. Either one config for every gesture layer, or per-layer (`{ pressed, focused, focusVisible, hovered }`). Reduced motion collapses every transition to `'no-animation'`. Per-layer transitions don't apply to `disabled` — it uses the top-level config (or the default spring). |
+| `transition` | `TransitionConfig \| TransitionName \| GestureLayerTransitions` | Forwarded to the underlying `useGesture`. Either one config for every gesture layer, or per-layer (`{ pressed, focused, focusVisible, hovered }`). Reduced motion collapses every transition to `'no-animation'`. Per-layer transitions don't apply to `disabled` — it uses the top-level config (or the default spring). |
 
 ### Returns
 
@@ -2763,11 +2852,12 @@ Read the active `<MotionConfig>` value:
 ```ts
 import { useMotionConfig } from '@rootnative/inertia'
 
-const { reducedMotion } = useMotionConfig()
-// 'user' | 'never' | 'always'
+const { reducedMotion, transitions } = useMotionConfig()
+// reducedMotion: 'user' | 'never' | 'always'
+// transitions: the merged named-transition registry from ancestor providers
 ```
 
-Returns the default (`{ reducedMotion: 'user' }`) when no provider is in the tree.
+Returns the default (`{ reducedMotion: 'user', transitions: {} }`) when no provider is in the tree.
 
 ## `useShouldReduceMotion()`
 
@@ -2937,7 +3027,7 @@ The JS-thread resolver functions the Motion primitives are built on, exported fo
 
 Reach for this layer when a component animates something the core primitives can't reach (SVG props, gradient stops, any non-`style` target) but you still want it to accept the standard `transition={{ type: 'spring', tension: 180 }}` shape instead of inventing your own config.
 
-All three run on the **JS thread** — call them from render, effects, or event handlers, and assign the result to a shared value. The baked animation executes on the UI thread; the resolution itself never happens at frame time. (For picking a transition inside a gesture-release **worklet**, see [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue) — that's the UI-thread counterpart to `resolveTransition`.)
+All of them run on the **JS thread** — call them from render, effects, or event handlers, and assign the result to a shared value. The baked animation executes on the UI thread; the resolution itself never happens at frame time. (For picking a transition inside a gesture-release **worklet**, see [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue) — that's the UI-thread counterpart to `resolveTransition`.)
 
 ## `resolveTransition(config, toValue, callback?)`
 
@@ -3056,6 +3146,28 @@ sv.value = withTiming(1, {
 You only need this when calling `withTiming` yourself with user-supplied easing. `resolveTransition` and `resolveAnimatableValue` already run every `easing` through it, as do all the Motion primitives.
 
 The wrapped function must be **pure** — no JS-thread captured refs, no shared mutable state, no calls to non-worklet APIs. The wrapper carries the user function across the worklet boundary via closure; anything impure it closes over will be stale or crash on the UI thread.
+
+## `resolveNamedTransition(input, registry)`
+
+Resolve a `TransitionConfig | TransitionName` input into a concrete config. A config object passes through untouched; a name is looked up in `registry` — unknown names warn in dev and fall back to the library default spring. Pair it with `useNamedTransitions()` (which reads the merged registry off the nearest [`<MotionConfig transitions>`](../motion-config#named-transitions)) to make a custom component accept registered names wherever it accepts a config:
+
+```tsx
+import {
+  resolveNamedTransition,
+  resolveTransition,
+  useNamedTransitions,
+  type TransitionInput,
+} from '@rootnative/inertia'
+
+function useMyAnimatedProp(target: number, transition?: TransitionInput) {
+  const registry = useNamedTransitions()
+  const config = resolveNamedTransition(transition, registry)
+  // config: TransitionConfig | undefined — feed it to resolveTransition
+  sv.value = resolveTransition(config, target)
+}
+```
+
+This is how the Motion primitives and value-layer hooks support `transition="selection"` internally; adapter packages use the same two calls to join the registry.
 
 ## Which layer to use
 

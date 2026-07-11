@@ -1,12 +1,17 @@
 import { useEffect } from 'react'
 import { useSharedValue, type SharedValue } from 'react-native-reanimated'
-import { useShouldReduceMotion } from '../config'
+import {
+  resolveNamedTransition,
+  useNamedTransitions,
+  useShouldReduceMotion,
+} from '../config'
 import { resolveTransition, stableSig } from '../transitions'
-import { type TransitionConfig } from '../types'
+import { type TransitionInput } from '../types'
 
 /**
  * Drive a `SharedValue<number>` toward `target` with **any** transition shape
- * — spring, timing, decay, or no-animation. The general-purpose value-layer
+ * — spring, timing, decay, or no-animation — or a `TransitionName` registered
+ * on the nearest `<MotionConfig transitions>`. The general-purpose value-layer
  * hook: reach for it when you need raw `useSharedValue + useEffect + withX`
  * outside the declarative `animate` flow.
  *
@@ -50,16 +55,17 @@ import { type TransitionConfig } from '../types'
  */
 export function useAnimation(
   target: number,
-  transition?: TransitionConfig,
+  transition?: TransitionInput,
 ): SharedValue<number> {
   const output = useSharedValue<number>(target)
   const shouldReduceMotion = useShouldReduceMotion()
-  const cfgSig = stableSig(transition)
+  const resolved = resolveNamedTransition(transition, useNamedTransitions())
+  const cfgSig = stableSig(resolved)
 
   useEffect(() => {
     const cfg = shouldReduceMotion
       ? ({ type: 'no-animation' } as const)
-      : (transition ?? ({ type: 'spring' } as const))
+      : (resolved ?? ({ type: 'spring' } as const))
     output.value = resolveTransition(cfg, target) as never
     // `output` is identity-stable per hook instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps

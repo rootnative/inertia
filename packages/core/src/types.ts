@@ -78,6 +78,57 @@ export type TransitionConfig =
   | NoAnimationTransition
 
 /**
+ * Augmentation point for typed named transitions. Empty by default — the
+ * registry is data fed to `<MotionConfig transitions={...}>` at runtime, so
+ * out of the box any string is accepted wherever a `TransitionName` is.
+ *
+ * Consumers who want their registered names to autocomplete (and typos to be
+ * compile errors) augment this interface with their design system's names:
+ *
+ * ```ts
+ * declare module '@rootnative/inertia' {
+ *   interface RegisteredTransitions {
+ *     'state-hover': TransitionConfig
+ *     'selection': TransitionConfig
+ *   }
+ * }
+ * ```
+ *
+ * The value type is ignored — only the keys matter. Inertia itself never
+ * declares a name here: presets are consumer data, not library surface.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface RegisteredTransitions {}
+
+/**
+ * A named transition registered on the nearest `<MotionConfig transitions>`.
+ * Accepted anywhere a `TransitionConfig` is: the `transition` prop (top-level
+ * and per-property), the `layout` prop, and the value-layer hooks. Resolution
+ * happens on the JS thread against the nearest provider; unknown names warn
+ * in dev and fall back to the library default spring.
+ *
+ * Plain `string` until `RegisteredTransitions` is augmented; with an
+ * augmentation in place it narrows to the registered keys.
+ */
+export type TransitionName = keyof RegisteredTransitions extends never
+  ? string
+  : keyof RegisteredTransitions & string
+
+/**
+ * The registry shape accepted by `<MotionConfig transitions={...}>`: named
+ * `TransitionConfig`s. Names are consumer vocabulary (design tokens, semantic
+ * roles); Inertia ships no presets.
+ */
+export type NamedTransitions = Partial<Record<TransitionName, TransitionConfig>>
+
+/**
+ * A transition given either inline (`TransitionConfig`) or by registered name
+ * (`TransitionName`). This is the input type everywhere the public surface
+ * accepts a single transition.
+ */
+export type TransitionInput = TransitionConfig | TransitionName
+
+/**
  * Repeat config — one shape, not three flags. Default `alternate: true`.
  */
 export type RepeatConfig =
@@ -91,7 +142,7 @@ export type RepeatConfig =
  * here.
  */
 export type PerPropertyTransition<S> = {
-  [K in keyof S]?: TransitionConfig
+  [K in keyof S]?: TransitionInput
 }
 
 /**
@@ -104,14 +155,14 @@ export type PerPropertyTransition<S> = {
  * collide with the primitive's inferred style keys.
  */
 export interface GestureLayerTransitions {
-  pressed?: TransitionConfig
-  focused?: TransitionConfig
-  focusVisible?: TransitionConfig
-  hovered?: TransitionConfig
+  pressed?: TransitionInput
+  focused?: TransitionInput
+  focusVisible?: TransitionInput
+  hovered?: TransitionInput
 }
 
 export type Transition<S> =
-  | TransitionConfig
+  | TransitionInput
   | (PerPropertyTransition<S> & GestureLayerTransitions)
 
 /**
@@ -293,7 +344,9 @@ export interface MotionProps<C, V extends VariantsMap<C> = VariantsMap<C>> {
   gesture?: GestureSubStates<C>
   /**
    * Per-property or top-level transition config. Per-property entries take
-   * precedence over the top-level transition.
+   * precedence over the top-level transition. Anywhere a config object is
+   * accepted (top-level, per-property, per gesture layer) a `TransitionName`
+   * registered on the nearest `<MotionConfig transitions>` is accepted too.
    */
   transition?: Transition<AnimateStyle<C>>
   /**
@@ -305,6 +358,8 @@ export interface MotionProps<C, V extends VariantsMap<C> = VariantsMap<C>> {
    * - `true` — animate with the library's default spring.
    * - `TransitionConfig` — spring (react-spring vocab) or timing config; the
    *   resolver bridges to Reanimated's `LinearTransition` builder.
+   * - `TransitionName` — a name registered on the nearest
+   *   `<MotionConfig transitions>`.
    * - omitted / `false` — no layout animation (default).
    *
    * Only `'spring'` / `'timing'` / `'no-animation'` map to layout transitions
@@ -316,7 +371,7 @@ export interface MotionProps<C, V extends VariantsMap<C> = VariantsMap<C>> {
    * own layout changes, `layoutId` animates from a different element's
    * last measured rect to this element's current rect.
    */
-  layout?: boolean | TransitionConfig
+  layout?: boolean | TransitionInput
   /**
    * Shared-element transition id. When a Motion primitive with `layoutId`
    * unmounts, its last on-screen rect is recorded under that id; the next

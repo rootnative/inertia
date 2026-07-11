@@ -18,8 +18,18 @@ export {
   MotionScrollView,
   createMotionComponent,
 } from './motion'
-export { MotionConfig, useMotionConfig, useShouldReduceMotion } from './config'
-export type { MotionConfigValue, ReducedMotion } from './config'
+export {
+  MotionConfig,
+  resolveNamedTransition,
+  useMotionConfig,
+  useNamedTransitions,
+  useShouldReduceMotion,
+} from './config'
+export type {
+  MotionConfigProps,
+  MotionConfigValue,
+  ReducedMotion,
+} from './config'
 export { Presence, usePresence } from './presence'
 export type { PresenceContextValue } from './presence'
 export {
@@ -59,14 +69,18 @@ export type {
   GestureSubStates,
   MotionComponent,
   MotionProps,
+  NamedTransitions,
   NoAnimationTransition,
   PerPropertyTransition,
+  RegisteredTransitions,
   RepeatConfig,
   SequenceStep,
   SpringTransition,
   TimingTransition,
   Transition,
   TransitionConfig,
+  TransitionInput,
+  TransitionName,
   VariantController,
   VariantsMap,
 } from './types'

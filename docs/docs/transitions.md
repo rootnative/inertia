@@ -24,6 +24,27 @@ A `transition` prop decides **how** an `animate` value reaches its target. The d
 />
 ```
 
+## Named transitions
+
+Anywhere a config object is accepted — top-level, per-property, per gesture layer, the `layout` prop, and the value-layer hooks — a name registered on the nearest [`<MotionConfig transitions>`](./motion-config#named-transitions) is accepted too:
+
+```tsx
+<MotionConfig
+  transitions={{ selection: { type: 'spring', tension: 380, friction: 33 } }}
+>
+  <Motion.View animate={{ scale: 1 }} transition="selection" />
+  <Motion.View
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{
+      opacity: { type: 'timing', duration: 150 },
+      scale: 'selection',
+    }}
+  />
+</MotionConfig>
+```
+
+Unknown names warn in development and fall back to the default spring. See [MotionConfig → Named transitions](./motion-config#named-transitions) for merge semantics and typed-name augmentation.
+
 ## Types
 
 ### `'spring'` (default)

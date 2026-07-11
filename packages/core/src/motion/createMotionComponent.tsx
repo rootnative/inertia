@@ -14,7 +14,12 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated'
 import { type LayoutChangeEvent } from 'react-native'
-import { useShouldReduceMotion } from '../config'
+import {
+  lookupNamedTransition,
+  resolveNamedTransitionProp,
+  useNamedTransitions,
+  useShouldReduceMotion,
+} from '../config'
 import { isFocusVisible } from '../gestures'
 import {
   resolveLayoutTransition,
@@ -167,11 +172,16 @@ const DEFAULT_RESTING: Record<AnimatableKey, number | string> = {
   shadowOffsetHeight: 0,
 }
 
+// Both lookups run after the factory has resolved registered transition
+// names into concrete configs (`resolveNamedTransitionProp`), so the
+// `TransitionInput` values on the map forms are narrowed to `TransitionConfig`
+// here — a string can no longer reach these call sites at runtime.
 function transitionFor<S>(
   prop: keyof S,
   transition: Transition<S> | undefined,
 ): TransitionConfig | undefined {
   if (!transition) return undefined
+  if (typeof transition === 'string') return undefined
   if (isTopLevelTransition(transition)) return transition
   // Gesture-layer keys (`pressed`, `hovered`, …) live on the same map as
   // per-property keys; skip them when looking up a property transition so a
@@ -179,7 +189,9 @@ function transitionFor<S>(
   // style key named `pressed` (none currently exist, but keep the lookup
   // honest).
   if (GESTURE_LAYER_NAME_SET.has(prop as string)) return undefined
-  return (transition as PerPropertyTransition<S>)[prop]
+  return (transition as PerPropertyTransition<S>)[prop] as
+    | TransitionConfig
+    | undefined
 }
 
 function gestureLayerTransitionFor<S>(
@@ -187,8 +199,11 @@ function gestureLayerTransitionFor<S>(
   transition: Transition<S> | undefined,
 ): TransitionConfig | undefined {
   if (!transition) return undefined
+  if (typeof transition === 'string') return undefined
   if (isTopLevelTransition(transition)) return transition
-  return (transition as GestureLayerTransitions)[layer]
+  return (transition as GestureLayerTransitions)[layer] as
+    | TransitionConfig
+    | undefined
 }
 
 /**
@@ -223,11 +238,11 @@ export function createMotionComponent<C extends ComponentType<any>>(
       initial,
       animate,
       exit,
-      transition,
+      transition: transitionProp,
       variants,
       controller,
       gesture,
-      layout,
+      layout: layoutProp,
       layoutId,
       onAnimationEnd,
       style,
@@ -235,10 +250,25 @@ export function createMotionComponent<C extends ComponentType<any>>(
       ...rest
     } = props as Props & {
       style?: unknown
-      layout?: LayoutProp
+      layout?: LayoutProp | string
       layoutId?: string
       onLayout?: (event: LayoutChangeEvent) => void
     }
+
+    // Resolve registered transition names (from the nearest <MotionConfig
+    // transitions>) into concrete configs before anything downstream touches
+    // the props. Resolution is JS-thread and identity-preserving when no
+    // names are present; when names resolve, the registry entries are stable
+    // objects, so every signature-keyed memo below stays warm.
+    const namedTransitions = useNamedTransitions()
+    const transition = resolveNamedTransitionProp(
+      transitionProp as Transition<Record<string, unknown>> | undefined,
+      namedTransitions,
+    )
+    const layout: LayoutProp =
+      typeof layoutProp === 'string'
+        ? lookupNamedTransition(layoutProp, namedTransitions)
+        : layoutProp
 
     // Function-form `style={(state) => ...}` is the Pressable render-prop API.
     // Inertia drives press/focus state through `gesture.*` and merges its own

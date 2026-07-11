@@ -1,9 +1,17 @@
 import { useCallback, useMemo } from 'react'
 import { useSharedValue, type SharedValue } from 'react-native-reanimated'
-import { useShouldReduceMotion } from '../config'
+import {
+  resolveNamedTransitionProp,
+  useNamedTransitions,
+  useShouldReduceMotion,
+} from '../config'
 import { isFocusVisible } from '../gestures'
 import { isTopLevelTransition, resolveTransition } from '../transitions'
-import { type GestureLayerTransitions, type TransitionConfig } from '../types'
+import {
+  type GestureLayerTransitions,
+  type TransitionConfig,
+  type TransitionInput,
+} from '../types'
 
 type LayerName = 'pressed' | 'focused' | 'focusVisible' | 'hovered'
 
@@ -50,8 +58,10 @@ export interface UseGestureResult {
  *
  * Transitions follow the same shape as the `gesture` prop's accompanying
  * `transition`: pass a single `TransitionConfig` to use for every layer, or a
- * `GestureLayerTransitions` map to give each layer its own. Layers without an
- * explicit transition fall back to the library default spring.
+ * `GestureLayerTransitions` map to give each layer its own. A `TransitionName`
+ * registered on the nearest `<MotionConfig transitions>` is accepted in both
+ * positions (top-level and per-layer). Layers without an explicit transition
+ * fall back to the library default spring.
  *
  * Reduced motion (via `<MotionConfig reducedMotion>`) collapses every
  * transition to `no-animation` so state changes snap instead of interpolating
@@ -88,19 +98,23 @@ export interface UseGestureResult {
  * ```
  */
 export function useGesture(
-  transition?: TransitionConfig | GestureLayerTransitions,
+  transition?: TransitionInput | GestureLayerTransitions,
 ): UseGestureResult {
   const pressed = useSharedValue(0)
   const focused = useSharedValue(0)
   const focusVisible = useSharedValue(0)
   const hovered = useSharedValue(0)
   const shouldReduceMotion = useShouldReduceMotion()
+  // Registered transition names (top-level string or per-layer string values)
+  // resolve against the nearest <MotionConfig transitions> at render time, so
+  // the callbacks below only ever see concrete configs.
+  const resolved = resolveNamedTransitionProp(transition, useNamedTransitions())
 
   const setLayer = useCallback(
     (sv: SharedValue<number>, layer: LayerName, target: 0 | 1) => {
       const cfg = shouldReduceMotion
         ? ({ type: 'no-animation' } as const)
-        : (layerTransition(layer, transition) ?? ({ type: 'spring' } as const))
+        : (layerTransition(layer, resolved) ?? ({ type: 'spring' } as const))
       sv.value = resolveTransition(cfg, target) as never
     },
     // The transition is intentionally read on every call rather than cooked
@@ -134,11 +148,15 @@ export function useGesture(
   return { pressed, focused, focusVisible, hovered, handlers }
 }
 
+// Runs after name resolution, so the `TransitionInput` values on the map form
+// are concrete configs by the time they're read — hence the return cast.
 function layerTransition(
   layer: LayerName,
   transition: TransitionConfig | GestureLayerTransitions | undefined,
 ): TransitionConfig | undefined {
   if (!transition) return undefined
   if (isTopLevelTransition(transition)) return transition
-  return (transition as GestureLayerTransitions)[layer]
+  return (transition as GestureLayerTransitions)[layer] as
+    | TransitionConfig
+    | undefined
 }

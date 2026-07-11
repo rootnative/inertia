@@ -5,8 +5,15 @@ import {
   withSpring,
   type SharedValue,
 } from 'react-native-reanimated'
+import { lookupNamedTransition, useNamedTransitions } from '../config'
 import { springToReanimated } from '../transitions/spring'
-import { type SpringTransition } from '../types'
+import {
+  type NamedTransitions,
+  type SpringTransition,
+  type TransitionName,
+} from '../types'
+
+declare const __DEV__: boolean
 
 /**
  * Animate a shared value toward `target` with spring physics, using the
@@ -21,29 +28,36 @@ import { type SpringTransition } from '../types'
  *
  * Both call sites end up at the same `withSpring` invocation; the split is
  * just about which thread observes the source change.
+ *
+ * `config` also accepts a `TransitionName` registered on the nearest
+ * `<MotionConfig transitions>`. Because this hook is spring-only, the name
+ * must resolve to a spring config — a name registered as timing / decay /
+ * no-animation warns in dev and falls back to the default spring (reach for
+ * `useAnimation` when the named transition's type should be honored).
  */
 export function useSpring(
   target: number | SharedValue<number>,
-  config?: SpringTransition,
+  config?: SpringTransition | TransitionName,
 ): SharedValue<number> {
+  const spring = resolveSpringInput(config, useNamedTransitions())
   // Reanimated config is rebuilt only when the public config object changes
   // shape. The worklet path reads this from JS-thread closure capture, which
   // is fine: it's the resolved config that's invariant across UI-thread
   // ticks, not a JS-thread reference that would go stale.
   const reanimConfig = useMemo(
-    () => springToReanimated(config ?? {}),
+    () => springToReanimated(spring ?? {}),
     // Keyed on the resolved primitive fields rather than the `config` object
     // identity: callers routinely pass a fresh object literal each render, so
     // depending on `config` itself would rebuild the Reanimated config on
     // every render and defeat the memo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      config?.tension,
-      config?.friction,
-      config?.mass,
-      config?.velocity,
-      config?.restSpeedThreshold,
-      config?.restDisplacementThreshold,
+      spring?.tension,
+      spring?.friction,
+      spring?.mass,
+      spring?.velocity,
+      spring?.restSpeedThreshold,
+      spring?.restDisplacementThreshold,
     ],
   )
 
@@ -82,6 +96,29 @@ export function useSpring(
   )
 
   return output
+}
+
+/**
+ * Narrow the public `config` input to a spring config. Names resolve against
+ * the registry; a name whose registered config isn't a spring can't drive
+ * this hook, so it degrades to the default spring with a dev warning.
+ */
+function resolveSpringInput(
+  config: SpringTransition | TransitionName | undefined,
+  registry: NamedTransitions,
+): SpringTransition | undefined {
+  if (typeof config !== 'string') return config
+  const cfg = lookupNamedTransition(config, registry)
+  if (cfg.type === undefined || cfg.type === 'spring') return cfg
+  if (__DEV__) {
+    console.warn(
+      `[inertia] Named transition "${config}" resolves to type ` +
+        `'${cfg.type}', but useSpring / useBooleanSpring are spring-only — ` +
+        `falling back to the default spring. Use useAnimation to honor ` +
+        `non-spring named transitions.`,
+    )
+  }
+  return undefined
 }
 
 function isSharedValue(v: unknown): v is SharedValue<number> {

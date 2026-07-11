@@ -5,10 +5,22 @@ import {
   useSharedValue,
   type AnimatedStyle,
 } from 'react-native-reanimated'
-import { useShouldReduceMotion } from '../config'
-import { isTopLevelTransition, resolveTransition } from '../transitions'
+import {
+  resolveNamedTransitionProp,
+  useNamedTransitions,
+  useShouldReduceMotion,
+} from '../config'
+import {
+  isTopLevelTransition,
+  resolveTransition,
+  stableSig,
+} from '../transitions'
 import { useGesture, type UseGestureHandlers } from '../values/useGesture'
-import { type GestureLayerTransitions, type TransitionConfig } from '../types'
+import {
+  type GestureLayerTransitions,
+  type TransitionConfig,
+  type TransitionInput,
+} from '../types'
 
 /**
  * A single gesture-layer style — a flat map of style keys to a value. Numeric
@@ -57,10 +69,11 @@ export interface UseGestureLayerOptions {
   /**
    * Transition forwarded to the underlying `useGesture` hook. Either a single
    * `TransitionConfig` for every gesture layer, or a `GestureLayerTransitions`
-   * map for per-layer fades. Reduced motion collapses every transition to
-   * `no-animation`.
+   * map for per-layer fades. A `TransitionName` registered on the nearest
+   * `<MotionConfig transitions>` is accepted in both positions. Reduced
+   * motion collapses every transition to `no-animation`.
    */
-  transition?: TransitionConfig | GestureLayerTransitions
+  transition?: TransitionInput | GestureLayerTransitions
 }
 
 export interface UseGestureLayerResult {
@@ -128,18 +141,29 @@ export function useGestureLayer(
   states: GestureLayerStates,
   options: UseGestureLayerOptions = {},
 ): UseGestureLayerResult {
-  const { disabled: isDisabled = false, transition } = options
+  const { disabled: isDisabled = false, transition: transitionInput } = options
   const shouldReduceMotion = useShouldReduceMotion()
+  // Resolve registered names here (not just in useGesture) because the
+  // `disabled` layer reads the top-level transition locally. Identity is
+  // preserved when no names are present; when a name resolves, the effect
+  // below keys on the structural signature so a per-render resolve of the
+  // map form doesn't re-fire it.
+  const transition = resolveNamedTransitionProp(
+    transitionInput,
+    useNamedTransitions(),
+  )
   const gesture = useGesture(transition)
   const disabledProgress = useSharedValue(0)
 
+  const transitionSig = stableSig(transition)
   useEffect(() => {
     const target = isDisabled ? 1 : 0
     const cfg = shouldReduceMotion
       ? ({ type: 'no-animation' } as const)
       : (disabledTransition(transition) ?? ({ type: 'spring' } as const))
     disabledProgress.value = resolveTransition(cfg, target) as never
-  }, [isDisabled, shouldReduceMotion, transition, disabledProgress])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDisabled, shouldReduceMotion, transitionSig, disabledProgress])
 
   // JS-thread precompute: union of keys across all layers, per-key type
   // (number vs color), and a rest-fallback table. The worklet body reads

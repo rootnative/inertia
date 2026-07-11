@@ -1,6 +1,6 @@
 import { type SharedValue } from 'react-native-reanimated'
 import { useSpring } from './useSpring'
-import { type SpringTransition } from '../types'
+import { type SpringTransition, type TransitionName } from '../types'
 
 /**
  * Toggle a 0↔1 progress value with a spring whenever `active` flips.
@@ -23,11 +23,13 @@ import { type SpringTransition } from '../types'
  *
  * The spring config follows the same react-spring vocabulary as the rest of
  * the library (`tension` / `friction` / `mass`); omit it to take the
- * library's defaults.
+ * library's defaults, or pass a `TransitionName` registered on the nearest
+ * `<MotionConfig transitions>` (spring-typed names only — see `useSpring`
+ * for the non-spring fallback behaviour).
  */
 export function useBooleanSpring(
   active: boolean,
-  springConfig?: SpringTransition,
+  springConfig?: SpringTransition | TransitionName,
 ): SharedValue<number> {
   return useSpring(active ? 1 : 0, springConfig)
 }

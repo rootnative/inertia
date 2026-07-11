@@ -8,7 +8,7 @@ The JS-thread resolver functions the Motion primitives are built on, exported fo
 
 Reach for this layer when a component animates something the core primitives can't reach (SVG props, gradient stops, any non-`style` target) but you still want it to accept the standard `transition={{ type: 'spring', tension: 180 }}` shape instead of inventing your own config.
 
-All three run on the **JS thread** — call them from render, effects, or event handlers, and assign the result to a shared value. The baked animation executes on the UI thread; the resolution itself never happens at frame time. (For picking a transition inside a gesture-release **worklet**, see [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue) — that's the UI-thread counterpart to `resolveTransition`.)
+All of them run on the **JS thread** — call them from render, effects, or event handlers, and assign the result to a shared value. The baked animation executes on the UI thread; the resolution itself never happens at frame time. (For picking a transition inside a gesture-release **worklet**, see [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue) — that's the UI-thread counterpart to `resolveTransition`.)
 
 ## `resolveTransition(config, toValue, callback?)`
 
@@ -127,6 +127,28 @@ sv.value = withTiming(1, {
 You only need this when calling `withTiming` yourself with user-supplied easing. `resolveTransition` and `resolveAnimatableValue` already run every `easing` through it, as do all the Motion primitives.
 
 The wrapped function must be **pure** — no JS-thread captured refs, no shared mutable state, no calls to non-worklet APIs. The wrapper carries the user function across the worklet boundary via closure; anything impure it closes over will be stale or crash on the UI thread.
+
+## `resolveNamedTransition(input, registry)`
+
+Resolve a `TransitionConfig | TransitionName` input into a concrete config. A config object passes through untouched; a name is looked up in `registry` — unknown names warn in dev and fall back to the library default spring. Pair it with `useNamedTransitions()` (which reads the merged registry off the nearest [`<MotionConfig transitions>`](../motion-config#named-transitions)) to make a custom component accept registered names wherever it accepts a config:
+
+```tsx
+import {
+  resolveNamedTransition,
+  resolveTransition,
+  useNamedTransitions,
+  type TransitionInput,
+} from '@rootnative/inertia'
+
+function useMyAnimatedProp(target: number, transition?: TransitionInput) {
+  const registry = useNamedTransitions()
+  const config = resolveNamedTransition(transition, registry)
+  // config: TransitionConfig | undefined — feed it to resolveTransition
+  sv.value = resolveTransition(config, target)
+}
+```
+
+This is how the Motion primitives and value-layer hooks support `transition="selection"` internally; adapter packages use the same two calls to join the registry.
 
 ## Which layer to use
 

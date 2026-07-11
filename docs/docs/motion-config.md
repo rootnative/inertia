@@ -4,7 +4,7 @@ sidebar_position: 9
 
 # MotionConfig
 
-A provider that gates how descendant Motion primitives respond to the OS reduce-motion accessibility setting.
+A provider for subtree-wide animation config: how descendant Motion primitives respond to the OS reduce-motion accessibility setting, and a registry of [named transitions](#named-transitions) usable anywhere a transition config is accepted.
 
 :::tip Free accessibility win for migrators
 Apps moving from hand-rolled `useSharedValue` + `useAnimatedStyle` to Inertia primitives pick up reduce-motion compliance automatically — every `Motion.*` component reads the OS setting via [`useShouldReduceMotion()`](#reading-the-resolved-value) without any per-component plumbing. If you previously had no reduce-motion handling, you have it now.
@@ -44,6 +44,82 @@ export function App() {
     <CriticalOnboardingFlow />
   </MotionConfig>
 </MotionConfig>
+```
+
+Nested providers **inherit** from their ancestor: a provider that omits `reducedMotion` keeps the ancestor's mode, and `transitions` maps merge per name (child wins). A transitions-only provider in the middle of the tree never disturbs an outer `reducedMotion` override.
+
+## Named transitions
+
+`transitions` registers named transition configs for the subtree. Every place that accepts a `TransitionConfig` also accepts a registered name: the `transition` prop (top-level **and** per-property / per gesture layer), the `layout` prop, and the value-layer hooks (`useAnimation`, `useSpring`, `useBooleanSpring`, `useGesture`, `useGestureLayer`).
+
+```tsx
+<MotionConfig
+  transitions={{
+    'state-hover': { type: 'timing', duration: 150 },
+    'state-press': { type: 'timing', duration: 100 },
+    selection: { type: 'spring', tension: 380, friction: 33 },
+  }}
+>
+  {/* Anywhere below the provider: */}
+  <Motion.View
+    animate={{ scale: isSelected ? 1 : 0.8 }}
+    transition="selection"
+  />
+  <Motion.View
+    animate={{ opacity: 1, translateY: 0 }}
+    transition={{ opacity: 'state-hover', translateY: 'selection' }}
+  />
+</MotionConfig>
+```
+
+```ts
+const progress = useBooleanSpring(checked, 'selection')
+const fade = useAnimation(visible ? 1 : 0, 'state-hover')
+```
+
+The names are **your** vocabulary — design-system tokens, semantic roles, whatever your app standardizes on. Inertia ships no presets; the registry is the mechanism that lets a theme file (MD3, iOS-style, Fluent, your own) be the single source of truth for motion values instead of copy-pasted config objects at every call site.
+
+Semantics:
+
+- **Nearest provider wins.** Names resolve against the merged registry of all ancestor `<MotionConfig>` providers.
+- **Nested providers merge.** A child provider's `transitions` map merges into the ancestor registry; same-named entries are overridden by the child.
+- **Unknown names degrade softly.** An unregistered name warns in development and falls back to the library default spring — the animation still runs.
+- **Spring-only hooks stay spring-only.** `useSpring` / `useBooleanSpring` accept names, but a name registered as `timing` / `decay` / `no-animation` warns in dev and falls back to the default spring. Use `useAnimation` when the named transition's type should be honored.
+
+### Typed names (optional)
+
+Out of the box, any string is accepted where a name is (`TransitionName` is `string`). To get autocomplete and compile-time typo checking, augment the `RegisteredTransitions` interface with your registry's keys:
+
+```ts
+// motion.d.ts (anywhere in your app's include path)
+import type { TransitionConfig } from '@rootnative/inertia'
+
+declare module '@rootnative/inertia' {
+  interface RegisteredTransitions {
+    'state-hover': TransitionConfig
+    'state-press': TransitionConfig
+    selection: TransitionConfig
+  }
+}
+```
+
+With the augmentation in place, `transition="selectoin"` is a compile error. The value type is ignored — only the keys matter.
+
+### Consuming the registry from custom components
+
+Adapter packages and custom animated components can support names on their own surface with `useNamedTransitions()` + `resolveNamedTransition()`:
+
+```ts
+import {
+  resolveNamedTransition,
+  useNamedTransitions,
+} from '@rootnative/inertia'
+
+function useMyAnimatedThing(transition?: TransitionConfig | TransitionName) {
+  const registry = useNamedTransitions()
+  const config = resolveNamedTransition(transition, registry)
+  // config is a concrete TransitionConfig | undefined
+}
 ```
 
 ## Reading the resolved value
