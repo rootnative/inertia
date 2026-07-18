@@ -34,6 +34,7 @@ export { Presence, usePresence } from './presence'
 export type { PresenceContextValue } from './presence'
 export {
   buildReleaseAnimation,
+  cubicBezier,
   resolveTransition,
   resolveAnimatableValue,
   ensureWorkletEasing,
@@ -66,6 +67,9 @@ export type {
   AnimateStyle,
   AnimationCallbackInfo,
   DecayTransition,
+  EasingFunction,
+  EasingFunctionFactory,
+  EasingInput,
   GestureSubStates,
   MotionComponent,
   MotionProps,

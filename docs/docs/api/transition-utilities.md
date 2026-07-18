@@ -128,6 +128,22 @@ You only need this when calling `withTiming` yourself with user-supplied easing.
 
 The wrapped function must be **pure** — no JS-thread captured refs, no shared mutable state, no calls to non-worklet APIs. The wrapper carries the user function across the worklet boundary via closure; anything impure it closes over will be stale or crash on the UI thread.
 
+## `cubicBezier(x1, y1, x2, y2)` / `cubicBezier(css)`
+
+Build a `timing.easing` value from cubic-bezier control points — four numbers, a W3C CSS `cubic-bezier(...)` string, or a CSS easing keyword (`'linear'`, `'ease'`, `'ease-in'`, `'ease-out'`, `'ease-in-out'`):
+
+```ts
+import { cubicBezier } from '@rootnative/inertia'
+
+cubicBezier(0.2, 0, 0, 1)
+cubicBezier('cubic-bezier(0.2, 0, 0, 1)') // design-token form
+cubicBezier('ease-out')
+```
+
+Returns exactly what `timing.easing` accepts (Reanimated's bezier factory — `ensureWorkletEasing` handles it like every other easing input), so it works in the `transition` prop, in [named transitions](../motion-config#named-transitions), and anywhere else this page's resolvers take a config. Invalid input throws: `x1` / `x2` must be finite and within `[0, 1]`, and unsupported tokens (`step-start`, `linear(...)`) are rejected rather than approximated.
+
+See [Transitions → cubicBezier](../transitions#cubicbezier--css-easing-tokens) for the token-file workflow this enables.
+
 ## `resolveNamedTransition(input, registry)`
 
 Resolve a `TransitionConfig | TransitionName` input into a concrete config. A config object passes through untouched; a name is looked up in `registry` — unknown names warn in dev and fall back to the library default spring. Pair it with `useNamedTransitions()` (which reads the merged registry off the nearest [`<MotionConfig transitions>`](../motion-config#named-transitions)) to make a custom component accept registered names wherever it accepts a config:

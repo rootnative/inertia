@@ -110,6 +110,40 @@ transition={{
 
 Any of the three forms — a plain `(t: number) => number` function, a pre-worklet'd easing, or a Reanimated `Easing.bezier(...)`-style factory — is accepted wherever `easing` appears.
 
+### `cubicBezier()` — CSS easing tokens
+
+Design systems usually store easing tokens in the W3C CSS format. `cubicBezier` builds an `easing` value from any of the three CSS spellings, so a token file is directly consumable without hand-translating to `Easing.bezier` calls:
+
+```tsx
+import { cubicBezier } from '@rootnative/inertia'
+
+cubicBezier(0.2, 0, 0, 1) // number form
+cubicBezier('cubic-bezier(0.2, 0, 0, 1)') // CSS token form
+cubicBezier('ease-out') // CSS keywords, incl. 'linear'
+
+transition={{
+  type: 'timing',
+  duration: 200,
+  easing: cubicBezier(theme.motion.easingStandard),
+}}
+```
+
+The keywords map to their canonical css-easing-1 curves (`ease`, `ease-in`, `ease-out`, `ease-in-out`; `linear` maps to the identity easing). Invalid input throws at call time — a malformed token should fail at theme setup, not silently animate with the wrong curve. Per the CSS spec, `x1` / `x2` must be within `[0, 1]`; `y1` / `y2` may overshoot. The stepping keywords (`step-start` / `step-end`) and the CSS `linear(...)` function are not supported.
+
+Combined with [named transitions](./motion-config#named-transitions), this is the recommended way to feed a theme's motion tokens into Inertia:
+
+```tsx
+<MotionConfig
+  transitions={{
+    'state-hover': {
+      type: 'timing',
+      duration: 150,
+      easing: cubicBezier(theme.motion.easingStandard), // 'cubic-bezier(0.2, 0, 0, 1)'
+    },
+  }}
+>
+```
+
 ### `'decay'`
 
 Velocity-driven decay (the gesture-flick model). Combine with `react-native-gesture-handler` to drive scroll-style flick momentum.
