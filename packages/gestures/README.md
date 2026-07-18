@@ -49,6 +49,8 @@ function DraggableBox() {
 - Full docs: [https://rootnative.github.io/inertia/docs/gestures-adapter](https://rootnative.github.io/inertia/docs/gestures-adapter)
 - Core library: [`@rootnative/inertia`](../core)
 
+AI agents: this package ships its own copy of the reference — read `node_modules/@rootnative/inertia-gestures/llms.txt` for the full API, no network needed.
+
 ## License
 
 [MIT](./LICENSE) © RootNative

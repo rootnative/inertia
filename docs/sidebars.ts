@@ -29,6 +29,7 @@ const sidebars: SidebarsConfig = {
     { type: 'doc', id: 'motion-config', label: 'MotionConfig' },
     { type: 'doc', id: 'perf-bench', label: 'Perf bench' },
     { type: 'doc', id: 'testing', label: 'Testing' },
+    { type: 'doc', id: 'ai', label: 'AI agents & llms.txt' },
     {
       type: 'category',
       label: 'Migrations',

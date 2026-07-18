@@ -77,6 +77,7 @@ Each docs page deep-links into the relevant screen of this same app, so you can 
 - [Layout](./layout) — auto-layout transitions on position + size changes.
 - [MotionConfig](./motion-config) — reduce-motion gate.
 - [Hooks](./api/hooks) and [createMotionComponent](./api/create-motion-component) — escape hatches.
+- [AI agents & llms.txt](./ai) — machine-readable API references for coding agents, hosted here and shipped in every npm package.
 
 ---
 
@@ -526,11 +527,16 @@ A `transition` prop decides **how** an `animate` value reaches its target. The d
 Anywhere a config object is accepted — top-level, per-property, per gesture layer, the `layout` prop, and the value-layer hooks — a name registered on the nearest [`<MotionConfig transitions>`](./motion-config#named-transitions) is accepted too:
 
 ```tsx
-<MotionConfig transitions={{ selection: { type: 'spring', tension: 380, friction: 33 } }}>
+<MotionConfig
+  transitions={{ selection: { type: 'spring', tension: 380, friction: 33 } }}
+>
   <Motion.View animate={{ scale: 1 }} transition="selection" />
   <Motion.View
     animate={{ opacity: 1, scale: 1 }}
-    transition={{ opacity: { type: 'timing', duration: 150 }, scale: 'selection' }}
+    transition={{
+      opacity: { type: 'timing', duration: 150 },
+      scale: 'selection',
+    }}
   />
 </MotionConfig>
 ```
@@ -601,6 +607,40 @@ transition={{
 ```
 
 Any of the three forms — a plain `(t: number) => number` function, a pre-worklet'd easing, or a Reanimated `Easing.bezier(...)`-style factory — is accepted wherever `easing` appears.
+
+### `cubicBezier()` — CSS easing tokens
+
+Design systems usually store easing tokens in the W3C CSS format. `cubicBezier` builds an `easing` value from any of the three CSS spellings, so a token file is directly consumable without hand-translating to `Easing.bezier` calls:
+
+```tsx
+import { cubicBezier } from '@rootnative/inertia'
+
+cubicBezier(0.2, 0, 0, 1) // number form
+cubicBezier('cubic-bezier(0.2, 0, 0, 1)') // CSS token form
+cubicBezier('ease-out') // CSS keywords, incl. 'linear'
+
+transition={{
+  type: 'timing',
+  duration: 200,
+  easing: cubicBezier(theme.motion.easingStandard),
+}}
+```
+
+The keywords map to their canonical css-easing-1 curves (`ease`, `ease-in`, `ease-out`, `ease-in-out`; `linear` maps to the identity easing). Invalid input throws at call time — a malformed token should fail at theme setup, not silently animate with the wrong curve. Per the CSS spec, `x1` / `x2` must be within `[0, 1]`; `y1` / `y2` may overshoot. The stepping keywords (`step-start` / `step-end`) and the CSS `linear(...)` function are not supported.
+
+Combined with [named transitions](./motion-config#named-transitions), this is the recommended way to feed a theme's motion tokens into Inertia:
+
+```tsx
+<MotionConfig
+  transitions={{
+    'state-hover': {
+      type: 'timing',
+      duration: 150,
+      easing: cubicBezier(theme.motion.easingStandard), // 'cubic-bezier(0.2, 0, 0, 1)'
+    },
+  }}
+>
+```
 
 ### `'decay'`
 
@@ -1612,6 +1652,8 @@ export function App() {
 </MotionConfig>
 ```
 
+Nested providers **inherit** from their ancestor: a provider that omits `reducedMotion` keeps the ancestor's mode, and `transitions` maps merge per name (child wins). A transitions-only provider in the middle of the tree never disturbs an outer `reducedMotion` override.
+
 ## Named transitions
 
 `transitions` registers named transition configs for the subtree. Every place that accepts a `TransitionConfig` also accepts a registered name: the `transition` prop (top-level **and** per-property / per gesture layer), the `layout` prop, and the value-layer hooks (`useAnimation`, `useSpring`, `useBooleanSpring`, `useGesture`, `useGestureLayer`).
@@ -1625,7 +1667,10 @@ export function App() {
   }}
 >
   {/* Anywhere below the provider: */}
-  <Motion.View animate={{ scale: isSelected ? 1 : 0.8 }} transition="selection" />
+  <Motion.View
+    animate={{ scale: isSelected ? 1 : 0.8 }}
+    transition="selection"
+  />
   <Motion.View
     animate={{ opacity: 1, translateY: 0 }}
     transition={{ opacity: 'state-hover', translateY: 'selection' }}
@@ -1671,7 +1716,10 @@ With the augmentation in place, `transition="selectoin"` is a compile error. The
 Adapter packages and custom animated components can support names on their own surface with `useNamedTransitions()` + `resolveNamedTransition()`:
 
 ```ts
-import { resolveNamedTransition, useNamedTransitions } from '@rootnative/inertia'
+import {
+  resolveNamedTransition,
+  useNamedTransitions,
+} from '@rootnative/inertia'
 
 function useMyAnimatedThing(transition?: TransitionConfig | TransitionName) {
   const registry = useNamedTransitions()
@@ -2411,8 +2459,8 @@ function Chained() {
 }
 ```
 
-| Signature                                                                     | Returns               |
-| ----------------------------------------------------------------------------- | --------------------- |
+| Signature                                                                                       | Returns               |
+| ----------------------------------------------------------------------------------------------- | --------------------- |
 | `useSpring(target: number \| SharedValue<number>, config?: SpringTransition \| TransitionName)` | `SharedValue<number>` |
 
 Config accepts every field of [`SpringTransition`](../transitions): `tension`, `friction`, `mass`, `velocity`, `restSpeedThreshold`, `restDisplacementThreshold`. Reanimated's raw `stiffness` / `damping` names are never accepted — that conversion is private to the library.
@@ -2448,8 +2496,8 @@ function Card({ raised }: { raised: boolean }) {
 
 The returned shared value sits at `0` when `active` is `false` and animates toward `1` when it flips to `true` (and back on the reverse flip). The spring re-runs whenever `active` changes.
 
-| Signature                                                      | Returns               |
-| -------------------------------------------------------------- | --------------------- |
+| Signature                                                                        | Returns               |
+| -------------------------------------------------------------------------------- | --------------------- |
 | `useBooleanSpring(active: boolean, config?: SpringTransition \| TransitionName)` | `SharedValue<number>` |
 
 Config follows the same react-spring vocabulary as `useSpring` (`tension` / `friction` / `mass`); omit it for the library defaults. Note that like `useSpring`, this hook does **not** consult `<MotionConfig reducedMotion>` — it always interpolates. If the value must respect reduced motion, drive it through `useAnimation` (which gates on the config) or gate the target yourself with `useShouldReduceMotion()`.
@@ -2628,8 +2676,8 @@ const slide = useAnimation(1, {
 })
 ```
 
-| Signature                                                     | Returns               |
-| ------------------------------------------------------------- | --------------------- |
+| Signature                                                                       | Returns               |
+| ------------------------------------------------------------------------------- | --------------------- |
 | `useAnimation(target: number, transition?: TransitionConfig \| TransitionName)` | `SharedValue<number>` |
 
 The hook re-runs the animation whenever `target` changes or the transition's structural signature changes. A fresh literal each render (`{ type: 'timing', duration: 200 }` rebuilt on every call) doesn't re-fire — only structural changes do. Reduced motion (`<MotionConfig reducedMotion>`) collapses the transition to `'no-animation'` and snaps the value.
@@ -2796,9 +2844,9 @@ Every state key is optional. Values inside each state are a flat map of style ke
 
 ### Options
 
-| Field        | Type                                          | Notes                                                                                                                                                                                                                                                                                                                     |
-| ------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `disabled`   | `boolean`                                     | Activates the `disabled` layer (or `rest` if `disabled` is undefined).                                                                                                                                                                                                                                                    |
+| Field        | Type                                                            | Notes                                                                                                                                                                                                                                                                                                                     |
+| ------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `disabled`   | `boolean`                                                       | Activates the `disabled` layer (or `rest` if `disabled` is undefined).                                                                                                                                                                                                                                                    |
 | `transition` | `TransitionConfig \| TransitionName \| GestureLayerTransitions` | Forwarded to the underlying `useGesture`. Either one config for every gesture layer, or per-layer (`{ pressed, focused, focusVisible, hovered }`). Reduced motion collapses every transition to `'no-animation'`. Per-layer transitions don't apply to `disabled` — it uses the top-level config (or the default spring). |
 
 ### Returns
@@ -3146,6 +3194,22 @@ sv.value = withTiming(1, {
 You only need this when calling `withTiming` yourself with user-supplied easing. `resolveTransition` and `resolveAnimatableValue` already run every `easing` through it, as do all the Motion primitives.
 
 The wrapped function must be **pure** — no JS-thread captured refs, no shared mutable state, no calls to non-worklet APIs. The wrapper carries the user function across the worklet boundary via closure; anything impure it closes over will be stale or crash on the UI thread.
+
+## `cubicBezier(x1, y1, x2, y2)` / `cubicBezier(css)`
+
+Build a `timing.easing` value from cubic-bezier control points — four numbers, a W3C CSS `cubic-bezier(...)` string, or a CSS easing keyword (`'linear'`, `'ease'`, `'ease-in'`, `'ease-out'`, `'ease-in-out'`):
+
+```ts
+import { cubicBezier } from '@rootnative/inertia'
+
+cubicBezier(0.2, 0, 0, 1)
+cubicBezier('cubic-bezier(0.2, 0, 0, 1)') // design-token form
+cubicBezier('ease-out')
+```
+
+Returns exactly what `timing.easing` accepts (Reanimated's bezier factory — `ensureWorkletEasing` handles it like every other easing input), so it works in the `transition` prop, in [named transitions](../motion-config#named-transitions), and anywhere else this page's resolvers take a config. Invalid input throws: `x1` / `x2` must be finite and within `[0, 1]`, and unsupported tokens (`step-start`, `linear(...)`) are rejected rather than approximated.
+
+See [Transitions → cubicBezier](../transitions#cubicbezier--css-easing-tokens) for the token-file workflow this enables.
 
 ## `resolveNamedTransition(input, registry)`
 

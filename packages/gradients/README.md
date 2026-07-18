@@ -91,6 +91,8 @@ Pass `initial` to override the mount-frame values (so the component starts somew
 - Full docs: [https://rootnative.github.io/inertia/docs/gradients](https://rootnative.github.io/inertia/docs/gradients)
 - Core library: [`@rootnative/inertia`](../core)
 
+AI agents: this package ships its own copy of the reference — read `node_modules/@rootnative/inertia-gradients/llms.txt` for the full API, no network needed.
+
 ## License
 
 [MIT](./LICENSE) © RootNative

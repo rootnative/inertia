@@ -126,6 +126,8 @@ Full docs, every primitive's example screen, and an `llms-full.txt` reference li
 - [llms.txt](https://rootnative.github.io/inertia/llms.txt) — concise overview
 - [llms-full.txt](https://rootnative.github.io/inertia/llms-full.txt) — full API reference
 
+AI agents: this package ships its own copy of the reference — read `node_modules/@rootnative/inertia/llms.txt` for the full API, no network needed.
+
 ## License
 
 [MIT](./LICENSE) © RootNative

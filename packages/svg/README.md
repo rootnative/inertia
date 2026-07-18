@@ -91,6 +91,13 @@ Path resampling between structurally different shapes (flubber-style) is out of 
 - Path resampling between arbitrary shapes.
 - Morphing an `L` into a `C` (or other across-command interpolation). Element-wise scalar interpolation is intentional.
 
+## Documentation
+
+- Full docs: [https://rootnative.github.io/inertia/docs/svg](https://rootnative.github.io/inertia/docs/svg)
+- Core library: [`@rootnative/inertia`](../core)
+
+AI agents: this package ships its own copy of the reference — read `node_modules/@rootnative/inertia-svg/llms.txt` for the full API, no network needed.
+
 ## License
 
 MIT
