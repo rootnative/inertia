@@ -52,6 +52,79 @@ describe('useGestureLayer — return shape', () => {
   })
 })
 
+describe('useGestureLayer — per-state progress shared values', () => {
+  it('returns the five progress shared values, all at 0 at rest', () => {
+    const { result } = renderHook(() => useGestureLayer(md3Halo))
+    const { states } = result.current
+    expect(states.hovered.value).toBe(0)
+    expect(states.focused.value).toBe(0)
+    expect(states.focusVisible.value).toBe(0)
+    expect(states.pressed.value).toBe(0)
+    expect(states.disabled.value).toBe(0)
+  })
+
+  it('gesture handlers drive the exposed shared values', () => {
+    const { result } = renderHook(() => useGestureLayer(md3Halo))
+    act(() => {
+      result.current.handlers.onHoverIn()
+      result.current.handlers.onPressIn()
+      result.current.handlers.onFocus()
+    })
+    expect(result.current.states.hovered.value).toBe(1)
+    expect(result.current.states.pressed.value).toBe(1)
+    expect(result.current.states.focused.value).toBe(1)
+    expect(result.current.states.focusVisible.value).toBe(1)
+
+    act(() => {
+      result.current.handlers.onHoverOut()
+      result.current.handlers.onPressOut()
+      result.current.handlers.onBlur()
+    })
+    expect(result.current.states.hovered.value).toBe(0)
+    expect(result.current.states.pressed.value).toBe(0)
+    expect(result.current.states.focused.value).toBe(0)
+    expect(result.current.states.focusVisible.value).toBe(0)
+  })
+
+  it('options.disabled drives states.disabled', () => {
+    const { result, rerender } = renderHook(
+      ({ disabled }: { disabled: boolean }) =>
+        useGestureLayer(md3Halo, { disabled }),
+      { initialProps: { disabled: false } },
+    )
+    expect(result.current.states.disabled.value).toBe(0)
+
+    act(() => {
+      rerender({ disabled: true })
+    })
+    expect(result.current.states.disabled.value).toBe(1)
+
+    act(() => {
+      rerender({ disabled: false })
+    })
+    expect(result.current.states.disabled.value).toBe(0)
+  })
+
+  it('states object and its shared values are stable across renders', () => {
+    const { result, rerender } = renderHook(() => useGestureLayer(md3Halo))
+    const first = result.current.states
+    rerender({})
+    expect(result.current.states).toBe(first)
+    expect(result.current.states.hovered).toBe(first.hovered)
+  })
+
+  it('exposed shared values are the same ones the composed style reads', () => {
+    // Writing to states.hovered directly must move the composed style —
+    // proving they are the driving values, not copies.
+    const { result, rerender } = renderHook(() => useGestureLayer(md3Halo))
+    act(() => {
+      result.current.states.hovered.value = 1
+    })
+    rerender({})
+    expect(result.current.style.opacity).toBeCloseTo(0.08)
+  })
+})
+
 describe('useGestureLayer — clamped-max composition (numeric keys)', () => {
   it('a single active layer raises the value to its target', () => {
     const { result, rerender } = renderHook(() => useGestureLayer(md3Halo))

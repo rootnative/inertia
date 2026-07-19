@@ -4,6 +4,7 @@ import {
   useAnimatedStyle,
   useSharedValue,
   type AnimatedStyle,
+  type SharedValue,
 } from 'react-native-reanimated'
 import {
   resolveNamedTransitionProp,
@@ -76,6 +77,27 @@ export interface UseGestureLayerOptions {
   transition?: TransitionInput | GestureLayerTransitions
 }
 
+/**
+ * The per-state 0↔1 progress shared values behind a `useGestureLayer` call.
+ * The gesture entries are the same shared values `useGesture` owns; `disabled`
+ * is driven by `options.disabled`. All five are stable across renders — feed
+ * them into any `useAnimatedStyle` / `useDerivedValue` (or hooks like
+ * `useShadow({ progress })`) to derive extra styles from the same gesture
+ * wiring without a second `useGesture` call.
+ */
+export interface GestureLayerProgress {
+  /** 0↔1 progress for the hovered layer (web only — stays at 0 on native). */
+  hovered: SharedValue<number>
+  /** 0↔1 progress for the focused layer (any focus modality). */
+  focused: SharedValue<number>
+  /** 0↔1 progress for the focusVisible layer (keyboard focus only). */
+  focusVisible: SharedValue<number>
+  /** 0↔1 progress for the pressed layer. */
+  pressed: SharedValue<number>
+  /** 0↔1 progress for the disabled override (driven by `options.disabled`). */
+  disabled: SharedValue<number>
+}
+
 export interface UseGestureLayerResult {
   /**
    * Animated style produced by `useAnimatedStyle` — spread on an
@@ -84,6 +106,12 @@ export interface UseGestureLayerResult {
   style: AnimatedStyle<Record<string, unknown>>
   /** Handlers to spread on the receiving `Pressable`. */
   handlers: UseGestureHandlers
+  /**
+   * Per-state progress shared values — the inputs the composed `style` is
+   * derived from. Read-only by convention: writing to them fights the
+   * handlers.
+   */
+  states: GestureLayerProgress
 }
 
 /**
@@ -106,6 +134,13 @@ export interface UseGestureLayerResult {
  * - **Disabled** sits at the top of the cascade for both numeric and color
  *   keys — when active, it lerps the composed value toward the `disabled`
  *   target.
+ *
+ * Alongside `style` and `handlers`, the hook returns `states` — the per-state
+ * 0↔1 progress shared values the style is derived from (the four gesture
+ * layers plus the disabled override). Feed them into other progress-driven
+ * hooks (`useShadow`, `useColorTransition`) or a custom `useAnimatedStyle`
+ * to derive extra styles from the same gesture wiring — no second
+ * `useGesture` call, no duplicated handlers.
  *
  * Reach for this when you want MD3 / iOS-translucent state-layer overlays
  * without rewriting the worklet by hand for every consumer; reach for plain
@@ -135,6 +170,13 @@ export interface UseGestureLayerResult {
  *     </Pressable>
  *   )
  * }
+ * ```
+ *
+ * @example Elevation crossfade driven by the hover progress
+ * ```tsx
+ * const { style, handlers, states } = useGestureLayer(layers, options)
+ * const shadow = useShadow({ from: restShadow, to: raisedShadow, progress: states.hovered })
+ * // <Animated.View style={[style, shadow]} />
  * ```
  */
 export function useGestureLayer(
@@ -294,9 +336,27 @@ export function useGestureLayer(
     return out
   })
 
+  const progress = useMemo<GestureLayerProgress>(
+    () => ({
+      hovered: gesture.hovered,
+      focused: gesture.focused,
+      focusVisible: gesture.focusVisible,
+      pressed: gesture.pressed,
+      disabled: disabledProgress,
+    }),
+    [
+      gesture.hovered,
+      gesture.focused,
+      gesture.focusVisible,
+      gesture.pressed,
+      disabledProgress,
+    ],
+  )
+
   return {
     style: style as AnimatedStyle<Record<string, unknown>>,
     handlers: gesture.handlers,
+    states: progress,
   }
 }
 

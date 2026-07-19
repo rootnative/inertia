@@ -116,7 +116,7 @@ const { style, handlers } = useGestureLayer({
 })
 ```
 
-Numeric keys compose via clamped-max; color keys compose via priority cascade (`hovered → focused → focusVisible → pressed`); `disabled` sits on top of both. Reach for plain `useGesture` if the composition model doesn't fit (additive blends, multiply, per-key custom rules).
+Numeric keys compose via clamped-max; color keys compose via priority cascade (`hovered → focused → focusVisible → pressed`); `disabled` sits on top of both. The result also carries `states` — the per-state 0↔1 progress shared values behind the composed style — so extra styles can derive from the same gesture wiring (e.g. `useShadow({ from, to, progress: states.hovered })` for an elevation crossfade) without a second `useGesture` call. Reach for plain `useGesture` if the composition model doesn't fit (additive blends, multiply, per-key custom rules).
 
 ## When you need drag, pan, or swipe
 

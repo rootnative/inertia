@@ -408,7 +408,7 @@ When `useGesture` and the `gesture` prop describe the same scenario, prefer the 
 
 ## `useGestureLayer(states, options?)`
 
-A higher-level helper over `useGesture` for the **strongest-active-layer-wins** composition model used by MD3 state-layer haloes and iOS-translucent overlays. You supply per-state target maps; the hook owns the four gesture progress shared values, the `disabled` override, the worklet, and the transition. Lives at the `@rootnative/inertia/gesture-layer` subpath so apps that don't need it don't pay for it.
+A higher-level helper over `useGesture` for the **strongest-active-layer-wins** composition model used by MD3 state-layer haloes and iOS-translucent overlays. You supply per-state target maps; the hook owns the four gesture progress shared values, the `disabled` override, the worklet, and the transition. It also hands those progress shared values back as `states`, so styles derived from the same gesture wiring (an elevation crossfade, an icon tint) don't need a second `useGesture` call. Lives at the `@rootnative/inertia/gesture-layer` subpath so apps that don't need it don't pay for it.
 
 ```tsx
 import { Pressable } from 'react-native'
@@ -462,14 +462,29 @@ Every state key is optional. Values inside each state are a flat map of style ke
 
 ### Returns
 
-| Field      | Type                 | Notes                                                                                                |
-| ---------- | -------------------- | ---------------------------------------------------------------------------------------------------- |
-| `style`    | Animated style       | Spread onto an `Animated.View` or a `Motion.*`'s `style`.                                            |
-| `handlers` | `UseGestureHandlers` | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on the host `Pressable`. |
+| Field      | Type                   | Notes                                                                                                                                                                                                 |
+| ---------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `style`    | Animated style         | Spread onto an `Animated.View` or a `Motion.*`'s `style`.                                                                                                                                             |
+| `handlers` | `UseGestureHandlers`   | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on the host `Pressable`.                                                                                                  |
+| `states`   | `GestureLayerProgress` | The per-state 0↔1 progress shared values the style is derived from: `{ hovered, focused, focusVisible, pressed, disabled }`. Stable across renders; treat as read-only — the handlers own the writes. |
+
+`states` exists so a component that already wires its state layer through `useGestureLayer` can derive _additional_ styles from the same gesture progress — without duplicating the gesture wiring through a parallel `useGesture` call. The canonical case is an elevation crossfade on hover:
 
 ```tsx
 import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
+import { useShadow } from '@rootnative/inertia'
+
+const { style, handlers, states } = useGestureLayer(layerStates, { disabled })
+// Feed the raw hover progress straight into another progress-driven hook:
+const shadow = useShadow({
+  from: restShadow,
+  to: raisedShadow,
+  progress: states.hovered,
+})
+// <Animated.View style={[style, shadow]} />
 ```
+
+The gesture entries (`hovered` / `focused` / `focusVisible` / `pressed`) are the same shared values `useGesture` returns; `disabled` is the hook's own 0↔1 progress for the `options.disabled` override. Any of them also plug into a custom `useAnimatedStyle` or `useDerivedValue` for derivations the composed style can't express.
 
 **`useGestureLayer` vs the declarative `gesture` prop.** The prop composites states as a fixed **priority cascade** (`hovered → focused → focusVisible → pressed`) — when two layers are fully active, the value converges to the higher-priority layer's target, regardless of which is numerically stronger. `useGestureLayer` composites numerics via **clamped-max** — pressing while hovered shows whichever target is _stronger_ per-key, whatever its priority. The MD3 / iOS-translucent halo wants clamped-max so a weaker press target can't visually "dim" an active hover layer. Reach for the prop for ordinary button feedback (`{ scale: 0.96 }` on press layering over an opacity hover); reach for this hook when targets are state-layer overlays whose strongest value should win.
 

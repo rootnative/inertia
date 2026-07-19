@@ -14,6 +14,7 @@
  */
 export { useGestureLayer } from './useGestureLayer'
 export type {
+  GestureLayerProgress,
   GestureLayerStates,
   GestureLayerStyle,
   UseGestureLayerOptions,
