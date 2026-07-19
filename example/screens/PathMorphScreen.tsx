@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import Svg from 'react-native-svg'
-import { MotionPath } from '@rootnative/inertia-svg'
+import Svg, { Circle } from 'react-native-svg'
+import { MotionCircle, MotionPath } from '@rootnative/inertia-svg'
 import { ScreenShell } from './ScreenShell'
 
 // Three structurally-compatible silhouettes (M + 5 Ls + Z). Element-wise
@@ -28,9 +28,17 @@ const SHAPES = [
   },
 ] as const
 
+// Circular-progress geometry for the MotionCircle demo below — the classic
+// dashoffset trick: dasharray = circumference, offset animates toward 0.
+const RING_RADIUS = 42
+const CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
+const PROGRESS_STEPS = [0.15, 0.45, 0.75, 1] as const
+
 export function PathMorphScreen({ onBack }: { onBack: () => void }) {
   const [index, setIndex] = useState(0)
+  const [progressStep, setProgressStep] = useState(0)
   const shape = SHAPES[index]!
+  const progress = PROGRESS_STEPS[progressStep]!
 
   return (
     <ScreenShell
@@ -80,6 +88,49 @@ export function PathMorphScreen({ onBack }: { onBack: () => void }) {
         Tap a shape to morph the silhouette. All three paths share the same M +
         5×L + Z command sequence; element-wise interpolation between any pair is
         well-defined.
+      </Text>
+
+      <Text style={styles.caption}>
+        MotionCircle progress ring: {Math.round(progress * 100)}%
+      </Text>
+      <View style={styles.stage}>
+        <Pressable
+          onPress={() =>
+            setProgressStep((s) => (s + 1) % PROGRESS_STEPS.length)
+          }
+        >
+          <Svg viewBox="0 0 100 100" width={140} height={140}>
+            <Circle
+              cx={50}
+              cy={50}
+              r={RING_RADIUS}
+              stroke="#1e293b"
+              strokeWidth={8}
+              fill="none"
+            />
+            <MotionCircle
+              cx={50}
+              cy={50}
+              r={RING_RADIUS}
+              stroke="#38bdf8"
+              strokeWidth={8}
+              strokeLinecap="round"
+              fill="none"
+              rotation={-90}
+              origin="50, 50"
+              strokeDasharray={[CIRCUMFERENCE]}
+              strokeDashoffset={CIRCUMFERENCE}
+              animate={{ strokeDashoffset: CIRCUMFERENCE * (1 - progress) }}
+              transition={{ type: 'spring', tension: 120, friction: 20 }}
+            />
+          </Svg>
+        </Pressable>
+      </View>
+
+      <Text style={styles.note}>
+        Tap the ring to advance the progress. MotionCircle comes from
+        createMotionSvgComponent — strokeDashoffset is a plain animatable
+        numeric prop, no useAnimatedProps needed.
       </Text>
     </ScreenShell>
   )
