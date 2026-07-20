@@ -4,6 +4,18 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.0-alpha.2] - 2026-07-20
+
+### Added
+
+- **`useGestureLayer` returns per-state progress** — the result now carries `states: GestureLayerProgress`, the five 0↔1 progress shared values behind the composed style (`hovered` / `focused` / `focusVisible` / `pressed` from the underlying `useGesture`, plus the hook-owned `disabled` progress). Lets styles derived from the same gesture wiring — an elevation crossfade via `useShadow({ from, to, progress: states.hovered })`, an icon tint — reuse the hook's progress values instead of duplicating the cascade through a parallel `useGesture` call. Purely additive; the exposed shared values are identity-stable across renders and are the same objects the worklet reads (treat as read-only — the handlers own the writes). The `GestureLayerProgress` type is exported from the `/gesture-layer` subpath.
+
+### Changed
+
+- Published bundles no longer include sourcemaps, and the `__type-tests__` directories are excluded from the npm package (packaging-only; no runtime change).
+
+## [0.0.0-alpha.1] - 2026-07-19
+
 ### Added
 
 - **Named transition registry** — `<MotionConfig transitions={{ name: TransitionConfig }}>` registers named transitions for the subtree; the name is accepted everywhere a `TransitionConfig` is: the `transition` prop (top-level, per-property, per gesture layer), the `layout` prop, and `useAnimation` / `useSpring` / `useBooleanSpring` / `useGesture` / `useGestureLayer`. Names resolve at the nearest provider; nested providers merge with child-overrides-per-name; unknown names warn in dev and fall back to the default spring. No presets ship — names are consumer vocabulary. New exports: `useNamedTransitions()`, `resolveNamedTransition()`, and the `TransitionName` / `TransitionInput` / `NamedTransitions` / `RegisteredTransitions` types (`RegisteredTransitions` is the augmentation point for compile-time-typed names).
@@ -39,5 +51,7 @@ Initial alpha publish. The full v0.1 surface is in place; APIs are still subject
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/v0.0.0-alpha.0...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.0-alpha.2...HEAD
+[0.0.0-alpha.2]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.0-alpha.2
+[0.0.0-alpha.1]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.0-alpha.1
 [0.0.0-alpha.0]: https://github.com/rootnative/inertia/releases/tag/v0.0.0-alpha.0

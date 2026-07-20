@@ -5,7 +5,7 @@
 
 Animatable SVG primitives for [`@rootnative/inertia`](../core), built on [`react-native-svg`](https://github.com/software-mansion/react-native-svg).
 
-`MotionPath` accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for the path data (`d`), color paint (`fill`, `stroke`), and numeric paint (`strokeWidth`, opacities, `strokeDashoffset`).
+`MotionPath` accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for the path data (`d`), color paint (`fill`, `stroke`), and numeric paint (`strokeWidth`, opacities, `strokeDashoffset`). Prebuilt `MotionCircle` / `MotionRect` / `MotionLine` cover the other common shapes, and the `createMotionSvgComponent` factory behind them wraps any `react-native-svg` element. Everything is also reachable through the `MotionSvg` namespace (`MotionSvg.Path` / `.Circle` / `.Rect` / `.Line`).
 
 ## Install
 
@@ -81,13 +81,54 @@ In dev, the component throws on template mismatches at mount, when `animate.d` c
 
 Path resampling between structurally different shapes (flubber-style) is out of scope for v0.2. For arbitrary shape swaps, remount with `key={...}`.
 
+## Shapes — MotionCircle, MotionRect, MotionLine
+
+Prebuilt geometry primitives with the same `initial` / `animate` / `transition` surface. Each animates its numeric geometry props (`cx` / `cy` / `r`, `x` / `y` / `width` / `height` / `rx` / `ry`, `x1` / `y1` / `x2` / `y2`), the `fill` / `stroke` paints (`stroke` only for `MotionLine`), opacities, `strokeDashoffset` — and `strokeDasharray` element-wise, with the array length locked at mount (the same rule `MotionPath` applies to path commands). The canonical consumer is a circular progress ring:
+
+```tsx
+import Svg from 'react-native-svg'
+import { MotionCircle } from '@rootnative/inertia-svg'
+
+const CIRCUMFERENCE = 2 * Math.PI * 40
+
+<Svg viewBox="0 0 100 100" width={96} height={96}>
+  <MotionCircle
+    cx={50}
+    cy={50}
+    r={40}
+    fill="none"
+    stroke="#4f46e5"
+    strokeWidth={8}
+    strokeDasharray={[CIRCUMFERENCE]}
+    animate={{ strokeDashoffset: CIRCUMFERENCE * (1 - progress) }}
+    transition={{ type: 'timing', duration: 250 }}
+  />
+</Svg>
+```
+
+## createMotionSvgComponent
+
+The factory behind the prebuilt shapes — wraps any other `react-native-svg` element:
+
+```tsx
+import { Ellipse } from 'react-native-svg'
+import { createMotionSvgComponent } from '@rootnative/inertia-svg'
+
+const MotionEllipse = createMotionSvgComponent(Ellipse, {
+  animatableProps: ['cx', 'cy', 'rx', 'ry', 'strokeWidth', 'opacity'],
+  colorProps: ['fill', 'stroke'],
+  arrayProps: ['strokeDasharray'],
+})
+```
+
+`animatableProps` are numeric, `colorProps` are color strings, `arrayProps` are numeric arrays (element-wise, length locked at mount). `transition` accepts named transitions from the nearest `<MotionConfig transitions>`, top-level and per-property.
+
 ## Reduced motion
 
-`MotionPath` participates in `<MotionConfig reducedMotion>` just like the core primitives — when the OS reduce-motion setting is on (or you pass `reducedMotion="always"`), every animated property snaps directly to its target.
+All primitives participate in `<MotionConfig reducedMotion>` just like the core ones — when the OS reduce-motion setting is on (or you pass `reducedMotion="always"`), every animated property snaps directly to its target.
 
 ## What this package doesn't do (v0.2)
 
-- Other SVG shapes (`Circle`, `Rect`, `Line`, `Ellipse`) — land in a follow-up once the `MotionPath` API is validated.
 - Path resampling between arbitrary shapes.
 - Morphing an `L` into a `C` (or other across-command interpolation). Element-wise scalar interpolation is intentional.
 
