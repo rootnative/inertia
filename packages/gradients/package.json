@@ -46,6 +46,7 @@
     "LICENSE",
     "CHANGELOG.md",
     "!**/__tests__",
+    "!**/__type-tests__",
     "!**/*.test.*"
   ],
   "scripts": {
