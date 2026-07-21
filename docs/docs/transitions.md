@@ -91,7 +91,7 @@ transition={{
 }}
 ```
 
-User-supplied `easing` functions are auto-wrapped as worklets at JS time, so plain functions work in nested-transition contexts (variants, sequences, per-property maps) without manual `'worklet'` directives. Easing fns must be pure — no captured JS-thread refs.
+Custom `easing` functions must be worklets — put the `'worklet'` directive as the function's first statement (Reanimated's built-in `Easing.*` helpers and inertia's `cubicBezier()` already are). A plain function warns in dev: the fallback wrapper works on web but native builds reject it when the transition runs on the UI thread, because the wrapper's closure holds the opaque plain function. Easing fns must also be pure — no captured JS-thread refs.
 
 ### Easing input shape
 

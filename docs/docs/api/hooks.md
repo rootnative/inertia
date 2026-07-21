@@ -161,7 +161,7 @@ const distance = useTransform(() => Math.sqrt(x.value ** 2 + y.value ** 2))
 | --------------------------------------- | ---------------- |
 | `useTransform<T>(transformer: () => T)` | `SharedValue<T>` |
 
-The transformer must be a worklet. Plain functions are auto-wrapped with the `'worklet'` directive at JS time — the same treatment user-supplied easing gets — so you don't need to remember it. The transformer must be pure: no captured JS-thread refs, no calls to non-worklet APIs.
+The transformer must be a worklet — add the `'worklet'` directive as its first statement so your Babel plugin captures the shared values it reads as the worklet's closure. A plain function warns in dev and cannot track dependencies: the fallback wrapper closes over the opaque function reference, not the shared values read inside it, so the derived value only refreshes on React re-renders (and native builds reject it outright). The transformer must be pure: no captured JS-thread refs, no calls to non-worklet APIs.
 
 ## `useShadow({ from, to, progress })`
 

@@ -13,8 +13,9 @@ export type LayoutProp = boolean | TransitionConfig | undefined
  * - `true` → default spring with the library's tuned tension / friction / mass.
  * - `{ type: 'spring', ... }` → spring with react-spring vocabulary, bridged
  *   into `springify().damping().stiffness().mass()` via `springToReanimated`.
- * - `{ type: 'timing', ... }` → `.duration().easing()`. User easing fns are
- *   auto-wrapped as worklets (Reanimated 3.9+ validates this).
+ * - `{ type: 'timing', ... }` → `.duration().easing()`. Custom easing fns
+ *   must be worklets (Reanimated 3.9+ validates this); plain functions
+ *   dev-warn via `ensureWorkletEasing`.
  * - `{ type: 'decay', ... }` → silently downgrades to spring; decay doesn't
  *   have a clear target for a layout transition.
  *

@@ -4,6 +4,22 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Changed
+
+- **Non-worklet transformers and easings now dev-warn.** `useTransform`'s transformer overload and custom `timing.easing` functions must be worklets (`'worklet'` directive as the first statement). The previous "plain functions are auto-wrapped" promise was unfulfillable: the directive-wrapped fallback closes over the opaque function reference, not the shared values read inside it, so Reanimated cannot extract dependencies (a `useTransform` derived value silently only refreshed on React re-renders — found via a frozen TextField label float in the UI library) and native builds reject the plain function when the closure is serialized to the UI thread. The fallback wrapper remains as a web-only best effort, but both sites now `console.warn` once in dev (suppressed under Jest, where the shared stubs report every function as non-worklet). Docs (`transitions.md`, `layout.md`, `api/hooks.md`) and docstrings corrected to state the real contract.
+
+## [0.0.0-alpha.4] - 2026-07-21
+
+### Fixed
+
+- **First mouse click after page load no longer draws a focus ring** (web). The `focusVisibility` input-modality listeners attached lazily on the first `isFocusVisible()` call — which happens *during* the focus dispatch of that first click, after its `mousedown` had already passed unobserved — leaving the default `'keyboard'` modality and misclassifying the pointer interaction as keyboard focus. The listeners now install eagerly at module import (the lazy path remains as a safety net for environments where `document` appears after import).
+
+## [0.0.0-alpha.3] - 2026-07-21
+
+### Fixed
+
+- **Named transitions resolve correctly across subpath entries.** `splitting: false` in the tsup config made every dist entry inline its own copy of `MotionConfigContext`, so the provider (root entry) and consumers (e.g. the `/gesture-layer` subpath) held different React contexts and every registered name silently fell back to the default spring. Dist now builds with code splitting so the context module is shared.
+
 ## [0.0.0-alpha.2] - 2026-07-20
 
 ### Added

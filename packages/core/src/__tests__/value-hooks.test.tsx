@@ -1,6 +1,8 @@
 import { render } from '@testing-library/react-native'
 import { useEffect } from 'react'
 import * as Reanimated from 'react-native-reanimated'
+import * as Worklets from 'react-native-worklets'
+import { __resetNonWorkletWarningsForTests } from '../internal/nonWorkletWarning'
 import {
   useBooleanSpring,
   useColorTransition,
@@ -202,6 +204,66 @@ describe('useTransform', () => {
     }
     render(<Setup />)
     expect(probe.current!.value).toBe(9)
+  })
+
+  describe('non-worklet transformer dev warning', () => {
+    // The warning is suppressed under Jest (the shared stubs report every
+    // function as non-worklet, which would make it pure noise), so these
+    // tests lift the suppression by clearing JEST_WORKER_ID.
+    const originalWorkerId = process.env.JEST_WORKER_ID
+
+    beforeEach(() => {
+      __resetNonWorkletWarningsForTests()
+      delete process.env.JEST_WORKER_ID
+    })
+
+    afterEach(() => {
+      process.env.JEST_WORKER_ID = originalWorkerId
+    })
+
+    it('warns once when the transformer is a plain function', () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+      function Setup() {
+        const x = useMotionValue(1)
+        useTransform(() => x.value)
+        useTransform(() => x.value * 2)
+        return null
+      }
+      render(<Setup />)
+      expect(warn).toHaveBeenCalledTimes(1)
+      expect(warn.mock.calls[0]![0]).toContain("'worklet'")
+      warn.mockRestore()
+    })
+
+    it('does not warn for worklet transformers or interpolation overloads', () => {
+      const isWorklet = jest
+        .spyOn(Worklets, 'isWorkletFunction')
+        .mockReturnValue(true)
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+      function Setup() {
+        const x = useMotionValue(0)
+        useTransform(() => x.value)
+        useTransform(x, [0, 1], [0, 1])
+        return null
+      }
+      render(<Setup />)
+      expect(warn).not.toHaveBeenCalled()
+      warn.mockRestore()
+      isWorklet.mockRestore()
+    })
+
+    it('stays silent under the Jest worker env', () => {
+      process.env.JEST_WORKER_ID = originalWorkerId ?? '1'
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+      function Setup() {
+        const x = useMotionValue(1)
+        useTransform(() => x.value)
+        return null
+      }
+      render(<Setup />)
+      expect(warn).not.toHaveBeenCalled()
+      warn.mockRestore()
+    })
   })
 })
 

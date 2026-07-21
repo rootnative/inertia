@@ -1,15 +1,16 @@
 import { render } from '@testing-library/react-native'
 import * as Reanimated from 'react-native-reanimated'
 import * as Worklets from 'react-native-worklets'
+import { __resetNonWorkletWarningsForTests } from '../../internal/nonWorkletWarning'
 import { Motion } from '../../motion'
 import { ensureWorkletEasing } from '../easing'
 import { resolveTransition } from '../resolve'
 
 // Phase-2 acceptance: custom easing functions inside nested-transition
 // contexts (variants, sequences, per-property maps) must not crash with
-// `[Reanimated] The easing function is not a worklet`. The library wraps
-// plain functions at JS time so consumers never have to think about the
-// worklet boundary.
+// `[Reanimated] The easing function is not a worklet`. Plain functions get
+// a best-effort call-through wrapper (web-only — the real contract is that
+// custom easings are worklets, and plain functions dev-warn outside Jest).
 
 describe('ensureWorkletEasing', () => {
   it('returns undefined when no easing is provided', () => {
@@ -59,6 +60,50 @@ describe('ensureWorkletEasing', () => {
     // Inner is unwrapped and recognized as a worklet — no extra wrapping.
     expect(ensureWorkletEasing(factory)).toBe(inner)
     isWorklet.mockRestore()
+  })
+
+  describe('non-worklet dev warning', () => {
+    // The warning is suppressed under Jest (the shared stubs report every
+    // function as non-worklet, which would make it pure noise), so these
+    // tests lift the suppression by clearing JEST_WORKER_ID.
+    const originalWorkerId = process.env.JEST_WORKER_ID
+
+    beforeEach(() => {
+      __resetNonWorkletWarningsForTests()
+      delete process.env.JEST_WORKER_ID
+    })
+
+    afterEach(() => {
+      process.env.JEST_WORKER_ID = originalWorkerId
+    })
+
+    it('warns once (not per call) when wrapping plain easing fns', () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+      ensureWorkletEasing((t: number) => t)
+      ensureWorkletEasing((t: number) => t * t)
+      expect(warn).toHaveBeenCalledTimes(1)
+      expect(warn.mock.calls[0]![0]).toContain("'worklet'")
+      warn.mockRestore()
+    })
+
+    it('does not warn for worklet easings', () => {
+      const isWorklet = jest
+        .spyOn(Worklets, 'isWorkletFunction')
+        .mockReturnValue(true)
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+      ensureWorkletEasing((t: number) => t)
+      expect(warn).not.toHaveBeenCalled()
+      warn.mockRestore()
+      isWorklet.mockRestore()
+    })
+
+    it('stays silent under the Jest worker env', () => {
+      process.env.JEST_WORKER_ID = originalWorkerId ?? '1'
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+      ensureWorkletEasing((t: number) => t)
+      expect(warn).not.toHaveBeenCalled()
+      warn.mockRestore()
+    })
   })
 })
 

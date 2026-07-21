@@ -10,6 +10,7 @@ import {
 // `react-native-worklets` is a required peer of Reanimated 4, so the direct
 // import is always available wherever Inertia is.
 import { isWorkletFunction } from 'react-native-worklets'
+import { warnNonWorkletOnce } from '../internal/nonWorkletWarning'
 
 /**
  * Extrapolation behavior at the edges of the input range. Mirrors
@@ -36,9 +37,17 @@ export interface UseTransformOptions {
  * const distance = useTransform(() => Math.sqrt(x.value ** 2 + y.value ** 2))
  * ```
  *
- * The transformer must be a worklet (or a plain function we auto-wrap —
- * see the easing wrapper for the rationale). It runs on the UI thread on
- * every frame where any read shared value changes.
+ * The transformer MUST be a worklet — put the `'worklet'` directive as its
+ * first statement so the consumer's Babel plugin captures the shared values
+ * it reads as its closure. It runs on the UI thread on every frame where
+ * any read shared value changes.
+ *
+ * A plain function cannot work here, and the hook warns in dev when it gets
+ * one: the best-effort wrapper it falls back to closes over the opaque
+ * function reference, not the shared values read inside it, so Reanimated
+ * can't track them as dependencies — the derived value only refreshes on
+ * React re-renders, and native builds reject the plain function when the
+ * closure crosses to the UI thread.
  */
 export function useTransform<T>(transformer: () => T): SharedValue<T>
 
@@ -80,16 +89,23 @@ export function useTransform<T>(
   // interpolation) is decided once at JS time, never at frame time.
   let producer: () => unknown
   if (typeof arg1 === 'function') {
-    // Transformer overload. The public surface accepts a plain function;
-    // Reanimated 3.9+ requires worklets in nested-derivation contexts, so
-    // we auto-wrap at JS time the same way `ensureWorkletEasing` does.
+    // Transformer overload. Must be a worklet — the directive-wrapped
+    // fallback below is best-effort only (its closure holds the opaque
+    // function, not the shared values read inside it, so dependency
+    // tracking cannot work — see `warnNonWorkletOnce`).
     const userFn = arg1 as () => T
-    producer = isWorkletFunction(userFn)
-      ? userFn
-      : () => {
-          'worklet'
-          return userFn()
-        }
+    if (isWorkletFunction(userFn)) {
+      producer = userFn
+    } else {
+      warnNonWorkletOnce(
+        'useTransform-transformer',
+        "[inertia] useTransform: the transformer is not a worklet, so the shared values it reads can't be tracked as dependencies — the derived value will only refresh on React re-renders, and native builds reject plain functions on the UI thread. Add the 'worklet' directive as the first statement of the transformer.",
+      )
+      producer = () => {
+        'worklet'
+        return userFn()
+      }
+    }
   } else {
     // Interpolation overload. We pre-resolve everything JS-side so the
     // worklet body only consumes flat values.

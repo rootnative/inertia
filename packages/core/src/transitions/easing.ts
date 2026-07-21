@@ -1,20 +1,21 @@
 // `isWorkletFunction` lives in `react-native-worklets` (the Reanimated 4 peer
 // dep); Reanimated's own re-export is deprecated.
 import { isWorkletFunction } from 'react-native-worklets'
+import { warnNonWorkletOnce } from '../internal/nonWorkletWarning'
 import { type EasingInput } from '../types'
 
 /**
  * Reanimated 3.9+ validates that easing functions used in nested-transition
  * contexts (variants, sequences, per-property maps) are worklets, and crashes
- * with `[Reanimated] The easing function is not a worklet` otherwise. The
- * library accepts plain functions on the public surface; this helper wraps
- * them so consumers don't have to think about the worklet boundary.
+ * with `[Reanimated] The easing function is not a worklet` otherwise.
  *
- * If the input is already a worklet (has been processed by the worklets babel
- * plugin), it's returned as-is. Otherwise it's wrapped in a function whose
- * body declares the `'worklet'` directive — when our source is processed by
- * the consumer's worklets babel plugin (the default Expo/RN setup), the
- * wrapper becomes a real worklet that captures the user fn via closure.
+ * Custom easing functions MUST therefore be worklets — put the `'worklet'`
+ * directive as the function's first statement (Reanimated's built-in
+ * `Easing.*` helpers and inertia's `cubicBezier()` already are). A plain
+ * function warns in dev and falls back to a directive-wrapped call-through;
+ * that wrapper works on web (single-threaded) but its closure holds the
+ * opaque plain function, which native builds reject when the transition's
+ * config is serialized to the UI thread.
  *
  * Reanimated 4 changed `Easing.bezier(...)` to return an
  * `EasingFunctionFactory` (`{ factory: () => EasingFunction }`) rather than
@@ -34,6 +35,10 @@ export function ensureWorkletEasing(
   // ends up in the transition config.
   const fn = isEasingFactory(easing) ? easing.factory() : easing
   if (isWorkletFunction(fn)) return fn
+  warnNonWorkletOnce(
+    'timing-easing',
+    "[inertia] timing easing: the provided easing function is not a worklet. The fallback wrapper works on web but native builds reject it when the transition runs on the UI thread. Add the 'worklet' directive as the first statement of the easing function, or use Reanimated's Easing.* helpers / inertia's cubicBezier(), which are already worklets.",
+  )
   const wrapped = (t: number) => {
     'worklet'
     return fn(t)

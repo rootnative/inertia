@@ -36,7 +36,7 @@ Internally the prop resolves to Reanimated's `LinearTransition` builder; the sam
 <Motion.View layout={{ type: 'timing', easing: (t) => t * t }} /> // custom easing
 ```
 
-User-supplied easing functions are auto-wrapped with the `'worklet'` directive at JS time, same as `transition.easing` — you don't need to remember the worklet boundary.
+Custom easing functions must be worklets, same as `transition.easing` — add the `'worklet'` directive as the function's first statement. Plain functions warn in dev and only work on web.
 
 ## What triggers a layout animation
 
