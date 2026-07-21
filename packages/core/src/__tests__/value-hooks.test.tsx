@@ -338,6 +338,77 @@ describe('useShadow', () => {
     expect(radiusCall).toBeDefined()
     expect(radiusCall![2]).toEqual([0, 8])
   })
+
+  it('interpolates boxShadow CSS strings into a boxShadow style key', () => {
+    const probe: Probe<Record<string, unknown>> = {}
+    function Setup() {
+      const progress = useMotionValue(0)
+      progress.value = 1 // mock interpolate/interpolateColor return `to` outputs
+      const style = useShadow({
+        from: { boxShadow: '0px 1px 2px rgba(0,0,0,0.3)' },
+        to: { boxShadow: '0px 2px 6px 2px rgba(0,0,0,0.15)' },
+        progress,
+      })
+      probe.current = style as Record<string, unknown>
+      return null
+    }
+    render(<Setup />)
+    expect(Object.keys(probe.current!)).toEqual(['boxShadow'])
+    expect(probe.current!.boxShadow).toBe('0px 2px 6px 2px rgba(0,0,0,0.15)')
+  })
+
+  it('pads mismatched layer counts and joins multi-layer output', () => {
+    const probe: Probe<Record<string, unknown>> = {}
+    function Setup() {
+      const progress = useMotionValue(0)
+      progress.value = 1
+      const style = useShadow({
+        from: { boxShadow: 'none' },
+        to: {
+          boxShadow:
+            '0px 1px 2px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15)',
+        },
+        progress,
+      })
+      probe.current = style as Record<string, unknown>
+      return null
+    }
+    render(<Setup />)
+    // Output is canonical 4-length form — the parsed 3-length token gains
+    // its explicit 0px spread.
+    expect(probe.current!.boxShadow).toBe(
+      '0px 1px 2px 0px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15)',
+    )
+  })
+
+  it('accepts structured layers and emits inset prefixes', () => {
+    const probe: Probe<Record<string, unknown>> = {}
+    function Setup() {
+      const progress = useMotionValue(0)
+      progress.value = 1
+      const style = useShadow({
+        from: {
+          boxShadow: [{ offsetX: 0, offsetY: 0, color: 'black', inset: true }],
+        },
+        to: {
+          boxShadow: [
+            {
+              offsetX: 0,
+              offsetY: 2,
+              blurRadius: 4,
+              color: 'black',
+              inset: true,
+            },
+          ],
+        },
+        progress,
+      })
+      probe.current = style as Record<string, unknown>
+      return null
+    }
+    render(<Setup />)
+    expect(probe.current!.boxShadow).toBe('inset 0px 2px 4px 0px black')
+  })
 })
 
 describe('useColorTransition', () => {

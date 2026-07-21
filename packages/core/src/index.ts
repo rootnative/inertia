@@ -52,6 +52,7 @@ export {
   useVariants,
 } from './values'
 export type {
+  BoxShadowLayer,
   ColorStyleKey,
   ExtrapolationMode,
   ShadowConfig,

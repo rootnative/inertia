@@ -198,15 +198,34 @@ function ElevatedCard({ raised }: { raised: boolean }) {
 
 `ShadowConfig` accepts the same flat shadow keys as `Motion.View`'s `animate` surface, plus the nested `shadowOffset` source:
 
-| Field           | Type                                  | Notes                                                      |
-| --------------- | ------------------------------------- | ---------------------------------------------------------- |
-| `shadowOpacity` | `number`                              | Standard iOS shadow opacity.                               |
-| `shadowRadius`  | `number`                              | Blur radius in points.                                     |
-| `shadowOffset`  | `{ width?: number; height?: number }` | Single-value form — width/height each tween independently. |
-| `elevation`     | `number`                              | Android elevation. iOS-only consumers can leave it off.    |
-| `shadowColor`   | `string`                              | Color string. Interpolated via `interpolateColor`.         |
+| Field           | Type                                  | Notes                                                                    |
+| --------------- | ------------------------------------- | ------------------------------------------------------------------------ |
+| `shadowOpacity` | `number`                              | Standard iOS shadow opacity.                                             |
+| `shadowRadius`  | `number`                              | Blur radius in points.                                                   |
+| `shadowOffset`  | `{ width?: number; height?: number }` | Single-value form — width/height each tween independently.               |
+| `elevation`     | `number`                              | Android elevation. iOS-only consumers can leave it off.                  |
+| `shadowColor`   | `string`                              | Color string. Interpolated via `interpolateColor`.                       |
+| `boxShadow`     | `string \| BoxShadowLayer[]`          | CSS box-shadow — the shadow surface on web and RN 0.76+ new-arch native. |
 
 Only keys present on at least one side appear in the output style — there's no overhead for keys you don't use. A key present on one side and absent from the other tweens from / to the absent side's natural zero (`0`, `'transparent'`, or `{ width: 0, height: 0 }`).
+
+### Web shadows: `boxShadow`
+
+The classic `shadow*` / `elevation` keys never reach the web renderer — react-native-web's elevation surface is the CSS `box-shadow` string. `boxShadow` closes that gap: pass the CSS string form your design system already stores elevation tokens in (px lengths only), or structured `BoxShadowLayer` objects (`{ offsetX, offsetY, blurRadius?, spreadDistance?, color?, inset? }`, mirroring RN's `BoxShadowValue`):
+
+```tsx
+const shadowStyle = useShadow({
+  from: {
+    boxShadow: '0px 1px 2px rgba(0,0,0,0.30), 0px 1px 3px 1px rgba(0,0,0,0.15)',
+  },
+  to: {
+    boxShadow: '0px 2px 6px 2px rgba(0,0,0,0.15), 0px 1px 2px rgba(0,0,0,0.30)',
+  },
+  progress,
+})
+```
+
+Multi-layer shadows interpolate per layer; when one side has fewer layers (including `'none'`), it's padded with invisible layers, CSS-transition style. Like `cubicBezier`, a malformed string **throws** at render rather than warning — shadow tokens are built at theme setup, and a typo should fail loudly there. Two paired layers with mismatched `inset` are not interpolable and also throw. The interpolated value is emitted as a `boxShadow` style string, which react-native-web passes through as CSS and React Native 0.76+ (new architecture) renders natively; on old-architecture native it's ignored, so keep the `shadow*` / `elevation` keys alongside it for those targets.
 
 | Signature                                                                            | Returns                               |
 | ------------------------------------------------------------------------------------ | ------------------------------------- |

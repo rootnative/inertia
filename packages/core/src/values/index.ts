@@ -20,6 +20,7 @@ export {
 export { useScroll, type UseScrollResult } from './useScroll'
 export {
   useShadow,
+  type BoxShadowLayer,
   type ShadowConfig,
   type UseShadowOptions,
 } from './useShadow'

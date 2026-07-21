@@ -4,6 +4,12 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Added
+
+- **`useShadow` now interpolates CSS `boxShadow`.** The classic `shadow*`/`elevation` keys never reach the web renderer, so a `useShadow` elevation crossfade silently dropped its shadow on web — the platform where hover, its most common driver, matters most (gap surfaced by the RootNative UI Card migration). `ShadowConfig` gains `boxShadow?: string | BoxShadowLayer[]`: pass the CSS string form design systems store elevation tokens in (px lengths only; parsed once on the JS thread, `cubicBezier`-style — malformed tokens throw at setup rather than warning) or structured layers mirroring RN's `BoxShadowValue`. Multi-layer shadows interpolate per layer with CSS-transition padding semantics (shorter side padded with invisible layers; a genuine `inset` mismatch throws); blur clamps at 0 under springy overshoot. Emitted as a `boxShadow` style string — passed through as CSS by react-native-web and rendered natively on RN 0.76+ new architecture; keep `shadow*`/`elevation` alongside it for old-arch native. New `BoxShadowLayer` type exported from the root.
+
+## [0.0.0-alpha.5] - 2026-07-21
+
 ### Changed
 
 - **Non-worklet transformers and easings now dev-warn.** `useTransform`'s transformer overload and custom `timing.easing` functions must be worklets (`'worklet'` directive as the first statement). The previous "plain functions are auto-wrapped" promise was unfulfillable: the directive-wrapped fallback closes over the opaque function reference, not the shared values read inside it, so Reanimated cannot extract dependencies (a `useTransform` derived value silently only refreshed on React re-renders — found via a frozen TextField label float in the UI library) and native builds reject the plain function when the closure is serialized to the UI thread. The fallback wrapper remains as a web-only best effort, but both sites now `console.warn` once in dev (suppressed under Jest, where the shared stubs report every function as non-worklet). Docs (`transitions.md`, `layout.md`, `api/hooks.md`) and docstrings corrected to state the real contract.

@@ -54,12 +54,16 @@ export function UseShadowScreen({ onBack }: { onBack: () => void }) {
   )
 }
 
+// The classic `shadow*`/`elevation` keys cover iOS + Android (old arch).
+// `boxShadow` is the web / RN new-arch surface — the same CSS-string form
+// design systems store elevation tokens in. Both tween from one progress.
 const REST_SHADOW = {
   shadowColor: '#000000',
   shadowOpacity: 0.08,
   shadowRadius: 2,
   shadowOffset: { width: 0, height: 1 },
   elevation: 1,
+  boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.08)',
 }
 
 const RAISED_SHADOW = {
@@ -68,6 +72,7 @@ const RAISED_SHADOW = {
   shadowRadius: 16,
   shadowOffset: { width: 0, height: 10 },
   elevation: 10,
+  boxShadow: '0px 10px 16px rgba(0, 0, 0, 0.24)',
 }
 
 const styles = StyleSheet.create({
