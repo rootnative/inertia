@@ -50,4 +50,39 @@ describe('isFocusVisible — web modality tracking', () => {
     __resetFocusVisibilityForTests('keyboard')
     expect(isFocusVisible()).toBe(true)
   })
+
+  it('installs the document listeners at import, before any isFocusVisible call', () => {
+    // The very first interaction with a page can be the mouse click that
+    // focuses a gesture-wired element. If the listeners attached lazily
+    // inside that focus dispatch, the preceding mousedown would go
+    // unobserved and the default keyboard modality would draw a focus ring
+    // for a pointer interaction.
+    const listeners = new Map<string, (event: unknown) => void>()
+    ;(globalThis as { document?: unknown }).document = {
+      addEventListener: (type: string, fn: (event: unknown) => void) => {
+        listeners.set(type, fn)
+      },
+    }
+    try {
+      const { isFocusVisible } =
+        require('../focusVisibility') as typeof import('../focusVisibility')
+
+      // Registered by the import itself — no isFocusVisible call yet.
+      expect(Array.from(listeners.keys()).sort()).toEqual([
+        'keydown',
+        'mousedown',
+        'pointerdown',
+        'touchstart',
+      ])
+
+      // The click-that-focuses sequence: mousedown flips modality before
+      // the focus handler reads it.
+      listeners.get('mousedown')!({})
+      expect(isFocusVisible()).toBe(false)
+      listeners.get('keydown')!({})
+      expect(isFocusVisible()).toBe(true)
+    } finally {
+      delete (globalThis as { document?: unknown }).document
+    }
+  })
 })

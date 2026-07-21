@@ -12,10 +12,15 @@ import { Platform } from 'react-native'
  * arrives via D-pad, screen reader, or hardware keyboard, all of which are
  * keyboard-equivalent — so `isFocusVisible()` is unconditionally `true`.
  *
- * The web listeners attach lazily on first call (capture phase, so they run
- * before the focus event reaches the focused element) and stay installed for
- * the lifetime of the document. They are passive and idle-cheap; the cost is
- * one boolean read per `onFocus` dispatch.
+ * The web listeners attach eagerly at module import (capture phase, so they
+ * run before the focus event reaches the focused element) and stay installed
+ * for the lifetime of the document. Eager installation matters: the very
+ * first interaction with a page can be the mouse click that focuses a
+ * gesture-wired element, and if the listeners only attached during that
+ * focus dispatch the mousedown would already have passed unobserved —
+ * leaving the default `'keyboard'` modality and drawing a focus ring for a
+ * pointer interaction. They are passive and idle-cheap; the cost is one
+ * boolean read per `onFocus` dispatch.
  */
 
 type InputModality = 'keyboard' | 'pointer'
@@ -43,6 +48,12 @@ function ensureInstalled(): void {
   document.addEventListener('touchstart', setPointer, true)
   installed = true
 }
+
+// Install at import time so the pointer event that precedes the first focus
+// is observed (see module doc above). `ensureInstalled` stays in
+// `isFocusVisible` as a safety net for environments where `document` appears
+// after import.
+ensureInstalled()
 
 /**
  * `true` if the next `onFocus` should be treated as "focus-visible" (keyboard
