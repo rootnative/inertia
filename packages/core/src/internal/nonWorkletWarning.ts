@@ -3,9 +3,7 @@ declare const __DEV__: boolean
 // The core package intentionally has no Node types — declare the minimal
 // shape needed for the Jest detection below (guarded by a typeof check, so
 // environments without `process` are fine).
-declare const process:
-  | { env?: Record<string, string | undefined> }
-  | undefined
+declare const process: { env?: Record<string, string | undefined> } | undefined
 
 const warned = new Set<string>()
 

@@ -12,7 +12,7 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ### Fixed
 
-- **First mouse click after page load no longer draws a focus ring** (web). The `focusVisibility` input-modality listeners attached lazily on the first `isFocusVisible()` call — which happens *during* the focus dispatch of that first click, after its `mousedown` had already passed unobserved — leaving the default `'keyboard'` modality and misclassifying the pointer interaction as keyboard focus. The listeners now install eagerly at module import (the lazy path remains as a safety net for environments where `document` appears after import).
+- **First mouse click after page load no longer draws a focus ring** (web). The `focusVisibility` input-modality listeners attached lazily on the first `isFocusVisible()` call — which happens _during_ the focus dispatch of that first click, after its `mousedown` had already passed unobserved — leaving the default `'keyboard'` modality and misclassifying the pointer interaction as keyboard focus. The listeners now install eagerly at module import (the lazy path remains as a safety net for environments where `document` appears after import).
 
 ## [0.0.0-alpha.3] - 2026-07-21
 

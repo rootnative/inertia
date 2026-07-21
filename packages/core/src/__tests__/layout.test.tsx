@@ -11,7 +11,10 @@ describe('resolveLayoutTransition', () => {
   })
 
   it('layout={true} produces a default spring builder', () => {
-    const t = resolveLayoutTransition(true) as unknown as Record<string, unknown>
+    const t = resolveLayoutTransition(true) as unknown as Record<
+      string,
+      unknown
+    >
     expect(t.__mode).toBe('spring')
     expect(t.stiffness).toBe(DEFAULT_SPRING.tension)
     expect(t.damping).toBe(DEFAULT_SPRING.friction)
