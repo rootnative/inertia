@@ -1,6 +1,6 @@
 {
   "name": "@rootnative/inertia-gradients",
-  "version": "0.0.0-alpha.3",
+  "version": "0.0.0-alpha.4",
   "description": "Animated linear gradient primitive for @rootnative/inertia, built on expo-linear-gradient.",
   "license": "MIT",
   "author": "RootNative",
@@ -61,7 +61,7 @@
     "prepublishOnly": "node ../../scripts/build-llms.mjs"
   },
   "peerDependencies": {
-    "@rootnative/inertia": ">=0.0.0-alpha.3",
+    "@rootnative/inertia": ">=0.0.0-alpha.4",
     "expo-linear-gradient": ">=14.0.0",
     "react": ">=19.0.0",
     "react-native": ">=0.81.0",
