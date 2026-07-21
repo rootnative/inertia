@@ -589,7 +589,7 @@ transition={{
 }}
 ```
 
-User-supplied `easing` functions are auto-wrapped as worklets at JS time, so plain functions work in nested-transition contexts (variants, sequences, per-property maps) without manual `'worklet'` directives. Easing fns must be pure — no captured JS-thread refs.
+Custom `easing` functions must be worklets — put the `'worklet'` directive as the function's first statement (Reanimated's built-in `Easing.*` helpers and inertia's `cubicBezier()` already are). A plain function warns in dev: the fallback wrapper works on web but native builds reject it when the transition runs on the UI thread, because the wrapper's closure holds the opaque plain function. Easing fns must also be pure — no captured JS-thread refs.
 
 ### Easing input shape
 
@@ -1616,7 +1616,7 @@ Internally the prop resolves to Reanimated's `LinearTransition` builder; the sam
 <Motion.View layout={{ type: 'timing', easing: (t) => t * t }} /> // custom easing
 ```
 
-User-supplied easing functions are auto-wrapped with the `'worklet'` directive at JS time, same as `transition.easing` — you don't need to remember the worklet boundary.
+Custom easing functions must be worklets, same as `transition.easing` — add the `'worklet'` directive as the function's first statement. Plain functions warn in dev and only work on web.
 
 ## What triggers a layout animation
 
@@ -2618,7 +2618,7 @@ const distance = useTransform(() => Math.sqrt(x.value ** 2 + y.value ** 2))
 | --------------------------------------- | ---------------- |
 | `useTransform<T>(transformer: () => T)` | `SharedValue<T>` |
 
-The transformer must be a worklet. Plain functions are auto-wrapped with the `'worklet'` directive at JS time — the same treatment user-supplied easing gets — so you don't need to remember it. The transformer must be pure: no captured JS-thread refs, no calls to non-worklet APIs.
+The transformer must be a worklet — add the `'worklet'` directive as its first statement so your Babel plugin captures the shared values it reads as the worklet's closure. A plain function warns in dev and cannot track dependencies: the fallback wrapper closes over the opaque function reference, not the shared values read inside it, so the derived value only refreshes on React re-renders (and native builds reject it outright). The transformer must be pure: no captured JS-thread refs, no calls to non-worklet APIs.
 
 ## `useShadow({ from, to, progress })`
 
