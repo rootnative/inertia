@@ -34,7 +34,8 @@ describe('useAnimation', () => {
   it('re-runs the animation when target changes', () => {
     const withTiming = jest.spyOn(Reanimated, 'withTiming')
     const { rerender } = renderHook(
-      ({ value }) => useAnimation(value, { type: 'timing', duration: 100 }),
+      ({ value }: { value: number }) =>
+        useAnimation(value, { type: 'timing', duration: 100 }),
       { initialProps: { value: 0 } },
     )
     withTiming.mockClear()
@@ -47,7 +48,8 @@ describe('useAnimation', () => {
     const withTiming = jest.spyOn(Reanimated, 'withTiming')
     const { rerender } = renderHook(
       // Fresh literal each render; structural sig is identical.
-      ({ value }) => useAnimation(value, { type: 'timing', duration: 100 }),
+      ({ value }: { value: number }) =>
+        useAnimation(value, { type: 'timing', duration: 100 }),
       { initialProps: { value: 0.5 } },
     )
     withTiming.mockClear()
@@ -86,7 +88,7 @@ describe('useAnimation', () => {
 
   it('returns an identity-stable shared value across renders', () => {
     const { result, rerender } = renderHook(
-      ({ value }) => useAnimation(value),
+      ({ value }: { value: number }) => useAnimation(value),
       { initialProps: { value: 0 } },
     )
     const first = result.current

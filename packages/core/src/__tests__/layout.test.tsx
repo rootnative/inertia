@@ -11,7 +11,7 @@ describe('resolveLayoutTransition', () => {
   })
 
   it('layout={true} produces a default spring builder', () => {
-    const t = resolveLayoutTransition(true) as Record<string, unknown>
+    const t = resolveLayoutTransition(true) as unknown as Record<string, unknown>
     expect(t.__mode).toBe('spring')
     expect(t.stiffness).toBe(DEFAULT_SPRING.tension)
     expect(t.damping).toBe(DEFAULT_SPRING.friction)
@@ -25,7 +25,7 @@ describe('resolveLayoutTransition', () => {
       friction: 18,
       mass: 1.4,
       delay: 50,
-    }) as Record<string, unknown>
+    }) as unknown as Record<string, unknown>
     expect(t.__mode).toBe('spring')
     expect(t.stiffness).toBe(240)
     expect(t.damping).toBe(18)
@@ -37,7 +37,7 @@ describe('resolveLayoutTransition', () => {
     const t = resolveLayoutTransition({
       type: 'spring',
       tension: 320,
-    }) as Record<string, unknown>
+    }) as unknown as Record<string, unknown>
     expect(t.stiffness).toBe(320)
     expect(t.damping).toBe(DEFAULT_SPRING.friction)
     expect(t.mass).toBe(DEFAULT_SPRING.mass)
@@ -50,7 +50,7 @@ describe('resolveLayoutTransition', () => {
       duration: 420,
       easing,
       delay: 16,
-    }) as Record<string, unknown>
+    }) as unknown as Record<string, unknown>
     expect(t.__mode).toBe('timing')
     expect(t.__duration).toBe(420)
     expect(typeof t.easing).toBe('function')
@@ -60,7 +60,7 @@ describe('resolveLayoutTransition', () => {
   it('timing defaults to 300ms when no duration is given', () => {
     const t = resolveLayoutTransition({
       type: 'timing',
-    }) as Record<string, unknown>
+    }) as unknown as Record<string, unknown>
     expect(t.__duration).toBe(300)
   })
 
@@ -68,7 +68,7 @@ describe('resolveLayoutTransition', () => {
     const t = resolveLayoutTransition({
       type: 'decay',
       velocity: 200,
-    }) as Record<string, unknown>
+    }) as unknown as Record<string, unknown>
     expect(t.__mode).toBe('spring')
     expect(t.stiffness).toBe(DEFAULT_SPRING.tension)
   })

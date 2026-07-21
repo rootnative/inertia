@@ -17,6 +17,10 @@ beforeEach(() => {
   isFocusVisible.mockReturnValue(true)
 })
 
+// `AnimatedStyle` doesn't expose style keys for property access; under the
+// Jest mock the composed style is a plain object, so read it as one.
+const flat = (style: unknown) => style as Record<string, unknown>
+
 const md3Halo = {
   rest: { opacity: 0 },
   hovered: { opacity: 0.08 },
@@ -48,7 +52,7 @@ describe('useGestureLayer — return shape', () => {
 
   it('at rest, the composed style equals the rest layer', () => {
     const { result } = renderHook(() => useGestureLayer(md3Halo))
-    expect(result.current.style.opacity).toBe(0)
+    expect(flat(result.current.style).opacity).toBe(0)
   })
 })
 
@@ -121,7 +125,7 @@ describe('useGestureLayer — per-state progress shared values', () => {
       result.current.states.hovered.value = 1
     })
     rerender({})
-    expect(result.current.style.opacity).toBeCloseTo(0.08)
+    expect(flat(result.current.style).opacity).toBeCloseTo(0.08)
   })
 })
 
@@ -132,7 +136,7 @@ describe('useGestureLayer — clamped-max composition (numeric keys)', () => {
       result.current.handlers.onHoverIn()
     })
     rerender({})
-    expect(result.current.style.opacity).toBeCloseTo(0.08)
+    expect(flat(result.current.style).opacity).toBeCloseTo(0.08)
   })
 
   it('multiple active layers compose as max, not sum', () => {
@@ -144,7 +148,7 @@ describe('useGestureLayer — clamped-max composition (numeric keys)', () => {
       result.current.handlers.onPressIn()
     })
     rerender({})
-    expect(result.current.style.opacity).toBeCloseTo(0.12)
+    expect(flat(result.current.style).opacity).toBeCloseTo(0.12)
   })
 
   it('rest is the floor — active layers cannot pull below rest', () => {
@@ -159,13 +163,13 @@ describe('useGestureLayer — clamped-max composition (numeric keys)', () => {
       result.current.handlers.onPressIn()
     })
     rerender({})
-    expect(result.current.style.opacity).toBeCloseTo(0.5)
+    expect(flat(result.current.style).opacity).toBeCloseTo(0.5)
   })
 
   it('inactive declared layer contributes nothing', () => {
     // Press declared but never engaged — style stays at rest.
     const { result } = renderHook(() => useGestureLayer(md3Halo))
-    expect(result.current.style.opacity).toBe(0)
+    expect(flat(result.current.style).opacity).toBe(0)
   })
 })
 
@@ -182,7 +186,7 @@ describe('useGestureLayer — color cascade composition', () => {
       result.current.handlers.onHoverIn()
     })
     rerender({})
-    expect(result.current.style.backgroundColor).toBe('#ff0000')
+    expect(flat(result.current.style).backgroundColor).toBe('#ff0000')
   })
 
   it('priority cascade: pressed wins over hovered when both at full progress', () => {
@@ -197,7 +201,7 @@ describe('useGestureLayer — color cascade composition', () => {
       result.current.handlers.onPressIn()
     })
     rerender({})
-    expect(result.current.style.backgroundColor).toBe('#00ff00')
+    expect(flat(result.current.style).backgroundColor).toBe('#00ff00')
   })
 })
 
@@ -213,14 +217,14 @@ describe('useGestureLayer — disabled flag', () => {
       { initialProps: { disabled: false } },
     )
 
-    expect(result.current.style.opacity).toBeCloseTo(1)
+    expect(flat(result.current.style).opacity).toBeCloseTo(1)
 
     act(() => {
       rerender({ disabled: true })
     })
     rerender({ disabled: true })
 
-    expect(result.current.style.opacity).toBeCloseTo(0.38)
+    expect(flat(result.current.style).opacity).toBeCloseTo(0.38)
   })
 
   it('disabled overrides active gesture layers', () => {
@@ -239,7 +243,7 @@ describe('useGestureLayer — disabled flag', () => {
 
     // pressed would push opacity to 0.12; disabled at full progress pulls it
     // back to 0.
-    expect(result.current.style.opacity).toBeCloseTo(0)
+    expect(flat(result.current.style).opacity).toBeCloseTo(0)
   })
 })
 

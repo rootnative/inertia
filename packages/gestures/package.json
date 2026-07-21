@@ -52,7 +52,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "jest",
     "lint": "eslint .",
     "clean": "rm -rf dist .turbo *.tsbuildinfo",

@@ -75,7 +75,7 @@ describe('useSpring', () => {
     // shared value should equal the target after the mount effect.
     expect(probe.current!.value).toBe(80)
     expect(withSpring).toHaveBeenCalled()
-    const [target, config] = withSpring.mock.calls[0]
+    const [target, config] = withSpring.mock.calls[0]!
     expect(target).toBe(80)
     // react-spring vocabulary translated to Reanimated raw names.
     expect(config).toMatchObject({ stiffness: 200, damping: 18 })
@@ -126,7 +126,7 @@ describe('useBooleanSpring', () => {
     render(<HookProbe use={() => useBooleanSpring(true)} probe={probe} />)
     expect(probe.current!.value).toBe(1)
     expect(withSpring).toHaveBeenCalled()
-    expect(withSpring.mock.calls[0][0]).toBe(1)
+    expect(withSpring.mock.calls[0]![0]).toBe(1)
   })
 
   it('drives the output to 0 when active is false', () => {
