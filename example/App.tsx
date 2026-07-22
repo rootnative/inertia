@@ -26,6 +26,7 @@ import { TextScreen } from './screens/TextScreen'
 import { TouchDragScreen } from './screens/TouchDragScreen'
 import { TransformsScreen } from './screens/TransformsScreen'
 import { UseColorTransitionScreen } from './screens/UseColorTransitionScreen'
+import { UseInterpolatedStyleScreen } from './screens/UseInterpolatedStyleScreen'
 import { UseGestureLayerScreen } from './screens/UseGestureLayerScreen'
 import { UseGestureScreen } from './screens/UseGestureScreen'
 import { UseMotionValueScreen } from './screens/UseMotionValueScreen'
@@ -52,6 +53,7 @@ type Route =
   | 'pan'
   | 'gesture'
   | 'use-color-transition'
+  | 'use-interpolated-style'
   | 'use-gesture'
   | 'use-gesture-layer'
   | 'use-motion-value'
@@ -86,6 +88,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'pan',
   'gesture',
   'use-color-transition',
+  'use-interpolated-style',
   'use-gesture',
   'use-gesture-layer',
   'use-motion-value',
@@ -233,6 +236,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         label: 'useColorTransition',
         description: 'value-layer color tween for a single color channel',
       },
+      {
+        route: 'use-interpolated-style',
+        label: 'useInterpolatedStyle',
+        description: 'one progress value mapped onto many style props at once',
+      },
     ],
   },
   {
@@ -336,6 +344,8 @@ export default function App() {
   if (route === 'gesture') return <GestureScreen onBack={goHome} />
   if (route === 'use-color-transition')
     return <UseColorTransitionScreen onBack={goHome} />
+  if (route === 'use-interpolated-style')
+    return <UseInterpolatedStyleScreen onBack={goHome} />
   if (route === 'use-gesture') return <UseGestureScreen onBack={goHome} />
   if (route === 'use-gesture-layer')
     return <UseGestureLayerScreen onBack={goHome} />

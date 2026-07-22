@@ -10,6 +10,13 @@ export {
   type UseGestureHandlers,
   type UseGestureResult,
 } from './useGesture'
+export {
+  useInterpolatedStyle,
+  type InterpolatedStyleMap,
+  type NumericStyleKey,
+  type TransformKey,
+  type UseInterpolatedStyleOptions,
+} from './useInterpolatedStyle'
 export { useMotionValue } from './useMotionValue'
 export { useSpring } from './useSpring'
 export {

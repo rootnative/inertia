@@ -2463,7 +2463,7 @@ Open an issue with the before/after pair you're trying to migrate. The patterns 
 
 The escape-hatch surface — drop here when you need imperative control beyond what the props expose.
 
-The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
+The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useInterpolatedStyle`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition` / `useInterpolatedStyle`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
 
 ## `useMotionValue(initial)`
 
@@ -2734,6 +2734,62 @@ The hook is a pure interpolator; it does not animate on its own. Drive `progress
 **`useColorTransition` vs `useTransform` with a color output range.** `useTransform(progress, [0, 1], [from, to])` returns a raw `SharedValue<string>` — reach for it when you need to compose the color into a hand-rolled `useAnimatedStyle` (mixing with a `Math.max(...)` halo opacity, feeding into a gradient, etc.). `useColorTransition` is the one-call convenience for the dominant case: tween a single color slot and spread the result onto `style`.
 
 **`useColorTransition` vs the declarative `animate` path.** If a state change already swaps between two colors (`animate={active ? { backgroundColor: A } : { backgroundColor: B }}`), the `animate` prop is simpler. Reach for `useColorTransition` when the source of progress isn't a render-driven state swap, or when several color slots need to shift in lockstep from one shared driver (the chip example above — one spring, three color channels).
+
+## `useInterpolatedStyle(progress, map, options?)`
+
+Map one `progress` shared value onto **N** style props at once, returning an animated style fragment. The style-fragment counterpart to `useTransform`'s output-range form: where `useTransform` gives you one interpolated value to compose by hand, `useInterpolatedStyle` interpolates a whole map of keys and hands back a ready-to-spread fragment. Reach for it when a single driver (a collapse progress, a float progress, a scroll offset) fans out to several style props — the shape that otherwise becomes a hand-rolled `useAnimatedStyle` over the Reanimated interop subpath.
+
+```tsx
+import {
+  Motion,
+  useBooleanSpring,
+  useInterpolatedStyle,
+} from '@rootnative/inertia'
+
+function FloatingLabel({ focused }: { focused: boolean }) {
+  const progress = useBooleanSpring(focused, { tension: 200, friction: 18 })
+
+  // One driver → a translate + scale float, lifted into a transform array.
+  const labelStyle = useInterpolatedStyle(progress, {
+    translateY: [12, 0],
+    scale: [1, 0.75],
+  })
+
+  return <Motion.Text style={[styles.label, labelStyle]}>Email</Motion.Text>
+}
+```
+
+The hook is a pure interpolator; it does not animate on its own. Drive `progress` upstream with a `useSpring`, `useBooleanSpring`, scroll-derived `useTransform`, gesture progress, or anything else producing a shared value.
+
+### Key routing
+
+- **Numeric style keys** (`opacity`, `height`, `width`, `borderRadius`, `fontSize`, `top`, …) take number stops and route through `interpolate`, emitted as top-level style keys.
+- **Transform keys** (`translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`) take number stops and are lifted into a single `transform` array, **in the order they appear in the map** — the same key-order convention the `animate` prop uses. `rotate*` keys take numeric degrees and emit `'<n>deg'` strings.
+- **Color keys** (`backgroundColor`, `color`, `borderColor` and its per-edge variants, `tintColor`, `shadowColor`) take color-string stops and route through `interpolateColor` — a multi-stop `useColorTransition` without leaving this hook. Stop types are checked at compile time: number stops on a color key (or color stops on a numeric/transform key) are a type error.
+
+### Options
+
+| Option         | Default                                                              | Notes                                                                                                       |
+| -------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `inputRange`   | `[0, 1]` for 2-stop outputs; evenly-spaced across `[0, 1]` otherwise | Applies to every key. Provide it for multi-stop curves; its length must match each output length (dev-warns otherwise). |
+| `extrapolate`  | `'clamp'`                                                           | Edge behavior outside the input range for numeric keys. Color interpolation always clamps.                   |
+
+```tsx
+// Multi-stop, custom input range — fade in then out across a scroll span.
+const fade = useInterpolatedStyle(
+  scrollProgress,
+  { opacity: [0, 1, 1, 0] },
+  { inputRange: [0, 0.2, 0.8, 1] },
+)
+```
+
+| Signature                                                                                                                   | Returns                               |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `useInterpolatedStyle(progress: SharedValue<number>, map: InterpolatedStyleMap, options?: UseInterpolatedStyleOptions)`     | Animated style (spread onto `style`). |
+
+The map is memoized on an order-preserving signature, so a fresh-but-equal map literal each render produces zero new UI-thread closures (the factory rule).
+
+**`useInterpolatedStyle` vs `useTransform`.** `useTransform(progress, [0, 1], [a, b])` returns one raw `SharedValue` for you to compose. `useInterpolatedStyle` is the convenience for the dominant case — several style/transform keys driven from one progress value, returned as a spreadable fragment. For **function-valued** entries or **multi-source** composition (`Math.max(a, b)`), drop to `useTransform`'s worklet form or a hand-rolled `useAnimatedStyle` — this hook stays fully declarative and hashable by design.
 
 ## `useAnimation(target, transition?)`
 
