@@ -1,6 +1,6 @@
 {
   "name": "@rootnative/inertia",
-  "version": "0.0.0-alpha.7",
+  "version": "0.0.1",
   "description": "Declarative animation primitives for React Native, built on react-native-reanimated.",
   "license": "MIT",
   "author": "RootNative",
