@@ -1,6 +1,6 @@
 {
   "name": "@rootnative/inertia-gestures",
-  "version": "0.0.0-alpha.6",
+  "version": "0.0.0-alpha.7",
   "description": "Gesture-handler-driven drag / pan / swipe adapters for @rootnative/inertia.",
   "license": "MIT",
   "author": "RootNative",
@@ -59,7 +59,7 @@
     "prepublishOnly": "node ../../scripts/build-llms.mjs"
   },
   "peerDependencies": {
-    "@rootnative/inertia": ">=0.0.0-alpha.6",
+    "@rootnative/inertia": ">=0.0.0-alpha.7",
     "react": ">=19.0.0",
     "react-native": ">=0.81.0",
     "react-native-gesture-handler": ">=2.0.0",
