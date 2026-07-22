@@ -82,6 +82,7 @@ const PAGES = [
   'api/hooks',
   'api/create-motion-component',
   'api/transition-utilities',
+  'api/reanimated-interop',
 ]
 
 // Strip the leading YAML frontmatter block (--- … ---) from a markdown page.

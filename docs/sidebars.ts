@@ -44,6 +44,7 @@ const sidebars: SidebarsConfig = {
         'api/hooks',
         'api/create-motion-component',
         'api/transition-utilities',
+        'api/reanimated-interop',
       ],
     },
   ],

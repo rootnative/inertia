@@ -30,6 +30,8 @@ import {
 } from '@rootnative/inertia'
 // Opt-in MD3 / iOS state-layer overlay helper:
 import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
+// Render-layer Reanimated interop for custom animated components:
+import { Animated, useAnimatedStyle } from '@rootnative/inertia/reanimated'
 // or for tree-shaking the primitives:
 import { MotionView } from '@rootnative/inertia/view'
 import { MotionText } from '@rootnative/inertia/text'
@@ -60,6 +62,8 @@ import { MotionScrollView } from '@rootnative/inertia/scroll-view'
 - `resolveAnimatableValue(value, base, factory?)` — one level up: resolves a full per-property `animate` value (plain target, `{ to, ...override }` step, or keyframe array → `withSequence` with sequence-level `repeat`) into one animation. Gives custom components the complete `animate` grammar.
 - `cubicBezier(x1, y1, x2, y2)` / `cubicBezier(css)` — builds a `timing.easing` value from cubic-bezier control points: four numbers, a W3C CSS `cubic-bezier(0.2, 0, 0, 1)` string (design-token form), or a CSS keyword (`'linear'` | `'ease'` | `'ease-in'` | `'ease-out'` | `'ease-in-out'`). Makes CSS-format easing tokens directly consumable — pair with named transitions to feed a theme's motion tokens into the registry. Invalid input throws (`x1`/`x2` must be within [0, 1]; `step-*` and `linear(...)` unsupported).
 - `ensureWorkletEasing(easing)` — normalizes any accepted easing input (plain function, worklet, or Reanimated 4 `EasingFunctionFactory`) into a worklet `withTiming` can consume. Only needed for manual `withTiming` calls — the resolvers and primitives apply it automatically.
+- `SharedValue<T>` (type) — re-exported from the root entry so props/refs that carry a value-layer hook result can be typed without importing from `react-native-reanimated`.
+- `@rootnative/inertia/reanimated` — render-layer interop subpath: pure re-exports of `Animated`, `createAnimatedComponent`, `useAnimatedStyle`, `useAnimatedProps`, `useDerivedValue`, `interpolate`, `interpolateColor`, `Extrapolation`, `cancelAnimation` (plus `SharedValue` / `DerivedValue` / `AnimatedStyle` / `AnimatedProps` types) under their original Reanimated names, for components that own their own `useAnimatedStyle` worklet over Inertia-driven shared values. Names must stay original — the Reanimated Babel plugin auto-workletizes callbacks by callee name. The `with*` animation factories are deliberately not re-exported; start animations with `useAnimation` / `resolveTransition` / `buildReleaseAnimation`.
 
 ## Motion props
 
