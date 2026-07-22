@@ -51,6 +51,11 @@ export {
   useTransform,
   useVariants,
 } from './values'
+// The value-layer hooks above all return Reanimated `SharedValue`s — export
+// the type so consumers can annotate props/refs that carry one (e.g. a
+// scroll-offset prop) without importing from `react-native-reanimated`.
+// Runtime render-layer interop lives in `@rootnative/inertia/reanimated`.
+export type { SharedValue } from 'react-native-reanimated'
 export type {
   BoxShadowLayer,
   ColorStyleKey,

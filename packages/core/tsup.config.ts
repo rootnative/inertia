@@ -11,6 +11,7 @@ export default defineConfig({
     'testing/index': 'src/testing/index.ts',
     'touch/index': 'src/touch/index.ts',
     'gestureLayer/index': 'src/gestureLayer/index.ts',
+    'reanimated/index': 'src/reanimated/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

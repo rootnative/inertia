@@ -93,6 +93,13 @@
       "import": "./dist/gestureLayer/index.mjs",
       "require": "./dist/gestureLayer/index.js"
     },
+    "./reanimated": {
+      "types": "./dist/reanimated/index.d.ts",
+      "react-native": "./src/reanimated/index.ts",
+      "source": "./src/reanimated/index.ts",
+      "import": "./dist/reanimated/index.mjs",
+      "require": "./dist/reanimated/index.js"
+    },
     "./jest-preset": "./jest-preset.js",
     "./jest-setup": "./jest-setup.js",
     "./package.json": "./package.json"
