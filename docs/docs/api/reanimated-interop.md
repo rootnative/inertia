@@ -40,14 +40,14 @@ function GlowCard({ children }) {
 
 Everything is a **pure re-export** from `react-native-reanimated`, under its original name:
 
-| Export | Kind |
-| --- | --- |
-| `Animated` | The animated-component namespace (`Animated.View`, `Animated.createAnimatedComponent`, …) |
-| `createAnimatedComponent` | Named form of `Animated.createAnimatedComponent` |
-| `useAnimatedStyle` / `useAnimatedProps` / `useDerivedValue` | The worklet-callback hooks |
-| `interpolate` / `interpolateColor` / `Extrapolation` | Worklet-safe interpolators |
-| `cancelAnimation` | Stop a running animation on a shared value |
-| `SharedValue` / `DerivedValue` / `AnimatedStyle` / `AnimatedProps` | Types |
+| Export                                                             | Kind                                                                                      |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `Animated`                                                         | The animated-component namespace (`Animated.View`, `Animated.createAnimatedComponent`, …) |
+| `createAnimatedComponent`                                          | Named form of `Animated.createAnimatedComponent`                                          |
+| `useAnimatedStyle` / `useAnimatedProps` / `useDerivedValue`        | The worklet-callback hooks                                                                |
+| `interpolate` / `interpolateColor` / `Extrapolation`               | Worklet-safe interpolators                                                                |
+| `cancelAnimation`                                                  | Stop a running animation on a shared value                                                |
+| `SharedValue` / `DerivedValue` / `AnimatedStyle` / `AnimatedProps` | Types                                                                                     |
 
 `SharedValue` is also exported from the root entry (`import type { SharedValue } from '@rootnative/inertia'`) — every value-layer hook returns one, so the type is part of Inertia's own surface. Reach for the root export when you only need the type; this subpath when you need the runtime primitives too.
 
@@ -57,7 +57,7 @@ Re-exporting under the original names is a hard constraint, not a style choice. 
 
 For the same reason, your project still needs `react-native-reanimated` installed and its Babel plugin configured — this subpath changes where your imports point, not what runs underneath.
 
-## What's deliberately *not* here
+## What's deliberately _not_ here
 
 The animation factories (`withTiming`, `withSpring`, `withDecay`, `withSequence`) are not re-exported. Starting animations is Inertia's own vocabulary:
 
