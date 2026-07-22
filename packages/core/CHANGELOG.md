@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Added
+
+- **`useColorCascade(rest, layers, options?)` — priority-ordered layered color crossfade.** Composites a stack of color layers over a base `rest` color; each layer carries its own `progress` shared value and blends toward its color as that progress rises, later layers winning over earlier ones (the values-layer form of the `gesture` prop's fixed-priority cascade, Decision 5). Exactly equivalent to the hand-chained nested-`interpolateColor` shape `focus(error(hover(rest)))`, collapsed into one hook and one worklet — the shape the RootNative UI TextField hand-writes three times (label color, filled indicator, outlined border). `options.key` reuses `ColorStyleKey` (default `backgroundColor`). Memoized on a colors+key signature so an equal-but-fresh `layers` literal produces no new UI-thread closure. Color-only by design; cascade a numeric key via `useInterpolatedStyle` + `useTransform` max. `useColorTransition` remains the single-layer fast path. New `ColorCascadeLayer` / `UseColorCascadeOptions` types exported from the root barrel.
+
 ### Changed
 
 - **Value hooks and the `Motion.*` factory now cancel in-flight animations on unmount.** `useMotionValue`, `useSpring`, `useBooleanSpring`, and `useAnimation` — and every per-key / gesture-layer shared value inside a `Motion.*` primitive — register an unmount cleanup that calls `cancelAnimation` on the shared value they own. Previously a mid-flight (or `repeat: 'infinite'`) `withSpring` / `withTiming` / `withDecay` kept ticking its worklet for frames after the owning component was gone; consumers who cared had to import `cancelAnimation` from the `/reanimated` interop subpath and hand-write the effect (surfaced by the RootNative UI Slider's 22-line 8-value teardown). The shared values are identity-stable and component-owned, so cancelling on unmount is always safe. `cancelAnimation` stays exported from the interop subpath for _mid-life_ cancellation — this change only covers the unmount case. Behavior change (no API change).

@@ -42,6 +42,7 @@ export {
 export {
   useAnimation,
   useBooleanSpring,
+  useColorCascade,
   useColorTransition,
   useGesture,
   useInterpolatedStyle,
@@ -59,12 +60,14 @@ export {
 export type { SharedValue } from 'react-native-reanimated'
 export type {
   BoxShadowLayer,
+  ColorCascadeLayer,
   ColorStyleKey,
   ExtrapolationMode,
   InterpolatedStyleMap,
   NumericStyleKey,
   ShadowConfig,
   TransformKey,
+  UseColorCascadeOptions,
   UseColorTransitionOptions,
   UseGestureHandlers,
   UseGestureResult,

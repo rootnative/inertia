@@ -2465,6 +2465,10 @@ The escape-hatch surface — drop here when you need imperative control beyond w
 
 The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useInterpolatedStyle`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition` / `useInterpolatedStyle`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
 
+:::note Unmount cleanup
+`useMotionValue`, `useSpring`, `useBooleanSpring`, and `useAnimation` cancel any in-flight animation on unmount, so a still-settling or `repeat: 'infinite'` animation stops ticking its worklet once its owning component is gone — you don't need a manual `cancelAnimation` teardown effect for that case. To cancel _mid-life_ (while the component stays mounted), import `cancelAnimation` from the [`/reanimated`](./reanimated-interop) interop subpath and call it yourself. The `Motion.*` primitives get the same unmount cleanup for their internal shared values.
+:::
+
 ## `useMotionValue(initial)`
 
 Create an animatable value owned by JS but readable from worklets. A thin pass-through over Reanimated's `useSharedValue` — the returned `SharedValue<T>` works anywhere a shared value is accepted (`useAnimatedStyle`, `useDerivedValue`, the other value hooks below).
@@ -2735,6 +2739,48 @@ The hook is a pure interpolator; it does not animate on its own. Drive `progress
 
 **`useColorTransition` vs the declarative `animate` path.** If a state change already swaps between two colors (`animate={active ? { backgroundColor: A } : { backgroundColor: B }}`), the `animate` prop is simpler. Reach for `useColorTransition` when the source of progress isn't a render-driven state swap, or when several color slots need to shift in lockstep from one shared driver (the chip example above — one spring, three color channels).
 
+## `useColorCascade(rest, layers, options?)`
+
+Composite a **priority-ordered stack** of color layers over a base `rest` color. Each layer owns its own `progress` shared value and blends toward its color as that progress rises; later layers win over earlier ones at equal progress. This is the values-layer form of the same fixed-priority cascade the [`gesture` prop uses](../gestures) (Decision 5), for state colors that don't come from gestures — error, selected, activated, dragged.
+
+```tsx
+import { Motion, useBooleanSpring, useColorCascade } from '@rootnative/inertia'
+
+function Field({ hovered, errored, focused }: FieldStates) {
+  const hoverP = useBooleanSpring(hovered)
+  const errorP = useBooleanSpring(errored)
+  const focusP = useBooleanSpring(focused)
+
+  // Priority order, lowest first — focus wins over error wins over hover,
+  // each animating in on its own spring.
+  const borderStyle = useColorCascade(
+    colors.border,
+    [
+      { progress: hoverP, color: colors.borderHover },
+      { progress: errorP, color: colors.borderError },
+      { progress: focusP, color: colors.borderFocus },
+    ],
+    { key: 'borderColor' },
+  )
+
+  return <Motion.View style={[styles.field, borderStyle]} />
+}
+```
+
+The chain is exactly equivalent to the hand-written nested-`interpolateColor` shape `focus(error(hover(rest)))`, collapsed into one hook and one worklet. `layers` is priority order, **lowest first** (matching the gesture cascade). Each layer's `progress` is a 0↔1 shared value you drive upstream (a `useSpring`, `useBooleanSpring`, gesture progress, …) — the hook is a pure interpolator and does not animate on its own.
+
+`options.key` reuses the same [`ColorStyleKey`](#usecolortransitionprogress-from-to-options) set as `useColorTransition`, defaulting to `backgroundColor`.
+
+| Signature                                                                                               | Returns                               |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `useColorCascade(rest: string, layers: readonly ColorCascadeLayer[], options?: UseColorCascadeOptions)` | Animated style (spread onto `style`). |
+
+where `ColorCascadeLayer` is `{ progress: SharedValue<number>; color: string }`.
+
+**`useColorCascade` vs `useColorTransition`.** `useColorTransition(progress, [rest, active])` is the single-layer fast path — one progress ⇄ one color slot. Reach for `useColorCascade` when **independent** states each contribute a color and their precedence matters (a field border that is simultaneously hoverable, error-able, and focusable). It is not a replacement for the single-layer hook.
+
+**Numeric cascades.** `useColorCascade` is color-only by design. If a numeric key needs the same precedence (e.g. an outlined border widening 1→2dp under error/focus), compose it separately — drive each layer through `useInterpolatedStyle` and combine with a `useTransform` `Math.max(...)`, or drop to a hand-rolled `useAnimatedStyle`.
+
 ## `useInterpolatedStyle(progress, map, options?)`
 
 Map one `progress` shared value onto **N** style props at once, returning an animated style fragment. The style-fragment counterpart to `useTransform`'s output-range form: where `useTransform` gives you one interpolated value to compose by hand, `useInterpolatedStyle` interpolates a whole map of keys and hands back a ready-to-spread fragment. Reach for it when a single driver (a collapse progress, a float progress, a scroll offset) fans out to several style props — the shape that otherwise becomes a hand-rolled `useAnimatedStyle` over the Reanimated interop subpath.
@@ -2769,10 +2815,10 @@ The hook is a pure interpolator; it does not animate on its own. Drive `progress
 
 ### Options
 
-| Option         | Default                                                              | Notes                                                                                                       |
-| -------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `inputRange`   | `[0, 1]` for 2-stop outputs; evenly-spaced across `[0, 1]` otherwise | Applies to every key. Provide it for multi-stop curves; its length must match each output length (dev-warns otherwise). |
-| `extrapolate`  | `'clamp'`                                                           | Edge behavior outside the input range for numeric keys. Color interpolation always clamps.                   |
+| Option        | Default                                                              | Notes                                                                                                                   |
+| ------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `inputRange`  | `[0, 1]` for 2-stop outputs; evenly-spaced across `[0, 1]` otherwise | Applies to every key. Provide it for multi-stop curves; its length must match each output length (dev-warns otherwise). |
+| `extrapolate` | `'clamp'`                                                            | Edge behavior outside the input range for numeric keys. Color interpolation always clamps.                              |
 
 ```tsx
 // Multi-stop, custom input range — fade in then out across a scroll span.
@@ -2783,9 +2829,9 @@ const fade = useInterpolatedStyle(
 )
 ```
 
-| Signature                                                                                                                   | Returns                               |
-| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `useInterpolatedStyle(progress: SharedValue<number>, map: InterpolatedStyleMap, options?: UseInterpolatedStyleOptions)`     | Animated style (spread onto `style`). |
+| Signature                                                                                                               | Returns                               |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `useInterpolatedStyle(progress: SharedValue<number>, map: InterpolatedStyleMap, options?: UseInterpolatedStyleOptions)` | Animated style (spread onto `style`). |
 
 The map is memoized on an order-preserving signature, so a fresh-but-equal map literal each render produces zero new UI-thread closures (the factory rule).
 

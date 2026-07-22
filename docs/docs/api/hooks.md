@@ -282,6 +282,48 @@ The hook is a pure interpolator; it does not animate on its own. Drive `progress
 
 **`useColorTransition` vs the declarative `animate` path.** If a state change already swaps between two colors (`animate={active ? { backgroundColor: A } : { backgroundColor: B }}`), the `animate` prop is simpler. Reach for `useColorTransition` when the source of progress isn't a render-driven state swap, or when several color slots need to shift in lockstep from one shared driver (the chip example above — one spring, three color channels).
 
+## `useColorCascade(rest, layers, options?)`
+
+Composite a **priority-ordered stack** of color layers over a base `rest` color. Each layer owns its own `progress` shared value and blends toward its color as that progress rises; later layers win over earlier ones at equal progress. This is the values-layer form of the same fixed-priority cascade the [`gesture` prop uses](../gestures) (Decision 5), for state colors that don't come from gestures — error, selected, activated, dragged.
+
+```tsx
+import { Motion, useBooleanSpring, useColorCascade } from '@rootnative/inertia'
+
+function Field({ hovered, errored, focused }: FieldStates) {
+  const hoverP = useBooleanSpring(hovered)
+  const errorP = useBooleanSpring(errored)
+  const focusP = useBooleanSpring(focused)
+
+  // Priority order, lowest first — focus wins over error wins over hover,
+  // each animating in on its own spring.
+  const borderStyle = useColorCascade(
+    colors.border,
+    [
+      { progress: hoverP, color: colors.borderHover },
+      { progress: errorP, color: colors.borderError },
+      { progress: focusP, color: colors.borderFocus },
+    ],
+    { key: 'borderColor' },
+  )
+
+  return <Motion.View style={[styles.field, borderStyle]} />
+}
+```
+
+The chain is exactly equivalent to the hand-written nested-`interpolateColor` shape `focus(error(hover(rest)))`, collapsed into one hook and one worklet. `layers` is priority order, **lowest first** (matching the gesture cascade). Each layer's `progress` is a 0↔1 shared value you drive upstream (a `useSpring`, `useBooleanSpring`, gesture progress, …) — the hook is a pure interpolator and does not animate on its own.
+
+`options.key` reuses the same [`ColorStyleKey`](#usecolortransitionprogress-from-to-options) set as `useColorTransition`, defaulting to `backgroundColor`.
+
+| Signature                                                                                               | Returns                               |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `useColorCascade(rest: string, layers: readonly ColorCascadeLayer[], options?: UseColorCascadeOptions)` | Animated style (spread onto `style`). |
+
+where `ColorCascadeLayer` is `{ progress: SharedValue<number>; color: string }`.
+
+**`useColorCascade` vs `useColorTransition`.** `useColorTransition(progress, [rest, active])` is the single-layer fast path — one progress ⇄ one color slot. Reach for `useColorCascade` when **independent** states each contribute a color and their precedence matters (a field border that is simultaneously hoverable, error-able, and focusable). It is not a replacement for the single-layer hook.
+
+**Numeric cascades.** `useColorCascade` is color-only by design. If a numeric key needs the same precedence (e.g. an outlined border widening 1→2dp under error/focus), compose it separately — drive each layer through `useInterpolatedStyle` and combine with a `useTransform` `Math.max(...)`, or drop to a hand-rolled `useAnimatedStyle`.
+
 ## `useInterpolatedStyle(progress, map, options?)`
 
 Map one `progress` shared value onto **N** style props at once, returning an animated style fragment. The style-fragment counterpart to `useTransform`'s output-range form: where `useTransform` gives you one interpolated value to compose by hand, `useInterpolatedStyle` interpolates a whole map of keys and hands back a ready-to-spread fragment. Reach for it when a single driver (a collapse progress, a float progress, a scroll offset) fans out to several style props — the shape that otherwise becomes a hand-rolled `useAnimatedStyle` over the Reanimated interop subpath.

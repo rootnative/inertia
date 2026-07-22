@@ -1,6 +1,11 @@
 export { useAnimation } from './useAnimation'
 export { useBooleanSpring } from './useBooleanSpring'
 export {
+  useColorCascade,
+  type ColorCascadeLayer,
+  type UseColorCascadeOptions,
+} from './useColorCascade'
+export {
   useColorTransition,
   type ColorStyleKey,
   type UseColorTransitionOptions,

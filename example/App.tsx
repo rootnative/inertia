@@ -25,6 +25,7 @@ import { SwipeScreen } from './screens/SwipeScreen'
 import { TextScreen } from './screens/TextScreen'
 import { TouchDragScreen } from './screens/TouchDragScreen'
 import { TransformsScreen } from './screens/TransformsScreen'
+import { UseColorCascadeScreen } from './screens/UseColorCascadeScreen'
 import { UseColorTransitionScreen } from './screens/UseColorTransitionScreen'
 import { UseInterpolatedStyleScreen } from './screens/UseInterpolatedStyleScreen'
 import { UseGestureLayerScreen } from './screens/UseGestureLayerScreen'
@@ -53,6 +54,7 @@ type Route =
   | 'pan'
   | 'gesture'
   | 'use-color-transition'
+  | 'use-color-cascade'
   | 'use-interpolated-style'
   | 'use-gesture'
   | 'use-gesture-layer'
@@ -88,6 +90,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'pan',
   'gesture',
   'use-color-transition',
+  'use-color-cascade',
   'use-interpolated-style',
   'use-gesture',
   'use-gesture-layer',
@@ -237,6 +240,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         description: 'value-layer color tween for a single color channel',
       },
       {
+        route: 'use-color-cascade',
+        label: 'useColorCascade',
+        description: 'priority-ordered layered color crossfade over a base',
+      },
+      {
         route: 'use-interpolated-style',
         label: 'useInterpolatedStyle',
         description: 'one progress value mapped onto many style props at once',
@@ -344,6 +352,8 @@ export default function App() {
   if (route === 'gesture') return <GestureScreen onBack={goHome} />
   if (route === 'use-color-transition')
     return <UseColorTransitionScreen onBack={goHome} />
+  if (route === 'use-color-cascade')
+    return <UseColorCascadeScreen onBack={goHome} />
   if (route === 'use-interpolated-style')
     return <UseInterpolatedStyleScreen onBack={goHome} />
   if (route === 'use-gesture') return <UseGestureScreen onBack={goHome} />
