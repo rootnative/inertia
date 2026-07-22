@@ -1,5 +1,9 @@
 import { useEffect } from 'react'
-import { useSharedValue, type SharedValue } from 'react-native-reanimated'
+import {
+  cancelAnimation,
+  useSharedValue,
+  type SharedValue,
+} from 'react-native-reanimated'
 import {
   resolveNamedTransition,
   useNamedTransitions,
@@ -70,6 +74,16 @@ export function useAnimation(
     // `output` is identity-stable per hook instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, cfgSig, shouldReduceMotion])
+
+  // Cancel the in-flight animation on unmount so an infinite-repeat or
+  // still-settling `withX` doesn't keep ticking against an orphaned value.
+  // `output` is identity-stable per hook instance and owned here.
+  useEffect(
+    () => () => cancelAnimation(output),
+    // `output` is identity-stable per hook instance (Reanimated guarantee).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
 
   return output
 }

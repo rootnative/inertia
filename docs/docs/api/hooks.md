@@ -8,6 +8,10 @@ The escape-hatch surface — drop here when you need imperative control beyond w
 
 The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useInterpolatedStyle`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition` / `useInterpolatedStyle`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
 
+:::note Unmount cleanup
+`useMotionValue`, `useSpring`, `useBooleanSpring`, and `useAnimation` cancel any in-flight animation on unmount, so a still-settling or `repeat: 'infinite'` animation stops ticking its worklet once its owning component is gone — you don't need a manual `cancelAnimation` teardown effect for that case. To cancel _mid-life_ (while the component stays mounted), import `cancelAnimation` from the [`/reanimated`](./reanimated-interop) interop subpath and call it yourself. The `Motion.*` primitives get the same unmount cleanup for their internal shared values.
+:::
+
 ## `useMotionValue(initial)`
 
 Create an animatable value owned by JS but readable from worklets. A thin pass-through over Reanimated's `useSharedValue` — the returned `SharedValue<T>` works anywhere a shared value is accepted (`useAnimatedStyle`, `useDerivedValue`, the other value hooks below).

@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react'
 import Animated, {
+  cancelAnimation,
   interpolateColor,
   runOnJS,
   useAnimatedStyle,
@@ -443,6 +444,20 @@ export function createMotionComponent<C extends ComponentType<any>>(
     const focusVisibleProgress = useSharedValue(0)
     const hoveredProgress = useSharedValue(0)
 
+    // Cancel any in-flight gesture-layer springs on unmount, matching the
+    // per-key guard in `useAnimatableSharedValues`. Each SV is identity-stable.
+    useEffect(
+      () => () => {
+        cancelAnimation(pressedProgress)
+        cancelAnimation(focusedProgress)
+        cancelAnimation(focusVisibleProgress)
+        cancelAnimation(hoveredProgress)
+      },
+      // The progress SVs are identity-stable per hook instance.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [],
+    )
+
     // Mirror gesture targets into a UI-runtime-resident shared value so the
     // animated-style worklet can read the latest layer values without having
     // to capture `gesture` directly (which would re-register the worklet on
@@ -863,6 +878,23 @@ function useAnimatableSharedValues(
       shadowOffsetHeight,
     }
   }
+
+  // Cancel every in-flight per-key animation when the primitive unmounts, so
+  // a mid-flight (or infinite-repeat) `withSpring` / `withTiming` doesn't keep
+  // ticking its worklet against orphaned shared values. This mirrors the
+  // value-layer hooks' unmount guard (`useMotionValue` / `useSpring` /
+  // `useAnimation`). The SV map is identity-stable per instance.
+  const map = ref.current
+  useEffect(
+    () => () => {
+      for (const key in map) {
+        cancelAnimation(map[key as AnimatableKey])
+      }
+    },
+    // `map` is identity-stable per hook instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
   return ref.current
 }
 

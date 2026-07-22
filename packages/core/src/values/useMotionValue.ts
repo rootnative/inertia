@@ -1,4 +1,9 @@
-import { useSharedValue, type SharedValue } from 'react-native-reanimated'
+import { useEffect } from 'react'
+import {
+  cancelAnimation,
+  useSharedValue,
+  type SharedValue,
+} from 'react-native-reanimated'
 
 /**
  * Create an animatable value owned by JS but readable from worklets.
@@ -40,5 +45,18 @@ export function useMotionValue<T extends number | string>(
 export function useMotionValue<T extends number | string>(
   initial: T,
 ): SharedValue<T> {
-  return useSharedValue<T>(initial)
+  const sv = useSharedValue<T>(initial)
+  // Cancel any in-flight animation when the owning component unmounts, so a
+  // mid-flight (or infinite-repeat) `withX` driving this value stops ticking
+  // its worklet once the value is orphaned. The shared value is
+  // identity-stable per hook instance and owned by this component, so
+  // cancelling on unmount is always safe. Mid-life cancellation stays the
+  // consumer's job via the `/reanimated` interop `cancelAnimation`.
+  useEffect(
+    () => () => cancelAnimation(sv),
+    // `sv` is identity-stable per hook instance (Reanimated guarantee).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+  return sv
 }

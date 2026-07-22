@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Changed
+
+- **Value hooks and the `Motion.*` factory now cancel in-flight animations on unmount.** `useMotionValue`, `useSpring`, `useBooleanSpring`, and `useAnimation` — and every per-key / gesture-layer shared value inside a `Motion.*` primitive — register an unmount cleanup that calls `cancelAnimation` on the shared value they own. Previously a mid-flight (or `repeat: 'infinite'`) `withSpring` / `withTiming` / `withDecay` kept ticking its worklet for frames after the owning component was gone; consumers who cared had to import `cancelAnimation` from the `/reanimated` interop subpath and hand-write the effect (surfaced by the RootNative UI Slider's 22-line 8-value teardown). The shared values are identity-stable and component-owned, so cancelling on unmount is always safe. `cancelAnimation` stays exported from the interop subpath for _mid-life_ cancellation — this change only covers the unmount case. Behavior change (no API change).
+
 ## [0.0.1] - 2026-07-23
 
 **First stable release.** Graduates the `0.0.0-alpha.x` line, absorbing Milestones 1–3 in a single tag: the declarative core (primitives, per-property transitions, sequences/keyframes, unified `repeat`, variants, `gesture` prop, `<Presence>`, `<MotionConfig>` with reduced-motion + named transitions), the value-layer hooks, the `layout` prop and rect-only `layoutId` shared-element transitions, and the `inertia-gestures` / `inertia-gradients` / `inertia-svg` adapter packages (released in lockstep). See the alpha entries below for the per-change history.

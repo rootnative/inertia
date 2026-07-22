@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import {
+  cancelAnimation,
   useAnimatedReaction,
   useSharedValue,
   withSpring,
@@ -93,6 +94,17 @@ export function useSpring(
       output.value = withSpring(next, reanimConfig)
     },
     [isSharedTarget, reanimConfig],
+  )
+
+  // Stop the in-flight spring when the owning component unmounts so its
+  // worklet doesn't keep ticking against an orphaned value. `output` is
+  // identity-stable per hook instance and owned here, so cancelling on
+  // unmount is always safe.
+  useEffect(
+    () => () => cancelAnimation(output),
+    // `output` is identity-stable per hook instance (Reanimated guarantee).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   )
 
   return output
