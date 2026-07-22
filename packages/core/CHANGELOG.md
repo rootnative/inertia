@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-07-23
+
+**First stable release.** Graduates the `0.0.0-alpha.x` line, absorbing Milestones 1–3 in a single tag: the declarative core (primitives, per-property transitions, sequences/keyframes, unified `repeat`, variants, `gesture` prop, `<Presence>`, `<MotionConfig>` with reduced-motion + named transitions), the value-layer hooks, the `layout` prop and rect-only `layoutId` shared-element transitions, and the `inertia-gestures` / `inertia-gradients` / `inertia-svg` adapter packages (released in lockstep). See the alpha entries below for the per-change history.
+
 ### Added
 
 - **`useShadow` now interpolates CSS `boxShadow`.** The classic `shadow*`/`elevation` keys never reach the web renderer, so a `useShadow` elevation crossfade silently dropped its shadow on web — the platform where hover, its most common driver, matters most (gap surfaced by the RootNative UI Card migration). `ShadowConfig` gains `boxShadow?: string | BoxShadowLayer[]`: pass the CSS string form design systems store elevation tokens in (px lengths only; parsed once on the JS thread, `cubicBezier`-style — malformed tokens throw at setup rather than warning) or structured layers mirroring RN's `BoxShadowValue`. Multi-layer shadows interpolate per layer with CSS-transition padding semantics (shorter side padded with invisible layers; a genuine `inset` mismatch throws); blur clamps at 0 under springy overshoot. Emitted as a `boxShadow` style string — passed through as CSS by react-native-web and rendered natively on RN 0.76+ new architecture; keep `shadow*`/`elevation` alongside it for old-arch native. New `BoxShadowLayer` type exported from the root.

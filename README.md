@@ -11,7 +11,7 @@
 
 > [Documentation](https://rootnative.github.io/inertia/) &nbsp;|&nbsp; [Live Demo](https://rootnative.github.io/inertia/example/) &nbsp;|&nbsp; [LLM Docs](https://rootnative.github.io/inertia/llms-full.txt) &nbsp;|&nbsp; [GitHub](https://github.com/rootnative/inertia)
 
-> **Status:** `0.0.0-alpha`. The full v0.1 surface plus the v1.x layout features are implemented and tested; APIs may still shift before `0.1.0`.
+> **Status:** `0.0.1` — the first stable release. The full declarative-core surface plus the layout and shared-element features are implemented and tested. Pre-`1.0.0`, minor breaking changes may still land and are called out in the changelog.
 
 ## Features
 

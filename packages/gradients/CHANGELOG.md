@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-07-23
+
+**First stable release.** Lockstep version bump alongside `@rootnative/inertia@0.0.1` (the first stable release of the core). No runtime changes in this adapter since `0.0.0-alpha.2`.
+
 ## [0.0.0-alpha.2] - 2026-07-20
 
 ### Changed
