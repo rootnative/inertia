@@ -1,4 +1,5 @@
 export { useAnimation } from './useAnimation'
+export { useAnimator, type Animator } from './useAnimator'
 export { useBooleanSpring } from './useBooleanSpring'
 export {
   useColorCascade,

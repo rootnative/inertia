@@ -41,6 +41,7 @@ export {
 } from './transitions'
 export {
   useAnimation,
+  useAnimator,
   useBooleanSpring,
   useColorCascade,
   useColorTransition,
@@ -59,6 +60,7 @@ export {
 // Runtime render-layer interop lives in `@rootnative/inertia/reanimated`.
 export type { SharedValue } from 'react-native-reanimated'
 export type {
+  Animator,
   BoxShadowLayer,
   ColorCascadeLayer,
   ColorStyleKey,

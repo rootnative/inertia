@@ -420,6 +420,44 @@ The hook re-runs the animation whenever `target` changes or the transition's str
 
 **`useAnimation` vs `Motion.View animate={{...}}`.** Use the `animate` prop when one Motion primitive owns the animated value end-to-end. Use `useAnimation` when the same value drives several `useAnimatedStyle` blocks across siblings — there's no Motion primitive to attach `animate` to in that case.
 
+## `useAnimator()`
+
+The **imperative** counterpart to `useAnimation`. `useAnimation` drives a value from an effect (it re-runs when `target` changes); `useAnimator` returns a setter you call from an event handler to push a value toward a target on demand. Reach for it when the write is driven by an event — a hover-in, a focus, a press — rather than by rendered state.
+
+```tsx
+import { useAnimator, useMotionValue, Motion } from '@rootnative/inertia'
+
+function HoverCard() {
+  const hovered = useMotionValue(0)
+  const animate = useAnimator()
+
+  return (
+    <Motion.Pressable
+      onHoverIn={() => animate(hovered, 1, 'state-hover')}
+      onHoverOut={() => animate(hovered, 0, 'state-hover')}
+    />
+  )
+}
+```
+
+It exists because the hand-written escape hatch — `value.value = resolveTransition(config, to)` from an event handler — has two footguns that `useAnimator` closes:
+
+- **Named transitions resolve.** A [named transition](../motion-config#named-transitions) registered on the nearest `<MotionConfig transitions>` works here just as it does on the `transition` prop or in `useAnimation`. A bare `resolveTransition` call can't reach the registry (names resolve through context), so imperative call sites otherwise rebuild configs the provider already owns.
+- **Reduced motion is respected.** The write routes through the same `'no-animation'` downgrade `useAnimation` applies under `<MotionConfig reducedMotion>`. Hand-rolled `resolveTransition` writes silently bypass that accessibility setting — a correctness bug this hook fixes.
+
+The returned callback is **identity-stable** across renders (it reads the registry and reduced-motion flag live), so it drops straight into memoized handlers.
+
+| Signature                                                                                                      | Returns    |
+| -------------------------------------------------------------------------------------------------------------- | ---------- |
+| `useAnimator()`                                                                                                | `Animator` |
+| `Animator = (value: SharedValue<number>, to: number, transition?: TransitionConfig \| TransitionName) => void` | `void`     |
+
+`transition` defaults to the library spring when omitted, and accepts any `TransitionConfig` or a registered `TransitionName` — the same input the declarative `transition` prop takes.
+
+**`useAnimator` vs `useAnimation`.** Same transition vocabulary, opposite trigger. `useAnimation(target, transition)` re-fires from an effect whenever `target` changes; `useAnimator()(value, to, transition)` fires exactly when you call it. Use `useAnimation` for state-derived values, `useAnimator` for event-driven writes.
+
+This is not a new animation API — it starts animations in Inertia's existing transition vocabulary, so it doesn't conflict with the "no imperative-only APIs that bypass the declarative surface" scope rule. It's the hooks-layer equivalent of `useMotionValue` + `resolveTransition`, minus the footguns.
+
 ## `useScroll()`
 
 Track the scroll offset of a `Motion.ScrollView` as shared values. Scroll events fire on the UI thread, so the returned values are safe to read from any worklet without a JS-thread bounce.

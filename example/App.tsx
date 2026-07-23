@@ -25,6 +25,7 @@ import { SwipeScreen } from './screens/SwipeScreen'
 import { TextScreen } from './screens/TextScreen'
 import { TouchDragScreen } from './screens/TouchDragScreen'
 import { TransformsScreen } from './screens/TransformsScreen'
+import { UseAnimatorScreen } from './screens/UseAnimatorScreen'
 import { UseColorCascadeScreen } from './screens/UseColorCascadeScreen'
 import { UseColorTransitionScreen } from './screens/UseColorTransitionScreen'
 import { UseInterpolatedStyleScreen } from './screens/UseInterpolatedStyleScreen'
@@ -56,6 +57,7 @@ type Route =
   | 'use-color-transition'
   | 'use-color-cascade'
   | 'use-interpolated-style'
+  | 'use-animator'
   | 'use-gesture'
   | 'use-gesture-layer'
   | 'use-motion-value'
@@ -92,6 +94,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'use-color-transition',
   'use-color-cascade',
   'use-interpolated-style',
+  'use-animator',
   'use-gesture',
   'use-gesture-layer',
   'use-motion-value',
@@ -249,6 +252,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         label: 'useInterpolatedStyle',
         description: 'one progress value mapped onto many style props at once',
       },
+      {
+        route: 'use-animator',
+        label: 'useAnimator',
+        description: 'imperative setter that resolves named transitions',
+      },
     ],
   },
   {
@@ -356,6 +364,7 @@ export default function App() {
     return <UseColorCascadeScreen onBack={goHome} />
   if (route === 'use-interpolated-style')
     return <UseInterpolatedStyleScreen onBack={goHome} />
+  if (route === 'use-animator') return <UseAnimatorScreen onBack={goHome} />
   if (route === 'use-gesture') return <UseGestureScreen onBack={goHome} />
   if (route === 'use-gesture-layer')
     return <UseGestureLayerScreen onBack={goHome} />
