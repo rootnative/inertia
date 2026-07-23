@@ -1,0 +1,75 @@
+name: CI / Build & Test
+
+# Typecheck, tests, build, and bundle size only depend on package source and
+# build config — run only when a change touches one of these paths. Doc-only
+# changes (**/*.md, docs/**, proposals/**) are still linted by ci-format.yml.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - 'tsconfig.base.json'
+      - 'tsconfig.json'
+      - 'jest.config.js'
+      - 'jest.setup.js'
+      - '.nvmrc'
+      - '.github/workflows/ci-build.yml'
+  pull_request:
+    paths:
+      - 'packages/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - 'tsconfig.base.json'
+      - 'tsconfig.json'
+      - 'jest.config.js'
+      - 'jest.setup.js'
+      - '.nvmrc'
+      - '.github/workflows/ci-build.yml'
+
+concurrency:
+  group: ci-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Typecheck, test, size
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Bundle-size check (core)
+        run: pnpm --filter @rootnative/inertia size
+
+      - name: Bundle-size check (gradients)
+        run: pnpm --filter @rootnative/inertia-gradients size

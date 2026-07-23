@@ -1,5 +1,7 @@
-name: CI
+name: CI / Format & Lint
 
+# Formatting and lint cover the whole repo (format:check scans **/*.md), so
+# this workflow has no path filter — it runs on every push and pull request.
 on:
   push:
     branches:
@@ -7,12 +9,12 @@ on:
   pull_request:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-format-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: Typecheck, test, size
+  format-lint:
+    name: Format & lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -35,18 +37,3 @@ jobs:
 
       - name: Lint
         run: pnpm run lint
-
-      - name: Typecheck
-        run: pnpm run typecheck
-
-      - name: Test
-        run: pnpm run test
-
-      - name: Build packages
-        run: pnpm run build
-
-      - name: Bundle-size check (core)
-        run: pnpm --filter @rootnative/inertia size
-
-      - name: Bundle-size check (gradients)
-        run: pnpm --filter @rootnative/inertia-gradients size
