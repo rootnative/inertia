@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-07-24
+
 ### Added
 
 - **`useAnimator()` — imperative writes that resolve named transitions and respect reduced motion.** The imperative counterpart to `useAnimation`: returns an identity-stable `(value, to, transition?)` setter to call from event handlers (hover-in, focus, press) rather than from an effect. It closes the two footguns of the hand-written `value.value = resolveTransition(config, to)` escape hatch: a registered `TransitionName` now resolves through the nearest `<MotionConfig transitions>` (a bare `resolveTransition` can't reach the context registry, so imperative call sites otherwise rebuild configs the provider already owns — surfaced by the RootNative UI Slider rebuilding `state-hover` / `state-focus` by hand), and the write routes through the same `no-animation` reduced-motion downgrade `useAnimation` applies (raw `resolveTransition` writes silently bypass `<MotionConfig reducedMotion>` — a correctness fix). Not a new animation API — the hooks-layer equivalent of `useMotionValue` + `resolveTransition`, minus the footguns. New `Animator` type exported from the root barrel.
