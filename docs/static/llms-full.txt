@@ -222,6 +222,25 @@ Every animatable surface is a `Motion.*` component. Each one is an animatable mi
 
 Wrap any component with `createMotionComponent(C)` to get the same prop surface inferred from `C`'s style prop. See [createMotionComponent](../api/create-motion-component).
 
+## Plain host (zero-cost pass-through)
+
+A `Motion.*` primitive with **none** of the animation-driving props — `initial`, `animate`, `exit`, `transition`, `variants`, `controller`, `gesture`, `layout`, `layoutId`, `onAnimationEnd` — is a zero-cost pass-through over `Animated.createAnimatedComponent(Component)`. It allocates no shared values, mounts no `useAnimatedStyle` worklet, holds no gesture state, and does no per-render animation work: it forwards `style`, `ref`, and every other prop straight to the underlying host. (A guard test pins this — a prop-less `Motion.View` calls neither `useSharedValue` nor `useAnimatedStyle`.)
+
+This means you never need to reach for `Animated.View` from the [`/reanimated` interop subpath](../api/reanimated-interop) just to render an animated-style **fragment** from a value-layer hook. Use the primitive directly:
+
+```tsx
+import { Motion, useColorTransition } from '@rootnative/inertia'
+
+function Fill({ progress }) {
+  const fill = useColorTransition(progress, ['#ffffff', '#4f46e5'])
+  // Prop-less Motion.View — a plain animated host for the fragment. No
+  // Reanimated import needed.
+  return <Motion.View style={[styles.box, fill]} />
+}
+```
+
+The instant you add an animation prop, the same instance opts into the full animated body (it re-mounts across that boundary, so give an element that flips between plain and animated a stable `key` if the remount matters). One host concept, no separate "plain" alias to pick between.
+
 ## Animatable properties (alpha)
 
 The alpha supports the properties below across every primitive that accepts them.
@@ -2904,9 +2923,9 @@ It exists because the hand-written escape hatch — `value.value = resolveTransi
 
 The returned callback is **identity-stable** across renders (it reads the registry and reduced-motion flag live), so it drops straight into memoized handlers.
 
-| Signature                                                                                    | Returns    |
-| -------------------------------------------------------------------------------------------- | ---------- |
-| `useAnimator()`                                                                              | `Animator` |
+| Signature                                                                                                      | Returns    |
+| -------------------------------------------------------------------------------------------------------------- | ---------- |
+| `useAnimator()`                                                                                                | `Animator` |
 | `Animator = (value: SharedValue<number>, to: number, transition?: TransitionConfig \| TransitionName) => void` | `void`     |
 
 `transition` defaults to the library spring when omitted, and accepts any `TransitionConfig` or a registered `TransitionName` — the same input the declarative `transition` prop takes.
@@ -3534,6 +3553,10 @@ Everything is a **pure re-export** from `react-native-reanimated`, under its ori
 | `SharedValue` / `DerivedValue` / `AnimatedStyle` / `AnimatedProps` | Types                                                                                     |
 
 `SharedValue` is also exported from the root entry (`import type { SharedValue } from '@rootnative/inertia'`) — every value-layer hook returns one, so the type is part of Inertia's own surface. Reach for the root export when you only need the type; this subpath when you need the runtime primitives too.
+
+:::note You rarely need `Animated.View` as a host
+`Animated` is here for `createAnimatedComponent` on a **third-party** component and for the occasional bespoke need. You do **not** need `Animated.View` (or `Animated.Text`, …) just to render an animated-style fragment from `useColorTransition` / `useShadow` / `useInterpolatedStyle` / `useColorCascade` — a prop-less `Motion.View` is already a [zero-cost plain host](../primitives#plain-host-zero-cost-pass-through) for exactly that, with no extra Reanimated import. Reach for `Animated.*` only when you own a hand-rolled `useAnimatedStyle` / `useAnimatedProps` worklet (the case at the top of this page).
+:::
 
 ## Why the names don't change
 
