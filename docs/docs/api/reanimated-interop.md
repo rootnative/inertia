@@ -51,6 +51,10 @@ Everything is a **pure re-export** from `react-native-reanimated`, under its ori
 
 `SharedValue` is also exported from the root entry (`import type { SharedValue } from '@rootnative/inertia'`) — every value-layer hook returns one, so the type is part of Inertia's own surface. Reach for the root export when you only need the type; this subpath when you need the runtime primitives too.
 
+:::note You rarely need `Animated.View` as a host
+`Animated` is here for `createAnimatedComponent` on a **third-party** component and for the occasional bespoke need. You do **not** need `Animated.View` (or `Animated.Text`, …) just to render an animated-style fragment from `useColorTransition` / `useShadow` / `useInterpolatedStyle` / `useColorCascade` — a prop-less `Motion.View` is already a [zero-cost plain host](../primitives#plain-host-zero-cost-pass-through) for exactly that, with no extra Reanimated import. Reach for `Animated.*` only when you own a hand-rolled `useAnimatedStyle` / `useAnimatedProps` worklet (the case at the top of this page).
+:::
+
 ## Why the names don't change
 
 Re-exporting under the original names is a hard constraint, not a style choice. The Reanimated Babel plugin auto-workletizes the callback you pass to `useAnimatedStyle` / `useAnimatedProps` / `useDerivedValue` by **callee name** — it doesn't care which module the name was imported from, but a renamed wrapper (`useStyle`, say) would silently stop workletizing your callback and break on native. The re-exports keep both the name and the original function reference, so worklet behavior is identical from either import path. (A test pins every export to reference-identity with the Reanimated original.)

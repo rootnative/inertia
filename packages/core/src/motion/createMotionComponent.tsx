@@ -234,48 +234,22 @@ export function createMotionComponent<C extends ComponentType<any>>(
 
   type Props = React.ComponentProps<C> & MotionProps<React.ComponentProps<C>>
 
-  const Motion = forwardRef<unknown, Props>(function Motion(props, ref) {
-    const {
-      initial,
-      animate,
-      exit,
-      transition: transitionProp,
-      variants,
-      controller,
-      gesture,
-      layout: layoutProp,
-      layoutId,
-      onAnimationEnd,
-      style,
-      onLayout: userOnLayout,
-      ...rest
-    } = props as Props & {
-      style?: unknown
-      layout?: LayoutProp | string
-      layoutId?: string
-      onLayout?: (event: LayoutChangeEvent) => void
-    }
+  // Plain-host fast path. When an instance carries none of the animation-
+  // driving props, it needs no shared values, no `useAnimatedStyle` worklet,
+  // no gesture state, and no layout wiring — it is just the underlying
+  // `Animated.createAnimatedComponent(Component)` with `style`/`ref`/`onLayout`
+  // forwarded through. Rendering that directly (instead of the full animated
+  // body) keeps a prop-less `Motion.View` a zero-cost pass-through: same host,
+  // no per-render animation allocations (Principle 3 — one host concept, no
+  // separate "plain" alias). Because `PlainHost` and `MotionAnimated` are
+  // distinct component types, React keeps each one's hook list consistent; an
+  // instance that gains (or loses) an animation prop after mount crosses the
+  // boundary and remounts, which is the correct behavior for that rare edge.
+  const PlainHost = forwardRef<unknown, Props>(function PlainHost(props, ref) {
+    const { style, ...rest } = props as Props & { style?: unknown }
 
-    // Resolve registered transition names (from the nearest <MotionConfig
-    // transitions>) into concrete configs before anything downstream touches
-    // the props. Resolution is JS-thread and identity-preserving when no
-    // names are present; when names resolve, the registry entries are stable
-    // objects, so every signature-keyed memo below stays warm.
-    const namedTransitions = useNamedTransitions()
-    const transition = resolveNamedTransitionProp(
-      transitionProp as Transition<Record<string, unknown>> | undefined,
-      namedTransitions,
-    )
-    const layout: LayoutProp =
-      typeof layoutProp === 'string'
-        ? lookupNamedTransition(layoutProp, namedTransitions)
-        : layoutProp
-
-    // Function-form `style={(state) => ...}` is the Pressable render-prop API.
-    // Inertia drives press/focus state through `gesture.*` and merges its own
-    // animated style; a function passed here lands inside a style array where
-    // the underlying component never invokes it, so the resulting styles are
-    // silently dropped. Throw loudly in dev rather than ship the footgun.
+    // Same dev guard as the animated body: a `style` function is the Pressable
+    // render-prop API, which Inertia doesn't support (see the animated path).
     if (__DEV__ && typeof style === 'function') {
       throw new Error(
         '[inertia] `style` must be a style object or array of style objects, ' +
@@ -285,518 +259,635 @@ export function createMotionComponent<C extends ComponentType<any>>(
       )
     }
 
-    // <Presence> contract: when an ancestor flips `isPresent` to false the
-    // child stays rendered until `safeToRemove` is called, giving the exit
-    // animation time to play. `null` when there is no <Presence> ancestor.
+    // Presence coordination. A prop-less child inside <Presence> has no exit
+    // animation, so it must signal `safeToRemove` immediately once it starts
+    // exiting — otherwise it lingers in the snapshot forever. This is a context
+    // read plus an unmount-scoped effect: no shared values, no worklet, no
+    // per-render allocation. `null` when there is no <Presence> ancestor.
     const presence = usePresence()
     const isExiting = presence !== null && presence.isPresent === false
+    const safeToRemoveRef = useRef<(() => void) | undefined>(undefined)
+    safeToRemoveRef.current = presence?.safeToRemove
+    useEffect(() => {
+      if (isExiting) safeToRemoveRef.current?.()
+    }, [isExiting])
 
-    // Resolved reduced-motion preference for this subtree. When true, every
-    // per-key transition is replaced with `no-animation` below, so values
-    // snap to target without interpolation. In 'user' mode the OS setting is
-    // read via Reanimated's `useReducedMotion`, which captures the value once
-    // at app start — a runtime toggle takes effect on the next launch.
-    const shouldReduceMotion = useShouldReduceMotion()
-
-    // Pin the latest `onAnimationEnd` in a ref so the worklet callback always
-    // dispatches against the current closure without re-resolving the
-    // animation graph. Worklets can read refs via `runOnJS`.
-    const onAnimationEndRef = useRef(onAnimationEnd)
-    onAnimationEndRef.current = onAnimationEnd
-
-    // Resolve `animate` against `variants` / `controller`. The controller's
-    // `current` wins when both are set (typed contract: don't mix
-    // `controller` and `animate` — controller drives the animation in that
-    // mode). When `animate` is a string and `variants` exist, look it up.
-    const variantKey = useControllerKey(controller)
-    const resolvedAnimate = resolveAnimateInput(
-      animate as AnimateStyle<unknown> | string | undefined,
-      variants as VariantsMap<unknown> | undefined,
-      variantKey,
+    return (
+      <AnimatedComponent
+        ref={ref as never}
+        {...(rest as object)}
+        style={style}
+      />
     )
+  })
+  PlainHost.displayName = `MotionPlain(${Component.displayName ?? Component.name ?? 'Component'})`
 
-    const animateRecord = (resolvedAnimate ?? {}) as InternalAnimateRecord
-    const initialRecord =
-      initial && initial !== false
-        ? (initial as InternalInitialRecord)
-        : undefined
-    const exitRecord = exit ? (exit as InternalAnimateRecord) : undefined
-
-    // Gesture sub-state activation tracked as JS state. Activation flips drive
-    // the per-layer progress shared values (0↔1); they intentionally do NOT
-    // re-run the value-driving effect — gesture sub-state targets live on the
-    // worklet's composition chain, not on the base `animate` SV.
-    const [pressed, setPressed] = useState(false)
-    const [focused, setFocused] = useState(false)
-    const [focusVisible, setFocusVisible] = useState(false)
-    const [hovered, setHovered] = useState(false)
-
-    // The set of keys this instance animates is a *monotonically growing*
-    // union, recomputed every render and expanded when a render introduces a
-    // key not seen before. It never shrinks. Two requirements meet here:
-    //
-    //   1. Variants and gesture sub-states contribute the union across *all*
-    //      their branches up front — a key touched by any variant must be
-    //      active so the worklet picks it up when the controller transitions
-    //      to a branch the base `animate` never mentions.
-    //   2. A literal `animate` object is reactive: a parent that changes
-    //      `animate={{ opacity: 1 }}` to `animate={{ opacity: 1, scale: 2 }}`
-    //      after mount must get `scale` animating. Freezing the set at first
-    //      render silently dropped the new key (its SV updated, but the
-    //      worklet — which iterates this set — never read it).
-    //
-    // Growing-only keeps the worklet stable: the `activeKeysRef.current` array
-    // identity only changes on the renders that actually add a key, so the
-    // `useAnimatedStyle` worklet (which reads `.current` each frame) sees the
-    // expansion without churning frame-to-frame.
-    const touched = new Set<AnimatableKey>()
-    collectTouchedKeys(touched, animateRecord)
-    if (initialRecord) collectTouchedKeys(touched, initialRecord)
-    if (variants) {
-      for (const variant of Object.values(variants) as object[]) {
-        if (!variant) continue
-        collectTouchedKeys(touched, variant as Record<string, unknown>)
+  const MotionAnimated = forwardRef<unknown, Props>(
+    function MotionAnimated(props, ref) {
+      const {
+        initial,
+        animate,
+        exit,
+        transition: transitionProp,
+        variants,
+        controller,
+        gesture,
+        layout: layoutProp,
+        layoutId,
+        onAnimationEnd,
+        style,
+        onLayout: userOnLayout,
+        ...rest
+      } = props as Props & {
+        style?: unknown
+        layout?: LayoutProp | string
+        layoutId?: string
+        onLayout?: (event: LayoutChangeEvent) => void
       }
-    }
-    if (gesture) {
-      for (const subState of [
-        gesture.pressed,
-        gesture.focused,
-        gesture.focusVisible,
-        gesture.hovered,
-      ] as Array<object | undefined>) {
-        if (!subState) continue
-        collectTouchedKeys(touched, subState as Record<string, unknown>)
-      }
-    }
-    if (exitRecord) collectTouchedKeys(touched, exitRecord)
 
-    const activeKeysRef = useRef<readonly AnimatableKey[] | null>(null)
-    const hasTransformRef = useRef<boolean>(false)
-    const hasShadowOffsetRef = useRef<boolean>(false)
-    // Expand the active set only when this render touched a key we haven't
-    // recorded yet. When nothing new appears we keep the existing array
-    // identity so the worklet's captured ref doesn't see a fresh value.
-    const prevActive = activeKeysRef.current
-    let grew = prevActive === null
-    if (!grew && prevActive) {
-      for (const k of touched) {
-        if (!prevActive.includes(k)) {
-          grew = true
-          break
+      // Resolve registered transition names (from the nearest <MotionConfig
+      // transitions>) into concrete configs before anything downstream touches
+      // the props. Resolution is JS-thread and identity-preserving when no
+      // names are present; when names resolve, the registry entries are stable
+      // objects, so every signature-keyed memo below stays warm.
+      const namedTransitions = useNamedTransitions()
+      const transition = resolveNamedTransitionProp(
+        transitionProp as Transition<Record<string, unknown>> | undefined,
+        namedTransitions,
+      )
+      const layout: LayoutProp =
+        typeof layoutProp === 'string'
+          ? lookupNamedTransition(layoutProp, namedTransitions)
+          : layoutProp
+
+      // Function-form `style={(state) => ...}` is the Pressable render-prop API.
+      // Inertia drives press/focus state through `gesture.*` and merges its own
+      // animated style; a function passed here lands inside a style array where
+      // the underlying component never invokes it, so the resulting styles are
+      // silently dropped. Throw loudly in dev rather than ship the footgun.
+      if (__DEV__ && typeof style === 'function') {
+        throw new Error(
+          '[inertia] `style` must be a style object or array of style objects, ' +
+            'not a function. The function-form `style={(state) => ...}` Pressable ' +
+            'API is not supported — use `gesture.pressed` (or `gesture.focused`, ' +
+            'etc.) to drive state-dependent styling instead.',
+        )
+      }
+
+      // <Presence> contract: when an ancestor flips `isPresent` to false the
+      // child stays rendered until `safeToRemove` is called, giving the exit
+      // animation time to play. `null` when there is no <Presence> ancestor.
+      const presence = usePresence()
+      const isExiting = presence !== null && presence.isPresent === false
+
+      // Resolved reduced-motion preference for this subtree. When true, every
+      // per-key transition is replaced with `no-animation` below, so values
+      // snap to target without interpolation. In 'user' mode the OS setting is
+      // read via Reanimated's `useReducedMotion`, which captures the value once
+      // at app start — a runtime toggle takes effect on the next launch.
+      const shouldReduceMotion = useShouldReduceMotion()
+
+      // Pin the latest `onAnimationEnd` in a ref so the worklet callback always
+      // dispatches against the current closure without re-resolving the
+      // animation graph. Worklets can read refs via `runOnJS`.
+      const onAnimationEndRef = useRef(onAnimationEnd)
+      onAnimationEndRef.current = onAnimationEnd
+
+      // Resolve `animate` against `variants` / `controller`. The controller's
+      // `current` wins when both are set (typed contract: don't mix
+      // `controller` and `animate` — controller drives the animation in that
+      // mode). When `animate` is a string and `variants` exist, look it up.
+      const variantKey = useControllerKey(controller)
+      const resolvedAnimate = resolveAnimateInput(
+        animate as AnimateStyle<unknown> | string | undefined,
+        variants as VariantsMap<unknown> | undefined,
+        variantKey,
+      )
+
+      const animateRecord = (resolvedAnimate ?? {}) as InternalAnimateRecord
+      const initialRecord =
+        initial && initial !== false
+          ? (initial as InternalInitialRecord)
+          : undefined
+      const exitRecord = exit ? (exit as InternalAnimateRecord) : undefined
+
+      // Gesture sub-state activation tracked as JS state. Activation flips drive
+      // the per-layer progress shared values (0↔1); they intentionally do NOT
+      // re-run the value-driving effect — gesture sub-state targets live on the
+      // worklet's composition chain, not on the base `animate` SV.
+      const [pressed, setPressed] = useState(false)
+      const [focused, setFocused] = useState(false)
+      const [focusVisible, setFocusVisible] = useState(false)
+      const [hovered, setHovered] = useState(false)
+
+      // The set of keys this instance animates is a *monotonically growing*
+      // union, recomputed every render and expanded when a render introduces a
+      // key not seen before. It never shrinks. Two requirements meet here:
+      //
+      //   1. Variants and gesture sub-states contribute the union across *all*
+      //      their branches up front — a key touched by any variant must be
+      //      active so the worklet picks it up when the controller transitions
+      //      to a branch the base `animate` never mentions.
+      //   2. A literal `animate` object is reactive: a parent that changes
+      //      `animate={{ opacity: 1 }}` to `animate={{ opacity: 1, scale: 2 }}`
+      //      after mount must get `scale` animating. Freezing the set at first
+      //      render silently dropped the new key (its SV updated, but the
+      //      worklet — which iterates this set — never read it).
+      //
+      // Growing-only keeps the worklet stable: the `activeKeysRef.current` array
+      // identity only changes on the renders that actually add a key, so the
+      // `useAnimatedStyle` worklet (which reads `.current` each frame) sees the
+      // expansion without churning frame-to-frame.
+      const touched = new Set<AnimatableKey>()
+      collectTouchedKeys(touched, animateRecord)
+      if (initialRecord) collectTouchedKeys(touched, initialRecord)
+      if (variants) {
+        for (const variant of Object.values(variants) as object[]) {
+          if (!variant) continue
+          collectTouchedKeys(touched, variant as Record<string, unknown>)
         }
       }
-    }
-    if (grew) {
-      const merged = new Set<AnimatableKey>(prevActive ?? [])
-      for (const k of touched) merged.add(k)
-      activeKeysRef.current = ALL_KEYS.filter((k) => merged.has(k))
-      hasTransformRef.current = activeKeysRef.current.some((k) =>
-        TRANSFORM_KEY_SET.has(k),
-      )
-      hasShadowOffsetRef.current = activeKeysRef.current.some((k) =>
-        SHADOW_OFFSET_KEY_SET.has(k),
-      )
-    }
+      if (gesture) {
+        for (const subState of [
+          gesture.pressed,
+          gesture.focused,
+          gesture.focusVisible,
+          gesture.hovered,
+        ] as Array<object | undefined>) {
+          if (!subState) continue
+          collectTouchedKeys(touched, subState as Record<string, unknown>)
+        }
+      }
+      if (exitRecord) collectTouchedKeys(touched, exitRecord)
 
-    const sharedValues = useAnimatableSharedValues((key) => {
-      // Shadow offset synthetics seed from the corresponding axis on the
-      // `shadowOffset: { width, height }` source — the consumer doesn't write
-      // `shadowOffsetWidth` / `shadowOffsetHeight` directly. Fall back to the
-      // generic resting default when neither initial nor animate touched it.
-      if (SHADOW_OFFSET_KEY_SET.has(key)) {
-        const axis = shadowOffsetAxisFor(key as ShadowOffsetKey)
-        if (initial === false) {
+      const activeKeysRef = useRef<readonly AnimatableKey[] | null>(null)
+      const hasTransformRef = useRef<boolean>(false)
+      const hasShadowOffsetRef = useRef<boolean>(false)
+      // Expand the active set only when this render touched a key we haven't
+      // recorded yet. When nothing new appears we keep the existing array
+      // identity so the worklet's captured ref doesn't see a fresh value.
+      const prevActive = activeKeysRef.current
+      let grew = prevActive === null
+      if (!grew && prevActive) {
+        for (const k of touched) {
+          if (!prevActive.includes(k)) {
+            grew = true
+            break
+          }
+        }
+      }
+      if (grew) {
+        const merged = new Set<AnimatableKey>(prevActive ?? [])
+        for (const k of touched) merged.add(k)
+        activeKeysRef.current = ALL_KEYS.filter((k) => merged.has(k))
+        hasTransformRef.current = activeKeysRef.current.some((k) =>
+          TRANSFORM_KEY_SET.has(k),
+        )
+        hasShadowOffsetRef.current = activeKeysRef.current.some((k) =>
+          SHADOW_OFFSET_KEY_SET.has(k),
+        )
+      }
+
+      const sharedValues = useAnimatableSharedValues((key) => {
+        // Shadow offset synthetics seed from the corresponding axis on the
+        // `shadowOffset: { width, height }` source — the consumer doesn't write
+        // `shadowOffsetWidth` / `shadowOffsetHeight` directly. Fall back to the
+        // generic resting default when neither initial nor animate touched it.
+        if (SHADOW_OFFSET_KEY_SET.has(key)) {
+          const axis = shadowOffsetAxisFor(key as ShadowOffsetKey)
+          if (initial === false) {
+            return (
+              shadowOffsetAxisValue(animateRecord.shadowOffset, axis) ??
+              DEFAULT_RESTING[key]
+            )
+          }
           return (
+            shadowOffsetAxisValue(
+              initialRecord?.shadowOffset as
+                | { width?: number; height?: number }
+                | undefined,
+              axis,
+            ) ??
             shadowOffsetAxisValue(animateRecord.shadowOffset, axis) ??
             DEFAULT_RESTING[key]
           )
         }
+        if (initial === false) {
+          const a = animateRecord[key]
+          return restValue(a) ?? DEFAULT_RESTING[key]
+        }
         return (
-          shadowOffsetAxisValue(
-            initialRecord?.shadowOffset as
-              | { width?: number; height?: number }
-              | undefined,
-            axis,
-          ) ??
-          shadowOffsetAxisValue(animateRecord.shadowOffset, axis) ??
+          initialRecord?.[key] ??
+          restValue(animateRecord[key]) ??
           DEFAULT_RESTING[key]
         )
-      }
-      if (initial === false) {
-        const a = animateRecord[key]
-        return restValue(a) ?? DEFAULT_RESTING[key]
-      }
-      return (
-        initialRecord?.[key] ??
-        restValue(animateRecord[key]) ??
-        DEFAULT_RESTING[key]
+      })
+
+      // One progress SV per gesture layer, allocated unconditionally for hook
+      // stability. Each layer's progress animates 0↔1 with its own transition
+      // when its activation flips; the worklet reads them when compositing.
+      // Initial value is 0 — even if a sub-state is somehow active on mount,
+      // the activation effect below will animate it to 1 on the next tick.
+      const pressedProgress = useSharedValue(0)
+      const focusedProgress = useSharedValue(0)
+      const focusVisibleProgress = useSharedValue(0)
+      const hoveredProgress = useSharedValue(0)
+
+      // Cancel any in-flight gesture-layer springs on unmount, matching the
+      // per-key guard in `useAnimatableSharedValues`. Each SV is identity-stable.
+      useEffect(
+        () => () => {
+          cancelAnimation(pressedProgress)
+          cancelAnimation(focusedProgress)
+          cancelAnimation(focusVisibleProgress)
+          cancelAnimation(hoveredProgress)
+        },
+        // The progress SVs are identity-stable per hook instance.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [],
       )
-    })
 
-    // One progress SV per gesture layer, allocated unconditionally for hook
-    // stability. Each layer's progress animates 0↔1 with its own transition
-    // when its activation flips; the worklet reads them when compositing.
-    // Initial value is 0 — even if a sub-state is somehow active on mount,
-    // the activation effect below will animate it to 1 on the next tick.
-    const pressedProgress = useSharedValue(0)
-    const focusedProgress = useSharedValue(0)
-    const focusVisibleProgress = useSharedValue(0)
-    const hoveredProgress = useSharedValue(0)
+      // Mirror gesture targets into a UI-runtime-resident shared value so the
+      // animated-style worklet can read the latest layer values without having
+      // to capture `gesture` directly (which would re-register the worklet on
+      // every render where the consumer passes a fresh literal). The signature
+      // dependency means we only push to the SV when targets actually change —
+      // the SV ref itself is stable across renders.
+      //
+      // The resolved value is a layer-keyed map of primitive endpoints (numbers
+      // or color strings); sequence/`{ to }` step shapes on a sub-state collapse
+      // to their final endpoint via `targetEndValue` because a gesture layer
+      // describes a steady target, not a keyframe sequence.
+      const gestureSV = useSharedValue<ResolvedGestureLayers | null>(
+        resolveGestureLayers(gesture),
+      )
+      const gestureTargetsSig = stableSig(gesture)
+      useEffect(() => {
+        gestureSV.value = resolveGestureLayers(gesture)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [gestureTargetsSig])
 
-    // Cancel any in-flight gesture-layer springs on unmount, matching the
-    // per-key guard in `useAnimatableSharedValues`. Each SV is identity-stable.
-    useEffect(
-      () => () => {
-        cancelAnimation(pressedProgress)
-        cancelAnimation(focusedProgress)
-        cancelAnimation(focusVisibleProgress)
-        cancelAnimation(hoveredProgress)
-      },
-      // The progress SVs are identity-stable per hook instance.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [],
-    )
+      // The base record drives the per-key shared values. Gesture sub-state
+      // targets are intentionally NOT merged here — they layer on top in the
+      // worklet. Exit values still take precedence over `animate` while exiting
+      // because the base SV is what <Presence> waits on to settle.
+      const baseRecord =
+        isExiting && exitRecord
+          ? { ...animateRecord, ...exitRecord }
+          : animateRecord
+      const baseSig =
+        stableSig(baseRecord) +
+        (isExiting ? '|exit' : '') +
+        (shouldReduceMotion ? '|rm' : '')
+      const transitionSig = stableSig(transition)
 
-    // Mirror gesture targets into a UI-runtime-resident shared value so the
-    // animated-style worklet can read the latest layer values without having
-    // to capture `gesture` directly (which would re-register the worklet on
-    // every render where the consumer passes a fresh literal). The signature
-    // dependency means we only push to the SV when targets actually change —
-    // the SV ref itself is stable across renders.
-    //
-    // The resolved value is a layer-keyed map of primitive endpoints (numbers
-    // or color strings); sequence/`{ to }` step shapes on a sub-state collapse
-    // to their final endpoint via `targetEndValue` because a gesture layer
-    // describes a steady target, not a keyframe sequence.
-    const gestureSV = useSharedValue<ResolvedGestureLayers | null>(
-      resolveGestureLayers(gesture),
-    )
-    const gestureTargetsSig = stableSig(gesture)
-    useEffect(() => {
-      gestureSV.value = resolveGestureLayers(gesture)
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [gestureTargetsSig])
+      // Stable ref to the live `safeToRemove` so the effect's settle-counter
+      // closure can reach the latest <Presence> binding without retriggering.
+      const safeToRemoveRef = useRef<(() => void) | undefined>(undefined)
+      safeToRemoveRef.current = presence?.safeToRemove
 
-    // The base record drives the per-key shared values. Gesture sub-state
-    // targets are intentionally NOT merged here — they layer on top in the
-    // worklet. Exit values still take precedence over `animate` while exiting
-    // because the base SV is what <Presence> waits on to settle.
-    const baseRecord =
-      isExiting && exitRecord
-        ? { ...animateRecord, ...exitRecord }
-        : animateRecord
-    const baseSig =
-      stableSig(baseRecord) +
-      (isExiting ? '|exit' : '') +
-      (shouldReduceMotion ? '|rm' : '')
-    const transitionSig = stableSig(transition)
-
-    // Stable ref to the live `safeToRemove` so the effect's settle-counter
-    // closure can reach the latest <Presence> binding without retriggering.
-    const safeToRemoveRef = useRef<(() => void) | undefined>(undefined)
-    safeToRemoveRef.current = presence?.safeToRemove
-
-    useEffect(() => {
-      // Exit fast-path: nothing to animate (or no exit prop), tell <Presence>
-      // immediately so the unmount isn't gated on a phantom animation.
-      if (isExiting && (!exitRecord || Object.keys(exitRecord).length === 0)) {
-        safeToRemoveRef.current?.()
-        return
-      }
-
-      let pending = 0
-      let done = false
-      const onSettle = () => {
-        if (done) return
-        pending--
-        if (pending <= 0) {
-          done = true
-          if (isExiting) safeToRemoveRef.current?.()
-        }
-      }
-
-      // Count transform axes participating in this effect run so the factory
-      // can coalesce their terminal callbacks into a single transform-group
-      // event. `undefined` when no transform axis is animating, which lets
-      // the factory skip the coalescing branch entirely.
-      let transformPending = 0
-      for (const k of ALL_KEYS) {
-        if (TRANSFORM_KEY_SET.has(k) && baseRecord[k] !== undefined) {
-          transformPending++
-        }
-      }
-      const transformGroup: TransformGroup | undefined =
-        transformPending > 0 ? { remaining: transformPending } : undefined
-
-      for (const key of ALL_KEYS) {
-        // Shadow offset synthetics read their target from the nested
-        // `shadowOffset: { width, height }` source on `baseRecord` — the
-        // animate / exit record never has `shadowOffsetWidth` etc. on it
-        // directly. The synthetic transition follows the same `shadowOffset`
-        // top-level transition entry (no per-axis split).
-        const target: AnimatableValue<number | string> | undefined =
-          SHADOW_OFFSET_KEY_SET.has(key)
-            ? shadowOffsetAxisValue(
-                baseRecord.shadowOffset,
-                shadowOffsetAxisFor(key as ShadowOffsetKey),
-              )
-            : baseRecord[key]
-        if (target === undefined) continue
-        // Reduced-motion overrides every per-key transition (and any nested
-        // sequence-step transition) with `no-animation`, which the resolver
-        // turns into a direct value assignment. Sequences still iterate but
-        // each step settles instantly, which matches the "snap to final
-        // state" expectation.
-        const cfg = shouldReduceMotion
-          ? ({ type: 'no-animation' } as const)
-          : transitionFor(
-              SHADOW_OFFSET_KEY_SET.has(key)
-                ? ('shadowOffset' as keyof typeof baseRecord)
-                : key,
-              transition,
-            )
-        if (isExiting) pending++
-        const factory = makeKeyCallbackFactory(
-          key,
-          sharedValues[key],
-          targetEndValue(target),
-          onAnimationEndRef,
-          {
-            stepCount: stepCountOf(target),
-            totalIterations: totalIterationsOf(cfg),
-          },
-          isExiting ? onSettle : undefined,
-          TRANSFORM_KEY_SET.has(key) ? transformGroup : undefined,
-        )
-        sharedValues[key].value = resolveAnimatableValue(
-          target,
-          cfg,
-          factory,
-        ) as never
-      }
-
-      // No exit-targeted keys (only `animate` keys present, no `exit`)
-      // → release immediately rather than wait for animations that aren't
-      // headed toward an exit value.
-      if (isExiting && pending === 0) {
-        safeToRemoveRef.current?.()
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [baseSig, transitionSig])
-
-    // Per-layer progress: when a sub-state activation flips, animate its
-    // progress SV 0↔1 with the layer's own transition (or the parent
-    // transition / library default, in priority order). On exit we snap every
-    // layer to 0 instantly so the unmount-bound base SV isn't fighting a
-    // stale layer contribution mid-fade.
-    //
-    // The `declared` flag short-circuits the effect when the consumer hasn't
-    // wired the corresponding sub-state — so a Motion primitive without a
-    // `gesture` prop (or with only some sub-states declared) makes zero extra
-    // `withSpring` / `withTiming` calls on mount.
-    useGestureLayerProgress(
-      pressedProgress,
-      pressed,
-      gesture?.pressed != null,
-      'pressed',
-      transition,
-      isExiting,
-      shouldReduceMotion,
-    )
-    useGestureLayerProgress(
-      focusedProgress,
-      focused,
-      gesture?.focused != null,
-      'focused',
-      transition,
-      isExiting,
-      shouldReduceMotion,
-    )
-    useGestureLayerProgress(
-      focusVisibleProgress,
-      focusVisible,
-      gesture?.focusVisible != null,
-      'focusVisible',
-      transition,
-      isExiting,
-      shouldReduceMotion,
-    )
-    useGestureLayerProgress(
-      hoveredProgress,
-      hovered,
-      gesture?.hovered != null,
-      'hovered',
-      transition,
-      isExiting,
-      shouldReduceMotion,
-    )
-
-    // Shared-element transition wiring. `useSharedLayout` allocates FLIP
-    // shared values (identity at rest), measures via the merged `onLayout`,
-    // and on first-mount snaps the FLIP transform to a source rect popped
-    // from the registry. The worklet below appends those entries to the
-    // transform array so they compose with the user's animate transforms —
-    // multiple `translateX` entries sum, multiple `scaleX` entries multiply,
-    // which is exactly the FLIP semantic.
-    const sharedLayout = useSharedLayout({
-      layoutId,
-      userRef: ref,
-      transition: isTopLevelTransition(transition) ? transition : undefined,
-      shouldReduceMotion,
-      userOnLayout,
-    })
-    const flip = sharedLayout.flip
-    const hasLayoutId = layoutId !== undefined
-
-    const animatedStyle = useAnimatedStyle(() => {
-      const activeKeys = activeKeysRef.current!
-      const hasTransform = hasTransformRef.current
-      const hasShadowOffset = hasShadowOffsetRef.current
-      const out: Record<string, unknown> = {}
-      const transform: Array<Record<string, unknown>> = []
-      // shadow-offset reassembly buffers. The two synthetic axis SVs feed in
-      // here and the recomposed `{ width, height }` object lands on `out`
-      // after the loop so RN gets a single `shadowOffset` style prop.
-      let shadowOffsetW = 0
-      let shadowOffsetH = 0
-
-      // Read each progress SV exactly once so the chain below sees a coherent
-      // snapshot for this frame. Reading them on the UI thread is cheap.
-      const ph = hoveredProgress.value
-      const pf = focusedProgress.value
-      const pfv = focusVisibleProgress.value
-      const pp = pressedProgress.value
-
-      const layers = gestureSV.value
-      // Locals are suffixed `Layer` so they don't shadow the outer `pressed` /
-      // `focused` / `focusVisible` / `hovered` JS-state booleans — Reanimated's
-      // worklet closure tracker would otherwise pick those up as captured
-      // dependencies and re-register the worklet on every activation flip.
-      const hoveredLayer = layers ? layers.hovered : null
-      const focusedLayer = layers ? layers.focused : null
-      const focusVisibleLayer = layers ? layers.focusVisible : null
-      const pressedLayer = layers ? layers.pressed : null
-
-      for (const key of activeKeys) {
-        let v = sharedValues[key].value
-        const isColor = COLOR_KEY_SET.has(key)
-
-        // Composite gesture layers in priority order (lowest first). Each
-        // active layer pulls the value toward its pre-resolved primitive
-        // endpoint by `progress`; numeric keys lerp, color keys go through
-        // Reanimated's RGBA `interpolateColor`. We skip layers with progress
-        // 0 to avoid an `interpolateColor(0, ...)` call that would parse the
-        // target color string for no visible effect.
-        if (hoveredLayer && ph > 0 && hoveredLayer[key] !== undefined) {
-          const t = hoveredLayer[key]
-          v = isColor
-            ? interpolateColor(ph, [0, 1], [v as string, t as string])
-            : (v as number) + ((t as number) - (v as number)) * ph
-        }
-        if (focusedLayer && pf > 0 && focusedLayer[key] !== undefined) {
-          const t = focusedLayer[key]
-          v = isColor
-            ? interpolateColor(pf, [0, 1], [v as string, t as string])
-            : (v as number) + ((t as number) - (v as number)) * pf
-        }
+      useEffect(() => {
+        // Exit fast-path: nothing to animate (or no exit prop), tell <Presence>
+        // immediately so the unmount isn't gated on a phantom animation.
         if (
-          focusVisibleLayer &&
-          pfv > 0 &&
-          focusVisibleLayer[key] !== undefined
+          isExiting &&
+          (!exitRecord || Object.keys(exitRecord).length === 0)
         ) {
-          const t = focusVisibleLayer[key]
-          v = isColor
-            ? interpolateColor(pfv, [0, 1], [v as string, t as string])
-            : (v as number) + ((t as number) - (v as number)) * pfv
-        }
-        if (pressedLayer && pp > 0 && pressedLayer[key] !== undefined) {
-          const t = pressedLayer[key]
-          v = isColor
-            ? interpolateColor(pp, [0, 1], [v as string, t as string])
-            : (v as number) + ((t as number) - (v as number)) * pp
+          safeToRemoveRef.current?.()
+          return
         }
 
-        if (TRANSFORM_KEY_SET.has(key)) {
-          transform.push(
-            ROTATION_KEYS.has(key) ? { [key]: `${v}deg` } : { [key]: v },
+        let pending = 0
+        let done = false
+        const onSettle = () => {
+          if (done) return
+          pending--
+          if (pending <= 0) {
+            done = true
+            if (isExiting) safeToRemoveRef.current?.()
+          }
+        }
+
+        // Count transform axes participating in this effect run so the factory
+        // can coalesce their terminal callbacks into a single transform-group
+        // event. `undefined` when no transform axis is animating, which lets
+        // the factory skip the coalescing branch entirely.
+        let transformPending = 0
+        for (const k of ALL_KEYS) {
+          if (TRANSFORM_KEY_SET.has(k) && baseRecord[k] !== undefined) {
+            transformPending++
+          }
+        }
+        const transformGroup: TransformGroup | undefined =
+          transformPending > 0 ? { remaining: transformPending } : undefined
+
+        for (const key of ALL_KEYS) {
+          // Shadow offset synthetics read their target from the nested
+          // `shadowOffset: { width, height }` source on `baseRecord` — the
+          // animate / exit record never has `shadowOffsetWidth` etc. on it
+          // directly. The synthetic transition follows the same `shadowOffset`
+          // top-level transition entry (no per-axis split).
+          const target: AnimatableValue<number | string> | undefined =
+            SHADOW_OFFSET_KEY_SET.has(key)
+              ? shadowOffsetAxisValue(
+                  baseRecord.shadowOffset,
+                  shadowOffsetAxisFor(key as ShadowOffsetKey),
+                )
+              : baseRecord[key]
+          if (target === undefined) continue
+          // Reduced-motion overrides every per-key transition (and any nested
+          // sequence-step transition) with `no-animation`, which the resolver
+          // turns into a direct value assignment. Sequences still iterate but
+          // each step settles instantly, which matches the "snap to final
+          // state" expectation.
+          const cfg = shouldReduceMotion
+            ? ({ type: 'no-animation' } as const)
+            : transitionFor(
+                SHADOW_OFFSET_KEY_SET.has(key)
+                  ? ('shadowOffset' as keyof typeof baseRecord)
+                  : key,
+                transition,
+              )
+          if (isExiting) pending++
+          const factory = makeKeyCallbackFactory(
+            key,
+            sharedValues[key],
+            targetEndValue(target),
+            onAnimationEndRef,
+            {
+              stepCount: stepCountOf(target),
+              totalIterations: totalIterationsOf(cfg),
+            },
+            isExiting ? onSettle : undefined,
+            TRANSFORM_KEY_SET.has(key) ? transformGroup : undefined,
           )
-        } else if (key === 'shadowOffsetWidth') {
-          shadowOffsetW = v as number
-        } else if (key === 'shadowOffsetHeight') {
-          shadowOffsetH = v as number
-        } else {
-          out[key] = v
+          sharedValues[key].value = resolveAnimatableValue(
+            target,
+            cfg,
+            factory,
+          ) as never
         }
-      }
-      // Shared-element FLIP transforms append after the user's transform
-      // entries so they compose multiplicatively in the same `transform`
-      // array — separate style entries with `transform` keys would
-      // last-write-wins, which is what we explicitly avoid here. At rest
-      // (dx, dy, sx, sy) = (0, 0, 1, 1) so the contribution is a no-op
-      // when no shared-element transition is active.
-      if (hasLayoutId) {
-        transform.push({ translateX: flip.dx.value })
-        transform.push({ translateY: flip.dy.value })
-        transform.push({ scaleX: flip.sx.value })
-        transform.push({ scaleY: flip.sy.value })
-      }
-      if (hasTransform || hasLayoutId) out.transform = transform
-      if (hasShadowOffset) {
-        out.shadowOffset = { width: shadowOffsetW, height: shadowOffsetH }
-      }
-      return out
-    })
 
-    // Exiting children are tap-deaf: the next press should fall through to
-    // whatever is underneath, not re-trigger a soon-to-unmount node. This is
-    // the moti #297 fix and a v0.1 acceptance criterion. RN 0.71+ deprecates
-    // `pointerEvents` as a prop in favor of the style key, so we merge it
-    // alongside the animated style instead of spreading as a prop.
-    const mergedStyle = useMemo(
-      () =>
-        (isExiting
-          ? [style, animatedStyle, EXITING_POINTER_EVENTS_STYLE]
-          : [style, animatedStyle]) as unknown,
-      [style, animatedStyle, isExiting],
-    )
+        // No exit-targeted keys (only `animate` keys present, no `exit`)
+        // → release immediately rather than wait for animations that aren't
+        // headed toward an exit value.
+        if (isExiting && pending === 0) {
+          safeToRemoveRef.current?.()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [baseSig, transitionSig])
 
-    const gestureHandlers = useGestureHandlers(
-      gesture,
-      rest as Record<string, unknown>,
-      setPressed,
-      setFocused,
-      setFocusVisible,
-      setHovered,
-    )
+      // Per-layer progress: when a sub-state activation flips, animate its
+      // progress SV 0↔1 with the layer's own transition (or the parent
+      // transition / library default, in priority order). On exit we snap every
+      // layer to 0 instantly so the unmount-bound base SV isn't fighting a
+      // stale layer contribution mid-fade.
+      //
+      // The `declared` flag short-circuits the effect when the consumer hasn't
+      // wired the corresponding sub-state — so a Motion primitive without a
+      // `gesture` prop (or with only some sub-states declared) makes zero extra
+      // `withSpring` / `withTiming` calls on mount.
+      useGestureLayerProgress(
+        pressedProgress,
+        pressed,
+        gesture?.pressed != null,
+        'pressed',
+        transition,
+        isExiting,
+        shouldReduceMotion,
+      )
+      useGestureLayerProgress(
+        focusedProgress,
+        focused,
+        gesture?.focused != null,
+        'focused',
+        transition,
+        isExiting,
+        shouldReduceMotion,
+      )
+      useGestureLayerProgress(
+        focusVisibleProgress,
+        focusVisible,
+        gesture?.focusVisible != null,
+        'focusVisible',
+        transition,
+        isExiting,
+        shouldReduceMotion,
+      )
+      useGestureLayerProgress(
+        hoveredProgress,
+        hovered,
+        gesture?.hovered != null,
+        'hovered',
+        transition,
+        isExiting,
+        shouldReduceMotion,
+      )
 
-    // Resolve the `layout` prop into a Reanimated `LinearTransition` builder.
-    // Memoized on the value's stable signature so a fresh `layout={true}` or
-    // `layout={{ ... }}` literal each render doesn't rebuild the builder. When
-    // reduced motion is active we pass `undefined` — see `resolveLayout` for
-    // why we don't pass a duration-0 builder instead.
-    const layoutSig = stableSig(layout)
-    const layoutTransition = useMemo(
-      () => (shouldReduceMotion ? undefined : resolveLayoutTransition(layout)),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [layoutSig, shouldReduceMotion],
-    )
+      // Shared-element transition wiring. `useSharedLayout` allocates FLIP
+      // shared values (identity at rest), measures via the merged `onLayout`,
+      // and on first-mount snaps the FLIP transform to a source rect popped
+      // from the registry. The worklet below appends those entries to the
+      // transform array so they compose with the user's animate transforms —
+      // multiple `translateX` entries sum, multiple `scaleX` entries multiply,
+      // which is exactly the FLIP semantic.
+      const sharedLayout = useSharedLayout({
+        layoutId,
+        userRef: ref,
+        transition: isTopLevelTransition(transition) ? transition : undefined,
+        shouldReduceMotion,
+        userOnLayout,
+      })
+      const flip = sharedLayout.flip
+      const hasLayoutId = layoutId !== undefined
 
-    return (
-      <AnimatedComponent
-        ref={sharedLayout.setRef as never}
-        {...(rest as object)}
-        {...gestureHandlers}
-        onLayout={sharedLayout.onLayout}
-        layout={layoutTransition}
-        style={mergedStyle}
-      />
-    )
+      const animatedStyle = useAnimatedStyle(() => {
+        const activeKeys = activeKeysRef.current!
+        const hasTransform = hasTransformRef.current
+        const hasShadowOffset = hasShadowOffsetRef.current
+        const out: Record<string, unknown> = {}
+        const transform: Array<Record<string, unknown>> = []
+        // shadow-offset reassembly buffers. The two synthetic axis SVs feed in
+        // here and the recomposed `{ width, height }` object lands on `out`
+        // after the loop so RN gets a single `shadowOffset` style prop.
+        let shadowOffsetW = 0
+        let shadowOffsetH = 0
+
+        // Read each progress SV exactly once so the chain below sees a coherent
+        // snapshot for this frame. Reading them on the UI thread is cheap.
+        const ph = hoveredProgress.value
+        const pf = focusedProgress.value
+        const pfv = focusVisibleProgress.value
+        const pp = pressedProgress.value
+
+        const layers = gestureSV.value
+        // Locals are suffixed `Layer` so they don't shadow the outer `pressed` /
+        // `focused` / `focusVisible` / `hovered` JS-state booleans — Reanimated's
+        // worklet closure tracker would otherwise pick those up as captured
+        // dependencies and re-register the worklet on every activation flip.
+        const hoveredLayer = layers ? layers.hovered : null
+        const focusedLayer = layers ? layers.focused : null
+        const focusVisibleLayer = layers ? layers.focusVisible : null
+        const pressedLayer = layers ? layers.pressed : null
+
+        for (const key of activeKeys) {
+          let v = sharedValues[key].value
+          const isColor = COLOR_KEY_SET.has(key)
+
+          // Composite gesture layers in priority order (lowest first). Each
+          // active layer pulls the value toward its pre-resolved primitive
+          // endpoint by `progress`; numeric keys lerp, color keys go through
+          // Reanimated's RGBA `interpolateColor`. We skip layers with progress
+          // 0 to avoid an `interpolateColor(0, ...)` call that would parse the
+          // target color string for no visible effect.
+          if (hoveredLayer && ph > 0 && hoveredLayer[key] !== undefined) {
+            const t = hoveredLayer[key]
+            v = isColor
+              ? interpolateColor(ph, [0, 1], [v as string, t as string])
+              : (v as number) + ((t as number) - (v as number)) * ph
+          }
+          if (focusedLayer && pf > 0 && focusedLayer[key] !== undefined) {
+            const t = focusedLayer[key]
+            v = isColor
+              ? interpolateColor(pf, [0, 1], [v as string, t as string])
+              : (v as number) + ((t as number) - (v as number)) * pf
+          }
+          if (
+            focusVisibleLayer &&
+            pfv > 0 &&
+            focusVisibleLayer[key] !== undefined
+          ) {
+            const t = focusVisibleLayer[key]
+            v = isColor
+              ? interpolateColor(pfv, [0, 1], [v as string, t as string])
+              : (v as number) + ((t as number) - (v as number)) * pfv
+          }
+          if (pressedLayer && pp > 0 && pressedLayer[key] !== undefined) {
+            const t = pressedLayer[key]
+            v = isColor
+              ? interpolateColor(pp, [0, 1], [v as string, t as string])
+              : (v as number) + ((t as number) - (v as number)) * pp
+          }
+
+          if (TRANSFORM_KEY_SET.has(key)) {
+            transform.push(
+              ROTATION_KEYS.has(key) ? { [key]: `${v}deg` } : { [key]: v },
+            )
+          } else if (key === 'shadowOffsetWidth') {
+            shadowOffsetW = v as number
+          } else if (key === 'shadowOffsetHeight') {
+            shadowOffsetH = v as number
+          } else {
+            out[key] = v
+          }
+        }
+        // Shared-element FLIP transforms append after the user's transform
+        // entries so they compose multiplicatively in the same `transform`
+        // array — separate style entries with `transform` keys would
+        // last-write-wins, which is what we explicitly avoid here. At rest
+        // (dx, dy, sx, sy) = (0, 0, 1, 1) so the contribution is a no-op
+        // when no shared-element transition is active.
+        if (hasLayoutId) {
+          transform.push({ translateX: flip.dx.value })
+          transform.push({ translateY: flip.dy.value })
+          transform.push({ scaleX: flip.sx.value })
+          transform.push({ scaleY: flip.sy.value })
+        }
+        if (hasTransform || hasLayoutId) out.transform = transform
+        if (hasShadowOffset) {
+          out.shadowOffset = { width: shadowOffsetW, height: shadowOffsetH }
+        }
+        return out
+      })
+
+      // Exiting children are tap-deaf: the next press should fall through to
+      // whatever is underneath, not re-trigger a soon-to-unmount node. This is
+      // the moti #297 fix and a v0.1 acceptance criterion. RN 0.71+ deprecates
+      // `pointerEvents` as a prop in favor of the style key, so we merge it
+      // alongside the animated style instead of spreading as a prop.
+      const mergedStyle = useMemo(
+        () =>
+          (isExiting
+            ? [style, animatedStyle, EXITING_POINTER_EVENTS_STYLE]
+            : [style, animatedStyle]) as unknown,
+        [style, animatedStyle, isExiting],
+      )
+
+      const gestureHandlers = useGestureHandlers(
+        gesture,
+        rest as Record<string, unknown>,
+        setPressed,
+        setFocused,
+        setFocusVisible,
+        setHovered,
+      )
+
+      // Resolve the `layout` prop into a Reanimated `LinearTransition` builder.
+      // Memoized on the value's stable signature so a fresh `layout={true}` or
+      // `layout={{ ... }}` literal each render doesn't rebuild the builder. When
+      // reduced motion is active we pass `undefined` — see `resolveLayout` for
+      // why we don't pass a duration-0 builder instead.
+      const layoutSig = stableSig(layout)
+      const layoutTransition = useMemo(
+        () =>
+          shouldReduceMotion ? undefined : resolveLayoutTransition(layout),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [layoutSig, shouldReduceMotion],
+      )
+
+      return (
+        <AnimatedComponent
+          ref={sharedLayout.setRef as never}
+          {...(rest as object)}
+          {...gestureHandlers}
+          onLayout={sharedLayout.onLayout}
+          layout={layoutTransition}
+          style={mergedStyle}
+        />
+      )
+    },
+  )
+
+  MotionAnimated.displayName = `Motion(${Component.displayName ?? Component.name ?? 'Component'})`
+
+  // Dispatch: route prop-less instances to the zero-cost `PlainHost`, and
+  // anything carrying an animation prop to the full `MotionAnimated` body.
+  const Motion = forwardRef<unknown, Props>(function Motion(props, ref) {
+    if (hasMotionProps(props as Record<string, unknown>)) {
+      return <MotionAnimated ref={ref} {...props} />
+    }
+    return <PlainHost ref={ref} {...props} />
   })
 
   Motion.displayName = `Motion(${Component.displayName ?? Component.name ?? 'Component'})`
 
   return Motion as unknown as MotionComponent<C>
+}
+
+/**
+ * The props that make a `Motion.*` instance actually animate. If none are
+ * present, the instance is a plain animated host (see `PlainHost`). A `style`
+ * function is intentionally excluded — it throws in dev and is not an
+ * animation driver; a plain host forwards a static `style` object untouched.
+ */
+const MOTION_PROP_KEYS = [
+  'initial',
+  'animate',
+  'exit',
+  'transition',
+  'variants',
+  'controller',
+  'gesture',
+  'layout',
+  'layoutId',
+  'onAnimationEnd',
+] as const
+
+function hasMotionProps(props: Record<string, unknown>): boolean {
+  for (const key of MOTION_PROP_KEYS) {
+    if (props[key] !== undefined) return true
+  }
+  return false
 }
 
 type SharedValueMap = Record<AnimatableKey, SharedValue<number | string>>

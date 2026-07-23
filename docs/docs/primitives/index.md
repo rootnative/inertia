@@ -27,6 +27,25 @@ Every animatable surface is a `Motion.*` component. Each one is an animatable mi
 
 Wrap any component with `createMotionComponent(C)` to get the same prop surface inferred from `C`'s style prop. See [createMotionComponent](../api/create-motion-component).
 
+## Plain host (zero-cost pass-through)
+
+A `Motion.*` primitive with **none** of the animation-driving props — `initial`, `animate`, `exit`, `transition`, `variants`, `controller`, `gesture`, `layout`, `layoutId`, `onAnimationEnd` — is a zero-cost pass-through over `Animated.createAnimatedComponent(Component)`. It allocates no shared values, mounts no `useAnimatedStyle` worklet, holds no gesture state, and does no per-render animation work: it forwards `style`, `ref`, and every other prop straight to the underlying host. (A guard test pins this — a prop-less `Motion.View` calls neither `useSharedValue` nor `useAnimatedStyle`.)
+
+This means you never need to reach for `Animated.View` from the [`/reanimated` interop subpath](../api/reanimated-interop) just to render an animated-style **fragment** from a value-layer hook. Use the primitive directly:
+
+```tsx
+import { Motion, useColorTransition } from '@rootnative/inertia'
+
+function Fill({ progress }) {
+  const fill = useColorTransition(progress, ['#ffffff', '#4f46e5'])
+  // Prop-less Motion.View — a plain animated host for the fragment. No
+  // Reanimated import needed.
+  return <Motion.View style={[styles.box, fill]} />
+}
+```
+
+The instant you add an animation prop, the same instance opts into the full animated body (it re-mounts across that boundary, so give an element that flips between plain and animated a stable `key` if the remount matters). One host concept, no separate "plain" alias to pick between.
+
 ## Animatable properties (alpha)
 
 The alpha supports the properties below across every primitive that accepts them.
