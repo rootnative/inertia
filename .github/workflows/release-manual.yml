@@ -99,8 +99,31 @@ jobs:
           echo "packages=$VALIDATED" >> "$GITHUB_OUTPUT"
           echo "Validated packages: $VALIDATED"
 
+      # Same quality gates as release.yml. This workflow used to run only
+      # `build` before publishing — and because it is the workflow that
+      # actually cuts releases (every tag in history has its `+`-joined
+      # label), that meant the published path was the *unverified* one.
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Test
+        run: pnpm run test
+
       - name: Build
         run: pnpm run build
+
+      # Bundle-size regression guard, matching ci-build.yml. Only core and
+      # gradients define a `size` script; both are built by `pnpm run build`
+      # above regardless of which subset is being published, so this runs
+      # unconditionally rather than trying to match it to `inputs.packages`.
+      - name: Bundle-size check (core)
+        run: pnpm --filter @rootnative/inertia size
+
+      - name: Bundle-size check (gradients)
+        run: pnpm --filter @rootnative/inertia-gradients size
 
       - name: Configure git
         run: |

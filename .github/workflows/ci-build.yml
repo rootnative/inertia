@@ -1,39 +1,48 @@
 name: CI / Build & Test
 
-# Typecheck, tests, build, and bundle size only depend on package source and
-# build config — run only when a change touches one of these paths. Doc-only
-# changes (**/*.md, docs/**, proposals/**) are still linted by ci-format.yml.
+# Run whenever a change could affect what this workflow checks.
+#
+# `example/**` and `docs/**` are in the list because both packages define a
+# `typecheck` script, so `pnpm run typecheck` (turbo, all packages) covers
+# them. Leaving them out meant an example- or docs-only change that broke
+# typecheck sailed through review and only failed later in deploy-web.yml on
+# main. A prose-only docs edit now pays a full run; that is the price of the
+# filter being obviously correct rather than cleverly minimal
 on:
   push:
     branches:
       - main
     paths:
-      - 'packages/**'
-      - 'scripts/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'turbo.json'
-      - 'tsconfig.base.json'
-      - 'tsconfig.json'
-      - 'jest.config.js'
-      - 'jest.setup.js'
-      - '.nvmrc'
-      - '.github/workflows/ci-build.yml'
+      - "packages/**"
+      - "example/**"
+      - "docs/**"
+      - "scripts/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+      - "tsconfig.base.json"
+      - "tsconfig.json"
+      - "jest.config.js"
+      - "jest.setup.js"
+      - ".nvmrc"
+      - ".github/workflows/ci-build.yml"
   pull_request:
     paths:
-      - 'packages/**'
-      - 'scripts/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'turbo.json'
-      - 'tsconfig.base.json'
-      - 'tsconfig.json'
-      - 'jest.config.js'
-      - 'jest.setup.js'
-      - '.nvmrc'
-      - '.github/workflows/ci-build.yml'
+      - "packages/**"
+      - "example/**"
+      - "docs/**"
+      - "scripts/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+      - "tsconfig.base.json"
+      - "tsconfig.json"
+      - "jest.config.js"
+      - "jest.setup.js"
+      - ".nvmrc"
+      - ".github/workflows/ci-build.yml"
 
 concurrency:
   group: ci-build-${{ github.ref }}
@@ -54,7 +63,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
