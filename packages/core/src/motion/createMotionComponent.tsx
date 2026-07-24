@@ -628,15 +628,39 @@ export function createMotionComponent<C extends ComponentType<any>>(
           }
         }
 
+        // Per-key transition resolution, hoisted out of the loop below so the
+        // transform-group count can ask about a key's config before the loop
+        // reaches it. Reduced motion overrides every per-key transition (and
+        // any nested sequence-step transition) with `no-animation`, which the
+        // resolver turns into a direct value assignment. Sequences still
+        // iterate but each step settles instantly, matching the "snap to final
+        // state" expectation.
+        const configFor = (key: AnimatableKey): TransitionConfig | undefined =>
+          shouldReduceMotion
+            ? ({ type: 'no-animation' } as const)
+            : transitionFor(
+                SHADOW_OFFSET_KEY_SET.has(key)
+                  ? ('shadowOffset' as keyof typeof baseRecord)
+                  : key,
+                transition,
+              )
+
         // Count transform axes participating in this effect run so the factory
         // can coalesce their terminal callbacks into a single transform-group
         // event. `undefined` when no transform axis is animating, which lets
         // the factory skip the coalescing branch entirely.
+        //
+        // Endless axes are excluded. A `repeat: 'infinite'` axis never reaches
+        // the terminal `'animation'` phase, so counting it would pin
+        // `remaining` permanently above zero — a sibling axis with a finite
+        // transition would settle, decrement, and have its completion silently
+        // swallowed. An axis that never finishes simply isn't part of the group
+        // that does.
         let transformPending = 0
         for (const k of ALL_KEYS) {
-          if (TRANSFORM_KEY_SET.has(k) && baseRecord[k] !== undefined) {
-            transformPending++
-          }
+          if (!TRANSFORM_KEY_SET.has(k) || baseRecord[k] === undefined) continue
+          if (!reachesTerminalPhase(configFor(k))) continue
+          transformPending++
         }
         const transformGroup: TransformGroup | undefined =
           transformPending > 0 ? { remaining: transformPending } : undefined
@@ -655,20 +679,15 @@ export function createMotionComponent<C extends ComponentType<any>>(
                 )
               : baseRecord[key]
           if (target === undefined) continue
-          // Reduced-motion overrides every per-key transition (and any nested
-          // sequence-step transition) with `no-animation`, which the resolver
-          // turns into a direct value assignment. Sequences still iterate but
-          // each step settles instantly, which matches the "snap to final
-          // state" expectation.
-          const cfg = shouldReduceMotion
-            ? ({ type: 'no-animation' } as const)
-            : transitionFor(
-                SHADOW_OFFSET_KEY_SET.has(key)
-                  ? ('shadowOffset' as keyof typeof baseRecord)
-                  : key,
-                transition,
-              )
-          if (isExiting) pending++
+          const cfg = configFor(key)
+          // <Presence> waits on this counter before unmounting, so only count
+          // keys that can actually settle. An endless exit animation (a
+          // `repeat: 'infinite'` transition inherited by `exit`, e.g. a pulsing
+          // element inside <Presence>) would otherwise never call
+          // `safeToRemove` and the child would stay mounted forever. Finite
+          // keys still gate the unmount; if every exit key is endless, the
+          // post-loop `pending === 0` release fires immediately.
+          if (isExiting && reachesTerminalPhase(cfg)) pending++
           const factory = makeKeyCallbackFactory(
             key,
             sharedValues[key],
@@ -1309,6 +1328,22 @@ function totalIterationsOf(cfg: TransitionConfig | undefined): number {
   if (typeof r === 'number') return r
   if (r.count === 'infinite') return Number.POSITIVE_INFINITY
   return r.count
+}
+
+/**
+ * Whether an animation built from `cfg` will ever reach its terminal
+ * `'animation'` phase. Everything finite does; `repeat: 'infinite'` never
+ * does, because `dispatch` only promotes a callback to the terminal phase once
+ * `iteration >= totalIterations - 1`, and that comparison is unreachable
+ * against `Infinity`.
+ *
+ * Anything counting pending completions must exclude endless animations, or
+ * the counter never drains: one endless transform axis swallowed every sibling
+ * axis's `onAnimationEnd`, and one endless `exit` key left a `<Presence>` child
+ * mounted forever because `safeToRemove` was gated behind it.
+ */
+function reachesTerminalPhase(cfg: TransitionConfig | undefined): boolean {
+  return Number.isFinite(totalIterationsOf(cfg))
 }
 
 /**
