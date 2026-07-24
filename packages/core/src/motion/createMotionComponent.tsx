@@ -14,7 +14,7 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
-import { type LayoutChangeEvent } from 'react-native'
+import { StyleSheet, type LayoutChangeEvent } from 'react-native'
 import {
   lookupNamedTransition,
   resolveNamedTransitionProp,
@@ -448,16 +448,57 @@ export function createMotionComponent<C extends ComponentType<any>>(
         )
       }
 
+      // Which keys a record actually drives *right now*. Everything else in
+      // the active set is there only because a gesture sub-state, an `exit`
+      // target, or a variant branch that isn't current mentions it. Those must
+      // rest at whatever the static `style` says — the animated style merges
+      // AFTER `style`, so resting them at `DEFAULT_RESTING` silently stomps it
+      // (`borderColor` → 'transparent', `width` → 0, and so on for every key
+      // whose default isn't an identity). Transforms and `opacity` hid this
+      // bug for a long time: their defaults happen to be no-ops.
+      const drivenNow = new Set<AnimatableKey>()
+      collectTouchedKeys(drivenNow, animateRecord)
+      if (initialRecord) collectTouchedKeys(drivenNow, initialRecord)
+      if (isExiting && exitRecord) collectTouchedKeys(drivenNow, exitRecord)
+
+      // Monotonic, like the active set. Once a record has driven a key we stop
+      // syncing it to the style, so transitioning to a variant that doesn't
+      // mention the key leaves it where the previous variant put it — the
+      // existing semantic — instead of snapping back to the style value.
+      const everDrivenRef = useRef<Set<AnimatableKey>>(new Set())
+      for (const k of drivenNow) everDrivenRef.current.add(k)
+
+      // Resting values pulled off the static `style`, for active keys nothing
+      // has driven. Gated so the common `animate`-only instance never flattens
+      // a style it has no use for.
+      const activeKeys = activeKeysRef.current!
+      const everDriven = everDrivenRef.current
+      const styleResting: Partial<Record<AnimatableKey, number | string>> = {}
+      if (activeKeys.some((k) => !everDriven.has(k))) {
+        const flat = StyleSheet.flatten(style as never) as
+          | Record<string, unknown>
+          | undefined
+        if (flat) {
+          for (const key of activeKeys) {
+            if (everDriven.has(key)) continue
+            const v = styleValueFor(flat, key)
+            if (v !== undefined) styleResting[key] = v
+          }
+        }
+      }
+
       const sharedValues = useAnimatableSharedValues((key) => {
         // Shadow offset synthetics seed from the corresponding axis on the
         // `shadowOffset: { width, height }` source — the consumer doesn't write
         // `shadowOffsetWidth` / `shadowOffsetHeight` directly. Fall back to the
-        // generic resting default when neither initial nor animate touched it.
+        // static style, then the generic resting default, when neither initial
+        // nor animate touched it.
         if (SHADOW_OFFSET_KEY_SET.has(key)) {
           const axis = shadowOffsetAxisFor(key as ShadowOffsetKey)
           if (initial === false) {
             return (
               shadowOffsetAxisValue(animateRecord.shadowOffset, axis) ??
+              styleResting[key] ??
               DEFAULT_RESTING[key]
             )
           }
@@ -469,19 +510,38 @@ export function createMotionComponent<C extends ComponentType<any>>(
               axis,
             ) ??
             shadowOffsetAxisValue(animateRecord.shadowOffset, axis) ??
+            styleResting[key] ??
             DEFAULT_RESTING[key]
           )
         }
         if (initial === false) {
           const a = animateRecord[key]
-          return restValue(a) ?? DEFAULT_RESTING[key]
+          return restValue(a) ?? styleResting[key] ?? DEFAULT_RESTING[key]
         }
         return (
           initialRecord?.[key] ??
           restValue(animateRecord[key]) ??
+          styleResting[key] ??
           DEFAULT_RESTING[key]
         )
       })
+
+      // Keep never-driven keys tracking the *live* static style. The seed above
+      // only runs at mount, but the animated style emits these keys on every
+      // frame — so without this a `style` that changes afterwards (a theme
+      // swap, a conditional colour) would stay invisible for any key some
+      // gesture / exit / variant branch happens to mention. Direct assignment,
+      // not an animation: this is a static value, not a target.
+      const styleRestingSig = stableSig(styleResting)
+      useEffect(() => {
+        for (const key of activeKeysRef.current!) {
+          if (everDrivenRef.current.has(key)) continue
+          sharedValues[key].value = (styleResting[key] ??
+            DEFAULT_RESTING[key]) as never
+        }
+        // `styleResting` is rebuilt each render; its signature is the real dep.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [styleRestingSig])
 
       // One progress SV per gesture layer, allocated unconditionally for hook
       // stability. Each layer's progress animates 0↔1 with its own transition
@@ -1144,6 +1204,67 @@ function shadowOffsetAxisValue(
   axis: 'width' | 'height',
 ): number | undefined {
   return source?.[axis]
+}
+
+/**
+ * Read an animatable key's resting value out of a **flattened style object**.
+ *
+ * Used for keys that are in the active set but that no record drives — they
+ * have to rest wherever the static `style` put them, because the animated
+ * style merges after `style` and would otherwise override it.
+ *
+ * Three shapes need unwrapping: transform keys live inside the `transform`
+ * array rather than at the top level, `shadowOffset*` synthetics decompose
+ * from the nested object, and rotations are unit-suffixed strings on a style
+ * but plain degrees in our shared values.
+ *
+ * Type-narrow deliberately: only numbers are accepted for numeric slots, so a
+ * `width: '100%'` is left to `DEFAULT_RESTING` rather than seeded into a slot
+ * that a later `withTiming` would try to interpolate as a number.
+ */
+function styleValueFor(
+  flat: Record<string, unknown>,
+  key: AnimatableKey,
+): number | string | undefined {
+  if (SHADOW_OFFSET_KEY_SET.has(key)) {
+    return shadowOffsetAxisValue(
+      flat.shadowOffset as { width?: number; height?: number } | undefined,
+      shadowOffsetAxisFor(key as ShadowOffsetKey),
+    )
+  }
+  if (TRANSFORM_KEY_SET.has(key)) {
+    const list = flat.transform
+    if (!Array.isArray(list)) return undefined
+    for (const entry of list) {
+      if (!entry || typeof entry !== 'object') continue
+      const v = (entry as Record<string, unknown>)[key]
+      if (v === undefined) continue
+      if (ROTATION_KEYS.has(key)) return parseAngleDegrees(v)
+      return typeof v === 'number' ? v : undefined
+    }
+    return undefined
+  }
+  const v = flat[key]
+  if (COLOR_KEY_SET.has(key)) {
+    return typeof v === 'string' || typeof v === 'number' ? v : undefined
+  }
+  return typeof v === 'number' ? v : undefined
+}
+
+/**
+ * Style rotations are unit-suffixed strings (`'45deg'`, `'0.5rad'`); the shared
+ * value behind a rotation key holds plain degrees. Anything we can't convert
+ * confidently returns `undefined` so the caller falls back to the resting
+ * default instead of guessing at a unit.
+ */
+function parseAngleDegrees(v: unknown): number | undefined {
+  if (typeof v === 'number') return v
+  if (typeof v !== 'string') return undefined
+  const deg = /^(-?\d*\.?\d+)deg$/.exec(v)
+  if (deg) return Number(deg[1])
+  const rad = /^(-?\d*\.?\d+)rad$/.exec(v)
+  if (rad) return (Number(rad[1]) * 180) / Math.PI
+  return undefined
 }
 
 /**

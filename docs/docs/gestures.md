@@ -27,7 +27,18 @@ A single `gesture` prop on every Motion primitive — no `whileTap` / `whilePres
 | `focusVisible` | Focus arrived from the keyboard (W3C `:focus-visible`). On native — where focus always arrives via D-pad / hardware keyboard / screen reader — behaves identically to `focused`. | `onFocus` + module-level input-modality tracker (web `keydown` vs `pointerdown` / `mousedown` / `touchstart`). |
 | `hovered`      | Pointer is over the component. **Web-only**, no-op on native.                                                                                                                    | `onMouseEnter` / `onMouseLeave`.                                                                               |
 
-Sub-states layer over the base `animate` target per-property. When a sub-state is released, the property animates back to whatever was set in `animate` (or to the property's default resting value if `animate` doesn't touch it).
+Sub-states layer over the base `animate` target per-property. When a sub-state is released, the property animates back to whatever was set in `animate`. If `animate` doesn't touch that property, it rests at **whatever your static `style` sets** — so the focus ring above returns to the `borderColor` on the element's own stylesheet, and you don't have to restate resting values in `animate` just because a sub-state mentions them:
+
+```tsx
+const styles = StyleSheet.create({
+  field: { borderColor: '#d4d4d8', borderWidth: 1 },
+})
+
+// Rests at #d4d4d8, animates to #4f46e5 on focus, returns to #d4d4d8.
+<Motion.View style={styles.field} gesture={{ focused: { borderColor: '#4f46e5' } }} />
+```
+
+Only when neither `animate` nor `style` provides a value does the property fall back to its type default (`0` for numbers, `transparent` for colors). The same rule covers `exit` targets and properties that appear in only some `variants` branches — a key mentioned by any of them joins the animated set, but it rests on your style until something actually drives it.
 
 Use `focused` for state-layer fills (any focus, including click-focus on web) and `focusVisible` for focus rings (keyboard-only). Declaring both gives you the right behaviour automatically: clicking a button shows the state layer; tabbing to it shows the state layer **and** the ring.
 
