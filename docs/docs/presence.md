@@ -62,6 +62,8 @@ If a key reappears in `children` while it was exiting, the in-flight exit animat
 
 Each child's exit timing is independent — one row can finish exiting while another is still animating in.
 
+An exiting child animates out **in place**: it holds the slot it occupied among its siblings until it's removed, anchored immediately after its nearest surviving predecessor. Deleting the middle row of a list fades that row where it sits rather than shuffling the rows below it upward mid-animation. Siblings added or reordered while a child is exiting are placed around it, and several adjacent departures keep their relative order.
+
 ## What can be a child?
 
 Any component that consumes `usePresence()` and calls `safeToRemove()` when its exit completes. Every `Motion.*` primitive does this. Plain `View` / `Text` will linger in the snapshot once removed because nothing tells `Presence` they're done — pick a Motion primitive instead.

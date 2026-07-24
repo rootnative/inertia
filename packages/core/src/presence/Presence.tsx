@@ -63,6 +63,20 @@ export function Presence({ children }: { children: ReactNode }) {
   // synchronously alongside the setState call.
   const prevIncomingRef = useRef<ReactElement[]>(incoming)
 
+  // Render order from the previous pass, *including* entries that were already
+  // exiting. An exiting child is by definition absent from `incoming`, so this
+  // is the only record of where it sat among its siblings.
+  const orderRef = useRef<Key[]>([])
+
+  // The exiting map this render should actually render with. On the render
+  // that detects a departure, `exiting` state is still the pre-departure map —
+  // `setExiting` below schedules the update but doesn't apply it here. Ordering
+  // has to see the departure immediately: if it doesn't, the key is missing
+  // from `orderRef` on the *next* render too, and the walk below (which only
+  // visits keys it remembers) would drop the child entirely instead of just
+  // misplacing it.
+  let pendingExiting: Map<Key, ReactElement> | null = null
+
   if (prevIncomingRef.current !== incoming) {
     const prev = prevIncomingRef.current
     prevIncomingRef.current = incoming
@@ -91,8 +105,13 @@ export function Presence({ children }: { children: ReactNode }) {
       }
     }
 
-    if (next) setExiting(next)
+    if (next) {
+      pendingExiting = next
+      setExiting(next)
+    }
   }
+
+  const activeExiting = pendingExiting ?? exiting
 
   const handleRemove = useCallback((key: Key) => {
     setExiting((prev) => {
@@ -107,19 +126,63 @@ export function Presence({ children }: { children: ReactNode }) {
   // one array (rather than two `.map` calls inside a fragment) ensures React
   // reconciles by `key` across positions — when an entry moves from
   // present-list to exiting-list, the component instance persists.
-  const renderList: RenderEntry[] = []
+  //
+  // Exiting entries are spliced back in at the position they held, not
+  // appended. React reconciles this array by key, so appending *moves* the
+  // node: removing the middle of `a, b, c` rendered `a, c, b` and the
+  // departing row visibly jumped to the end before it had finished animating
+  // out. Absolutely-positioned overlays (popovers, sheets) never showed it;
+  // any list or column did.
+  const byKey = new Map<Key, ReactElement>()
+  const presentKeys = new Set<Key>()
+  const order: Key[] = []
   for (const el of incoming) {
-    renderList.push({
-      key: el.key as Key,
-      element: el,
-      isPresent: true,
-    })
+    const key = el.key as Key
+    byKey.set(key, el)
+    presentKeys.add(key)
+    order.push(key)
   }
-  for (const [key, el] of exiting) {
-    if (!renderList.some((entry) => entry.key === key)) {
-      renderList.push({ key, element: el, isPresent: false })
+
+  // Walk the remembered order so that several adjacent departures keep their
+  // relative order, and anchor each one immediately after the nearest
+  // preceding sibling that is still rendered. No surviving predecessor means
+  // it was at the front, so it goes back to the front.
+  const prevOrder = orderRef.current
+  for (let i = 0; i < prevOrder.length; i++) {
+    const key = prevOrder[i]!
+    const departing = activeExiting.get(key)
+    if (!departing || byKey.has(key)) continue
+    let insertAt = 0
+    for (let j = i - 1; j >= 0; j--) {
+      const anchor = order.indexOf(prevOrder[j]!)
+      if (anchor !== -1) {
+        insertAt = anchor + 1
+        break
+      }
     }
+    byKey.set(key, departing)
+    order.splice(insertAt, 0, key)
   }
+
+  // Safety net: an exiting child the remembered order never saw still has to
+  // render, or it would unmount with no exit animation at all. Appending is
+  // the old (wrong-position) behaviour, which is strictly better than dropping
+  // it — in practice `activeExiting` keeps this loop empty.
+  for (const [key, el] of activeExiting) {
+    if (byKey.has(key)) continue
+    byKey.set(key, el)
+    order.push(key)
+  }
+
+  orderRef.current = order
+
+  // A live `incoming` entry always wins: a key that returns mid-exit is
+  // present again, and the same instance interrupts back toward `animate`.
+  const renderList: RenderEntry[] = order.map((key) => ({
+    key,
+    element: byKey.get(key)!,
+    isPresent: presentKeys.has(key),
+  }))
 
   return (
     <>
