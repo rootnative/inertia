@@ -91,8 +91,14 @@ jobs:
                 if (!fs.existsSync(pkgPath)) return false;
                 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
                 return pkg.private !== true;
-              });
-            console.log(dirs.join(' '));
+              })
+              .sort();
+            // core first, then adapters — this is the publish order (adapters
+            // peer-depend on core) AND the order the release tag label is
+            // built from. scripts/check-versions.mjs derives the same order,
+            // so the generated CHANGELOG links match the tag that gets cut.
+            const ordered = ['core', ...dirs.filter(d => d !== 'core')];
+            console.log(ordered.join(' '));
           ")
           echo "packages=$PUBLIC_PKGS" >> "$GITHUB_OUTPUT"
           echo "Discovered public packages: $PUBLIC_PKGS"
@@ -134,15 +140,36 @@ jobs:
       - name: Regenerate LLM docs with new versions
         run: pnpm run build:llms
 
+      # Bumping package.json invalidates every version reference around it:
+      # CHANGELOG compare links, and the README / docs status lines. --fix
+      # repairs those mechanically; the plain check then hard-fails if a
+      # CHANGELOG is missing a `## [<new version>]` section, which is the one
+      # thing that can't be generated. Cut the changelog entry before running
+      # a release — that's already the established order (see git history).
+      - name: Sync and verify version references
+        run: |
+          pnpm run check:versions:fix
+          pnpm run check:versions
+
       - name: Commit and tag
         run: |
+          # Tag the whole lockstep release under one `+`-joined label, matching
+          # every tag already in git history and the compare links generated
+          # into the CHANGELOG footers. Do not switch this to `v<version>` —
+          # release-manual.yml and check-versions.mjs both build the same shape.
+          PKGS_LABEL=$(echo "${{ steps.packages.outputs.packages }}" | tr ' ' '+')
+          TAG="${PKGS_LABEL}@${{ steps.version.outputs.version }}"
+
           git add pnpm-lock.yaml
           git add packages/*/llms.txt docs/static/llms-full.txt
+          git add packages/*/CHANGELOG.md README.md docs/docs/index.mdx
           for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
             git add "packages/$PKG_DIR/package.json"
           done
-          git commit -m "release: v${{ steps.version.outputs.version }}"
-          git tag "v${{ steps.version.outputs.version }}"
+          git commit -m "release: ${TAG}"
+          git tag "$TAG"
+
+          echo "tag=$TAG" >> "$GITHUB_ENV"
 
       - name: Publish packages
         run: |
@@ -163,7 +190,7 @@ jobs:
       - name: Push to main
         run: |
           git push origin main
-          git push origin "v${{ steps.version.outputs.version }}"
+          git push origin "${{ env.tag }}"
 
       - name: Create GitHub Release
         run: |
@@ -171,6 +198,6 @@ jobs:
           if [[ "${{ inputs.tag }}" != "latest" ]]; then
             PRERELEASE_FLAG="--prerelease"
           fi
-          gh release create "v${{ steps.version.outputs.version }}" --generate-notes $PRERELEASE_FLAG
+          gh release create "${{ env.tag }}" --generate-notes $PRERELEASE_FLAG
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

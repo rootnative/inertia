@@ -156,6 +156,20 @@ jobs:
       - name: Regenerate LLM docs with new versions
         run: pnpm run build:llms
 
+      # Repair the version references the bump just invalidated (CHANGELOG
+      # compare links, README / docs status lines), then hard-fail if a
+      # CHANGELOG has no `## [<new version>]` section — the one thing that
+      # can't be generated. Cut the changelog entry before releasing.
+      #
+      # NOTE: publishing a SUBSET here takes the packages out of lockstep, and
+      # `check:versions` will fail on the packages left behind — by design, so
+      # a partial release is a deliberate, visible act. Bump the rest (or use
+      # release.yml) to restore lockstep.
+      - name: Sync and verify version references
+        run: |
+          pnpm run check:versions:fix
+          pnpm run check:versions
+
       - name: Commit and tag
         run: |
           # Build tag from package names and version
@@ -164,6 +178,7 @@ jobs:
 
           git add pnpm-lock.yaml
           git add packages/*/llms.txt docs/static/llms-full.txt
+          git add packages/*/CHANGELOG.md README.md docs/docs/index.mdx
           for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
             git add "packages/$PKG_DIR/package.json"
           done
