@@ -8,6 +8,7 @@ import {
 } from 'react'
 import { type LayoutChangeEvent } from 'react-native'
 import {
+  cancelAnimation,
   type SharedValue,
   useSharedValue,
   withSequence,
@@ -16,10 +17,12 @@ import {
 } from 'react-native-reanimated'
 import { DEFAULT_SPRING, springToReanimated } from '../transitions/spring'
 import { type SpringTransition, type TransitionConfig } from '../types'
+import { measureWindowRect } from './measureWindow'
 import {
   consumeLayout,
   registerLayout,
   releaseLayout,
+  type SharedLayoutSource,
   type SharedRect,
 } from './sharedRegistry'
 
@@ -73,13 +76,27 @@ export interface SharedLayoutBindings {
  *      animate back to identity. `withSequence(snap, animate)` keeps the
  *      animation starting from the snapped delta rather than from zero.
  *
- * Coordinate space note: rects are in parent-relative coordinates (what
- * `onLayout` reports). For the common cross-screen navigator pattern —
- * both screens share an outer content container — parent-relative deltas
- * match what the user perceives. Nested-parent setups where the source
- * and target screens sit under containers at different screen offsets
- * will be off by that offset; v1 documents this and leaves a precise
- * window-coords path for v2.
+ * Coordinate space: rects are recorded in **window** coordinates when the host
+ * can be measured synchronously (Fabric), and in the parent-relative
+ * coordinates `onLayout` reports when it can't (Paper, or a detached node).
+ * Window coordinates are what let a source and target sitting under containers
+ * at different screen offsets FLIP correctly — the case the original
+ * parent-relative implementation got wrong. A source and target that ended up
+ * in *different* spaces are not comparable, so the transition is skipped rather
+ * than played wrongly. See `measureWindow.ts` for why there is no third,
+ * asynchronous option.
+ *
+ * The source is re-measured at *consume* time when it is still mounted (the
+ * usual case — a stack navigator keeps the previous screen alive underneath).
+ * That is what stops a scrolled list from offsetting every transition by its
+ * scroll distance: `onLayout` never fires for an ancestor's scroll, so the
+ * stored rect drifts while the element itself has not moved relative to its
+ * parent. See `SharedLayoutSource`.
+ *
+ * Known limitation: if the navigator has already begun translating the outgoing
+ * screen by the time the target first lays out, re-measuring catches the source
+ * mid-transition. The error is bounded by however far the transition has
+ * progressed, which is far smaller than an unbounded scroll offset.
  *
  * When `layoutId` is `undefined`, every callback is a no-op and the FLIP
  * shared values stay at identity — the host's worklet then skips the
@@ -110,6 +127,11 @@ export function useSharedLayout(options: {
   // refresh the registry but never re-trigger a FLIP from an old source.
   const consumedRef = useRef(false)
 
+  // The host node, captured off the composite ref so this element can be
+  // measured in window coordinates — both for its own registry entry and when
+  // a later mount asks it to re-measure as a FLIP source.
+  const nodeRef = useRef<unknown>(null)
+
   const transitionRef = useRef(transition)
   transitionRef.current = transition
   const reducedMotionRef = useRef(shouldReduceMotion)
@@ -117,10 +139,35 @@ export function useSharedLayout(options: {
 
   const setRef = useCallback(
     (node: unknown) => {
+      nodeRef.current = node
       if (typeof userRef === 'function') userRef(node)
       else if (userRef) (userRef as MutableRefObject<unknown>).current = node
     },
     [userRef],
+  )
+
+  // Offered to the registry while mounted so a later mount can ask for a
+  // current measurement instead of trusting the one from our last layout.
+  const remeasure = useCallback(() => measureWindowRect(nodeRef.current), [])
+
+  const startFlip = useCallback(
+    (source: SharedRect, target: SharedRect) => {
+      // Mixed coordinate spaces are not comparable — the delta would be off by
+      // the parent's window offset. Skipping is the honest outcome; playing
+      // the animation anyway would fling the element in from the wrong place.
+      if (source.space !== target.space) return
+      applyFlip({
+        source,
+        target,
+        dx,
+        dy,
+        sx,
+        sy,
+        transition: transitionRef.current,
+        shouldReduceMotion: reducedMotionRef.current,
+      })
+    },
+    [dx, dy, sx, sy],
   )
 
   const onLayout = useCallback(
@@ -129,36 +176,34 @@ export function useSharedLayout(options: {
       if (!layoutId) return
 
       const { x, y, width, height } = event.nativeEvent.layout
-      const rect: SharedRect = { x, y, width, height }
-      lastRectRef.current = rect
 
       // First-layout-only: read the registry BEFORE writing our own rect
       // so a previously-released source rect can be consumed cleanly
       // without being overwritten by the current rect first.
-      let source: SharedRect | undefined
+      let source: SharedLayoutSource | undefined
       if (!consumedRef.current) {
         consumedRef.current = true
         source = consumeLayout(layoutId)
       }
-      registerLayout(layoutId, rect)
 
-      if (source) {
-        applyFlip({
-          source,
-          target: rect,
-          dx,
-          dy,
-          sx,
-          sy,
-          transition: transitionRef.current,
-          shouldReduceMotion: reducedMotionRef.current,
-        })
-      }
+      // Window coordinates when the host can supply them synchronously,
+      // otherwise the parent-relative rect this event carries. See
+      // `measureWindow.ts` for why there is no third, asynchronous option.
+      const rect: SharedRect =
+        measureWindowRect(nodeRef.current) ??
+        ({ x, y, width, height, space: 'parent' } as SharedRect)
+
+      lastRectRef.current = rect
+      registerLayout(layoutId, rect, remeasure)
+
+      if (!source) return
+      // Prefer a fresh measurement of the source over its stored rect: it may
+      // have scrolled since its last layout, and `onLayout` never reports an
+      // ancestor's scroll. Falls back to the stored rect once the source has
+      // unmounted or when it can't be measured.
+      startFlip(source.remeasure?.() ?? source.rect, rect)
     },
-    // dx/dy/sx/sy are stable refs from useSharedValue, but eslint's
-    // exhaustive-deps would flag them — including them is harmless and
-    // silences the warning.
-    [layoutId, userOnLayout, dx, dy, sx, sy],
+    [layoutId, userOnLayout, remeasure, startFlip],
   )
 
   // Reset the first-layout latch when the id changes — a new id is logically
@@ -177,6 +222,26 @@ export function useSharedLayout(options: {
       releaseLayout(layoutId, rect)
     }
   }, [layoutId])
+
+  // Mark unmounted and stop any in-flight FLIP. The mounted flag is what keeps
+  // an asynchronous measurement callback from writing to shared values the
+  // component no longer owns; cancelling matches the guard the factory's own
+  // per-key values and the value-layer hooks got in `0.0.2` — these four were
+  // missed at the time.
+  // Stop any in-flight FLIP on unmount. Matches the guard the factory's own
+  // per-key values and the value-layer hooks got in `0.0.2` — these four were
+  // missed at the time.
+  useEffect(
+    () => () => {
+      cancelAnimation(dx)
+      cancelAnimation(dy)
+      cancelAnimation(sx)
+      cancelAnimation(sy)
+    },
+    // The FLIP shared values are identity-stable per hook instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
 
   return useMemo<SharedLayoutBindings>(
     () => ({

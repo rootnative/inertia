@@ -35,8 +35,15 @@ const CARDS: ReadonlyArray<Card> = [
 //   - Tap a card → the small tile visually grows into the detail view.
 //   - Tap "Back" → the detail view shrinks back into the matching tile.
 //   - Toggle reduced motion in the OS settings; the transition snaps.
+//   - Turn on "offset the detail container" and repeat. That nests the detail
+//     view inside a padded container, so source and target sit under parents at
+//     different window offsets — the case parent-relative coordinates got wrong
+//     and window coordinates fix. On Fabric the transition should stay glued to
+//     the tile; if it lands short by the container's offset, window measurement
+//     isn't happening and the fallback is in play.
 export function SharedElementScreen({ onBack }: { onBack: () => void }) {
   const [selected, setSelected] = useState<Card | null>(null)
+  const [offsetParent, setOffsetParent] = useState(false)
 
   return (
     <ScreenShell
@@ -44,6 +51,17 @@ export function SharedElementScreen({ onBack }: { onBack: () => void }) {
       description="Two Motion.Views with the same layoutId animate from the source rect to the target rect. The grid card and the detail header are the same logical element."
       onBack={onBack}
     >
+      <Pressable
+        onPress={() => setOffsetParent((v) => !v)}
+        style={styles.toggle}
+      >
+        <Text style={styles.toggleLabel}>
+          {offsetParent
+            ? '✓ Detail sits in an offset container'
+            : 'Offset the detail container'}
+        </Text>
+      </Pressable>
+
       {selected === null ? (
         <View style={styles.grid}>
           {CARDS.map((card) => (
@@ -69,14 +87,18 @@ export function SharedElementScreen({ onBack }: { onBack: () => void }) {
         </View>
       ) : (
         <View style={styles.detailWrap}>
-          <Motion.View
-            layoutId={`card-${selected.id}`}
-            style={[styles.detail, cardColor(selected.color)]}
-            transition={{ type: 'spring', tension: 220, friction: 24 }}
-          >
-            <Text style={styles.detailTitle}>{selected.title}</Text>
-            <Text style={styles.detailSubtitle}>{selected.subtitle}</Text>
-          </Motion.View>
+          {/* When toggled, an extra padded container puts the target under a
+              parent at a different window offset from the grid's. */}
+          <View style={offsetParent ? styles.offsetParent : undefined}>
+            <Motion.View
+              layoutId={`card-${selected.id}`}
+              style={[styles.detail, cardColor(selected.color)]}
+              transition={{ type: 'spring', tension: 220, friction: 24 }}
+            >
+              <Text style={styles.detailTitle}>{selected.title}</Text>
+              <Text style={styles.detailSubtitle}>{selected.subtitle}</Text>
+            </Motion.View>
+          </View>
           <Pressable
             onPress={() => setSelected(null)}
             style={styles.backButton}
@@ -89,14 +111,23 @@ export function SharedElementScreen({ onBack }: { onBack: () => void }) {
       <View style={styles.note}>
         <Text style={styles.noteTitle}>Caveats</Text>
         <Text style={styles.noteBody}>
-          v1 uses parent-relative coordinates from onLayout. For navigators
-          where source and target share an outer container (most stack
-          navigators), the FLIP delta matches what the user perceives.
-          Nested-parent setups with different offsets will be off by the offset.
+          Rects are measured in window coordinates where the host supports it
+          synchronously (Fabric), so source and target may sit under differently
+          positioned parents. Where it does not (the legacy architecture), both
+          fall back to parent-relative coordinates — consistent, but blind to
+          the parents&apos; own offsets. A source and target that end up in
+          different coordinate spaces skip the animation rather than play a
+          wrong one.
+        </Text>
+        <Text style={styles.noteBody}>
+          A still-mounted source is re-measured at the moment the target lays
+          out, so scrolling this list before tapping does not offset the
+          transition. Once the source has unmounted, its last recorded rect is
+          all that is left.
         </Text>
         <Text style={styles.noteBody}>
           Only the rect is animated. Border radius, colors, and other style
-          props snap. Style-prop interpolation lands in v2.
+          props snap — style-prop interpolation is still unscheduled.
         </Text>
       </View>
     </ScreenShell>
@@ -138,6 +169,23 @@ const styles = StyleSheet.create({
   detailWrap: {
     width: 320,
     gap: 16,
+  },
+  offsetParent: {
+    paddingTop: 80,
+    paddingLeft: 40,
+  },
+  toggle: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#e5e7eb',
+    marginBottom: 4,
+  },
+  toggleLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
   },
   detail: {
     height: 240,

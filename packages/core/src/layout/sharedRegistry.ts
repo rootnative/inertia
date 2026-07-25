@@ -14,25 +14,59 @@
  *      it becomes the FLIP source rect; the entry is removed so a third
  *      mount with the same id doesn't re-animate from a stale snapshot.
  *
- * Rects are stored in **parent-relative coordinates** (what `onLayout`'s
- * `nativeEvent.layout` reports). This composes for the common case where the
- * source and target share an outer content container — e.g. a typical stack
- * navigator. Nested-parent setups, where the two parents sit at different
- * window offsets, need a window-coordinate path (`measureInWindow`); that is
- * punted to v2 per the roadmap.
+ * Rects are stored in **window coordinates** when the host node can be
+ * measured synchronously, and in the parent-relative coordinates `onLayout`
+ * reports when it can't (see `measureWindow.ts`). Which one an entry holds is
+ * recorded on the rect itself, because the two are not comparable: a FLIP
+ * computed from a parent-relative source against a window-space target is off
+ * by the parent's window offset. Consumers check the space and skip the
+ * animation rather than play a wrong one.
+ *
+ * Window coordinates are what make a shared element work when the source and
+ * target sit under containers at different screen offsets — the case the
+ * original parent-relative implementation got wrong. They cost something in
+ * return: `onLayout` does not fire when an *ancestor* scrolls, so a stored
+ * window rect goes stale as the user scrolls, where a parent-relative rect
+ * would not have. That is why an entry also carries `remeasure` while its
+ * owner is mounted; see `SharedLayoutSource`.
  */
 
-/** Parent-relative rect of a measured element (from `onLayout`). */
+/** Which coordinate system a rect's `x` / `y` are expressed in. */
+export type CoordinateSpace = 'window' | 'parent'
+
+/** Measured rect of an element, tagged with its coordinate space. */
 export interface SharedRect {
   x: number
   y: number
   width: number
   height: number
+  space: CoordinateSpace
+}
+
+/**
+ * What `consumeLayout` hands back: the last recorded rect, plus — only while
+ * the source element is *still mounted* — a way to ask it for a fresh one.
+ *
+ * The re-measure hook is what keeps window coordinates honest in the dominant
+ * case. In a stack navigator the source screen stays mounted underneath the
+ * pushed one, so at the moment the target first lays out the source is still
+ * there and can be measured *now* rather than trusted from whenever its last
+ * layout happened. Without it, scrolling a list before tapping a row would
+ * offset every shared-element transition by the scroll distance.
+ *
+ * Returns `undefined` when the source can no longer be measured, in which case
+ * the caller keeps the stored rect. Absent entirely once `releaseLayout` has
+ * run, since by then there is no node left to measure.
+ */
+export interface SharedLayoutSource {
+  rect: SharedRect
+  remeasure?: () => SharedRect | undefined
 }
 
 interface Entry {
   rect: SharedRect
   expiresAt: number
+  remeasure?: () => SharedRect | undefined
 }
 
 const REGISTRY = new Map<string, Entry>()
@@ -87,17 +121,28 @@ function sweepExpired(at: number): void {
  * Motion primitive with `layoutId` set so the registry always holds a
  * current measurement if that primitive becomes the source of a future
  * transition. Resets the TTL each call.
+ *
+ * `remeasure` is the still-mounted owner's offer to be measured again on
+ * demand — pass it while the element is live so a consumer can prefer a fresh
+ * measurement over this stored one.
  */
-export function registerLayout(id: string, rect: SharedRect): void {
+export function registerLayout(
+  id: string,
+  rect: SharedRect,
+  remeasure?: () => SharedRect | undefined,
+): void {
   const at = now()
   sweepExpired(at)
-  REGISTRY.set(id, { rect, expiresAt: at + SHARED_LAYOUT_TTL_MS })
+  REGISTRY.set(id, { rect, expiresAt: at + SHARED_LAYOUT_TTL_MS, remeasure })
 }
 
 /**
  * Record the rect for `id` on unmount so the next mount can consume it as
- * the FLIP source. Functionally identical to `registerLayout` — the split
- * is purely intent-documenting at the call site.
+ * the FLIP source.
+ *
+ * Deliberately drops any `remeasure` hook the mounted entry carried: the node
+ * is on its way out, and measuring a detached view yields zeros. From here the
+ * stored rect is all a consumer gets.
  */
 export function releaseLayout(id: string, rect: SharedRect): void {
   const at = now()
@@ -106,18 +151,18 @@ export function releaseLayout(id: string, rect: SharedRect): void {
 }
 
 /**
- * Take the recorded rect for `id` if it exists and hasn't expired. The
+ * Take the recorded source for `id` if it exists and hasn't expired. The
  * entry is removed in either case — at most one incoming mount consumes
  * a given release, and an expired entry is dropped so it can't poison a
  * later transition. Returns `undefined` when no fresh source is available,
  * in which case the caller should mount without a layout animation.
  */
-export function consumeLayout(id: string): SharedRect | undefined {
+export function consumeLayout(id: string): SharedLayoutSource | undefined {
   const entry = REGISTRY.get(id)
   if (!entry) return undefined
   REGISTRY.delete(id)
   if (entry.expiresAt < now()) return undefined
-  return entry.rect
+  return { rect: entry.rect, remeasure: entry.remeasure }
 }
 
 /** Drop all entries. Tests use this to isolate between cases. */

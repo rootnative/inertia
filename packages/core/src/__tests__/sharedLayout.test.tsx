@@ -1,51 +1,92 @@
-import { act, render } from '@testing-library/react-native'
+import { act, render, renderHook } from '@testing-library/react-native'
 import * as Reanimated from 'react-native-reanimated'
 import { Motion } from '../motion'
 import {
   __setSharedLayoutClock,
+  __setSharedLayoutMeasurer,
   __sharedRegistrySize,
   clearSharedRegistry,
   consumeLayout,
+  type MeasuredRect,
+  measureWindowRect,
   peekSharedLayout,
   registerLayout,
   releaseLayout,
   SHARED_LAYOUT_TTL_MS,
+  type SharedRect,
+  useSharedLayout,
 } from '../layout'
 
 const boxStyle = { width: 50, height: 50 }
 
-// Helper: fire the rendered Motion primitive's `onLayout` with a synthetic
-// nativeEvent. The hook's fallback path (when there's no real
-// `measureInWindow` available) uses these coords directly, so we don't
-// need to stub a measurement bridge on the test renderer.
-function fireMeasuredLayout(
+/** Parent-relative rect, the shape `onLayout` reports. */
+function par(x: number, y: number, width: number, height: number): SharedRect {
+  return { x, y, width, height, space: 'parent' }
+}
+
+/** Window rect, the shape `measureInWindow` reports. */
+function win(x: number, y: number, width: number, height: number): SharedRect {
+  return { x, y, width, height, space: 'window' }
+}
+
+/**
+ * Fire the rendered Motion primitive's `onLayout` with a synthetic
+ * nativeEvent.
+ *
+ * With no measurer stubbed, the Jest host nodes have no `measureInWindow`, so
+ * the hook records the parent-relative coords from this event and everything
+ * stays in `'parent'` space — which is what most of the cases below want.
+ */
+function fireLayout(
   node: { props: Record<string, unknown> },
   rect: { x: number; y: number; width: number; height: number },
 ) {
   const onLayout = node.props.onLayout as ((event: unknown) => void) | undefined
   act(() => {
-    onLayout?.({
-      nativeEvent: { layout: { ...rect } },
-    })
+    onLayout?.({ nativeEvent: { layout: { ...rect } } })
   })
 }
 
-describe('sharedRegistry', () => {
-  beforeEach(() => {
-    clearSharedRegistry()
-    __setSharedLayoutClock(undefined)
+/**
+ * Stub window measurement with a queue consumed in call order, and return the
+ * list of nodes it was asked about.
+ *
+ * Order is deterministic: an element measures itself during its own `onLayout`,
+ * and only then asks a still-mounted source to re-measure.
+ */
+function stubMeasurements(...queue: Array<MeasuredRect | undefined>) {
+  let i = 0
+  const seen: unknown[] = []
+  __setSharedLayoutMeasurer((node) => {
+    seen.push(node)
+    return queue[i++]
   })
+  return seen
+}
 
+/** First leg of each FLIP `withSequence` is `withTiming(delta, duration: 0)`. */
+function flipSnapValues(withTiming: jest.SpyInstance): number[] {
+  return withTiming.mock.calls
+    .filter((call) => (call[1] as { duration?: number })?.duration === 0)
+    .map((call) => call[0] as number)
+}
+
+beforeEach(() => {
+  clearSharedRegistry()
+  __setSharedLayoutClock(undefined)
+  __setSharedLayoutMeasurer(undefined)
+  jest.restoreAllMocks()
+})
+
+afterEach(() => {
+  __setSharedLayoutMeasurer(undefined)
+})
+
+describe('sharedRegistry', () => {
   it('register/peek/consume — happy path', () => {
-    registerLayout('hero', { x: 10, y: 20, width: 100, height: 200 })
-    expect(peekSharedLayout('hero')).toEqual({
-      x: 10,
-      y: 20,
-      width: 100,
-      height: 200,
-    })
-    const r = consumeLayout('hero')
-    expect(r).toEqual({ x: 10, y: 20, width: 100, height: 200 })
+    registerLayout('hero', par(10, 20, 100, 200))
+    expect(peekSharedLayout('hero')).toEqual(par(10, 20, 100, 200))
+    expect(consumeLayout('hero')?.rect).toEqual(par(10, 20, 100, 200))
     // Consumed entry is removed — second consume returns undefined.
     expect(consumeLayout('hero')).toBeUndefined()
   })
@@ -53,11 +94,11 @@ describe('sharedRegistry', () => {
   it('expired entries are dropped on consume', () => {
     let now = 1000
     __setSharedLayoutClock(() => now)
-    registerLayout('hero', { x: 0, y: 0, width: 10, height: 10 })
+    registerLayout('hero', par(0, 0, 10, 10))
     now += SHARED_LAYOUT_TTL_MS + 1
     expect(consumeLayout('hero')).toBeUndefined()
     // peek also treats expired as missing
-    registerLayout('hero', { x: 1, y: 1, width: 1, height: 1 })
+    registerLayout('hero', par(1, 1, 1, 1))
     now += SHARED_LAYOUT_TTL_MS + 1
     expect(peekSharedLayout('hero')).toBeUndefined()
   })
@@ -65,74 +106,69 @@ describe('sharedRegistry', () => {
   it('releaseLayout overwrites the entry with a fresh TTL', () => {
     let now = 1000
     __setSharedLayoutClock(() => now)
-    registerLayout('hero', { x: 0, y: 0, width: 0, height: 0 })
+    registerLayout('hero', par(0, 0, 0, 0))
     now += SHARED_LAYOUT_TTL_MS - 1
-    releaseLayout('hero', { x: 5, y: 5, width: 5, height: 5 })
+    releaseLayout('hero', par(5, 5, 5, 5))
     now += SHARED_LAYOUT_TTL_MS - 1 // still within the fresh TTL
-    expect(peekSharedLayout('hero')).toEqual({
-      x: 5,
-      y: 5,
-      width: 5,
-      height: 5,
-    })
+    expect(peekSharedLayout('hero')).toEqual(par(5, 5, 5, 5))
   })
 
   it('different ids are isolated', () => {
-    registerLayout('a', { x: 1, y: 1, width: 1, height: 1 })
-    registerLayout('b', { x: 2, y: 2, width: 2, height: 2 })
-    expect(consumeLayout('a')).toEqual({ x: 1, y: 1, width: 1, height: 1 })
-    expect(consumeLayout('b')).toEqual({ x: 2, y: 2, width: 2, height: 2 })
+    registerLayout('a', par(1, 1, 1, 1))
+    registerLayout('b', par(2, 2, 2, 2))
+    expect(consumeLayout('a')?.rect).toEqual(par(1, 1, 1, 1))
+    expect(consumeLayout('b')?.rect).toEqual(par(2, 2, 2, 2))
+  })
+
+  it('carries a mounted owner’s remeasure hook through consume', () => {
+    const remeasure = jest.fn()
+    registerLayout('hero', win(0, 0, 10, 10), remeasure)
+    expect(consumeLayout('hero')?.remeasure).toBe(remeasure)
+  })
+
+  it('releaseLayout drops the remeasure hook', () => {
+    // The node is on its way out; measuring a detached view yields zeros, so
+    // the stored rect is all a later consumer should get.
+    registerLayout('hero', win(0, 0, 10, 10), jest.fn())
+    releaseLayout('hero', win(0, 0, 10, 10))
+    expect(consumeLayout('hero')?.remeasure).toBeUndefined()
   })
 })
 
 describe('Motion.* — layoutId integration', () => {
-  beforeEach(() => {
-    clearSharedRegistry()
-    __setSharedLayoutClock(undefined)
-    jest.restoreAllMocks()
-  })
-
   it('no-op when no source rect is in the registry', () => {
     const withSpring = jest.spyOn(Reanimated, 'withSpring')
     const view = render(
       <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
     )
-    const node = view.getByTestId('el')
-    fireMeasuredLayout(node as never, { x: 100, y: 100, width: 50, height: 50 })
-    // No source — no FLIP withSpring calls. Other Reanimated calls from
-    // animate-less mount stay at zero.
-    expect(withSpring).not.toHaveBeenCalled()
-    // Registry holds the latest measured rect so a future remount can FLIP
-    // from this one.
-    expect(peekSharedLayout('hero')).toEqual({
+    fireLayout(view.getByTestId('el') as never, {
       x: 100,
       y: 100,
       width: 50,
       height: 50,
     })
+    // No source — no FLIP withSpring calls.
+    expect(withSpring).not.toHaveBeenCalled()
+    // Registry holds the latest rect so a future remount can FLIP from it.
+    expect(peekSharedLayout('hero')).toEqual(par(100, 100, 50, 50))
   })
 
   it('consumes a source rect on first layout and kicks off FLIP', () => {
     const withSpring = jest.spyOn(Reanimated, 'withSpring')
     const withSequence = jest.spyOn(Reanimated, 'withSequence')
-    // Seed the registry as if a previous Motion.View with layoutId="hero"
-    // had unmounted at (0, 0, 50, 50).
-    registerLayout('hero', { x: 0, y: 0, width: 50, height: 50 })
+    registerLayout('hero', par(0, 0, 50, 50))
 
     const view = render(
       <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
     )
-    const node = view.getByTestId('el')
-    fireMeasuredLayout(node as never, {
+    fireLayout(view.getByTestId('el') as never, {
       x: 100,
       y: 100,
       width: 100,
       height: 100,
     })
 
-    // FLIP fires four withSequence(snap, withSpring(toIdentity)) pairs —
-    // one each for dx, dy, sx, sy. The default-spring path uses withSpring
-    // for the second leg.
+    // Four withSequence(snap, withSpring(toIdentity)) pairs — dx, dy, sx, sy.
     expect(withSequence).toHaveBeenCalledTimes(4)
     expect(withSpring).toHaveBeenCalledTimes(4)
   })
@@ -141,12 +177,12 @@ describe('Motion.* — layoutId integration', () => {
     jest.spyOn(Reanimated, 'useReducedMotion').mockReturnValue(true)
     const withSpring = jest.spyOn(Reanimated, 'withSpring')
     const withSequence = jest.spyOn(Reanimated, 'withSequence')
-    registerLayout('hero', { x: 0, y: 0, width: 50, height: 50 })
+    registerLayout('hero', par(0, 0, 50, 50))
 
     const view = render(
       <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
     )
-    fireMeasuredLayout(view.getByTestId('el') as never, {
+    fireLayout(view.getByTestId('el') as never, {
       x: 100,
       y: 100,
       width: 100,
@@ -159,30 +195,19 @@ describe('Motion.* — layoutId integration', () => {
 
   it('only the first layout consumes a source rect', () => {
     const withSpring = jest.spyOn(Reanimated, 'withSpring')
-    registerLayout('hero', { x: 0, y: 0, width: 50, height: 50 })
+    registerLayout('hero', par(0, 0, 50, 50))
 
     const view = render(
       <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
     )
     const node = view.getByTestId('el')
-    fireMeasuredLayout(node as never, {
-      x: 100,
-      y: 100,
-      width: 100,
-      height: 100,
-    })
+    fireLayout(node as never, { x: 100, y: 100, width: 100, height: 100 })
     expect(withSpring).toHaveBeenCalledTimes(4)
 
-    // A second layout (resize, prop change, etc.) shouldn't re-trigger FLIP.
-    // Re-seed the registry to prove the consume guard, not a missing source,
-    // is what gates a second animation.
-    registerLayout('hero', { x: 200, y: 200, width: 50, height: 50 })
-    fireMeasuredLayout(node as never, {
-      x: 100,
-      y: 100,
-      width: 110,
-      height: 110,
-    })
+    // A second layout (resize, prop change) shouldn't re-trigger FLIP.
+    // Re-seed to prove the consume guard, not a missing source, is the gate.
+    registerLayout('hero', par(200, 200, 50, 50))
+    fireLayout(node as never, { x: 100, y: 100, width: 110, height: 110 })
     expect(withSpring).toHaveBeenCalledTimes(4)
   })
 
@@ -190,28 +215,16 @@ describe('Motion.* — layoutId integration', () => {
     const view = render(
       <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
     )
-    fireMeasuredLayout(view.getByTestId('el') as never, {
+    fireLayout(view.getByTestId('el') as never, {
       x: 100,
       y: 100,
       width: 50,
       height: 50,
     })
-    expect(peekSharedLayout('hero')).toEqual({
-      x: 100,
-      y: 100,
-      width: 50,
-      height: 50,
-    })
+    expect(peekSharedLayout('hero')).toEqual(par(100, 100, 50, 50))
 
-    // Unmount → releaseLayout fires with the last measurement. The entry
-    // stays consumable for the next mount.
     view.unmount()
-    expect(peekSharedLayout('hero')).toEqual({
-      x: 100,
-      y: 100,
-      width: 50,
-      height: 50,
-    })
+    expect(peekSharedLayout('hero')).toEqual(par(100, 100, 50, 50))
   })
 
   it('forwards user-supplied onLayout and ref alongside the internal ones', () => {
@@ -226,11 +239,9 @@ describe('Motion.* — layoutId integration', () => {
         style={boxStyle}
       />,
     )
-    // The mock forwards the ref callback to the rendered host node — userRef
-    // gets called with the node instance.
     expect(userRef).toHaveBeenCalled()
 
-    fireMeasuredLayout(view.getByTestId('el') as never, {
+    fireLayout(view.getByTestId('el') as never, {
       x: 1,
       y: 2,
       width: 3,
@@ -241,21 +252,265 @@ describe('Motion.* — layoutId integration', () => {
 })
 
 describe('Motion.* — layoutId omitted', () => {
-  beforeEach(() => {
-    clearSharedRegistry()
-    jest.restoreAllMocks()
-  })
-
   it('does not touch the registry when layoutId is omitted', () => {
     const view = render(<Motion.View testID="el" style={boxStyle} />)
-    fireMeasuredLayout(view.getByTestId('el') as never, {
+    fireLayout(view.getByTestId('el') as never, {
       x: 100,
       y: 100,
       width: 50,
       height: 50,
     })
-    // No id → no registry entries.
     expect(peekSharedLayout('hero')).toBeUndefined()
+  })
+})
+
+// The reason item B exists. Parent-relative rects only compose when the source
+// and target share an outer container; when their containers sit at different
+// window offsets, every delta is short by exactly that offset. These cases pin
+// the window-coordinate path that fixes it.
+describe('layoutId — window coordinates', () => {
+  it('computes the FLIP from window coords across differently-offset parents', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    // Source lived in a container 100px down the screen: parent-relative
+    // (10, 10) is window (10, 110).
+    registerLayout('hero', win(10, 110, 50, 50))
+    // Target's container sits 400px down: parent-relative (10, 10) is window
+    // (10, 410).
+    stubMeasurements({ x: 10, y: 410, width: 100, height: 100 })
+
+    const view = render(
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 10,
+      y: 10,
+      width: 100,
+      height: 100,
+    })
+
+    // Centres: source (35, 135), target (60, 460) → delta (-25, -325).
+    // Against the parent-relative implementation this was (-25, -25): the
+    // 300px difference between the two containers was invisible.
+    const snaps = flipSnapValues(withTiming)
+    expect(snaps[0]).toBe(-25)
+    expect(snaps[1]).toBe(-325)
+  })
+
+  it('records window coords in the registry when measurement succeeds', () => {
+    stubMeasurements({ x: 10, y: 410, width: 100, height: 100 })
+
+    const view = render(
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 10,
+      y: 10,
+      width: 100,
+      height: 100,
+    })
+
+    expect(peekSharedLayout('hero')).toEqual(win(10, 410, 100, 100))
+  })
+
+  it('falls back to parent coords when the node cannot be measured', () => {
+    // No `measureInWindow` on the host (the default in Jest, and the real
+    // situation for any host that does not implement it).
+    const view = render(
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 10,
+      y: 10,
+      width: 100,
+      height: 100,
+    })
+
+    expect(peekSharedLayout('hero')).toEqual(par(10, 10, 100, 100))
+  })
+
+  it('treats a zero-sized measurement as unusable', () => {
+    // Detached / not-yet-laid-out nodes report zeros rather than failing.
+    // Trusting that would fling the element in from the top-left corner.
+    stubMeasurements({ x: 0, y: 0, width: 0, height: 0 })
+
+    const view = render(
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 10,
+      y: 10,
+      width: 100,
+      height: 100,
+    })
+
+    expect(peekSharedLayout('hero')).toEqual(par(10, 10, 100, 100))
+  })
+
+  it('skips the FLIP when source and target are in different spaces', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const withSequence = jest.spyOn(Reanimated, 'withSequence')
+    // Source only ever got a parent-relative rect; target measures in window
+    // space. The two are not comparable — the delta would be off by the
+    // parent's window offset, so no animation is better than a wrong one.
+    registerLayout('hero', par(10, 10, 50, 50))
+    stubMeasurements({ x: 10, y: 410, width: 100, height: 100 })
+
+    const view = render(
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 10,
+      y: 10,
+      width: 100,
+      height: 100,
+    })
+
+    expect(withSpring).not.toHaveBeenCalled()
+    expect(withSequence).not.toHaveBeenCalled()
+  })
+})
+
+// Window coordinates are more fragile than parent-relative ones in one
+// specific way: `onLayout` does not fire when an ANCESTOR scrolls, so a stored
+// window rect goes stale as the user scrolls a list — where a parent-relative
+// rect would have stayed valid. The mitigation is to re-measure the source at
+// consume time whenever it is still mounted, which in a stack navigator it is.
+describe('layoutId — source re-measure at consume time', () => {
+  it('prefers a fresh source measurement over the stored rect', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    // Stored rect is from before the user scrolled 200px up.
+    const remeasure = jest.fn(() => win(10, 110, 50, 50))
+    registerLayout('hero', win(10, 310, 50, 50), remeasure)
+    stubMeasurements({ x: 10, y: 410, width: 100, height: 100 })
+
+    const view = render(
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 10,
+      y: 10,
+      width: 100,
+      height: 100,
+    })
+
+    expect(remeasure).toHaveBeenCalledTimes(1)
+    // Fresh source centre (35, 135) vs target (60, 460) → dy -325. The stale
+    // stored rect would have given -125.
+    expect(flipSnapValues(withTiming)[1]).toBe(-325)
+  })
+
+  it('falls back to the stored rect when the re-measure yields nothing', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    // Source unmounted between consume and the re-measure — a detached node
+    // measures to nothing.
+    const remeasure = () => undefined
+    registerLayout('hero', win(10, 310, 50, 50), remeasure)
+    stubMeasurements({ x: 10, y: 410, width: 100, height: 100 })
+
+    const view = render(
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 10,
+      y: 10,
+      width: 100,
+      height: 100,
+    })
+
+    // Stored source centre (35, 335) vs target (60, 460) → dy -125.
+    expect(flipSnapValues(withTiming)[1]).toBe(-125)
+  })
+
+  it('a mounted element offers itself for re-measure', () => {
+    // End-to-end: the element publishes a remeasure hook alongside its rect,
+    // so a later mount can ask it for a current position.
+    stubMeasurements({ x: 10, y: 410, width: 100, height: 100 })
+
+    const view = render(
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 10,
+      y: 10,
+      width: 100,
+      height: 100,
+    })
+
+    expect(typeof consumeLayout('hero')?.remeasure).toBe('function')
+  })
+
+  it('cancels its four FLIP values on unmount', () => {
+    // Tested on the hook rather than through a primitive: the factory cancels
+    // ~two dozen of its own values too, which would bury the four this hook
+    // owns. They were missed by the `0.0.2` unmount-cancel pass.
+    const spy = jest.spyOn(Reanimated, 'cancelAnimation')
+    const { unmount } = renderHook(() =>
+      useSharedLayout({
+        layoutId: 'hero',
+        userRef: undefined,
+        transition: undefined,
+        shouldReduceMotion: false,
+        userOnLayout: undefined,
+      }),
+    )
+
+    spy.mockClear()
+    unmount()
+    expect(spy).toHaveBeenCalledTimes(4)
+  })
+})
+
+// The measurement contract itself, against the real `measureInWindow` path
+// (no stub) — see `measureWindow.ts` for why synchronous-or-nothing is the
+// rule rather than a limitation.
+describe('measureWindowRect', () => {
+  it('reads a synchronous measurement', () => {
+    const node = {
+      measureInWindow: (cb: (...a: number[]) => void) => cb(10, 410, 100, 100),
+    }
+    expect(measureWindowRect(node)).toEqual(win(10, 410, 100, 100))
+  })
+
+  it('treats an asynchronous measurement as unavailable', () => {
+    // Paper answers over the bridge a tick later. Accepting that would put the
+    // element in window space while its counterpart stayed parent-relative,
+    // and mixed spaces cancel the transition — so the late answer is dropped.
+    let late: ((...a: number[]) => void) | undefined
+    const node = {
+      measureInWindow: (cb: (...a: number[]) => void) => {
+        late = cb
+      },
+    }
+    expect(measureWindowRect(node)).toBeUndefined()
+    expect(() => late?.(10, 410, 100, 100)).not.toThrow()
+  })
+
+  it('treats a node with no measureInWindow as unavailable', () => {
+    expect(measureWindowRect({})).toBeUndefined()
+    expect(measureWindowRect(null)).toBeUndefined()
+  })
+
+  it('rejects a zero-sized measurement', () => {
+    const node = {
+      measureInWindow: (cb: (...a: number[]) => void) => cb(0, 0, 0, 0),
+    }
+    expect(measureWindowRect(node)).toBeUndefined()
+  })
+
+  it('rejects a non-finite measurement', () => {
+    const node = {
+      measureInWindow: (cb: (...a: number[]) => void) => cb(NaN, 0, 100, 100),
+    }
+    expect(measureWindowRect(node)).toBeUndefined()
+  })
+
+  it('survives a host that throws on a detached node', () => {
+    const node = {
+      measureInWindow: () => {
+        throw new Error('detached')
+      },
+    }
+    expect(measureWindowRect(node)).toBeUndefined()
   })
 })
 
@@ -268,12 +523,7 @@ describe('Motion.* — layoutId omitted', () => {
 // Writes now amortize an expiry sweep: at most one full scan per TTL window, so
 // a burst of layout events doesn't become a burst of scans.
 describe('sharedRegistry — expiry sweep', () => {
-  const RECT = { x: 0, y: 0, width: 10, height: 10 }
-
-  beforeEach(() => {
-    clearSharedRegistry()
-    __setSharedLayoutClock(undefined)
-  })
+  const RECT = par(0, 0, 10, 10)
 
   afterEach(() => {
     clearSharedRegistry()
@@ -303,7 +553,6 @@ describe('sharedRegistry — expiry sweep', () => {
       releaseLayout(`row-${i}`, RECT)
       now += SHARED_LAYOUT_TTL_MS + 1
     }
-    // Only entries written inside the most recent TTL window survive.
     expect(__sharedRegistrySize()).toBeLessThanOrEqual(2)
   })
 
@@ -323,16 +572,13 @@ describe('sharedRegistry — expiry sweep', () => {
     let now = 1_000
     __setSharedLayoutClock(() => now)
 
-    // Mounted, laid out once, then idle well past the TTL.
     registerLayout('hero', RECT)
     now += SHARED_LAYOUT_TTL_MS * 3
     registerLayout('unrelated', RECT)
     expect(peekSharedLayout('hero')).toBeUndefined()
 
-    // Unmounting still publishes a usable FLIP source — sweeping a live
-    // element's stale entry costs nothing.
     releaseLayout('hero', RECT)
-    expect(consumeLayout('hero')).toEqual(RECT)
+    expect(consumeLayout('hero')?.rect).toEqual(RECT)
   })
 
   it('still hands a fresh release to the next mount', () => {
@@ -341,6 +587,6 @@ describe('sharedRegistry — expiry sweep', () => {
 
     releaseLayout('hero', RECT)
     now += 10
-    expect(consumeLayout('hero')).toEqual(RECT)
+    expect(consumeLayout('hero')?.rect).toEqual(RECT)
   })
 })
