@@ -3,6 +3,7 @@ import * as Reanimated from 'react-native-reanimated'
 import { Motion } from '../motion'
 import {
   __setSharedLayoutClock,
+  __sharedRegistrySize,
   clearSharedRegistry,
   consumeLayout,
   peekSharedLayout,
@@ -255,5 +256,91 @@ describe('Motion.* — layoutId omitted', () => {
     })
     // No id → no registry entries.
     expect(peekSharedLayout('hero')).toBeUndefined()
+  })
+})
+
+// Regression: the registry only ever shrank through `consumeLayout` /
+// `peekSharedLayout`. A `layoutId` that unmounted and was never remounted left
+// its rect in the module-level Map for the lifetime of the process — fine for a
+// handful of hero images, not fine for per-item ids in a long-lived list
+// (`layoutId={`photo-${item.id}`}`), where nothing ever consumes the release.
+//
+// Writes now amortize an expiry sweep: at most one full scan per TTL window, so
+// a burst of layout events doesn't become a burst of scans.
+describe('sharedRegistry — expiry sweep', () => {
+  const RECT = { x: 0, y: 0, width: 10, height: 10 }
+
+  beforeEach(() => {
+    clearSharedRegistry()
+    __setSharedLayoutClock(undefined)
+  })
+
+  afterEach(() => {
+    clearSharedRegistry()
+    __setSharedLayoutClock(undefined)
+  })
+
+  it('evicts released rects that nothing ever consumed', () => {
+    let now = 1_000
+    __setSharedLayoutClock(() => now)
+
+    for (let i = 0; i < 50; i++) releaseLayout(`photo-${i}`, RECT)
+    expect(__sharedRegistrySize()).toBe(50)
+
+    // Past the TTL, the next write sweeps the abandoned entries.
+    now += SHARED_LAYOUT_TTL_MS + 1
+    releaseLayout('photo-fresh', RECT)
+    expect(__sharedRegistrySize()).toBe(1)
+    expect(peekSharedLayout('photo-fresh')).toEqual(RECT)
+  })
+
+  it('does not grow without bound across many mount/unmount cycles', () => {
+    let now = 1_000
+    __setSharedLayoutClock(() => now)
+
+    for (let i = 0; i < 500; i++) {
+      registerLayout(`row-${i}`, RECT)
+      releaseLayout(`row-${i}`, RECT)
+      now += SHARED_LAYOUT_TTL_MS + 1
+    }
+    // Only entries written inside the most recent TTL window survive.
+    expect(__sharedRegistrySize()).toBeLessThanOrEqual(2)
+  })
+
+  it('keeps entries that are still inside their TTL', () => {
+    let now = 1_000
+    __setSharedLayoutClock(() => now)
+
+    releaseLayout('hero', RECT)
+    now += SHARED_LAYOUT_TTL_MS - 1
+    releaseLayout('other', RECT)
+
+    expect(peekSharedLayout('hero')).toEqual(RECT)
+    expect(__sharedRegistrySize()).toBe(2)
+  })
+
+  it('a still-mounted element re-registers after its entry is swept', () => {
+    let now = 1_000
+    __setSharedLayoutClock(() => now)
+
+    // Mounted, laid out once, then idle well past the TTL.
+    registerLayout('hero', RECT)
+    now += SHARED_LAYOUT_TTL_MS * 3
+    registerLayout('unrelated', RECT)
+    expect(peekSharedLayout('hero')).toBeUndefined()
+
+    // Unmounting still publishes a usable FLIP source — sweeping a live
+    // element's stale entry costs nothing.
+    releaseLayout('hero', RECT)
+    expect(consumeLayout('hero')).toEqual(RECT)
+  })
+
+  it('still hands a fresh release to the next mount', () => {
+    let now = 1_000
+    __setSharedLayoutClock(() => now)
+
+    releaseLayout('hero', RECT)
+    now += 10
+    expect(consumeLayout('hero')).toEqual(RECT)
   })
 })

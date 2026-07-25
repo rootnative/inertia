@@ -7,6 +7,7 @@ export {
   releaseLayout,
   SHARED_LAYOUT_TTL_MS,
   __setSharedLayoutClock,
+  __sharedRegistrySize,
   type SharedRect,
 } from './sharedRegistry'
 export {

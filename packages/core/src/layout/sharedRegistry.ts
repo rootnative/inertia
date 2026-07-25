@@ -52,13 +52,46 @@ export const SHARED_LAYOUT_TTL_MS = 1000
 let now = (): number => Date.now()
 
 /**
+ * When the last expiry sweep ran, so the scan is amortized to at most once per
+ * TTL window rather than running on every write.
+ */
+let lastSweep = 0
+
+/**
+ * Drop every entry whose TTL has passed.
+ *
+ * Without this the map only ever shrank via `consumeLayout` / `peekSharedLayout`,
+ * so a `layoutId` that unmounted and was never remounted left its rect behind
+ * for the lifetime of the process. Bounded by distinct-id count, which is small
+ * for a handful of hero images but not for per-item ids in a long-lived list
+ * (`layoutId={`photo-${item.id}`}`).
+ *
+ * Sweeping a *live* element's entry is harmless: while mounted it re-registers
+ * on every `onLayout`, and on unmount `releaseLayout` re-adds it with a fresh
+ * TTL. So the only thing an over-eager sweep can cost is a FLIP source that was
+ * already too old to be used.
+ *
+ * Time-gated so a burst of layout events doesn't turn into a burst of full
+ * scans — worst case an expired entry survives one extra TTL window.
+ */
+function sweepExpired(at: number): void {
+  if (at - lastSweep < SHARED_LAYOUT_TTL_MS) return
+  lastSweep = at
+  for (const [id, entry] of REGISTRY) {
+    if (entry.expiresAt < at) REGISTRY.delete(id)
+  }
+}
+
+/**
  * Update the latest known rect for `id`. Called on every `onLayout` of a
  * Motion primitive with `layoutId` set so the registry always holds a
  * current measurement if that primitive becomes the source of a future
  * transition. Resets the TTL each call.
  */
 export function registerLayout(id: string, rect: SharedRect): void {
-  REGISTRY.set(id, { rect, expiresAt: now() + SHARED_LAYOUT_TTL_MS })
+  const at = now()
+  sweepExpired(at)
+  REGISTRY.set(id, { rect, expiresAt: at + SHARED_LAYOUT_TTL_MS })
 }
 
 /**
@@ -67,7 +100,9 @@ export function registerLayout(id: string, rect: SharedRect): void {
  * is purely intent-documenting at the call site.
  */
 export function releaseLayout(id: string, rect: SharedRect): void {
-  REGISTRY.set(id, { rect, expiresAt: now() + SHARED_LAYOUT_TTL_MS })
+  const at = now()
+  sweepExpired(at)
+  REGISTRY.set(id, { rect, expiresAt: at + SHARED_LAYOUT_TTL_MS })
 }
 
 /**
@@ -88,6 +123,7 @@ export function consumeLayout(id: string): SharedRect | undefined {
 /** Drop all entries. Tests use this to isolate between cases. */
 export function clearSharedRegistry(): void {
   REGISTRY.clear()
+  lastSweep = 0
 }
 
 /**
@@ -108,4 +144,17 @@ export function peekSharedLayout(id: string): SharedRect | undefined {
  */
 export function __setSharedLayoutClock(fn: (() => number) | undefined): void {
   now = fn ?? Date.now
+  // Swapping the clock makes the previous sweep timestamp meaningless — a
+  // stubbed clock usually starts near 0, which would otherwise suppress every
+  // sweep until it caught up past the real-time value recorded earlier.
+  lastSweep = 0
+}
+
+/**
+ * Test hook: how many entries the registry is holding, expired or not. Used to
+ * assert that released-but-never-consumed rects are actually evicted. Not
+ * exported from the package root — reachable only from inside the workspace.
+ */
+export function __sharedRegistrySize(): number {
+  return REGISTRY.size
 }
