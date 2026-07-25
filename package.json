@@ -22,6 +22,7 @@
     "example:android": "pnpm --filter @rootnative/inertia-example android",
     "docs:dev": "pnpm --filter @rootnative/inertia-docs dev",
     "docs:build": "pnpm --filter @rootnative/inertia-docs build",
+    "docs:check": "pnpm --filter @rootnative/inertia-docs build:check",
     "docs:serve": "pnpm --filter @rootnative/inertia-docs serve",
     "build:llms": "node scripts/build-llms.mjs",
     "check:versions": "node scripts/check-versions.mjs",

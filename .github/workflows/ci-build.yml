@@ -82,3 +82,17 @@ jobs:
 
       - name: Bundle-size check (gradients)
         run: pnpm --filter @rootnative/inertia-gradients size
+
+      # Compile the docs site so malformed MDX, a broken internal link
+      # (`onBrokenLinks: 'throw'`), or a bad Docusaurus config fails the PR
+      # instead of surfacing after merge in deploy-web.yml — the only place
+      # that used to build the site at all.
+      #
+      # This deliberately skips `prepare:demo`, which shells out to
+      # `npx expo export --platform web`. That export is what makes the real
+      # docs build slow, and nothing about it validates content: the demo is
+      # referenced as an iframe `src`, so its absence doesn't affect
+      # compilation. Skipping it takes this step to ~25s. deploy-web.yml still
+      # runs the full `docs:build` with the export for the published site.
+      - name: Docs build check
+        run: pnpm run docs:check

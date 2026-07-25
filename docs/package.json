@@ -8,6 +8,7 @@
     "build:llms": "node ../scripts/build-llms.mjs",
     "dev": "pnpm build:llms && pnpm prepare:demo && docusaurus start",
     "build": "pnpm build:llms && pnpm prepare:demo:force && docusaurus build",
+    "build:check": "docusaurus build --out-dir .docusaurus/check-build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "serve": "docusaurus serve",
