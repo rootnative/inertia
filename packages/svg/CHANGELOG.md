@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `@rootnative/inertia-svg` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Pre-`1.0`, breaking changes may land in minor versions and are called out under their release.
+All notable changes to `@rootnative/inertia-svg` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Pre-`1.0.0`, breaking changes may land in minor versions and are called out under their release.
 
 This package ships in lockstep with `@rootnative/inertia` — version numbers track the core release that introduced or last touched the adapter.
 
@@ -29,7 +29,9 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 Lockstep version bump alongside `@rootnative/inertia@0.0.0-alpha.1` (README / `llms.txt` updates only; no runtime changes).
 
-## [0.0.0-alpha.0]
+## 0.0.0-alpha.0
+
+_No git tag was cut for this release; the published artifact is on npm as [`@rootnative/inertia-svg@0.0.0-alpha.0`](https://www.npmjs.com/package/@rootnative/inertia-svg/v/0.0.0-alpha.0). Unlinked here for that reason — every other heading resolves to a real tag._
 
 ### Added
 
@@ -41,4 +43,3 @@ Lockstep version bump alongside `@rootnative/inertia@0.0.0-alpha.1` (README / `l
 [0.0.1]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.1
 [0.0.0-alpha.2]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.0-alpha.2
 [0.0.0-alpha.1]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.0-alpha.1
-[0.0.0-alpha.0]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.0-alpha.0

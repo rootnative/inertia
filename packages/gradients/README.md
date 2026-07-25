@@ -80,9 +80,9 @@ Pass `initial` to override the mount-frame values (so the component starts somew
 
 `MotionLinearGradient` participates in `<MotionConfig reducedMotion>` the same way the core primitives do — when the OS reduce-motion setting is on, transitions resolve as direct assignment instead of `withSpring` / `withTiming`.
 
-## What this primitive doesn't do (v0.2)
+## What this primitive doesn't do
 
-- **Radial / conic gradients** — linear-only for v0.2.
+- **Radial / conic gradients** — linear-only. Radial / conic are backlog, unscheduled.
 - **Slot-count resize** — the colors array length is locked at mount.
 - **Per-stop sequence keyframes** — `animate.colors` accepts a single target array, not nested arrays. For chained gradient transitions, drive the target through state.
 

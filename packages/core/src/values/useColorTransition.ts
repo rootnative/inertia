@@ -6,7 +6,7 @@ import {
 
 /**
  * Color style keys understood by React Native that this hook can target.
- * Sticks to the keys that exist on the v0.1 animatable surface so the
+ * Sticks to the keys that exist on the animatable surface so the
  * returned style fragment is always a legal RN style.
  */
 export type ColorStyleKey =

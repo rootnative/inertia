@@ -176,22 +176,29 @@ jobs:
 
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
+      # Repair the version references the bump just invalidated (CHANGELOG
+      # compare links, README / docs status lines).
+      #
+      # This MUST run before `build:llms`. `docs/static/llms-full.txt` is
+      # generated from `docs/docs/index.mdx`, so generating first captured the
+      # pre-fix status line and shipped it: the 0.0.3 tag carries an
+      # llms-full.txt announcing 0.0.2 for exactly this reason.
+      - name: Sync version references
+        run: pnpm run check:versions:fix
+
       - name: Regenerate LLM docs with new versions
         run: pnpm run build:llms
 
-      # Repair the version references the bump just invalidated (CHANGELOG
-      # compare links, README / docs status lines), then hard-fail if a
-      # CHANGELOG has no `## [<new version>]` section — the one thing that
-      # can't be generated. Cut the changelog entry before releasing.
+      # Verify last, against the synced sources and freshly generated docs.
+      # Hard-fails if a CHANGELOG has no `## [<new version>]` section — the one
+      # thing that can't be generated. Cut the changelog entry before releasing.
       #
       # NOTE: publishing a SUBSET here takes the packages out of lockstep, and
       # `check:versions` will fail on the packages left behind — by design, so
       # a partial release is a deliberate, visible act. Bump the rest (or use
       # release.yml) to restore lockstep.
-      - name: Sync and verify version references
-        run: |
-          pnpm run check:versions:fix
-          pnpm run check:versions
+      - name: Verify version references
+        run: pnpm run check:versions
 
       - name: Commit and tag
         run: |
@@ -201,7 +208,11 @@ jobs:
 
           git add pnpm-lock.yaml
           git add packages/*/llms.txt docs/static/llms-full.txt
-          git add packages/*/CHANGELOG.md README.md docs/docs/index.mdx
+          # Every file `check:versions:fix` can rewrite has to be staged here,
+          # or the repair is silently dropped and CI fails on main right after
+          # the push. `packages/*/README.md` is in the list because the core
+          # README carries a status line (it ships as the npm package page).
+          git add packages/*/CHANGELOG.md packages/*/README.md README.md docs/docs/index.mdx
           for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
             git add "packages/$PKG_DIR/package.json"
           done

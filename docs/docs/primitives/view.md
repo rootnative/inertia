@@ -61,7 +61,7 @@ Shadow keys ride the same animatable pipeline as other numeric / color props —
 />
 ```
 
-`shadowOffset` v0.1 supports the **single-value form only** — `{ width: number, height: number }`. Sequences inside the nested object (`{ width: [0, 100, 0], height: 0 }`) and array keyframes on the whole object are out of scope; drop to the value-layer hooks (`useMotionValue` + `useAnimatedStyle`) when you need them. Per-axis transition splits are also out of scope — the top-level `transition.shadowOffset` applies to both axes.
+`shadowOffset` supports the **single-value form only** — `{ width: number, height: number }`. Sequences inside the nested object (`{ width: [0, 100, 0], height: 0 }`) and array keyframes on the whole object are out of scope; drop to the value-layer hooks (`useMotionValue` + `useAnimatedStyle`) when you need them. Per-axis transition splits are also out of scope — the top-level `transition.shadowOffset` applies to both axes.
 
 ## Notes
 

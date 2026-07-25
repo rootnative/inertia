@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `@rootnative/inertia` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Pre-`1.0`, breaking changes may land in minor versions and are called out under their release.
+All notable changes to `@rootnative/inertia` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Pre-`1.0.0`, breaking changes may land in minor versions and are called out under their release.
 
 ## [Unreleased]
 
@@ -80,9 +80,11 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 - **Nested `<MotionConfig>` now inherits `reducedMotion`** from its ancestor when the prop is omitted (previously an inner provider silently reset the subtree to the `'user'` default). A transitions-only inner provider no longer clobbers an outer `reducedMotion="never"` / `"always"`.
 
-## [0.0.0-alpha.0]
+## 0.0.0-alpha.0
 
-Initial alpha publish. The full v0.1 surface is in place; APIs are still subject to change before `0.1.0`.
+_No git tag was cut for this release; the published artifact is on npm as [`@rootnative/inertia@0.0.0-alpha.0`](https://www.npmjs.com/package/@rootnative/inertia/v/0.0.0-alpha.0). Unlinked here for that reason — every other heading resolves to a real tag._
+
+Initial alpha publish. The full initial surface is in place; APIs are still subject to change before the stability lock at `1.0.0`.
 
 ### Added
 
@@ -114,4 +116,3 @@ Initial alpha publish. The full v0.1 surface is in place; APIs are still subject
 [0.0.0-alpha.3]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.0-alpha.3
 [0.0.0-alpha.2]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.0-alpha.2
 [0.0.0-alpha.1]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.0-alpha.1
-[0.0.0-alpha.0]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.0-alpha.0

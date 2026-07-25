@@ -1,7 +1,7 @@
 /**
  * `@rootnative/inertia` — declarative animation primitives for React Native.
  *
- * v0.1 surface: `Motion.View` / `Motion.Text` / `Motion.Image` /
+ * Public surface: `Motion.View` / `Motion.Text` / `Motion.Image` /
  * `Motion.Pressable` / `Motion.ScrollView`, with `initial` / `animate` /
  * `exit` / `transition` / `variants` / `gesture` / `controller` /
  * `onAnimationEnd` props. Sequences, repeats (single-value and

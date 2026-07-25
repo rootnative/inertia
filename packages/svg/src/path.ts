@@ -4,7 +4,7 @@
  * and when `animate.d` changes; the worklet only ever consumes flat number
  * arrays + a frozen command template.
  *
- * Path morphing in v0.2 requires **structural compatibility**: the source and
+ * Path morphing requires **structural compatibility**: the source and
  * every target `d` must produce the same command sequence (same command
  * letters, in the same order, after implicit-repeat expansion). Element-wise
  * numeric interpolation is the entire morphing model — we do not resample

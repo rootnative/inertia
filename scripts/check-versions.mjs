@@ -18,8 +18,20 @@
  *   4. Link refs    — every `## [x.y.z]` heading has a matching link
  *                     definition, and `[unreleased]` compares from the newest
  *                     released tag.
- *   5. Status lines — the `> **Status:** \`x.y.z\`` line in README.md and
- *                     docs/docs/index.mdx names the current version.
+ *   5. Status lines — the `> **Status:** \`x.y.z\`` line in README.md,
+ *                     docs/docs/index.mdx, and packages/core/README.md names
+ *                     the current version. The core README is in the list
+ *                     because it ships in the npm tarball: it claimed `0.0.1`
+ *                     on the published page for `0.0.2` and `0.0.3` while the
+ *                     two files the guard did watch were correct.
+ *   6. Version form  — no `v`-prefixed version strings (`v0.2`, `v1.0.0`) in
+ *                     any published surface. Versions are always written as
+ *                     bare three-digit semver; the two-digit `v0.x` ladder was
+ *                     abandoned before `0.0.1` but survived in a dozen docs,
+ *                     READMEs, and JSDoc blocks, some of them promising
+ *                     releases (`Radial lands in v0.3`) that were never on the
+ *                     roadmap. URLs are exempt (the SemVer spec link is
+ *                     `.../spec/v2.0.0.html`).
  *
  * Usage:
  *   node scripts/check-versions.mjs          # verify, non-zero exit on drift
@@ -51,8 +63,31 @@ const REPO_URL = 'https://github.com/rootnative/inertia'
 const tagFor = (packageDirs, version) => `${packageDirs.join('+')}@${version}`
 
 /** Files carrying a `> **Status:** \`x.y.z\`` line that must name the current version. */
-const STATUS_FILES = ['README.md', join('docs', 'docs', 'index.mdx')]
+const STATUS_FILES = [
+  'README.md',
+  join('docs', 'docs', 'index.mdx'),
+  join('packages', 'core', 'README.md'),
+]
 const STATUS_RE = /^(> \*\*Status:\*\* `)([^`]+)(`)/m
+
+/**
+ * Roots scanned by check 6. Directories are walked for the listed extensions;
+ * generated `llms.txt` files are included deliberately — they are derived from
+ * `docs/docs/*`, so a hit there means the source drifted or the generator
+ * wasn't re-run.
+ */
+const FORM_SCAN_ROOTS = [
+  { path: 'README.md' },
+  { path: 'packages', exts: ['.md', '.txt', '.ts', '.tsx', '.cjs'] },
+  { path: join('docs', 'docs'), exts: ['.md', '.mdx'] },
+  { path: join('docs', 'static'), exts: ['.txt'] },
+  { path: 'example', exts: ['.ts', '.tsx'] },
+]
+const FORM_SCAN_IGNORE = new Set(['node_modules', 'dist', '.docusaurus', 'build'])
+/** `v` immediately followed by a version number — `v0.2`, `v1.0.0`, `v0.0.0-alpha.0`. */
+const V_PREFIX_RE = /\bv\d+\.\d+(?:\.\d+)?(?:-[\w.]+)?/g
+/** Stripped before scanning: a `v`-prefixed version inside a URL is somebody else's. */
+const URL_RE = /https?:\/\/\S+/g
 
 const problems = []
 const fixes = []
@@ -218,6 +253,51 @@ for (const rel of STATUS_FILES) {
           `Run \`pnpm run check:versions --fix\`.`,
       )
     }
+  }
+}
+
+// ── 6. Version form: no `v`-prefixed versions in published surfaces ─────────
+
+/** Every file under `root` with a listed extension, recursively. */
+function collectFiles(root, exts) {
+  const abs = join(repoRoot, root)
+  let entries
+  try {
+    entries = readdirSync(abs, { withFileTypes: true })
+  } catch {
+    return []
+  }
+  const out = []
+  for (const entry of entries) {
+    if (FORM_SCAN_IGNORE.has(entry.name)) continue
+    const rel = join(root, entry.name)
+    if (entry.isDirectory()) out.push(...collectFiles(rel, exts))
+    else if (exts.some((ext) => entry.name.endsWith(ext))) out.push(rel)
+  }
+  return out
+}
+
+for (const { path: root, exts } of FORM_SCAN_ROOTS) {
+  const files = exts ? collectFiles(root, exts) : [root]
+  for (const rel of files) {
+    let raw
+    try {
+      raw = readFileSync(join(repoRoot, rel), 'utf8')
+    } catch {
+      continue
+    }
+    // Blank URLs out rather than dropping them, so line numbers survive.
+    const scannable = raw.replace(URL_RE, (m) => ' '.repeat(m.length))
+    scannable.split('\n').forEach((line, i) => {
+      for (const hit of line.matchAll(V_PREFIX_RE)) {
+        fail(
+          `${rel}:${i + 1}: "${hit[0]}" — versions are written as bare three-digit ` +
+            `semver, never \`v\`-prefixed. Drop the \`v\` (and if it names an ` +
+            `abandoned two-digit release like \`v0.2\`, say what is actually true ` +
+            `now rather than mapping it onto the current ladder).`,
+        )
+      }
+    })
   }
 }
 

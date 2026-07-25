@@ -7,7 +7,7 @@ import { renderWithMotion } from '../testing'
 // `@rootnative/ui` migration. The flat shadow keys (`shadowOpacity`,
 // `shadowRadius`, `shadowColor`, `elevation`) ride the existing numeric /
 // color resolver paths. `shadowOffset: { width, height }` is the only
-// nested-object style on the v0.1 surface and decomposes into two synthetic
+// nested-object style on the animatable surface and decomposes into two
 // axis SVs that the worklet reassembles into a single `shadowOffset` prop.
 
 function getStyle(

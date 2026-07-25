@@ -11,8 +11,8 @@
 // limit, decide whether to tighten or accept it; don't silently raise the
 // cap. Record any baseline shift here when you do.
 //
-// ── Recorded baselines, brotlied + minified, 2026-07-25 (0.0.2 + the
-//    style-resting / Presence-order / endless-repeat / cascade fixes) ─────
+// ── Recorded baselines, brotlied + minified, 2026-07-25, as released in
+//    `0.0.3` (style-resting / Presence-order / endless-repeat / cascade) ──
 //   Motion.View subpath        6.63 kB
 //   Motion.Text subpath        6.64 kB
 //   Motion.Image subpath       6.64 kB

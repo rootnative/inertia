@@ -80,7 +80,7 @@ To switch between structurally different shapes, **remount with a new `key`**:
 />
 ```
 
-Path normalization that resamples between arbitrary shapes (the flubber-style approach) is out of scope for v0.2.
+Path normalization that resamples between arbitrary shapes (the flubber-style approach) is out of scope by design.
 
 ## Animatable props
 

@@ -84,8 +84,8 @@ Pass `initial` to override the mount-frame values (so the component starts somew
 
 `MotionLinearGradient` participates in [`<MotionConfig reducedMotion>`](./motion-config.md) the same way the core primitives do — when the OS reduce-motion setting is on (or you pass `reducedMotion="always"`), transitions resolve as direct assignment instead of `withSpring` / `withTiming`.
 
-## What this primitive doesn't do (v0.2)
+## What this primitive doesn't do
 
-- **Radial / conic gradients** — linear-only for v0.2. Radial lands in v0.3 once the linear API is validated.
+- **Radial / conic gradients** — linear-only. Radial / conic are backlog, unscheduled: they need their own prop shape, and the linear API earns that work first.
 - **Slot-count resize** — the colors array length is locked at mount. To change it, remount via `key={...}`.
 - **Per-stop sequence keyframes** — `animate.colors` accepts a single target array, not a nested array of arrays. For chained gradient transitions, drive the target through state and let React re-render.

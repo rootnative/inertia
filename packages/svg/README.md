@@ -79,7 +79,7 @@ transition={{
 
 In dev, the component throws on template mismatches at mount, when `animate.d` changes shape, or when the static `d` prop itself changes shape between renders. In production those errors degrade to a no-op snap so a single bad target doesn't crash the screen.
 
-Path resampling between structurally different shapes (flubber-style) is out of scope for v0.2. For arbitrary shape swaps, remount with `key={...}`.
+Path resampling between structurally different shapes (flubber-style) is out of scope by design. For arbitrary shape swaps, remount with `key={...}`.
 
 ## Shapes — MotionCircle, MotionRect, MotionLine
 
@@ -127,7 +127,7 @@ const MotionEllipse = createMotionSvgComponent(Ellipse, {
 
 All primitives participate in `<MotionConfig reducedMotion>` just like the core ones — when the OS reduce-motion setting is on (or you pass `reducedMotion="always"`), every animated property snaps directly to its target.
 
-## What this package doesn't do (v0.2)
+## What this package doesn't do
 
 - Path resampling between arbitrary shapes.
 - Morphing an `L` into a `C` (or other across-command interpolation). Element-wise scalar interpolation is intentional.

@@ -8,7 +8,7 @@
 ---
 Inertia (`@rootnative/inertia`) is a thin, ergonomic wrapper around `react-native-reanimated`. Animations are expressed as props on a component — no shared values, no worklets, no `useAnimatedStyle` boilerplate. The vocabulary takes cues from **Framer Motion** (web) and **react-spring** (cross-platform).
 
-> **Status:** `0.0.2`. The full surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, the layout and shared-element features, and the value-layer hooks. Pre-`1.0.0`, minor breaking changes may still land; each one is called out in the [changelog](https://github.com/rootnative/inertia/blob/main/packages/core/CHANGELOG.md).
+> **Status:** `0.0.3`. The full surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, the layout and shared-element features, and the value-layer hooks. Pre-`1.0.0`, minor breaking changes may still land; each one is called out in the [changelog](https://github.com/rootnative/inertia/blob/main/packages/core/CHANGELOG.md).
 
 ## What you get
 
@@ -328,7 +328,7 @@ Shadow keys ride the same animatable pipeline as other numeric / color props —
 />
 ```
 
-`shadowOffset` v0.1 supports the **single-value form only** — `{ width: number, height: number }`. Sequences inside the nested object (`{ width: [0, 100, 0], height: 0 }`) and array keyframes on the whole object are out of scope; drop to the value-layer hooks (`useMotionValue` + `useAnimatedStyle`) when you need them. Per-axis transition splits are also out of scope — the top-level `transition.shadowOffset` applies to both axes.
+`shadowOffset` supports the **single-value form only** — `{ width: number, height: number }`. Sequences inside the nested object (`{ width: [0, 100, 0], height: 0 }`) and array keyframes on the whole object are out of scope; drop to the value-layer hooks (`useMotionValue` + `useAnimatedStyle`) when you need them. Per-axis transition splits are also out of scope — the top-level `transition.shadowOffset` applies to both axes.
 
 ## Notes
 
@@ -1299,9 +1299,9 @@ Pass `initial` to override the mount-frame values (so the component starts somew
 
 `MotionLinearGradient` participates in [`<MotionConfig reducedMotion>`](./motion-config.md) the same way the core primitives do — when the OS reduce-motion setting is on (or you pass `reducedMotion="always"`), transitions resolve as direct assignment instead of `withSpring` / `withTiming`.
 
-## What this primitive doesn't do (v0.2)
+## What this primitive doesn't do
 
-- **Radial / conic gradients** — linear-only for v0.2. Radial lands in v0.3 once the linear API is validated.
+- **Radial / conic gradients** — linear-only. Radial / conic are backlog, unscheduled: they need their own prop shape, and the linear API earns that work first.
 - **Slot-count resize** — the colors array length is locked at mount. To change it, remount via `key={...}`.
 - **Per-stop sequence keyframes** — `animate.colors` accepts a single target array, not a nested array of arrays. For chained gradient transitions, drive the target through state and let React re-render.
 
@@ -1381,7 +1381,7 @@ To switch between structurally different shapes, **remount with a new `key`**:
 />
 ```
 
-Path normalization that resamples between arbitrary shapes (the flubber-style approach) is out of scope for v0.2.
+Path normalization that resamples between arbitrary shapes (the flubber-style approach) is out of scope by design.
 
 ## Animatable props
 

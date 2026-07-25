@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { Motion } from '@rootnative/inertia'
+// Read the version from the package itself so the footer can't drift behind a
+// release the way a hardcoded string did (it advertised 0.0.0-alpha.0 through
+// three stable releases).
+import { version as inertiaVersion } from '@rootnative/inertia/package.json'
 import { ColorScreen } from './screens/ColorScreen'
 import { DecayScreen } from './screens/DecayScreen'
 import { DragScreen } from './screens/DragScreen'
@@ -399,7 +403,7 @@ export default function App() {
         <Text style={styles.eyebrow}>@rootnative/inertia</Text>
         <Text style={styles.title}>Example gallery</Text>
         <Text style={styles.subtitle}>
-          One screen per piece of the v0.1 surface. Tap through to see each
+          One screen per piece of the public surface. Tap through to see each
           primitive, transition, and gesture in isolation.
         </Text>
         <View style={styles.dotRow}>
@@ -474,7 +478,7 @@ export default function App() {
       ))}
 
       <Text style={styles.footer}>
-        v0.0.0-alpha.0 · React Native · Reanimated 4
+        {inertiaVersion} · React Native · Reanimated 4
       </Text>
     </ScrollView>
   )

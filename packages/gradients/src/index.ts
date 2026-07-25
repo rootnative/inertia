@@ -2,13 +2,14 @@
  * `@rootnative/inertia-gradients` — animated gradient primitives for
  * `@rootnative/inertia`.
  *
- * v0.2 surface:
+ * Public surface:
  * - `MotionLinearGradient` — animatable linear gradient over
  *   `expo-linear-gradient`. Animates `colors`, `start`, `end`, and
  *   `locations` with the same `initial` / `animate` / `transition` shape
  *   as the core Motion primitives.
  *
- * Radial / conic gradients land in v0.3 once the linear API is validated.
+ * Radial / conic gradients are backlog, unscheduled — they need their own
+ * prop shape, and the linear API earns that work first.
  */
 export { MotionLinearGradient } from './MotionLinearGradient'
 export type { MotionLinearGradientProps } from './MotionLinearGradient'

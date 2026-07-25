@@ -881,7 +881,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
 
       // Exiting children are tap-deaf: the next press should fall through to
       // whatever is underneath, not re-trigger a soon-to-unmount node. This is
-      // the moti #297 fix and a v0.1 acceptance criterion. RN 0.71+ deprecates
+      // the moti #297 fix and a `0.0.1` acceptance criterion. RN 0.71+ deprecates
       // `pointerEvents` as a prop in favor of the style key, so we merge it
       // alongside the animated style instead of spreading as a prop.
       const mergedStyle = useMemo(
@@ -1191,9 +1191,9 @@ function makeKeyCallbackFactory(
  * nested object decomposes into the `shadowOffsetWidth` / `shadowOffsetHeight`
  * synthetic axes downstream; consumers don't see the synthetics.
  *
- * v0.1 contract: `shadowOffset` accepts a single `{ width, height }` literal
- * (no sequences, no `{ to }` step objects, no array keyframes). Sequence
- * forms on the nested axes can land in v0.2 if real consumers ask for them.
+ * Contract since `0.0.1`: `shadowOffset` accepts a single `{ width, height }`
+ * literal (no sequences, no `{ to }` step objects, no array keyframes).
+ * Sequence forms on the nested axes can land later if real consumers ask.
  */
 type InternalAnimateRecord = Partial<
   Record<AnimatableKey, AnimatableValue<number | string>>

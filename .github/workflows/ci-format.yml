@@ -48,3 +48,17 @@ jobs:
       # repairable with `pnpm run check:versions:fix`.
       - name: Version consistency
         run: pnpm run check:versions
+
+      # `docs/static/llms-full.txt` and every `packages/*/llms.txt` are
+      # generated from `docs/docs/*`. Fixing a source page (or letting
+      # `check:versions:fix` rewrite a status line) without re-running the
+      # generator leaves the committed copies behind — which is how 0.0.3
+      # shipped an llms-full.txt still announcing 0.0.2. Regenerate and fail if
+      # anything moved; the fix is `pnpm run build:llms` plus a commit.
+      - name: Generated llms.txt files are up to date
+        run: |
+          pnpm run build:llms
+          if ! git diff --exit-code -- '**/llms.txt' '**/llms-full.txt'; then
+            echo "::error::Generated llms files are stale. Run 'pnpm run build:llms' and commit the result."
+            exit 1
+          fi
