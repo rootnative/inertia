@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-native'
+import { render, renderHook } from '@testing-library/react-native'
 import { type ReactNode } from 'react'
 import * as Reanimated from 'react-native-reanimated'
 import { MotionConfig, useAnimator, useMotionValue } from '../index'
@@ -123,13 +123,67 @@ describe('useAnimator', () => {
     expect(result.current).toBe(first)
   })
 
-  it('changes callback identity when the registry changes', () => {
+  // Was titled "changes callback identity when the registry changes", but the
+  // body only ever re-rendered under the *same* provider — it asserted
+  // stability and never exercised a registry change at all. Renamed to match
+  // what it does; the actual registry-change case is covered below.
+  it('keeps its identity across re-renders under a provider', () => {
     const { result, rerender } = renderHook(() => useAnimator(), {
       wrapper: registryWrapper(REGISTRY),
     })
     const first = result.current
     rerender({})
-    // Same registry object → same callback (deps unchanged).
     expect(result.current).toBe(first)
+  })
+})
+
+// The identity-stability contract is stated in three places (the hook's
+// JSDoc, docs/api/hooks.md, and the 0.0.2 changelog) because the whole point
+// of `useAnimator` is to be dropped into a memoized event handler. It used to
+// depend on `[registry, shouldReduceMotion]`, so a provider republishing its
+// transitions — or the reduced-motion flag flipping — handed back a new
+// function and churned every handler built on it. The values are read out of
+// refs at call time instead, which also means a write always resolves against
+// the registry current *when the event fires*.
+describe('useAnimator — identity stability', () => {
+  it('keeps the same identity across a different provider registry', () => {
+    const seen: Array<() => void> = []
+    function Probe() {
+      const animate = useAnimator()
+      seen.push(animate as unknown as () => void)
+      return null
+    }
+    const ui = (transitions: NamedTransitions) => (
+      <MotionConfig transitions={transitions}>
+        <Probe />
+      </MotionConfig>
+    )
+    const { rerender } = render(ui(REGISTRY))
+    rerender(ui({ ...REGISTRY, extra: { type: 'timing', duration: 5 } }))
+
+    expect(seen.length).toBeGreaterThan(1)
+    expect(new Set(seen).size).toBe(1)
+  })
+
+  it('still resolves against the newest registry after it changes', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    const probe: { animate?: ReturnType<typeof useAnimator> } = {}
+    function Probe() {
+      probe.animate = useAnimator()
+      return null
+    }
+    const ui = (transitions: NamedTransitions) => (
+      <MotionConfig transitions={transitions}>
+        <Probe />
+      </MotionConfig>
+    )
+    const { rerender } = render(ui(REGISTRY))
+    // Redefine the named transition, then call the *same* function reference.
+    rerender(ui({ 'state-hover': { type: 'timing', duration: 999 } }))
+
+    const { result } = renderHook(() => useMotionValue(0))
+    probe.animate!(result.current, 1, 'state-hover')
+    expect(withTiming.mock.calls.at(-1)![1]).toMatchObject({ duration: 999 })
+    withTiming.mockRestore()
   })
 })

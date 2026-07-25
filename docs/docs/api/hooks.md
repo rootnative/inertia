@@ -320,6 +320,8 @@ The chain is exactly equivalent to the hand-written nested-`interpolateColor` sh
 
 where `ColorCascadeLayer` is `{ progress: SharedValue<number>; color: string }`.
 
+**Rewiring a layer.** The chain is resolved on the JS thread and kept identity-stable, so passing a fresh-but-equal `layers` array every render costs nothing. Changing a colour, the `key`, the base `rest`, the layer count, or **which shared value drives a layer** all rewire the worklet — so a conditionally-sourced progress (`{ progress: isError ? errorSpring : hoverSpring, color }`) behaves as written.
+
 **`useColorCascade` vs `useColorTransition`.** `useColorTransition(progress, [rest, active])` is the single-layer fast path — one progress ⇄ one color slot. Reach for `useColorCascade` when **independent** states each contribute a color and their precedence matters (a field border that is simultaneously hoverable, error-able, and focusable). It is not a replacement for the single-layer hook.
 
 **Numeric cascades.** `useColorCascade` is color-only by design. If a numeric key needs the same precedence (e.g. an outlined border widening 1→2dp under error/focus), compose it separately — drive each layer through `useInterpolatedStyle` and combine with a `useTransform` `Math.max(...)`, or drop to a hand-rolled `useAnimatedStyle`.
@@ -445,7 +447,7 @@ It exists because the hand-written escape hatch — `value.value = resolveTransi
 - **Named transitions resolve.** A [named transition](../motion-config#named-transitions) registered on the nearest `<MotionConfig transitions>` works here just as it does on the `transition` prop or in `useAnimation`. A bare `resolveTransition` call can't reach the registry (names resolve through context), so imperative call sites otherwise rebuild configs the provider already owns.
 - **Reduced motion is respected.** The write routes through the same `'no-animation'` downgrade `useAnimation` applies under `<MotionConfig reducedMotion>`. Hand-rolled `resolveTransition` writes silently bypass that accessibility setting — a correctness bug this hook fixes.
 
-The returned callback is **identity-stable** across renders (it reads the registry and reduced-motion flag live), so it drops straight into memoized handlers.
+The returned callback is **identity-stable for the lifetime of the component** — it reads the registry and the reduced-motion flag out of refs at call time, so neither a provider republishing its `transitions` map nor a reduced-motion change hands you a new function. Drop it into memoized handlers or a `useCallback` dependency list without churning them. Reading at call time also means a write always resolves against the registry current _when the event fires_, not the one captured at render.
 
 | Signature                                                                                                      | Returns    |
 | -------------------------------------------------------------------------------------------------------------- | ---------- |

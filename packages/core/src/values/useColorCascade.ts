@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import {
   interpolateColor,
   useAnimatedStyle,
@@ -60,11 +60,11 @@ export interface UseColorCascadeOptions {
  * hook is not a replacement for it. For a mixed numeric + color cascade, or
  * function-valued layers, drop to a hand-rolled `useAnimatedStyle`.
  *
- * The layer chain is resolved once on the JS thread and memoized on a
- * structural signature (colors + key), so a fresh-but-equal `layers` array
- * each render produces no new UI-thread closure (CLAUDE.md principle 8). The
- * `progress` shared values are read live in the worklet, so their identity is
- * intentionally excluded from the signature.
+ * The layer chain is resolved once on the JS thread and kept identity-stable,
+ * so a fresh-but-equal `layers` array each render produces no new UI-thread
+ * closure (CLAUDE.md principle 8). Changing a colour, the `key`, the base
+ * `rest`, the layer count, or **which shared value drives a layer** all rewire
+ * the worklet as you'd expect.
  */
 export function useColorCascade(
   rest: string,
@@ -73,21 +73,39 @@ export function useColorCascade(
 ): ReturnType<typeof useAnimatedStyle> {
   const key = options?.key ?? 'backgroundColor'
 
-  // Resolve the layer chain into two flat, memoized arrays the worklet closes
-  // over — the static colors and the live progress shared values. Both are
-  // memoized on the same structural signature so a fresh-but-equal `layers`
-  // literal each render yields the same array references; Reanimated then sees
-  // an unchanged closure dependency and does not rebuild the UI-thread worklet
-  // (CLAUDE.md principle 8). The `progress` shared values are identity-stable
-  // per hook instance, so signing the colors + count is enough to detect a
-  // real change to the chain.
+  // Resolve the layer chain into two flat arrays the worklet closes over — the
+  // static colors and the live progress shared values. Both must keep a stable
+  // identity across renders where nothing really changed, or Reanimated sees a
+  // fresh closure dependency and rebuilds the UI-thread worklet every render
+  // (CLAUDE.md principle 8).
+  //
+  // Colors key off a structural signature.
   const sig = `${key}|${rest}|${layers.length}|${layers
     .map((l) => l.color)
     .join(',')}`
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const colors = useMemo(() => layers.map((l) => l.color), [sig])
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const progressValues = useMemo(() => layers.map((l) => l.progress), [sig])
+
+  // Progress values can't go in that signature — they're objects, not
+  // stringifiable. But they can't be excluded from change detection either:
+  // swapping *which* shared value drives a layer while its colour stays the
+  // same has to rewire the worklet. (It previously didn't: the cascade kept
+  // reading the old SV forever, silently.) So compare references directly and
+  // rebuild the array only when one actually differs — an equal-but-fresh
+  // `layers` literal still yields the same reference and no new worklet.
+  const progressRef = useRef<readonly SharedValue<number>[]>([])
+  const prevProgress = progressRef.current
+  let progressChanged = prevProgress.length !== layers.length
+  if (!progressChanged) {
+    for (let i = 0; i < layers.length; i++) {
+      if (prevProgress[i] !== layers[i]!.progress) {
+        progressChanged = true
+        break
+      }
+    }
+  }
+  if (progressChanged) progressRef.current = layers.map((l) => l.progress)
+  const progressValues = progressRef.current
 
   return useAnimatedStyle(() => {
     'worklet'

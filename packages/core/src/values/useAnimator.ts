@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { type SharedValue } from 'react-native-reanimated'
 import {
   resolveNamedTransition,
@@ -24,9 +24,11 @@ import { type TransitionInput } from '../types'
  *    `<MotionConfig reducedMotion>`. Hand-rolled `resolveTransition` writes
  *    silently bypass that setting — a correctness bug this hook fixes.
  *
- * The returned callback is stable across renders (it reads the registry and
- * the reduced-motion flag live inside the body), so it can be dropped straight
- * into memoized handlers.
+ * The returned callback is identity-stable for the lifetime of the component —
+ * it reads the registry and the reduced-motion flag out of refs at call time,
+ * so neither a new `<MotionConfig transitions>` map nor a reduced-motion change
+ * gives it a new identity. Drop it straight into memoized handlers or a
+ * `useCallback` dependency list without churning them.
  *
  * This is not a new animation API — it starts animations in Inertia's existing
  * transition vocabulary, so it does not conflict with the "no imperative-only
@@ -59,14 +61,23 @@ export function useAnimator(): Animator {
   const registry = useNamedTransitions()
   const shouldReduceMotion = useShouldReduceMotion()
 
-  return useCallback(
-    (value, to, transition) => {
-      const resolved = resolveNamedTransition(transition, registry)
-      const cfg = shouldReduceMotion
-        ? ({ type: 'no-animation' } as const)
-        : (resolved ?? ({ type: 'spring' } as const))
-      value.value = resolveTransition(cfg, to) as never
-    },
-    [registry, shouldReduceMotion],
-  )
+  // Latest context values behind refs, so the callback below can close over
+  // nothing that changes. Depending on them directly would hand back a new
+  // identity whenever a provider re-published its registry or the OS
+  // reduced-motion flag flipped — which breaks the documented contract that
+  // this is safe to drop into a memoized handler. Reading at call time is also
+  // strictly more correct: the write always resolves against the registry that
+  // is current *when the event fires*, not the one captured at render.
+  const registryRef = useRef(registry)
+  registryRef.current = registry
+  const reduceMotionRef = useRef(shouldReduceMotion)
+  reduceMotionRef.current = shouldReduceMotion
+
+  return useCallback((value, to, transition) => {
+    const resolved = resolveNamedTransition(transition, registryRef.current)
+    const cfg = reduceMotionRef.current
+      ? ({ type: 'no-animation' } as const)
+      : (resolved ?? ({ type: 'spring' } as const))
+    value.value = resolveTransition(cfg, to) as never
+  }, [])
 }

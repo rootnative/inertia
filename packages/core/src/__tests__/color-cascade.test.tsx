@@ -203,3 +203,66 @@ describe('useColorCascade — memoization', () => {
     expect(first).toBe('#111111')
   })
 })
+
+// Regression: the layer chain is keyed on a colors+key signature, which can't
+// contain the progress shared values (they're objects). They still have to
+// participate in change detection — swapping *which* shared value drives a
+// layer, while its colour stays the same, previously left the worklet reading
+// the old SV forever and the swap silently did nothing.
+//
+// The fix compares SV references directly, so these two properties have to
+// hold together: a real swap rewires, and an equal-but-fresh `layers` literal
+// still produces no new UI-thread closure (CLAUDE.md principle 8).
+describe('useColorCascade — progress shared-value identity', () => {
+  const REST = 'rgba(0, 0, 0, 1)'
+  const HOT = 'rgba(255, 0, 0, 1)'
+
+  function Swapper({
+    useSecond,
+    probe,
+  }: {
+    useSecond: boolean
+    probe: Probe & { a?: SharedValue<number>; b?: SharedValue<number> }
+  }) {
+    const a: SharedValue<number> = useMotionValue(0)
+    const b: SharedValue<number> = useMotionValue(0)
+    probe.a = a
+    probe.b = b
+    probe.current = useColorCascade(REST, [
+      { progress: useSecond ? b : a, color: HOT },
+    ]) as Record<string, unknown>
+    return null
+  }
+
+  it('follows the new shared value after a swap', () => {
+    const probe: Probe & { a?: SharedValue<number>; b?: SharedValue<number> } =
+      {}
+    const { rerender } = render(<Swapper useSecond={false} probe={probe} />)
+
+    // Drive the not-yet-wired SV, then swap the layer onto it.
+    probe.b!.value = 1
+    rerender(<Swapper useSecond={true} probe={probe} />)
+    expect(probe.current?.backgroundColor).toBe(HOT)
+  })
+
+  it('stops following the shared value it was swapped away from', () => {
+    const probe: Probe & { a?: SharedValue<number>; b?: SharedValue<number> } =
+      {}
+    const { rerender } = render(<Swapper useSecond={false} probe={probe} />)
+    rerender(<Swapper useSecond={true} probe={probe} />)
+
+    // `a` is no longer referenced by any layer — driving it must do nothing.
+    probe.a!.value = 1
+    rerender(<Swapper useSecond={true} probe={probe} />)
+    expect(probe.current?.backgroundColor).toBe(REST)
+  })
+
+  // The other half of this fix — that an equal-but-fresh `layers` literal
+  // still yields the same array identity, so Reanimated sees no changed
+  // closure dependency — is deliberately not asserted here. The static mock is
+  // `useAnimatedStyle: (fn) => fn()`; it performs no dependency tracking, so
+  // "did the UI-thread closure rebuild" simply isn't observable through it.
+  // The `produces a stable result across equal-but-fresh renders` case above
+  // covers what is observable; the closure-identity property is enforced by
+  // construction (reference comparison before rebuilding the array).
+})
