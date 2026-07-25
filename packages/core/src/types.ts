@@ -4,7 +4,7 @@ import {
   type ReactElement,
   type Ref,
 } from 'react'
-import { type StyleProp } from 'react-native'
+import { type BoxShadowValue, type StyleProp } from 'react-native'
 
 /**
  * A single animation step's destination, optionally overriding the transition
@@ -185,6 +185,39 @@ type AnimatableTransformExtras = {
 }
 
 /**
+ * Target shape for the `boxShadow` key on `animate` / `initial` / `exit`: a
+ * CSS `box-shadow` string, or RN's own array-of-layers form.
+ *
+ * Both endpoints of a `boxShadow` animation are normalized to a common layer
+ * count on the JS thread, so a two-layer shadow can animate to a one-layer one
+ * (the short side is padded with a transparent layer, as CSS transitions do).
+ * A layer that is `inset` on one side and not the other is not interpolable
+ * and throws.
+ */
+export type BoxShadowInput = string | ReadonlyArray<BoxShadowValue>
+
+/**
+ * Keys whose animatable form deliberately departs from the generic
+ * `AnimatableValue<S[K]>` mapping.
+ *
+ * `boxShadow` is the only member. Its natural value is already an array, which
+ * collides head-on with `AnimatableValue`'s keyframe-sequence form — nothing
+ * distinguishes `[layerA, layerB]` (one two-layer shadow) from a two-step
+ * sequence. The array slot is given to layers, which is the shape RN itself
+ * uses and by far the common case, and sequences are unsupported on this key.
+ * This mirrors the single-value-only contract `shadowOffset` has carried since
+ * `0.0.1`. Per-property transitions are unaffected: `transition={{ boxShadow:
+ * { type: 'timing' } }}` works as it does for every other key.
+ *
+ * Conditional on `S` so the key only appears where the underlying style
+ * actually has it, rather than being bolted onto every primitive.
+ */
+type AnimatableStructuredExtras<S> = 'boxShadow' extends keyof S
+  ? { boxShadow?: BoxShadowInput }
+  : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    {}
+
+/**
  * The animation state shape inferred from the underlying component's style
  * prop. We narrow to the value side of `style` so consumers see ViewStyle on
  * `Motion.View`, TextStyle on `Motion.Text`, etc. — no shared union.
@@ -200,7 +233,9 @@ type _StyleValue<T> = Exclude<T, (...args: any[]) => any>
 
 export type AnimateStyle<C> = C extends { style?: infer Raw }
   ? _StyleValue<Raw> extends StyleProp<infer S>
-    ? { [K in keyof S]?: AnimatableValue<S[K]> } & AnimatableTransformExtras
+    ? Omit<{ [K in keyof S]?: AnimatableValue<S[K]> }, 'boxShadow'> &
+        AnimatableTransformExtras &
+        AnimatableStructuredExtras<S>
     : never
   : never
 

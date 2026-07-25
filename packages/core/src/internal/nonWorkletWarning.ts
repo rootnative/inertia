@@ -1,11 +1,11 @@
+import { __resetWarnOnceForTests, warnOnce } from './warnOnce'
+
 declare const __DEV__: boolean
 
 // The core package intentionally has no Node types — declare the minimal
 // shape needed for the Jest detection below (guarded by a typeof check, so
 // environments without `process` are fine).
 declare const process: { env?: Record<string, string | undefined> } | undefined
-
-const warned = new Set<string>()
 
 /**
  * Dev-only, once-per-key warning for plain (non-worklet) functions handed to
@@ -30,12 +30,10 @@ const warned = new Set<string>()
 export function warnNonWorkletOnce(key: string, message: string): void {
   if (!__DEV__) return
   if (typeof process !== 'undefined' && process.env?.JEST_WORKER_ID) return
-  if (warned.has(key)) return
-  warned.add(key)
-  console.warn(message)
+  warnOnce(key, message)
 }
 
 /** @internal — test-only hook to reset the once-per-key state. */
 export function __resetNonWorkletWarningsForTests(): void {
-  warned.clear()
+  __resetWarnOnceForTests()
 }

@@ -82,6 +82,7 @@ export type {
   AnimatableValue,
   AnimateStyle,
   AnimationCallbackInfo,
+  BoxShadowInput,
   DecayTransition,
   EasingFunction,
   EasingFunctionFactory,

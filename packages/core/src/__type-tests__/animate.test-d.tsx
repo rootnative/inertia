@@ -69,6 +69,40 @@ const _scrollViewAccepts: ScrollViewAnimate = { opacity: 1, translateY: 10 }
 // @ts-expect-error tintColor is ImageStyle-only and must be rejected on ScrollView
 const _scrollViewRejectsTintColor: ScrollViewAnimate = { tintColor: '#0a84ff' }
 
+// ─── boxShadow: the structured key ──────────────────────────────────────────
+//
+// `boxShadow`'s value is natively an array, which collides with
+// `AnimatableValue`'s keyframe-sequence form — `[a, b]` is ambiguous between
+// one two-layer shadow and a two-step sequence. The array slot belongs to
+// layers; sequences are unsupported on this key. These assertions pin that
+// split so a future refactor can't silently hand the slot back to sequences.
+
+// Names are kept short here for a mechanical reason: Prettier must not reflow
+// an asserted line onto a second line, or the error moves off the
+// `@ts-expect-error` directive above it and tsc reports it as unused.
+const _shadowStr: ViewAnimate = { boxShadow: '0px 4px 8px #000' }
+const _shadowArr: ViewAnimate = { boxShadow: [{ offsetX: 0, offsetY: 4 }] }
+const _shadowAllFields: ViewAnimate = {
+  boxShadow: [
+    {
+      offsetX: 0,
+      offsetY: 4,
+      blurRadius: 8,
+      spreadDistance: 1,
+      color: '#000',
+      inset: true,
+    },
+  ],
+}
+// @ts-expect-error array keyframes are unsupported — the array slot means layers
+const _shadowSeq: ViewAnimate = { boxShadow: ['none', '0px 4px #000'] }
+// @ts-expect-error `{ to }` step objects are unsupported on boxShadow too
+const _shadowStep: ViewAnimate = { boxShadow: { to: '0px 4px #000' } }
+// @ts-expect-error a layer must at least carry its offsets
+const _shadowPartial: ViewAnimate = { boxShadow: [{ blurRadius: 8 }] }
+// @ts-expect-error numbers are not a shadow
+const _shadowNumber: ViewAnimate = { boxShadow: 4 }
+
 // Silence "declared but never read" — these exist purely as type assertions.
 export type _PhaseOneTypeAssertions = [
   typeof _viewAccepts,
@@ -85,4 +119,11 @@ export type _PhaseOneTypeAssertions = [
   typeof _pressableRejectsTintColor,
   typeof _scrollViewAccepts,
   typeof _scrollViewRejectsTintColor,
+  typeof _shadowStr,
+  typeof _shadowArr,
+  typeof _shadowAllFields,
+  typeof _shadowSeq,
+  typeof _shadowStep,
+  typeof _shadowPartial,
+  typeof _shadowNumber,
 ]

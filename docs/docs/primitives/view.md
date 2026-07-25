@@ -29,7 +29,7 @@ import { MotionView } from '@rootnative/inertia/view'
 
 ## Animatable keys
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`, `backgroundColor`, `borderColor`, `shadowColor`, `shadowOffset`.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`, `backgroundColor`, `borderColor`, `shadowColor`, `shadowOffset`, `boxShadow`.
 
 ## Shadow animation
 
@@ -62,6 +62,43 @@ Shadow keys ride the same animatable pipeline as other numeric / color props —
 ```
 
 `shadowOffset` supports the **single-value form only** — `{ width: number, height: number }`. Sequences inside the nested object (`{ width: [0, 100, 0], height: 0 }`) and array keyframes on the whole object are out of scope; drop to the value-layer hooks (`useMotionValue` + `useAnimatedStyle`) when you need them. Per-axis transition splits are also out of scope — the top-level `transition.shadowOffset` applies to both axes.
+
+## `boxShadow`
+
+`boxShadow` animates the cross-platform CSS shadow form. It accepts a CSS string (what a design system stores its elevation tokens as) or React Native's own array-of-layers:
+
+```tsx
+<Motion.View
+  initial={{ boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.25)' }}
+  animate={{
+    boxShadow:
+      '0px 6px 14px rgba(0, 0, 0, 0.28), 0px 2px 4px 1px rgba(0, 0, 0, 0.15)',
+  }}
+  transition={{ boxShadow: { type: 'spring', tension: 160, friction: 18 } }}
+/>
+```
+
+```tsx
+// Equivalent structured form — lengths may be numbers or px strings.
+<Motion.View
+  animate={{
+    boxShadow: [{ offsetX: 0, offsetY: 8, blurRadius: 16, color: '#4f46e57a' }],
+  }}
+/>
+```
+
+**Layer counts may differ between endpoints.** The shorter side is padded with a transparent zero layer, the same way CSS transitions pad, so a one-layer shadow animating to a two-layer one fades the extra layer in rather than popping it. Every length and color interpolates per layer.
+
+**`inset` is not interpolated.** It travels as a static per-layer flag, because there is no meaningful midpoint between an inner and an outer shadow. Both endpoints may use `inset` freely, but a layer that is `inset` on one side and not the other throws — pad with a transparent layer if you need the counts to line up differently.
+
+**Two constraints to know:**
+
+- **No sequences on this key.** `boxShadow: [a, b]` means one two-layer shadow, not a two-step keyframe sequence — the array slot belongs to layers, and nothing distinguishes the two shapes structurally. Same single-value contract `shadowOffset` carries. Per-property transitions are unaffected.
+- **Not available in `gesture` sub-states.** Compositing a layer stack in the priority cascade would mean per-layer interpolation on the UI thread for every primitive. Drive it from `animate` instead — optionally through a variant keyed off the same state — or interpolate it yourself with [`useShadow`](../api/hooks#useshadow-from-to-progress-). Inertia warns in dev if it finds `boxShadow` inside a `gesture` sub-state.
+
+Only px (and unitless) lengths are supported; `em` / `%` / `rem` depend on font or viewport context a style value can't resolve, and are rejected rather than silently animating from a `NaN`.
+
+Don't animate `boxShadow` and the native `shadow*` keys on the same element — that applies two shadow systems at once and whichever the view resolves last wins. Inertia warns in dev when both appear in one instance's animated key set.
 
 ## Notes
 

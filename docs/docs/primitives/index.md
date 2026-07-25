@@ -54,6 +54,8 @@ The alpha supports the properties below across every primitive that accepts them
 
 **Shadow offset:** `shadowOffset` accepts the nested `{ width, height }` object (single-value form only — see [Motion.View](./view) for the contract).
 
+**Box shadow:** `boxShadow` animates the cross-platform CSS shadow form — see [Motion.View](./view#boxshadow) for the layer-count rules and the `inset` constraint. Don't animate it alongside the native `shadow*` keys on the same element; that applies two shadow systems at once, and Inertia warns in dev when it sees both.
+
 **Color:** `backgroundColor`, `borderColor`, `color`, `shadowColor`, `tintColor` (Image only). Any color string Reanimated recognizes works — hex (`'#4f46e5'`, `'#fff'`), `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors including `'transparent'`. The target is forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
 
 ```tsx

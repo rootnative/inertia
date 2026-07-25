@@ -144,17 +144,24 @@ export function parseBoxShadow(input: string): ResolvedBoxShadowLayer[] {
   })
 }
 
-/** Resolve either input form (CSS string or structured layers) to layers. */
+/**
+ * Resolve either input form (CSS string or structured layers) to layers.
+ *
+ * Lengths may arrive as numbers (what `useShadow`'s `BoxShadowLayer` declares)
+ * or as px strings (what RN's own `BoxShadowValue` permits, so what the
+ * `animate` surface has to accept). `coerceLength` normalizes both and rejects
+ * anything else, so downstream only ever sees concrete numbers.
+ */
 export function resolveBoxShadowInput(
-  input: string | readonly BoxShadowLayer[] | undefined,
+  input: BoxShadowInput | undefined,
 ): ResolvedBoxShadowLayer[] {
   if (input === undefined) return []
   if (typeof input === 'string') return parseBoxShadow(input)
   return input.map((layer) => ({
-    offsetX: layer.offsetX,
-    offsetY: layer.offsetY,
-    blurRadius: layer.blurRadius ?? 0,
-    spreadDistance: layer.spreadDistance ?? 0,
+    offsetX: coerceLength(layer.offsetX, 'offsetX'),
+    offsetY: coerceLength(layer.offsetY, 'offsetY'),
+    blurRadius: coerceLength(layer.blurRadius, 'blurRadius'),
+    spreadDistance: coerceLength(layer.spreadDistance, 'spreadDistance'),
     color: layer.color ?? 'black',
     inset: layer.inset ?? false,
   }))
@@ -201,4 +208,168 @@ function invisibleLayer(inset: boolean): ResolvedBoxShadowLayer {
     color: 'transparent',
     inset,
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Declarative `animate={{ boxShadow }}` support
+ *
+ * The `useShadow` path above interpolates two endpoints itself, by
+ * progress. The `animate` path instead hands the target to Reanimated's
+ * own animation drivers, which have their own rules — the helpers below
+ * exist to satisfy them on the JS thread so the worklet never does string
+ * or structural work at frame time (Principle 8).
+ * ------------------------------------------------------------------ */
+
+/**
+ * The interpolable half of a box-shadow layer: every field Reanimated can
+ * drive, and nothing it can't.
+ *
+ * `inset` is deliberately absent. `withTiming` / `withSpring` recurse into
+ * arrays and objects and animate each leaf, and a boolean leaf falls through
+ * to the plain numeric path — `false + (false - false) * p` evaluates to `0`,
+ * so an in-flight frame hands the native shadow a number where it expects a
+ * boolean. Inset is instead carried alongside as a static per-layer flag (see
+ * `SplitBoxShadow.insets`) and reattached when the style is emitted.
+ */
+export interface AnimatedBoxShadowLayer {
+  offsetX: number
+  offsetY: number
+  blurRadius: number
+  spreadDistance: number
+  color: string
+}
+
+/**
+ * Resolved layers split into the part Reanimated animates and the part it
+ * must not touch.
+ *
+ * `insets` is `null` — not an array of `false` — when no layer is inset, which
+ * is the overwhelmingly common case. That lets the emitting worklet skip
+ * reassembly entirely and pass the animated array straight through with zero
+ * per-frame allocation.
+ */
+export interface SplitBoxShadow {
+  layers: AnimatedBoxShadowLayer[]
+  insets: boolean[] | null
+}
+
+/**
+ * Accepted target shape on the `animate` surface: a CSS string or RN's own
+ * `BoxShadowValue[]`, whose lengths may be numbers or px strings.
+ *
+ * Structurally this is RN's `boxShadow` style value. It is restated here
+ * rather than imported so this module stays dependency-free and testable as a
+ * pure function; `types.ts` is where the public-facing alias lives.
+ */
+export type BoxShadowInput =
+  | string
+  | ReadonlyArray<{
+      offsetX: number | string
+      offsetY: number | string
+      // `unknown` because RN types this as `ColorValue | number` — a quirk of
+      // its own declarations rather than a real capability. Coerced (and
+      // rejected) by `coerceLength` like every other length.
+      blurRadius?: unknown
+      spreadDistance?: number | string | undefined
+      color?: string | undefined
+      inset?: boolean | undefined
+    }>
+
+/**
+ * Coerce one RN length field to a number. RN's `BoxShadowValue` types its
+ * lengths as `number | string` so `{ offsetX: '4px' }` is legal input; the
+ * animated slot needs a plain number to interpolate. Unit handling matches
+ * `parseBoxShadow` — px and unitless only, and anything else throws rather
+ * than silently animating from a `NaN`.
+ */
+function coerceLength(value: unknown, field: string): number {
+  if (value === undefined) return 0
+  if (typeof value === 'number') return value
+  const trimmed = typeof value === 'string' ? value.trim() : ''
+  if (!LENGTH.test(trimmed)) {
+    throw new Error(
+      `[inertia] boxShadow: ${field} must be a number or a px length, got ` +
+        `${JSON.stringify(value)}.`,
+    )
+  }
+  return parseFloat(trimmed)
+}
+
+/** Drop `inset`, leaving only the fields Reanimated may drive. */
+function strip(layer: ResolvedBoxShadowLayer): AnimatedBoxShadowLayer {
+  const { inset: _inset, ...rest } = layer
+  return rest
+}
+
+/**
+ * Record layer `i` as inset, materializing the flag list on first use so the
+ * common all-outset case keeps `null` and costs the worklet nothing.
+ */
+function markInset(
+  insets: boolean[] | null,
+  i: number,
+  count: number,
+): boolean[] {
+  const list = insets ?? new Array<boolean>(count).fill(false)
+  list[i] = true
+  return list
+}
+
+/**
+ * Normalize a target into the shared-value seed shape. Used when the slot is
+ * first populated (mount seed, static-style resting value).
+ */
+export function normalizeBoxShadow(input: BoxShadowInput): SplitBoxShadow {
+  const resolved = resolveBoxShadowInput(input)
+  const layers: AnimatedBoxShadowLayer[] = []
+  let insets: boolean[] | null = null
+  for (let i = 0; i < resolved.length; i++) {
+    const layer = resolved[i]!
+    layers.push(strip(layer))
+    if (layer.inset) insets = markInset(insets, i, resolved.length)
+  }
+  return { layers, insets }
+}
+
+/**
+ * Prepare a from/to pair for a Reanimated-driven `boxShadow` animation.
+ *
+ * Both sides come back padded to the same layer count, because Reanimated's
+ * `arrayOnStart` walks the **current** value's indices and reads `toValue[i]`
+ * for each — a target with fewer layers leaves the surplus leaves with
+ * `toValue: undefined`, and a target with more never animates the extras at
+ * all. `pairBoxShadowLayers` supplies the padding (a transparent zero layer,
+ * matching CSS transition semantics) and rejects a genuine inset mismatch.
+ *
+ * The returned `from` is only meaningful when it differs from what the slot
+ * already holds; callers snap the slot to it before starting the animation so
+ * the interpolation has a same-shaped base to run from.
+ */
+export function prepareBoxShadowAnimation(
+  current: SplitBoxShadow,
+  target: BoxShadowInput,
+): {
+  from: AnimatedBoxShadowLayer[]
+  to: AnimatedBoxShadowLayer[]
+  insets: boolean[] | null
+} {
+  const pairs = pairBoxShadowLayers(
+    current.layers.map((layer, i) => ({
+      ...layer,
+      inset: current.insets?.[i] ?? false,
+    })),
+    resolveBoxShadowInput(target),
+  )
+  const from: AnimatedBoxShadowLayer[] = []
+  const to: AnimatedBoxShadowLayer[] = []
+  let insets: boolean[] | null = null
+  for (let i = 0; i < pairs.length; i++) {
+    const pair = pairs[i]!
+    from.push(strip(pair.from))
+    to.push(strip(pair.to))
+    // `pairBoxShadowLayers` has already established that the two sides agree
+    // on inset, so reading either describes the pair.
+    if (pair.to.inset) insets = markInset(insets, i, pairs.length)
+  }
+  return { from, to, insets }
 }

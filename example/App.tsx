@@ -22,6 +22,7 @@ import { PresenceScreen } from './screens/PresenceScreen'
 import { PressableScreen } from './screens/PressableScreen'
 import { ScrollViewScreen } from './screens/ScrollViewScreen'
 import { SequenceScreen } from './screens/SequenceScreen'
+import { BoxShadowScreen } from './screens/BoxShadowScreen'
 import { ShadowScreen } from './screens/ShadowScreen'
 import { SharedElementScreen } from './screens/SharedElementScreen'
 import { SliderScreen } from './screens/SliderScreen'
@@ -49,6 +50,7 @@ type Route =
   | 'color'
   | 'transforms'
   | 'shadow'
+  | 'box-shadow'
   | 'variants'
   | 'sequence'
   | 'decay'
@@ -86,6 +88,7 @@ const VALID_ROUTES: ReadonlyArray<Route> = [
   'color',
   'transforms',
   'shadow',
+  'box-shadow',
   'variants',
   'sequence',
   'decay',
@@ -173,6 +176,12 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         label: 'Shadow & elevation',
         description:
           'MD3 cascade — shadowOpacity / Radius / Offset / elevation',
+      },
+      {
+        route: 'box-shadow',
+        label: 'boxShadow',
+        description:
+          'cross-platform CSS shadow — multi-layer, counts may differ',
       },
       {
         route: 'linear-gradient',
@@ -353,6 +362,7 @@ export default function App() {
   if (route === 'color') return <ColorScreen onBack={goHome} />
   if (route === 'transforms') return <TransformsScreen onBack={goHome} />
   if (route === 'shadow') return <ShadowScreen onBack={goHome} />
+  if (route === 'box-shadow') return <BoxShadowScreen onBack={goHome} />
   if (route === 'variants') return <VariantsScreen onBack={goHome} />
   if (route === 'sequence') return <SequenceScreen onBack={goHome} />
   if (route === 'decay') return <DecayScreen onBack={goHome} />

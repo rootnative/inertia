@@ -140,6 +140,8 @@ Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only), `sha
 
 Nested object: `shadowOffset: { width, height }`. The only nested-object style on the surface — internally decomposes into two synthetic axis SVs that the worklet recomposes into a single `shadowOffset` prop. `0.0.1` supports the **single-value form only** (`{ width: 0, height: 4 }`); sequences / array keyframes / per-axis transition splits are out of scope, drop to `useMotionValue` for those.
 
+Structured: `boxShadow` — the cross-platform CSS shadow form, as a CSS string (`'0px 4px 8px rgba(0,0,0,0.3)'`, px lengths only) or RN's `BoxShadowValue[]`. Endpoints are normalized on the JS thread and padded to a common layer count (CSS-transition semantics), so layer counts may differ between `initial` and `animate`; every length and color interpolates per layer. `inset` is carried as a static per-layer flag, not interpolated — a layer inset on one side only throws. **No sequences on this key** (the array slot means layers, not keyframes) and **not accepted in `gesture` sub-states** (dev-warns and is ignored; drive it from `animate`, or interpolate manually with `useShadow`). Don't animate it alongside the native `shadow*` keys on one element — two shadow systems at once; Inertia dev-warns.
+
 Auto-layout transitions ship via the `layout` prop (`true` / `TransitionConfig`) on every `Motion.*` primitive — see Layout. Shared element transitions ship via the `layoutId` prop: pair the same id on a source and target `Motion.*` and Inertia FLIPs between them on mount (parent-relative coords, rect-only animation, 1s TTL).
 
 ## Optional adapter packages

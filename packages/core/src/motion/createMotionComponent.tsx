@@ -23,6 +23,13 @@ import {
 } from '../config'
 import { isFocusVisible } from '../gestures'
 import {
+  normalizeBoxShadow,
+  prepareBoxShadowAnimation,
+  type AnimatedBoxShadowLayer,
+  type SplitBoxShadow,
+} from '../internal/boxShadow'
+import { warnOnce } from '../internal/warnOnce'
+import {
   resolveLayoutTransition,
   type LayoutProp,
   useSharedLayout,
@@ -33,6 +40,7 @@ import {
   resolveAnimatableValue,
   resolveTransition,
   stableSig,
+  type CallbackFactory,
 } from '../transitions'
 import { ensureReanimatedInstalled } from './installCheck'
 import {
@@ -42,6 +50,7 @@ import {
   type GestureLayerTransitions,
   type GestureSubStates,
   type MotionComponent,
+  type BoxShadowInput,
   type MotionProps,
   type PerPropertyTransition,
   type Transition,
@@ -108,6 +117,19 @@ const COLOR_KEYS = [
 // these keys directly.
 const SHADOW_OFFSET_KEYS = ['shadowOffsetWidth', 'shadowOffsetHeight'] as const
 
+// Keys whose shared value holds a structure rather than a scalar. `boxShadow`
+// is the only one: its slot carries an array of layer objects, which
+// Reanimated's animation drivers recurse into, animating each leaf number and
+// color independently (`arrayOnStart` → `objectOnStart` in Reanimated's
+// `animation/util.ts`).
+//
+// Passing the CSS string through instead would NOT work — a box-shadow string
+// isn't a color, so it lands in Reanimated's prefix-number-suffix branch,
+// which is built for values like '100%' and would pull a single number out of
+// a four-value shadow. All string parsing therefore happens on the JS thread,
+// once per change, in `internal/boxShadow.ts`.
+const STRUCTURED_KEYS = ['boxShadow'] as const
+
 /**
  * Per-effect transform-group coordinator. Counts how many transform-axis
  * terminal callbacks are still pending; when the last one fires, the
@@ -121,6 +143,7 @@ const ALL_KEYS = [
   ...NUMERIC_TOP_LEVEL_KEYS,
   ...COLOR_KEYS,
   ...SHADOW_OFFSET_KEYS,
+  ...STRUCTURED_KEYS,
 ] as const
 type AnimatableKey = (typeof ALL_KEYS)[number]
 type TransformKey = (typeof TRANSFORM_KEYS)[number]
@@ -129,6 +152,19 @@ type ShadowOffsetKey = (typeof SHADOW_OFFSET_KEYS)[number]
 const TRANSFORM_KEY_SET = new Set<AnimatableKey>(TRANSFORM_KEYS)
 const COLOR_KEY_SET = new Set<AnimatableKey>(COLOR_KEYS)
 const SHADOW_OFFSET_KEY_SET = new Set<AnimatableKey>(SHADOW_OFFSET_KEYS)
+const STRUCTURED_KEY_SET = new Set<AnimatableKey>(STRUCTURED_KEYS)
+
+/**
+ * What a per-key shared value can hold. Scalars for every key except
+ * `boxShadow`, whose slot carries the layer array (see `STRUCTURED_KEYS`).
+ */
+type AnimatableSlotValue = number | string | readonly AnimatedBoxShadowLayer[]
+
+/**
+ * Resting `boxShadow` — no shadow at all. Frozen and hoisted so every
+ * primitive shares one reference and an untouched slot never allocates.
+ */
+const NO_BOX_SHADOW: readonly AnimatedBoxShadowLayer[] = Object.freeze([])
 
 const GESTURE_LAYER_NAMES = [
   'hovered',
@@ -144,7 +180,7 @@ const GESTURE_LAYER_NAME_SET = new Set<string>(GESTURE_LAYER_NAMES)
 // Reanimated's style merging treats it as a no-op when present.
 const EXITING_POINTER_EVENTS_STYLE = { pointerEvents: 'none' } as const
 
-const DEFAULT_RESTING: Record<AnimatableKey, number | string> = {
+const DEFAULT_RESTING: Record<AnimatableKey, AnimatableSlotValue> = {
   translateX: 0,
   translateY: 0,
   scale: 1,
@@ -171,6 +207,7 @@ const DEFAULT_RESTING: Record<AnimatableKey, number | string> = {
   shadowColor: 'transparent',
   shadowOffsetWidth: 0,
   shadowOffsetHeight: 0,
+  boxShadow: NO_BOX_SHADOW,
 }
 
 // Both lookups run after the factory has resolved registered transition
@@ -423,6 +460,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
       const activeKeysRef = useRef<readonly AnimatableKey[] | null>(null)
       const hasTransformRef = useRef<boolean>(false)
       const hasShadowOffsetRef = useRef<boolean>(false)
+      const hasBoxShadowRef = useRef<boolean>(false)
       // Expand the active set only when this render touched a key we haven't
       // recorded yet. When nothing new appears we keep the existing array
       // identity so the worklet's captured ref doesn't see a fresh value.
@@ -446,6 +484,27 @@ export function createMotionComponent<C extends ComponentType<any>>(
         hasShadowOffsetRef.current = activeKeysRef.current.some((k) =>
           SHADOW_OFFSET_KEY_SET.has(k),
         )
+        hasBoxShadowRef.current = activeKeysRef.current.includes('boxShadow')
+        // Animating `boxShadow` alongside the native `shadow*` keys puts two
+        // shadow systems on one element; whichever the underlying view resolves
+        // last wins, and the result reads as a bug rather than a choice.
+        // Checked here rather than per render — the active key set is what
+        // decides it, and this block only runs when that set grows.
+        if (
+          __DEV__ &&
+          hasBoxShadowRef.current &&
+          activeKeysRef.current.some(
+            (k) => k !== 'boxShadow' && k.startsWith('shadow'),
+          )
+        ) {
+          warnOnce(
+            'boxShadow-with-native-shadow',
+            '[inertia] `boxShadow` is animated alongside the native `shadow*` ' +
+              'keys on the same element, which applies two shadow systems at ' +
+              'once. Pick one: `boxShadow` for the cross-platform CSS form, or ' +
+              'the native `shadow*` keys.',
+          )
+        }
       }
 
       // Which keys a record actually drives *right now*. Everything else in
@@ -473,7 +532,11 @@ export function createMotionComponent<C extends ComponentType<any>>(
       // a style it has no use for.
       const activeKeys = activeKeysRef.current!
       const everDriven = everDrivenRef.current
-      const styleResting: Partial<Record<AnimatableKey, number | string>> = {}
+      const styleResting: Partial<Record<AnimatableKey, AnimatableSlotValue>> =
+        {}
+      // `boxShadow`'s resting value is two halves (animated layers + static
+      // inset flags), so it can't ride the scalar map above.
+      let styleRestingShadow: SplitBoxShadow | null = null
       if (activeKeys.some((k) => !everDriven.has(k))) {
         const flat = StyleSheet.flatten(style as never) as
           | Record<string, unknown>
@@ -481,13 +544,42 @@ export function createMotionComponent<C extends ComponentType<any>>(
         if (flat) {
           for (const key of activeKeys) {
             if (everDriven.has(key)) continue
+            if (key === 'boxShadow') {
+              const raw = flat.boxShadow as BoxShadowInput | undefined
+              if (raw !== undefined) {
+                styleRestingShadow = normalizeBoxShadow(raw)
+                styleResting.boxShadow = styleRestingShadow.layers
+              }
+              continue
+            }
             const v = styleValueFor(flat, key)
             if (v !== undefined) styleResting[key] = v
           }
         }
       }
 
+      // Seed the `boxShadow` slot once, at mount, on the same precedence chain
+      // every other key uses (`initial` → `animate` → static style → default).
+      // Held in a ref rather than recomputed per render because resolving it
+      // may parse a CSS string, and the value is only ever read on the mount
+      // pass.
+      const boxShadowSeedRef = useRef<SplitBoxShadow | null>(null)
+      if (boxShadowSeedRef.current === null) {
+        const source =
+          initial === false
+            ? animateRecord.boxShadow
+            : (initialRecord?.boxShadow ?? animateRecord.boxShadow)
+        boxShadowSeedRef.current =
+          source !== undefined
+            ? normalizeBoxShadow(source)
+            : (styleRestingShadow ?? {
+                layers: [...NO_BOX_SHADOW],
+                insets: null,
+              })
+      }
+
       const sharedValues = useAnimatableSharedValues((key) => {
+        if (key === 'boxShadow') return boxShadowSeedRef.current!.layers
         // Shadow offset synthetics seed from the corresponding axis on the
         // `shadowOffset: { width, height }` source — the consumer doesn't write
         // `shadowOffsetWidth` / `shadowOffsetHeight` directly. Fall back to the
@@ -532,12 +624,25 @@ export function createMotionComponent<C extends ComponentType<any>>(
       // swap, a conditional colour) would stay invisible for any key some
       // gesture / exit / variant branch happens to mention. Direct assignment,
       // not an animation: this is a static value, not a target.
+      // Static `inset` flags for the layers currently in the `boxShadow` slot,
+      // parallel to `sharedValues.boxShadow`. Kept out of the animated payload
+      // because Reanimated would drive the boolean down its numeric path and
+      // hand native a number mid-flight; see `AnimatedBoxShadowLayer`. `null`
+      // whenever no layer is inset, which lets the worklet emit the animated
+      // array with no per-frame reassembly at all.
+      const boxShadowInsets = useSharedValue<boolean[] | null>(
+        boxShadowSeedRef.current.insets,
+      )
+
       const styleRestingSig = stableSig(styleResting)
       useEffect(() => {
         for (const key of activeKeysRef.current!) {
           if (everDrivenRef.current.has(key)) continue
           sharedValues[key].value = (styleResting[key] ??
             DEFAULT_RESTING[key]) as never
+          if (key === 'boxShadow') {
+            boxShadowInsets.value = styleRestingShadow?.insets ?? null
+          }
         }
         // `styleResting` is rebuilt each render; its signature is the real dep.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -666,6 +771,33 @@ export function createMotionComponent<C extends ComponentType<any>>(
           transformPending > 0 ? { remaining: transformPending } : undefined
 
         for (const key of ALL_KEYS) {
+          // Structured keys don't go through `resolveAnimatableValue` — their
+          // target is already an array, which that resolver would read as a
+          // keyframe sequence.
+          if (key === 'boxShadow') {
+            const shadowTarget = baseRecord.boxShadow
+            if (shadowTarget === undefined) continue
+            const cfg = configFor('boxShadow')
+            if (isExiting && reachesTerminalPhase(cfg)) pending++
+            driveBoxShadow(
+              sharedValues.boxShadow,
+              boxShadowInsets,
+              shadowTarget,
+              cfg,
+              makeKeyCallbackFactory(
+                'boxShadow',
+                sharedValues.boxShadow,
+                // The declared target, not the padded one — the padding is an
+                // implementation detail of getting Reanimated to interpolate.
+                shadowTarget,
+                onAnimationEndRef,
+                { stepCount: 1, totalIterations: totalIterationsOf(cfg) },
+                isExiting ? onSettle : undefined,
+                undefined,
+              ),
+            )
+            continue
+          }
           // Shadow offset synthetics read their target from the nested
           // `shadowOffset: { width, height }` source on `baseRecord` — the
           // animate / exit record never has `shadowOffsetWidth` etc. on it
@@ -784,6 +916,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
         const activeKeys = activeKeysRef.current!
         const hasTransform = hasTransformRef.current
         const hasShadowOffset = hasShadowOffsetRef.current
+        const hasBoxShadow = hasBoxShadowRef.current
         const out: Record<string, unknown> = {}
         const transform: Array<Record<string, unknown>> = []
         // shadow-offset reassembly buffers. The two synthetic axis SVs feed in
@@ -810,6 +943,11 @@ export function createMotionComponent<C extends ComponentType<any>>(
         const pressedLayer = layers ? layers.pressed : null
 
         for (const key of activeKeys) {
+          // `boxShadow` is emitted after the loop: its value is a layer array,
+          // which none of the scalar compositing below can act on. Gesture
+          // sub-states are rejected for this key upstream, so there is no
+          // layer contribution to skip past either.
+          if (key === 'boxShadow') continue
           let v = sharedValues[key].value
           const isColor = COLOR_KEY_SET.has(key)
 
@@ -875,6 +1013,22 @@ export function createMotionComponent<C extends ComponentType<any>>(
         if (hasTransform || hasLayoutId) out.transform = transform
         if (hasShadowOffset) {
           out.shadowOffset = { width: shadowOffsetW, height: shadowOffsetH }
+        }
+        if (hasBoxShadow) {
+          const layers = sharedValues.boxShadow
+            .value as readonly AnimatedBoxShadowLayer[]
+          const insets = boxShadowInsets.value
+          // Fast path — no inset layer anywhere, so the animated array is
+          // already exactly what RN wants and crosses over untouched.
+          if (insets === null) {
+            out.boxShadow = layers
+          } else {
+            const withInset = []
+            for (let i = 0; i < layers.length; i++) {
+              withInset.push({ ...layers[i], inset: insets[i] })
+            }
+            out.boxShadow = withInset
+          }
         }
         return out
       })
@@ -969,7 +1123,7 @@ function hasMotionProps(props: Record<string, unknown>): boolean {
   return false
 }
 
-type SharedValueMap = Record<AnimatableKey, SharedValue<number | string>>
+type SharedValueMap = Record<AnimatableKey, SharedValue<AnimatableSlotValue>>
 
 /**
  * Allocate one shared value per animatable key in `ALL_KEYS` and return a
@@ -990,36 +1144,39 @@ type SharedValueMap = Record<AnimatableKey, SharedValue<number | string>>
  * `withSpring` / `withTiming` call.
  */
 function useAnimatableSharedValues(
-  init: (key: AnimatableKey) => number | string,
+  init: (key: AnimatableKey) => AnimatableSlotValue,
 ): SharedValueMap {
-  const translateX = useSharedValue<number | string>(init('translateX'))
-  const translateY = useSharedValue<number | string>(init('translateY'))
-  const scale = useSharedValue<number | string>(init('scale'))
-  const scaleX = useSharedValue<number | string>(init('scaleX'))
-  const scaleY = useSharedValue<number | string>(init('scaleY'))
-  const rotate = useSharedValue<number | string>(init('rotate'))
-  const rotateX = useSharedValue<number | string>(init('rotateX'))
-  const rotateY = useSharedValue<number | string>(init('rotateY'))
-  const opacity = useSharedValue<number | string>(init('opacity'))
-  const width = useSharedValue<number | string>(init('width'))
-  const height = useSharedValue<number | string>(init('height'))
-  const borderRadius = useSharedValue<number | string>(init('borderRadius'))
-  const shadowOpacity = useSharedValue<number | string>(init('shadowOpacity'))
-  const shadowRadius = useSharedValue<number | string>(init('shadowRadius'))
-  const elevation = useSharedValue<number | string>(init('elevation'))
-  const backgroundColor = useSharedValue<number | string>(
+  const translateX = useSharedValue<AnimatableSlotValue>(init('translateX'))
+  const translateY = useSharedValue<AnimatableSlotValue>(init('translateY'))
+  const scale = useSharedValue<AnimatableSlotValue>(init('scale'))
+  const scaleX = useSharedValue<AnimatableSlotValue>(init('scaleX'))
+  const scaleY = useSharedValue<AnimatableSlotValue>(init('scaleY'))
+  const rotate = useSharedValue<AnimatableSlotValue>(init('rotate'))
+  const rotateX = useSharedValue<AnimatableSlotValue>(init('rotateX'))
+  const rotateY = useSharedValue<AnimatableSlotValue>(init('rotateY'))
+  const opacity = useSharedValue<AnimatableSlotValue>(init('opacity'))
+  const width = useSharedValue<AnimatableSlotValue>(init('width'))
+  const height = useSharedValue<AnimatableSlotValue>(init('height'))
+  const borderRadius = useSharedValue<AnimatableSlotValue>(init('borderRadius'))
+  const shadowOpacity = useSharedValue<AnimatableSlotValue>(
+    init('shadowOpacity'),
+  )
+  const shadowRadius = useSharedValue<AnimatableSlotValue>(init('shadowRadius'))
+  const elevation = useSharedValue<AnimatableSlotValue>(init('elevation'))
+  const backgroundColor = useSharedValue<AnimatableSlotValue>(
     init('backgroundColor'),
   )
-  const borderColor = useSharedValue<number | string>(init('borderColor'))
-  const color = useSharedValue<number | string>(init('color'))
-  const tintColor = useSharedValue<number | string>(init('tintColor'))
-  const shadowColor = useSharedValue<number | string>(init('shadowColor'))
-  const shadowOffsetWidth = useSharedValue<number | string>(
+  const borderColor = useSharedValue<AnimatableSlotValue>(init('borderColor'))
+  const color = useSharedValue<AnimatableSlotValue>(init('color'))
+  const tintColor = useSharedValue<AnimatableSlotValue>(init('tintColor'))
+  const shadowColor = useSharedValue<AnimatableSlotValue>(init('shadowColor'))
+  const shadowOffsetWidth = useSharedValue<AnimatableSlotValue>(
     init('shadowOffsetWidth'),
   )
-  const shadowOffsetHeight = useSharedValue<number | string>(
+  const shadowOffsetHeight = useSharedValue<AnimatableSlotValue>(
     init('shadowOffsetHeight'),
   )
+  const boxShadow = useSharedValue<AnimatableSlotValue>(init('boxShadow'))
 
   const ref = useRef<SharedValueMap | null>(null)
   if (ref.current === null) {
@@ -1046,6 +1203,7 @@ function useAnimatableSharedValues(
       shadowColor,
       shadowOffsetWidth,
       shadowOffsetHeight,
+      boxShadow,
     }
   }
 
@@ -1084,8 +1242,11 @@ function useAnimatableSharedValues(
  */
 function makeKeyCallbackFactory(
   key: string,
-  sharedValue: SharedValue<number | string>,
-  target: number | string | undefined,
+  sharedValue: SharedValue<AnimatableSlotValue>,
+  // Widened past the scalar surface for `boxShadow`, whose declared target is
+  // a CSS string or a layer array. Reaches the consumer as
+  // `AnimationCallbackInfo.target`, which is `unknown`.
+  target: number | string | BoxShadowInput | undefined,
   onAnimationEndRef: {
     current: ((info: AnimationCallbackInfo<unknown>) => void) | undefined
   },
@@ -1105,7 +1266,9 @@ function makeKeyCallbackFactory(
     rawPhase: 'step' | 'animation',
     step: number | undefined,
     finished: boolean,
-    value: number | string | undefined,
+    // Widened for `boxShadow`, whose settled value is a layer array. Surfaces
+    // on `AnimationCallbackInfo.value`, which is `unknown` either way.
+    value: AnimatableSlotValue | undefined,
   ) => {
     const isLastIteration = state.iteration >= meta.totalIterations - 1
     let phase: 'step' | 'sequence' | 'repeat' | 'animation'
@@ -1195,14 +1358,21 @@ function makeKeyCallbackFactory(
  * literal (no sequences, no `{ to }` step objects, no array keyframes).
  * Sequence forms on the nested axes can land later if real consumers ask.
  */
+type ScalarKey = Exclude<AnimatableKey, (typeof STRUCTURED_KEYS)[number]>
+
 type InternalAnimateRecord = Partial<
-  Record<AnimatableKey, AnimatableValue<number | string>>
+  Record<ScalarKey, AnimatableValue<number | string>>
 > & {
   shadowOffset?: { width?: number; height?: number }
+  // Structured keys depart from `AnimatableValue` — see `STRUCTURED_KEYS`.
+  // Kept out of the mapped half above so the two don't intersect into an
+  // uninhabitable `AnimatableValue<number | string> & BoxShadowInput`.
+  boxShadow?: BoxShadowInput
 }
 
-type InternalInitialRecord = Partial<Record<AnimatableKey, number | string>> & {
+type InternalInitialRecord = Partial<Record<ScalarKey, number | string>> & {
   shadowOffset?: { width?: number; height?: number }
+  boxShadow?: BoxShadowInput
 }
 
 /**
@@ -1223,6 +1393,46 @@ function shadowOffsetAxisValue(
   axis: 'width' | 'height',
 ): number | undefined {
   return source?.[axis]
+}
+
+/**
+ * Drive the `boxShadow` slot toward a new target.
+ *
+ * Two things make this different from the scalar path:
+ *
+ *  1. **Both endpoints are padded to a common layer count first.** Reanimated's
+ *     array driver iterates the *current* value's indices and pairs each with
+ *     `toValue[i]`, so a target with a different layer count either strands
+ *     leaves at `toValue: undefined` or never animates the extras. When the
+ *     padding changes the slot's shape, we snap it to the padded base before
+ *     starting the animation — otherwise the animation would begin from a
+ *     differently-shaped value and the pairing would be lost again.
+ *  2. **`inset` travels separately**, in its own slot, because Reanimated
+ *     would drive the boolean down the numeric path.
+ */
+function driveBoxShadow(
+  slot: SharedValue<AnimatableSlotValue>,
+  insetSlot: SharedValue<boolean[] | null>,
+  target: BoxShadowInput,
+  cfg: TransitionConfig | undefined,
+  factory: CallbackFactory | undefined,
+): void {
+  const currentLayers = Array.isArray(slot.value)
+    ? (slot.value as readonly AnimatedBoxShadowLayer[])
+    : NO_BOX_SHADOW
+  const { from, to, insets } = prepareBoxShadowAnimation(
+    { layers: [...currentLayers], insets: insetSlot.value },
+    target,
+  )
+  insetSlot.value = insets
+  if (from.length !== currentLayers.length) slot.value = from
+  // `resolveTransition` is typed for the scalar surface it was written for;
+  // Reanimated itself accepts the structured target and recurses into it.
+  slot.value = resolveTransition(
+    cfg,
+    to as unknown as number,
+    factory?.('animation', undefined),
+  ) as AnimatableSlotValue
 }
 
 /**
@@ -1460,6 +1670,27 @@ function resolveGestureLayers(
     if (!subState) continue
     const resolved: Record<string, number | string> = {}
     for (const key of ALL_KEYS) {
+      // Structured keys have no place in the layer cascade: compositing them
+      // would mean per-layer, per-field interpolation on the UI thread for
+      // every primitive, whether or not it animates a shadow. Rejected for
+      // now rather than half-supported — a silently-ignored `boxShadow` in a
+      // `gesture` sub-state is exactly the class of bug this library exists
+      // to avoid, so say so.
+      if (STRUCTURED_KEY_SET.has(key)) {
+        if (
+          __DEV__ &&
+          (subState as Record<string, unknown>)[key] !== undefined
+        ) {
+          warnOnce(
+            `gesture-structured-${layer}-${key}`,
+            `[inertia] \`${key}\` is not supported inside \`gesture.${layer}\` ` +
+              'and will be ignored. Drive it from `animate` (optionally via a ' +
+              'variant keyed off the same state), or interpolate it yourself ' +
+              'with `useShadow`.',
+          )
+        }
+        continue
+      }
       // Shadow offset synthetics decompose from the nested `shadowOffset:
       // { width, height }` source on the sub-state, the same as on `animate`.
       if (SHADOW_OFFSET_KEY_SET.has(key)) {
