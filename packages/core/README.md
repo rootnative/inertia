@@ -86,9 +86,11 @@ Plus, on any transition: `delay`, `repeat`. Per-property transitions take preced
 
 ## Animatable properties
 
-Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`. Color: `backgroundColor`, `borderColor`, `color`, `tintColor` (Image only — `Motion.View` rejects it at compile time). Layout transforms via `transform: [...]`. Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
+Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`. Color: `backgroundColor`, `borderColor`, `color`, `shadowColor`, `tintColor` (Image only — `Motion.View` rejects it at compile time). Layout transforms via `transform: [...]`. Color targets are forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
 
-SVG path morphing ships in the [`@rootnative/inertia-svg`](../svg) adapter (`MotionPath`). Shared-element transitions across screens are wired through the `layoutId` prop — pair the same id on a source and target `Motion.*` and Inertia FLIPs between them on mount.
+Nested object: `shadowOffset: { width, height }` — single-value form only (no sequences, no array keyframes). Structured: `boxShadow` — the cross-platform CSS shadow, as a string (`'0px 4px 8px rgba(0,0,0,0.3)'`) or RN's `BoxShadowValue[]`. Endpoints are padded to a common layer count, so layer counts may differ between `initial` and `animate`; sequences and `gesture` sub-states are not supported on this key.
+
+SVG path morphing ships in the [`@rootnative/inertia-svg`](../svg) adapter (`MotionPath`). Shared-element transitions across screens are wired through the `layoutId` prop — pair the same id on a source and target `Motion.*` and Inertia FLIPs between them on mount, carrying `opacity`, `borderRadius`, and the color keys across alongside the rect.
 
 ## When not to use the core package alone
 
