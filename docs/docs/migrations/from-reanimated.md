@@ -448,7 +448,7 @@ Some patterns are still better off as raw Reanimated:
 
 - **Frame-by-frame data viz** — d3-style charts that read shared values inside `useDerivedValue` and feed them into SVG props. The Inertia public surface targets `style` keys; SVG attribute interpolation lives in the hooks layer or in raw Reanimated.
 - **Custom physics simulations** — anything where you'd be reaching into `withDecay` callback signatures, `cancelAnimation`, or `runOnUI` directly. Drop down to the hooks.
-- **Style-prop-interpolating shared elements** — the [`layout` prop and `layoutId`](../layout) cover auto-layout and rect-only hero transitions, but interpolating `borderRadius` / colors between shared elements (and window-coordinate measurement across differently-offset parents) is v2 scope. For those cases, raw Reanimated is still the tool.
+- **Shared elements that carry more than the standard key set** — the [`layout` prop and `layoutId`](../layout) cover auto-layout and hero transitions, including window-coordinate measurement across differently-offset parents and a style carry for `opacity` / `borderRadius` / the color keys. The carried set is fixed and has no configuration surface, so a hero that needs to interpolate something else (padding, border width, a gradient) between screens is still a raw-Reanimated job.
 - **Slider / continuous gesture range UI with exotic requirements** — [`useDrag`](../gestures-adapter) and [`useTouchDrag`](../api/hooks#usetouchdragoptions) cover the standard drag/slider shapes; keep the hand-rolled PanResponder + `useSharedValue` flow only when you need custom gesture arbitration those hooks don't express.
 
 The hooks layer is intentionally the same shape as Reanimated's so dropping down doesn't feel like switching tools.

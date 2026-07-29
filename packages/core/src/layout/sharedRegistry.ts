@@ -1,6 +1,7 @@
 /**
- * Module-level registry of last-known on-screen rects for shared-layout
- * elements, indexed by `layoutId`. Backs `<Motion.* layoutId="..." />` —
+ * Module-level registry of last-known on-screen rects — and the style values
+ * the rect can't express — for shared-layout elements, indexed by `layoutId`.
+ * Backs `<Motion.* layoutId="..." />` —
  * Reanimated 4 dropped the `sharedTransitionTag` API the previous design
  * relied on, so the cross-screen shared-element transition lives in
  * userland now.
@@ -34,6 +35,18 @@
 /** Which coordinate system a rect's `x` / `y` are expressed in. */
 export type CoordinateSpace = 'window' | 'parent'
 
+/**
+ * The source element's values for the style keys a shared-element transition
+ * carries across (colors, `opacity`, `borderRadius`) — everything the rect
+ * FLIP can't express. Keys are `AnimatableKey`s, but typed loosely here so the
+ * registry stays independent of the factory's key vocabulary.
+ *
+ * Only keys the source actually had a value for appear. Absent means "the
+ * source had nothing to say about this" — the target then keeps its own value
+ * rather than crossfading from an invented one.
+ */
+export type SharedStyleSnapshot = Record<string, number | string>
+
 /** Measured rect of an element, tagged with its coordinate space. */
 export interface SharedRect {
   x: number
@@ -61,12 +74,27 @@ export interface SharedRect {
 export interface SharedLayoutSource {
   rect: SharedRect
   remeasure?: () => SharedRect | undefined
+  /**
+   * The source's carried style values, as of its last layout. Present only
+   * once `releaseLayout` has run — while the owner is still mounted,
+   * `readStyles` supersedes this for the same reason `remeasure` supersedes
+   * the stored rect.
+   */
+  styles?: SharedStyleSnapshot
+  /**
+   * Read the source's carried style values *now*. Offered only while the
+   * source is mounted. Its values move without a layout pass (an animation
+   * settling, a theme swap), so a stored snapshot is a floor, not the truth.
+   */
+  readStyles?: () => SharedStyleSnapshot | undefined
 }
 
 interface Entry {
   rect: SharedRect
   expiresAt: number
   remeasure?: () => SharedRect | undefined
+  styles?: SharedStyleSnapshot
+  readStyles?: () => SharedStyleSnapshot | undefined
 }
 
 const REGISTRY = new Map<string, Entry>()
@@ -122,32 +150,43 @@ function sweepExpired(at: number): void {
  * current measurement if that primitive becomes the source of a future
  * transition. Resets the TTL each call.
  *
- * `remeasure` is the still-mounted owner's offer to be measured again on
- * demand — pass it while the element is live so a consumer can prefer a fresh
- * measurement over this stored one.
+ * `remeasure` and `readStyles` are the still-mounted owner's offer to be read
+ * again on demand — pass them while the element is live so a consumer can
+ * prefer fresh values over whatever this call recorded.
  */
 export function registerLayout(
   id: string,
   rect: SharedRect,
   remeasure?: () => SharedRect | undefined,
+  readStyles?: () => SharedStyleSnapshot | undefined,
 ): void {
   const at = now()
   sweepExpired(at)
-  REGISTRY.set(id, { rect, expiresAt: at + SHARED_LAYOUT_TTL_MS, remeasure })
+  REGISTRY.set(id, {
+    rect,
+    expiresAt: at + SHARED_LAYOUT_TTL_MS,
+    remeasure,
+    readStyles,
+  })
 }
 
 /**
  * Record the rect for `id` on unmount so the next mount can consume it as
  * the FLIP source.
  *
- * Deliberately drops any `remeasure` hook the mounted entry carried: the node
- * is on its way out, and measuring a detached view yields zeros. From here the
- * stored rect is all a consumer gets.
+ * Deliberately drops any `remeasure` / `readStyles` hook the mounted entry
+ * carried: the node is on its way out, and measuring a detached view yields
+ * zeros. From here the values recorded by this call are all a consumer gets —
+ * which is why `styles` is passed by value here and by callback above.
  */
-export function releaseLayout(id: string, rect: SharedRect): void {
+export function releaseLayout(
+  id: string,
+  rect: SharedRect,
+  styles?: SharedStyleSnapshot,
+): void {
   const at = now()
   sweepExpired(at)
-  REGISTRY.set(id, { rect, expiresAt: at + SHARED_LAYOUT_TTL_MS })
+  REGISTRY.set(id, { rect, expiresAt: at + SHARED_LAYOUT_TTL_MS, styles })
 }
 
 /**
@@ -162,7 +201,12 @@ export function consumeLayout(id: string): SharedLayoutSource | undefined {
   if (!entry) return undefined
   REGISTRY.delete(id)
   if (entry.expiresAt < now()) return undefined
-  return { rect: entry.rect, remeasure: entry.remeasure }
+  return {
+    rect: entry.rect,
+    remeasure: entry.remeasure,
+    styles: entry.styles,
+    readStyles: entry.readStyles,
+  }
 }
 
 /** Drop all entries. Tests use this to isolate between cases. */

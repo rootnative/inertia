@@ -11,22 +11,43 @@
 // limit, decide whether to tighten or accept it; don't silently raise the
 // cap. Record any baseline shift here when you do.
 //
-// ── Recorded baselines, brotlied + minified, 2026-07-26, `boxShadow` on the
-//    `animate` surface (unreleased, headed for `0.0.4`) ──
-//   Motion.View subpath        8.24 kB   (was 6.63)
-//   Motion.Text subpath        8.23 kB   (was 6.64)
-//   Motion.Image subpath       8.23 kB   (was 6.64)
-//   Motion.Pressable subpath   8.23 kB   (was 6.63)
-//   Motion.ScrollView subpath  8.24 kB   (was 6.66)
-//   Full namespace (root)     11.44 kB   (was 10.62)
-//   MotionView (barrel-shaken) 8.07 kB   (was 6.50)
-//   MotionText (barrel-shaken) 8.07 kB   (was 6.49)
-//   MotionImage (barrel-shaken)8.06 kB   (was 6.49)
+// ── Recorded baselines, brotlied + minified, 2026-07-29, `layoutId` style-prop
+//    interpolation (unreleased, headed for `0.0.4`) ──
+//   Motion.View subpath        8.80 kB   (was 8.24)
+//   Motion.Text subpath        8.78 kB   (was 8.23)
+//   Motion.Image subpath       8.80 kB   (was 8.23)
+//   Motion.Pressable subpath   8.79 kB   (was 8.23)
+//   Motion.ScrollView subpath  8.79 kB   (was 8.24)
+//   Full namespace (root)     12.03 kB   (was 11.44)
+//   MotionView (barrel-shaken) 8.65 kB   (was 8.07)
+//   MotionText (barrel-shaken) 8.64 kB   (was 8.07)
+//   MotionImage (barrel-shaken)8.64 kB   (was 8.06)
 //   Testing helpers              223 B   (unchanged)
 //
-// That is +1.61 kB (+24%) per primitive subpath for one animatable property,
-// and the limits below are raised deliberately to match — not to make a red
-// build green. Where it goes, measured by building with each piece removed:
+// +0.56 kB (+6.8%) per primitive subpath, +0.59 kB root. **The limits below
+// did not move** — the ~25% band set for `boxShadow` absorbed this, leaving
+// ~1.5 kB of headroom per primitive. Where it goes:
+//
+//   ~0.25 kB  factory: the carried-key set, the static-style scan that decides
+//             which of those keys the element actually has a value for, the
+//             snapshot reader, and the worklet's blend branch.
+//   ~0.31 kB  `useSharedLayout`: the snapshot/progress pair, the carry driver,
+//             and the registry's widened entry shape. Partly offset by
+//             factoring `applyFlip`'s four near-identical transition branches
+//             into one shared `legBuilder` — which the carry then reuses, so
+//             the rect and the style are guaranteed to land together.
+//
+// Cheap relative to `boxShadow`'s +1.61 kB because it adds no parser and no
+// new interpolation: carried keys are scalars and colors, so the worklet's
+// existing lerp / `interpolateColor` branches do the work, and one progress
+// value drives however many keys are being carried.
+//
+// ── Previous entry, 2026-07-26, `boxShadow` on the `animate` surface ──
+//   Per-primitive subpaths went 6.63–6.66 → 8.23–8.24 kB; root 10.62 → 11.44.
+//
+// That was +1.61 kB (+24%) per primitive subpath for one animatable property,
+// and the limits below were raised deliberately to match — not to make a red
+// build green. Where it went, measured by building with each piece removed:
 //
 //   ~0.79 kB  `internal/boxShadow.ts` entering the primitive subpaths. It was
 //             already in the root entry (via `useShadow`), which is why the

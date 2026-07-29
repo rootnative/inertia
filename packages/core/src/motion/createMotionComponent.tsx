@@ -32,6 +32,7 @@ import { warnOnce } from '../internal/warnOnce'
 import {
   resolveLayoutTransition,
   type LayoutProp,
+  type SharedStyleSnapshot,
   useSharedLayout,
 } from '../layout'
 import { usePresence } from '../presence'
@@ -130,6 +131,29 @@ const SHADOW_OFFSET_KEYS = ['shadowOffsetWidth', 'shadowOffsetHeight'] as const
 // once per change, in `internal/boxShadow.ts`.
 const STRUCTURED_KEYS = ['boxShadow'] as const
 
+// Keys a shared-element transition (`layoutId`) carries from the source
+// element to the target, crossfading them alongside the rect FLIP. Everything
+// here is either a scalar or a color, so the worklet's existing lerp /
+// `interpolateColor` branches handle it with no new machinery.
+//
+// Transform keys are deliberately absent: they are the FLIP's job, and
+// carrying them too would apply the same displacement twice.
+//
+// So is `shadowColor`, despite being a color key. Carrying one of the four
+// native shadow props crossfades a shadow's *color* over geometry that snapped
+// — a worse result than letting the whole shadow snap together. (It would also
+// pull `shadowColor` into the active set on any `layoutId` element whose style
+// declares it, tripping the `boxShadow`-with-native-`shadow*` warning for a
+// consumer who never asked for either.)
+const SHARED_STYLE_KEYS = [
+  'opacity',
+  'borderRadius',
+  'backgroundColor',
+  'borderColor',
+  'color',
+  'tintColor',
+] as const
+
 /**
  * Per-effect transform-group coordinator. Counts how many transform-axis
  * terminal callbacks are still pending; when the last one fires, the
@@ -153,6 +177,7 @@ const TRANSFORM_KEY_SET = new Set<AnimatableKey>(TRANSFORM_KEYS)
 const COLOR_KEY_SET = new Set<AnimatableKey>(COLOR_KEYS)
 const SHADOW_OFFSET_KEY_SET = new Set<AnimatableKey>(SHADOW_OFFSET_KEYS)
 const STRUCTURED_KEY_SET = new Set<AnimatableKey>(STRUCTURED_KEYS)
+const SHARED_STYLE_KEY_SET = new Set<AnimatableKey>(SHARED_STYLE_KEYS)
 
 /**
  * What a per-key shared value can hold. Scalars for every key except
@@ -435,6 +460,24 @@ export function createMotionComponent<C extends ComponentType<any>>(
       // identity only changes on the renders that actually add a key, so the
       // `useAnimatedStyle` worklet (which reads `.current` each frame) sees the
       // expansion without churning frame-to-frame.
+      const hasLayoutId = layoutId !== undefined
+
+      // The static `style`, flattened at most once per render and only when
+      // something asks for it. Two readers: the shared-element key scan just
+      // below, and the resting-value pass further down. A plain `animate`-only
+      // instance triggers neither and never pays for the flatten.
+      let flatStyle: Record<string, unknown> | undefined
+      let flatStyleRead = false
+      const getFlatStyle = () => {
+        if (!flatStyleRead) {
+          flatStyleRead = true
+          flatStyle = StyleSheet.flatten(style as never) as
+            | Record<string, unknown>
+            | undefined
+        }
+        return flatStyle
+      }
+
       const touched = new Set<AnimatableKey>()
       collectTouchedKeys(touched, animateRecord)
       if (initialRecord) collectTouchedKeys(touched, initialRecord)
@@ -456,6 +499,27 @@ export function createMotionComponent<C extends ComponentType<any>>(
         }
       }
       if (exitRecord) collectTouchedKeys(touched, exitRecord)
+
+      // Shared-element style carry: a `layoutId` element crossfades the carried
+      // keys from its counterpart, so those keys have to be in the active set
+      // for the worklet to emit them at all.
+      //
+      // Only keys this element already has a value for join — from a record
+      // above, or from the static style. Never invented: activating a key with
+      // no source value rests it at `DEFAULT_RESTING`, and for `color` on a
+      // `Motion.Text` that inherits its colour from a parent, that default is
+      // `'transparent'` — invisible text on an element the consumer only asked
+      // to move. Same failure mode as the `0.0.3` P0, reached from the other
+      // side.
+      if (hasLayoutId) {
+        const flat = getFlatStyle()
+        if (flat) {
+          for (const key of SHARED_STYLE_KEYS) {
+            if (touched.has(key)) continue
+            if (styleValueFor(flat, key) !== undefined) touched.add(key)
+          }
+        }
+      }
 
       const activeKeysRef = useRef<readonly AnimatableKey[] | null>(null)
       const hasTransformRef = useRef<boolean>(false)
@@ -538,9 +602,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
       // inset flags), so it can't ride the scalar map above.
       let styleRestingShadow: SplitBoxShadow | null = null
       if (activeKeys.some((k) => !everDriven.has(k))) {
-        const flat = StyleSheet.flatten(style as never) as
-          | Record<string, unknown>
-          | undefined
+        const flat = getFlatStyle()
         if (flat) {
           for (const key of activeKeys) {
             if (everDriven.has(key)) continue
@@ -902,15 +964,38 @@ export function createMotionComponent<C extends ComponentType<any>>(
       // transform array so they compose with the user's animate transforms —
       // multiple `translateX` entries sum, multiple `scaleX` entries multiply,
       // which is exactly the FLIP semantic.
+      //
+      // The style half rides the same wiring: `readStyles` lets a later mount
+      // (or our own unmount) snapshot the carried keys straight off the shared
+      // values, and the worklet below crossfades a consumed snapshot out over
+      // whatever this element resolves to. Reached through a ref inside the
+      // hook, so building it inline here costs nothing downstream.
+      const readSharedStyles = () => {
+        if (!hasLayoutId) return undefined
+        const out: SharedStyleSnapshot = {}
+        let any = false
+        for (const key of activeKeysRef.current!) {
+          if (!SHARED_STYLE_KEY_SET.has(key)) continue
+          const v = sharedValues[key].value
+          // Structured slots can't be carried, and a key nothing ever gave a
+          // value to has nothing to hand over.
+          if (typeof v !== 'number' && typeof v !== 'string') continue
+          out[key] = v
+          any = true
+        }
+        return any ? out : undefined
+      }
+
       const sharedLayout = useSharedLayout({
         layoutId,
         userRef: ref,
         transition: isTopLevelTransition(transition) ? transition : undefined,
         shouldReduceMotion,
         userOnLayout,
+        readStyles: readSharedStyles,
       })
       const flip = sharedLayout.flip
-      const hasLayoutId = layoutId !== undefined
+      const carry = sharedLayout.carry
 
       const animatedStyle = useAnimatedStyle(() => {
         const activeKeys = activeKeysRef.current!
@@ -931,6 +1016,12 @@ export function createMotionComponent<C extends ComponentType<any>>(
         const pf = focusedProgress.value
         const pfv = focusVisibleProgress.value
         const pp = pressedProgress.value
+
+        // Shared-element style carry. Both reads are cheap and the pair rests
+        // at (null, 0), so a primitive that isn't mid-transition — which is
+        // every primitive, almost all of the time — pays one comparison.
+        const carried = carry.snapshot.value
+        const pc = carry.progress.value
 
         const layers = gestureSV.value
         // Locals are suffixed `Layer` so they don't shadow the outer `pressed` /
@@ -984,6 +1075,23 @@ export function createMotionComponent<C extends ComponentType<any>>(
             v = isColor
               ? interpolateColor(pp, [0, 1], [v as string, t as string])
               : (v as number) + ((t as number) - (v as number)) * pp
+          }
+
+          // Shared-element carry sits above every gesture layer: the element
+          // is arriving from somewhere else, and where it came from outranks
+          // how it is being touched right now. `pc` runs 1 → 0, so the first
+          // frame shows the source's value and the last shows this element's
+          // own — including whatever the layers underneath contributed.
+          //
+          // Transform keys never appear in a snapshot (the FLIP owns them), so
+          // this can't double-apply displacement.
+          if (carried !== null && pc > 0) {
+            const s = carried[key]
+            if (s !== undefined) {
+              v = isColor
+                ? interpolateColor(pc, [0, 1], [v as string, s as string])
+                : (v as number) + ((s as number) - (v as number)) * pc
+            }
           }
 
           if (TRANSFORM_KEY_SET.has(key)) {

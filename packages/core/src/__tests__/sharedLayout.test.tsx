@@ -1,6 +1,8 @@
 import { act, render, renderHook } from '@testing-library/react-native'
+import { type ReactElement } from 'react'
 import * as Reanimated from 'react-native-reanimated'
 import { Motion } from '../motion'
+import { flushMotion } from '../testing'
 import {
   __setSharedLayoutClock,
   __setSharedLayoutMeasurer,
@@ -14,6 +16,7 @@ import {
   releaseLayout,
   SHARED_LAYOUT_TTL_MS,
   type SharedRect,
+  type SharedStyleSnapshot,
   useSharedLayout,
 } from '../layout'
 
@@ -69,6 +72,45 @@ function flipSnapValues(withTiming: jest.SpyInstance): number[] {
   return withTiming.mock.calls
     .filter((call) => (call[1] as { duration?: number })?.duration === 0)
     .map((call) => call[0] as number)
+}
+
+/**
+ * Freeze every `withSequence` at its **first** leg — the instantaneous snap to
+ * the source value.
+ *
+ * The static mock otherwise collapses a sequence to its final leg, which is the
+ * resting state: correct, but it shows nothing about the transition. Holding the
+ * snap frame is how a style crossfade becomes observable at all, since progress
+ * sits at 1 and every carried key renders at the source's value.
+ */
+function freezeAtSnapFrame(): void {
+  jest
+    .spyOn(Reanimated, 'withSequence')
+    .mockImplementation((...args: unknown[]) => args[0] as never)
+}
+
+/** Flattened style of a rendered node, style-array and all. */
+function getStyle(node: {
+  props: { style?: unknown }
+}): Record<string, unknown> {
+  const raw = node.props.style
+  const flat = Array.isArray(raw) ? raw.flat(Infinity) : [raw]
+  return Object.assign({}, ...flat.filter(Boolean))
+}
+
+/**
+ * Mount a target, hand it a layout, then re-render so `useAnimatedStyle`
+ * re-reads the shared values the layout pass just wrote. Returns the target's
+ * style at that moment.
+ */
+function styleAfterLayout(
+  ui: ReactElement,
+  rect: { x: number; y: number; width: number; height: number },
+): Record<string, unknown> {
+  const view = render(ui)
+  fireLayout(view.getByTestId('el') as never, rect)
+  flushMotion(view, ui)
+  return getStyle(view.getByTestId('el') as never)
 }
 
 beforeEach(() => {
@@ -439,10 +481,14 @@ describe('layoutId — source re-measure at consume time', () => {
     expect(typeof consumeLayout('hero')?.remeasure).toBe('function')
   })
 
-  it('cancels its four FLIP values on unmount', () => {
+  it('cancels its driven values on unmount', () => {
     // Tested on the hook rather than through a primitive: the factory cancels
-    // ~two dozen of its own values too, which would bury the four this hook
+    // ~two dozen of its own values too, which would bury the handful this hook
     // owns. They were missed by the `0.0.2` unmount-cancel pass.
+    //
+    // Five: the four FLIP transforms plus the style-carry progress. The carried
+    // snapshot itself is assigned, never animated, so there is nothing on it
+    // to cancel.
     const spy = jest.spyOn(Reanimated, 'cancelAnimation')
     const { unmount } = renderHook(() =>
       useSharedLayout({
@@ -456,7 +502,229 @@ describe('layoutId — source re-measure at consume time', () => {
 
     spy.mockClear()
     unmount()
-    expect(spy).toHaveBeenCalledTimes(4)
+    expect(spy).toHaveBeenCalledTimes(5)
+  })
+})
+
+// The rect FLIP moves and scales an element, but a hero card that changes
+// colour, corner radius, or opacity between screens used to snap on those
+// props while its frame animated — the most visible half of the transition
+// arriving instantly. The carry crossfades the source's values for those keys
+// over the same transition as the rect.
+describe('layoutId — style carry', () => {
+  const SOURCE: SharedStyleSnapshot = {
+    backgroundColor: 'red',
+    borderRadius: 4,
+    opacity: 0.5,
+  }
+  const targetStyle = {
+    ...boxStyle,
+    backgroundColor: 'blue',
+    borderRadius: 12,
+    opacity: 1,
+  }
+  const LAYOUT = { x: 0, y: 0, width: 50, height: 50 }
+  const redBox = { ...boxStyle, backgroundColor: 'red' }
+  const textStyle = { fontSize: 16 }
+
+  const target = (style: object = targetStyle) => (
+    <Motion.View testID="el" layoutId="hero" style={style} />
+  )
+
+  it('round-trips a snapshot through the registry alongside the rect', () => {
+    releaseLayout('hero', par(0, 0, 50, 50), SOURCE)
+    const source = consumeLayout('hero')
+    expect(source?.rect).toEqual(par(0, 0, 50, 50))
+    expect(source?.styles).toEqual(SOURCE)
+  })
+
+  it('drops the snapshot with the rect when the TTL passes', () => {
+    let now = 1_000
+    __setSharedLayoutClock(() => now)
+    releaseLayout('hero', par(0, 0, 50, 50), SOURCE)
+    now += SHARED_LAYOUT_TTL_MS + 1
+    expect(consumeLayout('hero')).toBeUndefined()
+  })
+
+  it('crossfades colour, borderRadius and opacity from the source', () => {
+    freezeAtSnapFrame()
+    releaseLayout('hero', par(0, 0, 50, 50), SOURCE)
+
+    const style = styleAfterLayout(target(), LAYOUT)
+    expect(style.backgroundColor).toBe('red')
+    expect(style.borderRadius).toBe(4)
+    expect(style.opacity).toBe(0.5)
+  })
+
+  it('settles on the target’s own values', () => {
+    // No snap-frame freeze: the sequence resolves to its final leg, which is
+    // where the element ends up once the transition has played out.
+    releaseLayout('hero', par(0, 0, 50, 50), SOURCE)
+
+    const style = styleAfterLayout(target(), LAYOUT)
+    expect(style.backgroundColor).toBe('blue')
+    expect(style.borderRadius).toBe(12)
+    expect(style.opacity).toBe(1)
+  })
+
+  it('drives the crossfade on the same transition as the rect', () => {
+    const withSequence = jest.spyOn(Reanimated, 'withSequence')
+    releaseLayout('hero', par(0, 0, 50, 50), SOURCE)
+
+    const view = render(target())
+    fireLayout(view.getByTestId('el') as never, LAYOUT)
+
+    // The four transform legs, plus one for the whole style carry — a single
+    // progress value however many keys are being carried.
+    expect(withSequence).toHaveBeenCalledTimes(5)
+  })
+
+  it('ignores a carried key the target has no value for', () => {
+    freezeAtSnapFrame()
+    releaseLayout('hero', par(0, 0, 50, 50), { borderRadius: 4 })
+
+    // The target never mentions `borderRadius`, so it isn't in its active set
+    // and the worklet has nothing to blend onto.
+    const style = styleAfterLayout(target(boxStyle), LAYOUT)
+    expect(style.borderRadius).toBeUndefined()
+  })
+
+  it('leaves a target key the source said nothing about', () => {
+    freezeAtSnapFrame()
+    releaseLayout('hero', par(0, 0, 50, 50), { backgroundColor: 'red' })
+
+    const style = styleAfterLayout(target(), LAYOUT)
+    expect(style.backgroundColor).toBe('red')
+    expect(style.borderRadius).toBe(12)
+  })
+
+  it('publishes its carried values when it unmounts', () => {
+    const ui = target()
+    const view = render(ui)
+    fireLayout(view.getByTestId('el') as never, LAYOUT)
+    view.unmount()
+
+    expect(consumeLayout('hero')?.styles).toEqual({
+      backgroundColor: 'blue',
+      borderRadius: 12,
+      opacity: 1,
+    })
+  })
+
+  it('offers a live read while it is still mounted', () => {
+    const view = render(target())
+    fireLayout(view.getByTestId('el') as never, LAYOUT)
+
+    expect(consumeLayout('hero')?.readStyles?.()).toEqual({
+      backgroundColor: 'blue',
+      borderRadius: 12,
+      opacity: 1,
+    })
+  })
+
+  it('prefers a live source read over the stored snapshot', () => {
+    // Same reasoning as the rect re-measure: a mounted source's values move
+    // without a layout pass, so the stored snapshot is a floor, not the truth.
+    freezeAtSnapFrame()
+    registerLayout('hero', par(0, 0, 50, 50), undefined, () => ({
+      backgroundColor: 'green',
+    }))
+
+    const style = styleAfterLayout(target(), LAYOUT)
+    expect(style.backgroundColor).toBe('green')
+  })
+
+  it('never carries transform keys — the FLIP owns them', () => {
+    // Carrying a transform would apply the same displacement twice.
+    const ui = (
+      <Motion.View
+        testID="el"
+        layoutId="hero"
+        style={redBox}
+        animate={{ translateX: 30, scale: 2 }}
+      />
+    )
+    const view = render(ui)
+    fireLayout(view.getByTestId('el') as never, LAYOUT)
+    view.unmount()
+
+    expect(consumeLayout('hero')?.styles).toEqual({ backgroundColor: 'red' })
+  })
+
+  it('does not activate a carried key the element has no value for', () => {
+    // A `Motion.Text` that inherits its colour from a parent has no `color` of
+    // its own. Activating it anyway would rest it at the generic default —
+    // 'transparent' — and the text would vanish on an element the consumer
+    // only asked to move. Same failure mode as the `0.0.3` P0 regression,
+    // reached from the other side.
+    freezeAtSnapFrame()
+    releaseLayout('hero', par(0, 0, 50, 50), { color: 'red' })
+
+    const view = render(
+      <Motion.Text testID="el" layoutId="hero" style={textStyle}>
+        hi
+      </Motion.Text>,
+    )
+    fireLayout(view.getByTestId('el') as never, LAYOUT)
+
+    expect(getStyle(view.getByTestId('el') as never).color).toBeUndefined()
+  })
+
+  it('a consumed source overrides `initial` for carried keys', () => {
+    // `initial` seeds the base value; the carry composites above it. So on the
+    // mount that consumes a source, the first frame shows the source's colour
+    // regardless of what `initial` asked for.
+    freezeAtSnapFrame()
+    releaseLayout('hero', par(0, 0, 50, 50), { backgroundColor: 'red' })
+
+    const style = styleAfterLayout(
+      <Motion.View
+        testID="el"
+        layoutId="hero"
+        style={boxStyle}
+        initial={{ backgroundColor: 'yellow' }}
+        animate={{ backgroundColor: 'blue' }}
+      />,
+      LAYOUT,
+    )
+    expect(style.backgroundColor).toBe('red')
+  })
+
+  it('reduced motion snaps, matching the rect path', () => {
+    jest.spyOn(Reanimated, 'useReducedMotion').mockReturnValue(true)
+    freezeAtSnapFrame()
+    releaseLayout('hero', par(0, 0, 50, 50), SOURCE)
+
+    const style = styleAfterLayout(target(), LAYOUT)
+    expect(style.backgroundColor).toBe('blue')
+    expect(style.borderRadius).toBe(12)
+  })
+
+  it('`no-animation` snaps too', () => {
+    freezeAtSnapFrame()
+    releaseLayout('hero', par(0, 0, 50, 50), SOURCE)
+
+    const style = styleAfterLayout(
+      <Motion.View
+        testID="el"
+        layoutId="hero"
+        style={targetStyle}
+        transition={{ type: 'no-animation' }}
+      />,
+      LAYOUT,
+    )
+    expect(style.backgroundColor).toBe('blue')
+  })
+
+  it('skips the carry when source and target are in different spaces', () => {
+    // Half a shared-element transition reads as a glitch, not as graceful
+    // degradation — if the rect is skipped, so is the style.
+    freezeAtSnapFrame()
+    releaseLayout('hero', par(0, 0, 50, 50), SOURCE)
+    stubMeasurements({ x: 10, y: 410, width: 100, height: 100 })
+
+    const style = styleAfterLayout(target(), LAYOUT)
+    expect(style.backgroundColor).toBe('blue')
   })
 })
 

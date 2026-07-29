@@ -3,7 +3,16 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Motion } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
-type Card = { id: string; title: string; subtitle: string; color: string }
+type Card = {
+  id: string
+  title: string
+  subtitle: string
+  color: string
+  // Deliberately different from `color` so the style carry has something to
+  // cross-fade. The grid tile and the detail header are the same logical
+  // element wearing two different shades.
+  detailColor: string
+}
 
 const CARDS: ReadonlyArray<Card> = [
   {
@@ -11,18 +20,21 @@ const CARDS: ReadonlyArray<Card> = [
     title: 'Horizon',
     subtitle: 'Dawn light over the bay',
     color: '#f97316',
+    detailColor: '#b45309',
   },
   {
     id: 'cobalt',
     title: 'Cobalt',
     subtitle: 'Deep blue tides',
     color: '#2563eb',
+    detailColor: '#1e3a8a',
   },
   {
     id: 'mint',
     title: 'Mint',
     subtitle: 'A walk through the orchard',
     color: '#10b981',
+    detailColor: '#065f46',
   },
 ]
 
@@ -32,8 +44,12 @@ const CARDS: ReadonlyArray<Card> = [
 // any explicit animation config beyond the shared id.
 //
 // What to look for:
-//   - Tap a card → the small tile visually grows into the detail view.
-//   - Tap "Back" → the detail view shrinks back into the matching tile.
+//   - Tap a card → the small tile visually grows into the detail view, and its
+//     background colour and corner radius cross-fade on the way rather than
+//     snapping the moment the detail view mounts. Each card's detail shade is
+//     deliberately darker than its tile so the carry is visible.
+//   - Tap "Back" → the detail view shrinks back into the matching tile, and the
+//     colour travels back with it.
 //   - Toggle reduced motion in the OS settings; the transition snaps.
 //   - Turn on "offset the detail container" and repeat. That nests the detail
 //     view inside a padded container, so source and target sit under parents at
@@ -92,7 +108,7 @@ export function SharedElementScreen({ onBack }: { onBack: () => void }) {
           <View style={offsetParent ? styles.offsetParent : undefined}>
             <Motion.View
               layoutId={`card-${selected.id}`}
-              style={[styles.detail, cardColor(selected.color)]}
+              style={[styles.detail, cardColor(selected.detailColor)]}
               transition={{ type: 'spring', tension: 220, friction: 24 }}
             >
               <Text style={styles.detailTitle}>{selected.title}</Text>
@@ -126,8 +142,11 @@ export function SharedElementScreen({ onBack }: { onBack: () => void }) {
           all that is left.
         </Text>
         <Text style={styles.noteBody}>
-          Only the rect is animated. Border radius, colors, and other style
-          props snap — style-prop interpolation is still unscheduled.
+          Alongside the rect, a fixed set of style keys is carried from the
+          source and cross-faded out: opacity, borderRadius, backgroundColor,
+          borderColor, color, and tintColor. Transform keys are not — the FLIP
+          already owns them. A key only participates when the element has a
+          value for it, so nothing is invented for a key you never set.
         </Text>
       </View>
     </ScreenShell>

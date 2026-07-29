@@ -1726,11 +1726,36 @@ How it differs from `layout`:
 - `layout` animates **this** element's own size/position changes between commits (no id needed).
 - `layoutId` animates from **another** element's last rect to this element's current rect (cross-mount or cross-screen).
 
-The **incoming** element's `transition` prop controls the FLIP animation (spring by default; `'timing'` honored; `'decay'` downgrades to spring; reduced motion skips the transition) — the outgoing element contributes only its last rect. Note it must be a top-level transition object (`transition={{ type: 'timing', duration: 250 }}`); a per-property map is ignored for the FLIP and the default spring applies.
+The **incoming** element's `transition` prop controls the FLIP animation (spring by default; `'timing'` honored; `'decay'` downgrades to spring; reduced motion skips the transition) — the outgoing element contributes only its last rect and style snapshot. Note it must be a top-level transition object (`transition={{ type: 'timing', duration: 250 }}`); a per-property map is ignored for the FLIP and the default spring applies.
+
+### Style carry
+
+The rect FLIP moves and scales the element. A hero card that also changes colour or corner radius between screens would otherwise snap on those props while its frame animated — the most visible half of the transition arriving instantly. So a set of style keys is carried across from the source and crossfaded out over the same transition:
+
+| Carried                                                                           | Not carried                                                                                                                                                                                                                                    |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `opacity`, `borderRadius`, `backgroundColor`, `borderColor`, `color`, `tintColor` | Transform keys (the FLIP owns them — carrying them too would double-apply the displacement), `shadowColor` (crossfading one of four native shadow props over snapped geometry looks worse than letting the shadow snap whole), everything else |
+
+```tsx
+// Screen A — a small tile
+<Motion.View layoutId="hero" style={{ borderRadius: 14, backgroundColor: '#f97316' }} />
+
+// Screen B — a large header. Radius and colour crossfade with the rect.
+<Motion.View layoutId="hero" style={{ borderRadius: 24, backgroundColor: '#ea580c' }} />
+```
+
+Nothing to configure — it rides the existing `layoutId` and `transition` props. There is no key list to override and no `layoutStyles` prop; if you need a key that isn't carried, drive it from `animate` on both sides.
+
+Rules worth knowing:
+
+- **A key only participates when the element already has a value for it** — from `animate` / `initial` / a variant / `gesture`, or from its static `style`. Values are never invented: activating a key the element says nothing about would rest it at the generic type default, and for `color` on a `Motion.Text` that inherits its colour from a parent, that default is `'transparent'` — invisible text on an element you only asked to move.
+- **Mismatched keys are ignored, both directions.** A key the source carried but the target has no value for does nothing, and vice versa.
+- **A still-mounted source is read live**, for the same reason its rect is re-measured — its values move without a layout pass. Once it has unmounted, the snapshot taken at release is all that remains.
+- **The carry overrides `initial` for carried keys** on the mount that consumes a source. It composites above the base value, so the first frame shows the source's colour whatever `initial` asked for.
+- **Reduced motion and `'no-animation'` snap**, matching the rect path. So does a coordinate-space mismatch — half a shared-element transition reads as a glitch, not as graceful degradation.
 
 ### Caveats and current scope
 
-- **Rect-only.** Only the four FLIP transforms (`translateX/Y`, `scaleX/Y`) are animated. Other style props — `borderRadius`, `backgroundColor`, `padding` — snap. Style-prop interpolation is not scheduled.
 - **Window coordinates, where the host can supply them.** Rects are measured with `measureInWindow`, which resolves synchronously on the New Architecture (Fabric). That is what lets a source and target sit under containers at different screen offsets and still line up. Where a synchronous measurement isn't available — the legacy architecture, whose `measureInWindow` answers over the bridge, or a node that has already detached — both fall back to the parent-relative coordinates `onLayout` reports. That fallback is consistent but blind to the parents' own offsets, so nested-parent setups only line up on Fabric.
 - **Mixed coordinate spaces skip the transition.** A source recorded in one space and a target measured in the other are not comparable — the delta would be off by the parent's window offset. Inertia skips the animation and lets the element appear at its natural position rather than flinging it in from the wrong place.
 - **A still-mounted source is re-measured on demand.** `onLayout` does not fire when an _ancestor_ scrolls, so a stored window rect drifts while the element hasn't moved relative to its parent. When the target lays out, Inertia asks a still-mounted source (the usual case — a stack navigator keeps the previous screen alive underneath) for a current measurement instead of trusting the stored one. Scrolling a list before tapping a row therefore doesn't offset the transition. Once the source has unmounted, its last recorded rect is all that remains — and if the navigator has already begun translating the outgoing screen, the re-measurement catches it mid-transition, bounded by however far the transition has progressed.
@@ -2520,7 +2545,7 @@ Some patterns are still better off as raw Reanimated:
 
 - **Frame-by-frame data viz** — d3-style charts that read shared values inside `useDerivedValue` and feed them into SVG props. The Inertia public surface targets `style` keys; SVG attribute interpolation lives in the hooks layer or in raw Reanimated.
 - **Custom physics simulations** — anything where you'd be reaching into `withDecay` callback signatures, `cancelAnimation`, or `runOnUI` directly. Drop down to the hooks.
-- **Style-prop-interpolating shared elements** — the [`layout` prop and `layoutId`](../layout) cover auto-layout and rect-only hero transitions, but interpolating `borderRadius` / colors between shared elements (and window-coordinate measurement across differently-offset parents) is v2 scope. For those cases, raw Reanimated is still the tool.
+- **Shared elements that carry more than the standard key set** — the [`layout` prop and `layoutId`](../layout) cover auto-layout and hero transitions, including window-coordinate measurement across differently-offset parents and a style carry for `opacity` / `borderRadius` / the color keys. The carried set is fixed and has no configuration surface, so a hero that needs to interpolate something else (padding, border width, a gradient) between screens is still a raw-Reanimated job.
 - **Slider / continuous gesture range UI with exotic requirements** — [`useDrag`](../gestures-adapter) and [`useTouchDrag`](../api/hooks#usetouchdragoptions) cover the standard drag/slider shapes; keep the hand-rolled PanResponder + `useSharedValue` flow only when you need custom gesture arbitration those hooks don't express.
 
 The hooks layer is intentionally the same shape as Reanimated's so dropping down doesn't feel like switching tools.

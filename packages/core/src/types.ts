@@ -414,19 +414,24 @@ export interface MotionProps<C, V extends VariantsMap<C> = VariantsMap<C>> {
    * recorded rect to its natural position via a FLIP transform stack.
    *
    * Reanimated 4 removed the `sharedTransitionTag` API — `layoutId` is the
-   * Inertia-side measure-based replacement. Rects are recorded in
-   * parent-relative coordinates (from `onLayout`), which composes when the
-   * source and target screens share an outer content container (the common
-   * stack-navigator case); nested-parent layouts need the v2
-   * window-coordinate path.
+   * Inertia-side measure-based replacement. Rects are recorded in **window**
+   * coordinates wherever the host can be measured synchronously (Fabric),
+   * which is what lets a source and target sit under containers at different
+   * screen offsets; elsewhere both fall back to the parent-relative
+   * coordinates `onLayout` reports. A source and target that ended up in
+   * different spaces skip the animation rather than play a wrong one.
    *
    * The same `transition` prop drives the FLIP animation (spring by
    * default; `'timing'` honored; `'decay'` downgrades to spring; reduced
-   * motion skips the transition). Out of scope for the first iteration:
-   * style-prop interpolation (border radius, colors, etc.) — only the
-   * rect-to-rect transform is animated. Two simultaneously-mounted
-   * primitives sharing the same `layoutId` are undefined behavior; pick a
-   * primitive per id at a time.
+   * motion skips the transition). Alongside the rect, a fixed set of style
+   * keys is carried from the source and crossfaded out on that same
+   * transition: `opacity`, `borderRadius`, `backgroundColor`, `borderColor`,
+   * `color`, `tintColor`. Transform keys are not carried — the FLIP owns
+   * them — and a key only participates when the element already has a value
+   * for it, from a record or from its static `style`.
+   *
+   * Two simultaneously-mounted primitives sharing the same `layoutId` are
+   * undefined behavior; pick a primitive per id at a time.
    */
   layoutId?: string
   /**

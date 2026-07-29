@@ -24,6 +24,7 @@ import {
   releaseLayout,
   type SharedLayoutSource,
   type SharedRect,
+  type SharedStyleSnapshot,
 } from './sharedRegistry'
 
 /**
@@ -46,9 +47,29 @@ export interface SharedLayoutValues {
   sy: SharedValue<number>
 }
 
+/**
+ * Shared values carrying the *style* half of a shared-element transition — the
+ * part the rect FLIP can't express.
+ *
+ * `snapshot` parks the source element's values for the carried keys; `progress`
+ * runs 1 → 0 on the same transition as the FLIP. The host's worklet reads both
+ * and pulls each carried key from the snapshot toward its own resolved value,
+ * so at the first frame the arriving element wears the source's colors and by
+ * the last it wears its own.
+ *
+ * At rest `snapshot` is `null` and `progress` is 0, so the worklet's whole
+ * contribution is one comparison.
+ */
+export interface SharedLayoutStyleValues {
+  snapshot: SharedValue<SharedStyleSnapshot | null>
+  progress: SharedValue<number>
+}
+
 /** What the host component needs to wire into its rendered tree. */
 export interface SharedLayoutBindings {
   flip: SharedLayoutValues
+  /** Source-style carry for the same transition. See `SharedLayoutStyleValues`. */
+  carry: SharedLayoutStyleValues
   /**
    * Composite ref the consumer attaches to the rendered animated
    * component. Forwards the underlying ref to the user-supplied `ref`
@@ -75,6 +96,10 @@ export interface SharedLayoutBindings {
  *      visually places the new element at the source position, then
  *      animate back to identity. `withSequence(snap, animate)` keeps the
  *      animation starting from the snapped delta rather than from zero.
+ *   5. Carry the source's style values for the keys the rect can't express
+ *      (colors, `opacity`, `borderRadius`) by parking them in a snapshot and
+ *      running a crossfade progress 1 → 0 on the same transition. The blend
+ *      happens in the host's worklet; see `SharedLayoutStyleValues`.
  *
  * Coordinate space: rects are recorded in **window** coordinates when the host
  * can be measured synchronously (Fabric), and in the parent-relative
@@ -108,14 +133,32 @@ export function useSharedLayout(options: {
   transition: TransitionConfig | undefined
   shouldReduceMotion: boolean
   userOnLayout: ((event: LayoutChangeEvent) => void) | undefined
+  /**
+   * Read this element's current values for the carried style keys. Supplied by
+   * the host (which owns the per-key shared values); `undefined` when the host
+   * has nothing to carry. Identity may change every render — it is read through
+   * a ref, so it never churns `onLayout`.
+   */
+  readStyles?: () => SharedStyleSnapshot | undefined
 }): SharedLayoutBindings {
-  const { layoutId, userRef, transition, shouldReduceMotion, userOnLayout } =
-    options
+  const {
+    layoutId,
+    userRef,
+    transition,
+    shouldReduceMotion,
+    userOnLayout,
+    readStyles,
+  } = options
 
   const dx = useSharedValue(0)
   const dy = useSharedValue(0)
   const sx = useSharedValue(1)
   const sy = useSharedValue(1)
+
+  // Style-carry pair. `null` / 0 at rest means the host worklet skips the
+  // whole branch on any element that isn't mid-transition.
+  const snapshot = useSharedValue<SharedStyleSnapshot | null>(null)
+  const carryProgress = useSharedValue(0)
 
   // Most-recent rect for this primitive. Updated on every layout commit;
   // read on unmount to populate the registry as the FLIP source for the
@@ -136,6 +179,8 @@ export function useSharedLayout(options: {
   transitionRef.current = transition
   const reducedMotionRef = useRef(shouldReduceMotion)
   reducedMotionRef.current = shouldReduceMotion
+  const readStylesRef = useRef(readStyles)
+  readStylesRef.current = readStyles
 
   const setRef = useCallback(
     (node: unknown) => {
@@ -150,24 +195,39 @@ export function useSharedLayout(options: {
   // current measurement instead of trusting the one from our last layout.
   const remeasure = useCallback(() => measureWindowRect(nodeRef.current), [])
 
-  const startFlip = useCallback(
-    (source: SharedRect, target: SharedRect) => {
+  // Same idea for the carried style keys: the host's values move without a
+  // layout pass, so a consumer should read them now rather than trust the
+  // snapshot from whenever we last laid out. Stable identity — the host's
+  // reader is reached through a ref.
+  const snapshotStyles = useCallback(() => readStylesRef.current?.(), [])
+
+  const startTransition = useCallback(
+    (
+      source: SharedLayoutSource,
+      sourceRect: SharedRect,
+      target: SharedRect,
+    ) => {
       // Mixed coordinate spaces are not comparable — the delta would be off by
       // the parent's window offset. Skipping is the honest outcome; playing
       // the animation anyway would fling the element in from the wrong place.
-      if (source.space !== target.space) return
-      applyFlip({
-        source,
-        target,
-        dx,
-        dy,
-        sx,
-        sy,
+      // The style carry goes with it: half a shared-element transition reads
+      // as a glitch, not as a graceful degradation.
+      if (sourceRect.space !== target.space) return
+      const shared = {
         transition: transitionRef.current,
         shouldReduceMotion: reducedMotionRef.current,
+      }
+      applyFlip({ source: sourceRect, target, dx, dy, sx, sy, ...shared })
+      applyStyleCarry({
+        snapshot,
+        progress: carryProgress,
+        // Prefer a live read for the same reason the rect is re-measured: a
+        // still-mounted source may have moved on since its last layout.
+        styles: source.readStyles?.() ?? source.styles,
+        ...shared,
       })
     },
-    [dx, dy, sx, sy],
+    [dx, dy, sx, sy, snapshot, carryProgress],
   )
 
   const onLayout = useCallback(
@@ -194,16 +254,16 @@ export function useSharedLayout(options: {
         ({ x, y, width, height, space: 'parent' } as SharedRect)
 
       lastRectRef.current = rect
-      registerLayout(layoutId, rect, remeasure)
+      registerLayout(layoutId, rect, remeasure, snapshotStyles)
 
       if (!source) return
       // Prefer a fresh measurement of the source over its stored rect: it may
       // have scrolled since its last layout, and `onLayout` never reports an
       // ancestor's scroll. Falls back to the stored rect once the source has
       // unmounted or when it can't be measured.
-      startFlip(source.remeasure?.() ?? source.rect, rect)
+      startTransition(source, source.remeasure?.() ?? source.rect, rect)
     },
-    [layoutId, userOnLayout, remeasure, startFlip],
+    [layoutId, userOnLayout, remeasure, snapshotStyles, startTransition],
   )
 
   // Reset the first-layout latch when the id changes — a new id is logically
@@ -212,16 +272,19 @@ export function useSharedLayout(options: {
     consumedRef.current = false
   }, [layoutId])
 
-  // On unmount, hand the latest rect to the registry under this id so the
-  // next mount can consume it as a FLIP source.
+  // On unmount, hand the latest rect — and a final snapshot of the carried
+  // style keys — to the registry under this id so the next mount can consume
+  // them. The styles are read by value here rather than left behind as a
+  // callback: after this the node is gone, and a later read would be measuring
+  // a component nobody owns.
   useEffect(() => {
     return () => {
       if (!layoutId) return
       const rect = lastRectRef.current
       if (!rect) return
-      releaseLayout(layoutId, rect)
+      releaseLayout(layoutId, rect, snapshotStyles())
     }
-  }, [layoutId])
+  }, [layoutId, snapshotStyles])
 
   // Mark unmounted and stop any in-flight FLIP. The mounted flag is what keeps
   // an asynchronous measurement callback from writing to shared values the
@@ -237,6 +300,9 @@ export function useSharedLayout(options: {
       cancelAnimation(dy)
       cancelAnimation(sx)
       cancelAnimation(sy)
+      // `snapshot` is assigned, never animated, so there is nothing to cancel
+      // on it — only the progress value drives.
+      cancelAnimation(carryProgress)
     },
     // The FLIP shared values are identity-stable per hook instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -246,19 +312,64 @@ export function useSharedLayout(options: {
   return useMemo<SharedLayoutBindings>(
     () => ({
       flip: { dx, dy, sx, sy },
+      carry: { snapshot, progress: carryProgress },
       setRef,
       onLayout,
     }),
-    [dx, dy, sx, sy, setRef, onLayout],
+    [dx, dy, sx, sy, snapshot, carryProgress, setRef, onLayout],
   )
 }
 
 /**
+ * Build the `withSequence(snap, animate)` pair every leg of a shared-element
+ * transition uses: jump to `from` instantly, then animate to `to`. The snap leg
+ * is what makes the animation start from the source — a plain `withSpring(to)`
+ * off the resting base would animate from wherever the value already sat.
+ *
+ * Returned as a closure so the spring params are converted once and reused
+ * across all five legs (four transforms plus the style crossfade), which also
+ * guarantees the rect and the style land together.
+ */
+function legBuilder(
+  transition: TransitionConfig | undefined,
+): (from: number, to: number) => number {
+  if (transition?.type === 'timing') {
+    const duration = transition.duration ?? 300
+    return (from, to) =>
+      withSequence(
+        withTiming(from, { duration: 0 }),
+        withTiming(to, { duration }),
+      )
+  }
+  // Spring path (default, and the fallback for `'decay'` which doesn't have a
+  // meaningful target value for a FLIP transition).
+  const springCfg: SpringTransition =
+    transition?.type === 'spring'
+      ? { ...DEFAULT_SPRING, ...transition }
+      : { type: 'spring', ...DEFAULT_SPRING }
+  const springParams = springToReanimated(springCfg)
+  return (from, to) =>
+    withSequence(
+      withTiming(from, { duration: 0 }),
+      withSpring(to, springParams),
+    )
+}
+
+/**
+ * Whether a shared-element transition should play at all, or snap. Reduced
+ * motion and an explicit `'no-animation'` transition are the same answer for
+ * both the rect and the style halves.
+ */
+function shouldSnap(
+  transition: TransitionConfig | undefined,
+  shouldReduceMotion: boolean,
+): boolean {
+  return shouldReduceMotion || transition?.type === 'no-animation'
+}
+
+/**
  * Snap the FLIP shared values so the new element visually overlays its
- * source rect, then animate back to identity. The `withSequence(snap,
- * animate)` shape is what makes the spring start from the snapped delta —
- * a plain `withSpring(0)` from a zero base would animate from-zero, not
- * from-source.
+ * source rect, then animate back to identity.
  */
 function applyFlip(args: {
   source: SharedRect
@@ -288,9 +399,9 @@ function applyFlip(args: {
   const scaleX = target.width > 0 ? source.width / target.width : 1
   const scaleY = target.height > 0 ? source.height / target.height : 1
 
-  if (shouldReduceMotion) {
-    // Reduced-motion: skip the visual transition entirely. The element
-    // appears at its natural position; the source rect is discarded.
+  if (shouldSnap(transition, shouldReduceMotion)) {
+    // Skip the visual transition entirely. The element appears at its natural
+    // position; the source rect is discarded.
     dx.value = 0
     dy.value = 0
     sx.value = 1
@@ -298,57 +409,46 @@ function applyFlip(args: {
     return
   }
 
-  if (transition?.type === 'no-animation') {
-    dx.value = 0
-    dy.value = 0
-    sx.value = 1
-    sy.value = 1
+  const leg = legBuilder(transition)
+  dx.value = leg(deltaX, 0)
+  dy.value = leg(deltaY, 0)
+  sx.value = leg(scaleX, 1)
+  sy.value = leg(scaleY, 1)
+}
+
+/**
+ * Park the source element's carried style values and run the crossfade
+ * progress 1 → 0 on the same transition as the rect FLIP.
+ *
+ * The blend itself happens in the host's worklet, which pulls each carried key
+ * from `snapshot[key]` toward its own resolved value by `progress`. Driving
+ * only a scalar here is what keeps this cheap: one shared value moves, however
+ * many keys are being carried, and colors go through the same
+ * `interpolateColor` branch the gesture cascade already uses.
+ *
+ * A source with nothing to carry leaves both values alone — an element whose
+ * counterpart declared no carried keys behaves exactly as it did before style
+ * carry existed.
+ */
+function applyStyleCarry(args: {
+  snapshot: SharedValue<SharedStyleSnapshot | null>
+  progress: SharedValue<number>
+  styles: SharedStyleSnapshot | undefined
+  transition: TransitionConfig | undefined
+  shouldReduceMotion: boolean
+}): void {
+  const { snapshot, progress, styles, transition, shouldReduceMotion } = args
+  if (!styles) return
+
+  if (shouldSnap(transition, shouldReduceMotion)) {
+    // Matching the rect path: the element arrives wearing its own style rather
+    // than crossfading into it. Clearing the snapshot too means the worklet's
+    // branch stays untaken instead of resting on a dead payload.
+    snapshot.value = null
+    progress.value = 0
     return
   }
 
-  if (transition?.type === 'timing') {
-    const duration = transition.duration ?? 300
-    dx.value = withSequence(
-      withTiming(deltaX, { duration: 0 }),
-      withTiming(0, { duration }),
-    )
-    dy.value = withSequence(
-      withTiming(deltaY, { duration: 0 }),
-      withTiming(0, { duration }),
-    )
-    sx.value = withSequence(
-      withTiming(scaleX, { duration: 0 }),
-      withTiming(1, { duration }),
-    )
-    sy.value = withSequence(
-      withTiming(scaleY, { duration: 0 }),
-      withTiming(1, { duration }),
-    )
-    return
-  }
-
-  // Spring path (default, and the fallback for `'decay'` which doesn't
-  // have a meaningful target value for a FLIP transition).
-  const springCfg: SpringTransition =
-    transition?.type === 'spring'
-      ? { ...DEFAULT_SPRING, ...transition }
-      : { type: 'spring', ...DEFAULT_SPRING }
-  const springParams = springToReanimated(springCfg)
-
-  dx.value = withSequence(
-    withTiming(deltaX, { duration: 0 }),
-    withSpring(0, springParams),
-  )
-  dy.value = withSequence(
-    withTiming(deltaY, { duration: 0 }),
-    withSpring(0, springParams),
-  )
-  sx.value = withSequence(
-    withTiming(scaleX, { duration: 0 }),
-    withSpring(1, springParams),
-  )
-  sy.value = withSequence(
-    withTiming(scaleY, { duration: 0 }),
-    withSpring(1, springParams),
-  )
+  snapshot.value = styles
+  progress.value = legBuilder(transition)(1, 0)
 }

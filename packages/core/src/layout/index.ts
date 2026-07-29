@@ -11,6 +11,7 @@ export {
   type CoordinateSpace,
   type SharedLayoutSource,
   type SharedRect,
+  type SharedStyleSnapshot,
 } from './sharedRegistry'
 export {
   __setSharedLayoutMeasurer,
@@ -21,5 +22,6 @@ export {
 export {
   useSharedLayout,
   type SharedLayoutBindings,
+  type SharedLayoutStyleValues,
   type SharedLayoutValues,
 } from './useSharedLayout'
