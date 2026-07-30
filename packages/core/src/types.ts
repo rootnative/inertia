@@ -218,6 +218,22 @@ type AnimatableStructuredExtras<S> = 'boxShadow' extends keyof S
     {}
 
 /**
+ * The `transform: [...]` array form, passed through as the underlying style
+ * types it. Inertia reads transform entries out of the array (see
+ * `styleValueFor` in `createMotionComponent`) rather than treating the array as
+ * an animatable scalar, so it is exempted from the `AnimatableValue` mapping —
+ * wrapping it there would offer a nonsensical `transform: [[...], [...]]`
+ * keyframe form.
+ *
+ * Conditional on `S` for the same reason as `boxShadow`: only appears where the
+ * underlying style actually has it.
+ */
+type AnimatableTransformArray<S> = 'transform' extends keyof S
+  ? { transform?: S['transform'] }
+  : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    {}
+
+/**
  * The animation state shape inferred from the underlying component's style
  * prop. We narrow to the value side of `style` so consumers see ViewStyle on
  * `Motion.View`, TextStyle on `Motion.Text`, etc. — no shared union.
@@ -231,11 +247,98 @@ type AnimatableStructuredExtras<S> = 'boxShadow' extends keyof S
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type _StyleValue<T> = Exclude<T, (...args: any[]) => any>
 
+/**
+ * The style keys Inertia's runtime actually drives — the type-level mirror of
+ * `ALL_KEYS` in `createMotionComponent`, minus the `shadowOffset*` synthetics
+ * (consumers write the nested `shadowOffset` object, not the axes) and minus
+ * `boxShadow` (handled by `AnimatableStructuredExtras`, whose value shape
+ * deliberately departs from `AnimatableValue`).
+ *
+ * **This list and `ALL_KEYS` must stay in sync.** They are separate because one
+ * is a type and the other is a runtime array, and TypeScript can't derive the
+ * former from a value living in a module that imports this one. The direction
+ * that matters: a key here but not in `ALL_KEYS` typechecks and then silently
+ * does nothing at runtime — which is precisely the defect this type was
+ * introduced to kill. `animate-keys.test-d.tsx` pins the two together.
+ *
+ * Before 0.0.5 this type mapped over the component's *entire* style surface, so
+ * `animate={{ paddingTop: 40 }}` compiled cleanly and was then dropped on the
+ * floor — no error, no warning. That contradicted the library's own headline
+ * differentiator (wrong props should error, not go unnoticed), so the mapping is
+ * now an intersection: a key must be both animatable by Inertia *and* present on
+ * the underlying component's style prop.
+ */
+type AnimatableStyleKey =
+  // Transform axes surfaced as top-level keys.
+  | 'translateX'
+  | 'translateY'
+  | 'scaleX'
+  | 'scaleY'
+  // Numeric top-level keys.
+  | 'opacity'
+  | 'width'
+  | 'height'
+  | 'borderRadius'
+  | 'shadowOpacity'
+  | 'shadowRadius'
+  | 'elevation'
+  | 'borderTopLeftRadius'
+  | 'borderTopRightRadius'
+  | 'borderBottomLeftRadius'
+  | 'borderBottomRightRadius'
+  | 'borderWidth'
+  | 'borderTopWidth'
+  | 'borderRightWidth'
+  | 'borderBottomWidth'
+  | 'borderLeftWidth'
+  | 'top'
+  | 'right'
+  | 'bottom'
+  | 'left'
+  | 'padding'
+  | 'paddingTop'
+  | 'paddingRight'
+  | 'paddingBottom'
+  | 'paddingLeft'
+  | 'paddingHorizontal'
+  | 'paddingVertical'
+  | 'margin'
+  | 'marginTop'
+  | 'marginRight'
+  | 'marginBottom'
+  | 'marginLeft'
+  | 'marginHorizontal'
+  | 'marginVertical'
+  | 'flex'
+  | 'flexGrow'
+  | 'flexShrink'
+  | 'fontSize'
+  | 'letterSpacing'
+  | 'lineHeight'
+  | 'zIndex'
+  | 'gap'
+  | 'rowGap'
+  | 'columnGap'
+  // Color keys.
+  | 'backgroundColor'
+  | 'borderColor'
+  | 'color'
+  | 'tintColor'
+  | 'shadowColor'
+  // The one nested-object style prop, written as `{ width, height }`.
+  | 'shadowOffset'
+
 export type AnimateStyle<C> = C extends { style?: infer Raw }
   ? _StyleValue<Raw> extends StyleProp<infer S>
-    ? Omit<{ [K in keyof S]?: AnimatableValue<S[K]> }, 'boxShadow'> &
-        AnimatableTransformExtras &
-        AnimatableStructuredExtras<S>
+    ? {
+        [K in keyof S as K extends AnimatableStyleKey ? K : never]?: K extends
+          | 'boxShadow'
+          | 'transform'
+          ? never
+          : AnimatableValue<S[K]>
+      } & AnimatableTransformExtras &
+        AnimatableStructuredExtras<S> &
+        AnimatableTransformArray<S>
     : never
   : never
 

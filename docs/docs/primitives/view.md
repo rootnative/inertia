@@ -31,6 +31,24 @@ import { MotionView } from '@rootnative/inertia/view'
 
 `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`, `backgroundColor`, `borderColor`, `shadowColor`, `shadowOffset`, `boxShadow`.
 
+Since `0.0.5`, also the layout numerics: per-corner radii (`borderTopLeftRadius` and siblings), border widths (`borderWidth`, `borderTopWidth`, …), absolute insets (`top` / `right` / `bottom` / `left`), padding and margin (including the `*Horizontal` / `*Vertical` shorthands), `flex` / `flexGrow` / `flexShrink`, `gap` / `rowGap` / `columnGap`, and `zIndex`. See [Animatable properties](.#animatable-properties) for the full table, the layout-cost caveat, and the list of keys that are deliberately excluded.
+
+Anything outside that set is a **compile error** on `animate`, not a silent no-op — `animate={{ alignItems: 'center' }}` fails to typecheck rather than rendering nothing.
+
+## Animating layout vs. transforms
+
+`width` / `height` / `padding` / `flex` / the inset keys all drive real layout, so each frame reflows the subtree. That is the correct tool when the layout genuinely changes, but it is measurably more expensive than the compositor-only transform path:
+
+```tsx
+// Prefer this for pure motion — no reflow.
+<Motion.View animate={{ translateX: 100, scale: 1.1 }} />
+
+// Use this when the box itself must change (siblings should reflow around it).
+<Motion.View animate={{ paddingHorizontal: 32, borderBottomWidth: 4 }} />
+```
+
+Animating `width` / `height` on a container that isn't `flex: 1` can jitter on Fabric; the same caveat applies to the layout keys above. For a size change that only needs to _look_ right, `scaleX` / `scaleY` is smoother.
+
 ## Shadow animation
 
 Shadow keys ride the same animatable pipeline as other numeric / color props — `shadowOpacity`, `shadowRadius`, `elevation` are numerics; `shadowColor` is a color. `shadowOffset` is the one nested-object style on the surface; internally the worklet decomposes it into two synthetic axis SVs and recomposes them into a single `{ width, height }` prop each frame.

@@ -4,6 +4,42 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+**Correctness release for the `animate` type surface.** The 40 layout and text-metric style keys that typechecked but were silently dropped at runtime now either animate or fail to compile. No API removals; the type narrowing is technically breaking for code that passed a never-driven key, but that code was already a no-op.
+
+### Added
+
+- **Layout numerics are animatable.** Forty keys join the `animate` surface, all riding the existing generic numeric path — one shared value each, resolved on the JS thread, emitted through the same branch as `opacity`:
+
+  | Group             | Keys                                                                                                            |
+  | ----------------- | --------------------------------------------------------------------------------------------------------------- |
+  | Per-corner radius | `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomLeftRadius`, `borderBottomRightRadius`              |
+  | Border width      | `borderWidth`, `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`                     |
+  | Absolute inset    | `top`, `right`, `bottom`, `left`                                                                                |
+  | Padding           | `padding`, `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft`, `paddingHorizontal`, `paddingVertical` |
+  | Margin            | `margin`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft`, `marginHorizontal`, `marginVertical`        |
+  | Flex sizing       | `flex`, `flexGrow`, `flexShrink`                                                                                |
+  | Gap               | `gap`, `rowGap`, `columnGap`                                                                                    |
+  | Stacking          | `zIndex`                                                                                                        |
+  | Text metrics      | `fontSize`, `letterSpacing`, `lineHeight` — `Motion.Text` only, since they live on `TextStyle`                  |
+
+  Every one of these previously **typechecked and then did nothing**: `AnimateStyle<C>` mapped over the component's entire inferred style, so `animate={{ paddingTop: 40 }}` compiled cleanly, allocated nothing, and never appeared in the rendered style. The `Motion.Text` case was the sharpest — the docs told consumers to hand-roll `useAnimatedStyle` for `fontSize` while the type-test asserted `fontSize` was accepted, so the two halves of the contract actively disagreed. Sequences, `{ to }` step objects, per-property transitions, `gesture` sub-states, `exit`, variants, and the `layoutId` resting logic all work on the new keys with no special-casing.
+
+  **These drive real layout, so they reflow every frame.** Prefer `scale` / `translate*` for pure motion — those composite without touching layout. Reach for these when the layout genuinely changes: a drawer sliding via `left`, a card squaring off one corner as it expands, a pane resize via `flex`. The Fabric jitter caveat that has always applied to `width` / `height` on non-`flex: 1` containers applies here too.
+
+  **Resting values behave as they have since `0.0.3`.** A key declared only in a `gesture` sub-state, an `exit` target, or a non-active variant joins the active set, so the worklet emits it every frame including at rest — and since the animated style merges _after_ `style`, a non-identity resting default would silently stomp the consumer's layout. The existing style-scan handles this: such a key rests at whatever `StyleSheet.flatten(style)` says, falling back to the type default only when the style is silent. All 40 defaults are `0`, which is RN's own unset value for each, so a key that does fall back lands where the element already was. Guarded by four dedicated cases in `animatable-keys.test.tsx` alongside the existing `style-resting.test.tsx`.
+
+  **Bundle cost: +0.11 kB (+1.3%) per primitive subpath**, 8.80 → 8.91 kB brotlied, +0.08 kB on the root entry. No `size-limit` cap moved. Nearly free because the factory's per-key machinery was already generic: the only structural change was replacing 23 hand-written `useSharedValue` calls in `useAnimatableSharedValues` with a loop over `ALL_KEYS`, which offset almost the entire cost of the 40 new table entries. Hook order stays stable because `ALL_KEYS` is a module-level `as const` whose length is fixed at module evaluation.
+
+### Changed
+
+- **`animate` now rejects style keys Inertia doesn't drive, at compile time.** `AnimateStyle<C>` is narrowed to an intersection of the component's style keys and the set the runtime actually animates, so `animate={{ alignItems: 'center' }}` is a type error instead of a silent no-op. This restores the library's headline differentiator — the first row of the sharp-edges table promises that wrong props error rather than going unnoticed — which the previous whole-style mapping had quietly broken for every non-animatable key.
+
+  **Technically breaking, practically not:** code that passed one of these keys stops compiling, but it was already doing nothing at runtime, so nothing that worked before stops working. Fixing a break means either deleting the key or moving it to the static `style` prop, which is where it belonged.
+
+  Two categories are rejected on purpose. **Enum-valued keys** (`position`, `overflow`, `alignItems`, `flexDirection`, `display`) have no interpolable midpoint. **`minWidth` / `maxWidth` / `minHeight` / `maxHeight` / `aspectRatio`** are excluded for a subtler reason worth recording: their unset state isn't a number, so there is no value they could rest at when declared only in a `gesture` sub-state or a non-active variant — any numeric default would change the layout the instant the key activated, which is exactly the `0.0.3` resting-value regression. Animate `width` / `height` instead, or drop to the value-layer hooks. Per-primitive gating is unchanged and still enforced: `tintColor` stays Image-only, and the text metrics are rejected on `Motion.View` and `Motion.Image`.
+
+  `AnimatableStyleKey` (the new type) and `ALL_KEYS` (the runtime array) are necessarily separate declarations — one is a type, the other a value in a module that imports it — so the pairing is pinned by tests on both sides: `__type-tests__/animate-keys.test-d.tsx` (23 compile-time assertions) proves the type accepts and rejects the right keys, and `__tests__/animatable-keys.test.tsx` (17 cases) proves every accepted key reaches the rendered style. A key added to one but not the other fails one of the two.
+
 ## [0.0.4] - 2026-07-29
 
 **Feature release.** The three deferred items the `0.0.3` audit left on the roadmap land together: `boxShadow` joins the declarative `animate` surface, and `layoutId` shared-element transitions gain window-coordinate measurement and a style carry. No breaking changes; the three adapters are lockstep-bumped with no runtime changes of their own.

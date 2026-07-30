@@ -29,9 +29,23 @@ export function Heading({ visible }: { visible: boolean }) {
 import { MotionText } from '@rootnative/inertia/text'
 ```
 
-## Animatable keys (alpha)
+## Animatable keys
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `color`, `backgroundColor`. `fontSize` interpolation is deferred — drop to a `useSharedValue` + `useAnimatedStyle` workflow if you need it today.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `color`, `backgroundColor`, plus the layout numerics listed in [Animatable properties](.#animatable-properties).
+
+**Text metrics** — `fontSize`, `letterSpacing`, and `lineHeight` animate as of `0.0.5` (before that they typechecked but were silently dropped, and the docs recommended a hand-rolled `useAnimatedStyle`; that workaround is no longer needed). They're `TextStyle`-only, so they're rejected at compile time on `Motion.View` and `Motion.Image`.
+
+```tsx
+<Motion.Text
+  initial={{ fontSize: 14, letterSpacing: 0 }}
+  animate={{ fontSize: 20, letterSpacing: 1.5 }}
+  transition={{ type: 'spring', tension: 200, friction: 18 }}
+>
+  Scaling headline
+</Motion.Text>
+```
+
+Each of these re-measures the text every frame, which is heavier than the transform path. When you only need the text to _look_ bigger and reflow isn't wanted, animate `scale` instead — it composites without re-measuring. Use `fontSize` when surrounding content genuinely must reflow around the new size.
 
 ```tsx
 <Motion.Text

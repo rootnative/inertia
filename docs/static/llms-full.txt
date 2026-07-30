@@ -241,11 +241,29 @@ function Fill({ progress }) {
 
 The instant you add an animation prop, the same instance opts into the full animated body (it re-mounts across that boundary, so give an element that flips between plain and animated a stable `key` if the remount matters). One host concept, no separate "plain" alias to pick between.
 
-## Animatable properties (alpha)
+## Animatable properties
 
-The alpha supports the properties below across every primitive that accepts them.
+Inertia supports the properties below across every primitive that accepts them. `animate` is typed per primitive **and** narrowed to this set: a style key Inertia doesn't drive is a compile error rather than a silent no-op, so a typo or an unsupported property fails the build instead of quietly doing nothing at runtime.
 
 **Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`. Rotation values are degrees as numbers — the runtime wraps with `'deg'` before handing to Reanimated.
+
+**Layout numerics** (since `0.0.5`):
+
+| Group             | Keys                                                                                                            |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| Per-corner radius | `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomLeftRadius`, `borderBottomRightRadius`              |
+| Border width      | `borderWidth`, `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`                     |
+| Absolute inset    | `top`, `right`, `bottom`, `left`                                                                                |
+| Padding           | `padding`, `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft`, `paddingHorizontal`, `paddingVertical` |
+| Margin            | `margin`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft`, `marginHorizontal`, `marginVertical`        |
+| Flex sizing       | `flex`, `flexGrow`, `flexShrink`                                                                                |
+| Gap               | `gap`, `rowGap`, `columnGap`                                                                                    |
+| Stacking          | `zIndex`                                                                                                        |
+| Text metrics      | `fontSize`, `letterSpacing`, `lineHeight` — `Motion.Text` only, since they live on `TextStyle`                  |
+
+These animate the box itself rather than compositing a transform, so they trigger layout on each frame. Prefer `scale` / `translateX` for pure motion — they run on the compositor and don't reflow. Reach for these when the effect genuinely _is_ a layout change: a drawer sliding via `left`, a card squaring off one corner as it expands, a pane resize via `flex`.
+
+**Deliberately not animatable:** enum-valued keys (`position`, `overflow`, `alignItems`, `flexDirection`, `display`) have nothing to interpolate between. `minWidth` / `maxWidth` / `minHeight` / `maxHeight` / `aspectRatio` are excluded for a subtler reason — their unset state isn't a number, so there's no value a key can rest at when it's declared only in a `gesture` sub-state or a non-active variant without changing the layout the moment it activates. Animate `width` / `height` instead, or drop to the [value-layer hooks](../api/hooks).
 
 **Shadow offset:** `shadowOffset` accepts the nested `{ width, height }` object (single-value form only — see [Motion.View](./view) for the contract).
 
@@ -299,6 +317,24 @@ import { MotionView } from '@rootnative/inertia/view'
 ## Animatable keys
 
 `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`, `backgroundColor`, `borderColor`, `shadowColor`, `shadowOffset`, `boxShadow`.
+
+Since `0.0.5`, also the layout numerics: per-corner radii (`borderTopLeftRadius` and siblings), border widths (`borderWidth`, `borderTopWidth`, …), absolute insets (`top` / `right` / `bottom` / `left`), padding and margin (including the `*Horizontal` / `*Vertical` shorthands), `flex` / `flexGrow` / `flexShrink`, `gap` / `rowGap` / `columnGap`, and `zIndex`. See [Animatable properties](.#animatable-properties) for the full table, the layout-cost caveat, and the list of keys that are deliberately excluded.
+
+Anything outside that set is a **compile error** on `animate`, not a silent no-op — `animate={{ alignItems: 'center' }}` fails to typecheck rather than rendering nothing.
+
+## Animating layout vs. transforms
+
+`width` / `height` / `padding` / `flex` / the inset keys all drive real layout, so each frame reflows the subtree. That is the correct tool when the layout genuinely changes, but it is measurably more expensive than the compositor-only transform path:
+
+```tsx
+// Prefer this for pure motion — no reflow.
+<Motion.View animate={{ translateX: 100, scale: 1.1 }} />
+
+// Use this when the box itself must change (siblings should reflow around it).
+<Motion.View animate={{ paddingHorizontal: 32, borderBottomWidth: 4 }} />
+```
+
+Animating `width` / `height` on a container that isn't `flex: 1` can jitter on Fabric; the same caveat applies to the layout keys above. For a size change that only needs to _look_ right, `scaleX` / `scaleY` is smoother.
 
 ## Shadow animation
 
@@ -405,9 +441,23 @@ export function Heading({ visible }: { visible: boolean }) {
 import { MotionText } from '@rootnative/inertia/text'
 ```
 
-## Animatable keys (alpha)
+## Animatable keys
 
-`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `color`, `backgroundColor`. `fontSize` interpolation is deferred — drop to a `useSharedValue` + `useAnimatedStyle` workflow if you need it today.
+`opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `color`, `backgroundColor`, plus the layout numerics listed in [Animatable properties](.#animatable-properties).
+
+**Text metrics** — `fontSize`, `letterSpacing`, and `lineHeight` animate as of `0.0.5` (before that they typechecked but were silently dropped, and the docs recommended a hand-rolled `useAnimatedStyle`; that workaround is no longer needed). They're `TextStyle`-only, so they're rejected at compile time on `Motion.View` and `Motion.Image`.
+
+```tsx
+<Motion.Text
+  initial={{ fontSize: 14, letterSpacing: 0 }}
+  animate={{ fontSize: 20, letterSpacing: 1.5 }}
+  transition={{ type: 'spring', tension: 200, friction: 18 }}
+>
+  Scaling headline
+</Motion.Text>
+```
+
+Each of these re-measures the text every frame, which is heavier than the transform path. When you only need the text to _look_ bigger and reflow isn't wanted, animate `scale` instead — it composites without re-measuring. Use `fontSize` when surrounding content genuinely must reflow around the new size.
 
 ```tsx
 <Motion.Text

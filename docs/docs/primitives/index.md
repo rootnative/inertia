@@ -46,11 +46,29 @@ function Fill({ progress }) {
 
 The instant you add an animation prop, the same instance opts into the full animated body (it re-mounts across that boundary, so give an element that flips between plain and animated a stable `key` if the remount matters). One host concept, no separate "plain" alias to pick between.
 
-## Animatable properties (alpha)
+## Animatable properties
 
-The alpha supports the properties below across every primitive that accepts them.
+Inertia supports the properties below across every primitive that accepts them. `animate` is typed per primitive **and** narrowed to this set: a style key Inertia doesn't drive is a compile error rather than a silent no-op, so a typo or an unsupported property fails the build instead of quietly doing nothing at runtime.
 
 **Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`. Rotation values are degrees as numbers — the runtime wraps with `'deg'` before handing to Reanimated.
+
+**Layout numerics** (since `0.0.5`):
+
+| Group             | Keys                                                                                                            |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| Per-corner radius | `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomLeftRadius`, `borderBottomRightRadius`              |
+| Border width      | `borderWidth`, `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`                     |
+| Absolute inset    | `top`, `right`, `bottom`, `left`                                                                                |
+| Padding           | `padding`, `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft`, `paddingHorizontal`, `paddingVertical` |
+| Margin            | `margin`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft`, `marginHorizontal`, `marginVertical`        |
+| Flex sizing       | `flex`, `flexGrow`, `flexShrink`                                                                                |
+| Gap               | `gap`, `rowGap`, `columnGap`                                                                                    |
+| Stacking          | `zIndex`                                                                                                        |
+| Text metrics      | `fontSize`, `letterSpacing`, `lineHeight` — `Motion.Text` only, since they live on `TextStyle`                  |
+
+These animate the box itself rather than compositing a transform, so they trigger layout on each frame. Prefer `scale` / `translateX` for pure motion — they run on the compositor and don't reflow. Reach for these when the effect genuinely _is_ a layout change: a drawer sliding via `left`, a card squaring off one corner as it expands, a pane resize via `flex`.
+
+**Deliberately not animatable:** enum-valued keys (`position`, `overflow`, `alignItems`, `flexDirection`, `display`) have nothing to interpolate between. `minWidth` / `maxWidth` / `minHeight` / `maxHeight` / `aspectRatio` are excluded for a subtler reason — their unset state isn't a number, so there's no value a key can rest at when it's declared only in a `gesture` sub-state or a non-active variant without changing the layout the moment it activates. Animate `width` / `height` instead, or drop to the [value-layer hooks](../api/hooks).
 
 **Shadow offset:** `shadowOffset` accepts the nested `{ width, height }` object (single-value form only — see [Motion.View](./view) for the contract).
 

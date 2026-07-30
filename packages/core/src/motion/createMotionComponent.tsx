@@ -91,6 +91,78 @@ const NUMERIC_TOP_LEVEL_KEYS = [
   'shadowOpacity',
   'shadowRadius',
   'elevation',
+  // ─── Added in 0.0.5 ──────────────────────────────────────────────────────
+  //
+  // Every key below rides the generic numeric path: one shared value, resolved
+  // on the JS thread, emitted by the worklet through the same `out[key] = v`
+  // branch as `opacity`. None needs a new interpolation mode, so the cost is
+  // the shared value plus a `DEFAULT_RESTING` entry.
+  //
+  // The load-bearing constraint is the resting default, not the plumbing. A
+  // key declared only in `gesture` / `exit` / a non-active variant rests at
+  // `DEFAULT_RESTING` unless the static `style` names it, and the animated
+  // style merges *after* `style` — so a non-identity default silently stomps
+  // the layout. That is the `0.0.3` P0 class, and it is why the sizing and
+  // spacing keys below default to `0` only in the sense RN itself does (an
+  // unset `padding` *is* 0); `minWidth`/`maxWidth`/`aspectRatio` are
+  // deliberately excluded — their "unset" is not a number, so no default can
+  // stand in for it without changing layout on activation.
+  //
+  // Per-corner radii. Animating one corner is common (a card expanding into a
+  // sheet keeps its top corners and squares off the bottom); `borderRadius`
+  // alone can't express it.
+  'borderTopLeftRadius',
+  'borderTopRightRadius',
+  'borderBottomLeftRadius',
+  'borderBottomRightRadius',
+  // Border widths. `borderWidth` is the common case; the per-edge keys matter
+  // for underline-style focus affordances (`borderBottomWidth` on a field).
+  'borderWidth',
+  'borderTopWidth',
+  'borderRightWidth',
+  'borderBottomWidth',
+  'borderLeftWidth',
+  // Absolute-position insets. Bread-and-butter for drawers, tooltips, and
+  // anything pinned to an edge that slides in.
+  'top',
+  'right',
+  'bottom',
+  'left',
+  // Spacing. Padding animates the box from the inside (a button growing its
+  // hit area on press); margin shifts it within its parent's flow.
+  'padding',
+  'paddingTop',
+  'paddingRight',
+  'paddingBottom',
+  'paddingLeft',
+  'paddingHorizontal',
+  'paddingVertical',
+  'margin',
+  'marginTop',
+  'marginRight',
+  'marginBottom',
+  'marginLeft',
+  'marginHorizontal',
+  'marginVertical',
+  // Flex sizing. `flex` / `flexGrow` interpolate the split between siblings —
+  // the idiomatic RN way to animate a pane resize without measuring.
+  'flex',
+  'flexGrow',
+  'flexShrink',
+  // Text metrics. `TextStyle`-only at the type level (`AnimateStyle<C>` gates
+  // them per primitive), but the runtime table is shared across primitives —
+  // an unused slot is one ref, same as `tintColor` has always been.
+  'fontSize',
+  'letterSpacing',
+  'lineHeight',
+  // Stacking. Integer-valued in practice, and interpolating it mid-flight is
+  // rarely what you want, but a `no-animation` transition on `zIndex` is the
+  // clean way to reorder at a step boundary in a sequence.
+  'zIndex',
+  // Gap. Row/column gaps animate a list's density without touching children.
+  'gap',
+  'rowGap',
+  'columnGap',
 ] as const
 
 // Color-valued keys. Reanimated's value setter detects color strings and
@@ -221,6 +293,54 @@ const DEFAULT_RESTING: Record<AnimatableKey, AnimatableSlotValue> = {
   shadowOpacity: 0,
   shadowRadius: 0,
   elevation: 0,
+  // 0.0.5 keys. Every one of these is 0 because that is RN's own unset value
+  // for it — an element with no `paddingTop` has 0 padding, no `borderWidth`
+  // has none, no `top` is unpinned at 0 within its positioning context. So a
+  // key that reaches its resting default lands where the element already was.
+  //
+  // The exception worth naming: `flex` / `flexGrow` / `flexShrink` do NOT have
+  // 0 as a universal identity (`flexShrink` defaults to 1 on the web, and RN's
+  // own default differs by axis). They are still 0 here, because the style-scan
+  // in the resting pass reads the real value off the static `style` whenever it
+  // is declared — and a consumer animating flex without declaring it is asking
+  // for the from-0 growth, which is the readable interpretation.
+  borderTopLeftRadius: 0,
+  borderTopRightRadius: 0,
+  borderBottomLeftRadius: 0,
+  borderBottomRightRadius: 0,
+  borderWidth: 0,
+  borderTopWidth: 0,
+  borderRightWidth: 0,
+  borderBottomWidth: 0,
+  borderLeftWidth: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+  padding: 0,
+  paddingTop: 0,
+  paddingRight: 0,
+  paddingBottom: 0,
+  paddingLeft: 0,
+  paddingHorizontal: 0,
+  paddingVertical: 0,
+  margin: 0,
+  marginTop: 0,
+  marginRight: 0,
+  marginBottom: 0,
+  marginLeft: 0,
+  marginHorizontal: 0,
+  marginVertical: 0,
+  flex: 0,
+  flexGrow: 0,
+  flexShrink: 0,
+  fontSize: 0,
+  letterSpacing: 0,
+  lineHeight: 0,
+  zIndex: 0,
+  gap: 0,
+  rowGap: 0,
+  columnGap: 0,
   // 'transparent' is the only safe universal default for colors: it works as
   // an initial seed for any color animation (no jarring opaque flash on mount
   // when `initial` is omitted) and rgba(0,0,0,0) interpolates cleanly into
@@ -1245,74 +1365,38 @@ type SharedValueMap = Record<AnimatableKey, SharedValue<AnimatableSlotValue>>
  * are stable across renders (Reanimated's `useSharedValue` is a `useRef`
  * under the hood), so snapshotting the wrapping object once is safe.
  *
- * Hooks are called in a stable, lexical order — fine for rules-of-hooks.
- * Unused shared values are cheap; the worklet skips them via
- * `activeKeysRef`. Color keys are seeded with the initial color string so
- * Reanimated's value setter recognizes the slot as a color from the first
- * `withSpring` / `withTiming` call.
+ * Hooks are called by iterating `ALL_KEYS`, which is a module-level `as const`
+ * array — its length and order are fixed at module evaluation, so the hook
+ * sequence is identical on every render of every instance. That satisfies
+ * rules-of-hooks exactly as a hand-written list does, and it is what keeps this
+ * function from growing a line per key: the 0.0.5 additions took the table from
+ * 23 keys to 63, and 63 near-identical `useSharedValue` lines is both a bigger
+ * bundle and a standing invitation to add a key in one list but not the other
+ * (the failure mode is a `sharedValues[key]` of `undefined` inside the worklet,
+ * which is exactly how the first draft of that change broke).
+ *
+ * The ESLint exhaustive-deps rule can't see through the loop, hence the
+ * disable — the invariant it would check for us is asserted above instead.
+ *
+ * Unused shared values are cheap; the worklet skips them via `activeKeysRef`.
+ * Color keys are seeded with the initial color string so Reanimated's value
+ * setter recognizes the slot as a color from the first `withSpring` /
+ * `withTiming` call.
  */
 function useAnimatableSharedValues(
   init: (key: AnimatableKey) => AnimatableSlotValue,
 ): SharedValueMap {
-  const translateX = useSharedValue<AnimatableSlotValue>(init('translateX'))
-  const translateY = useSharedValue<AnimatableSlotValue>(init('translateY'))
-  const scale = useSharedValue<AnimatableSlotValue>(init('scale'))
-  const scaleX = useSharedValue<AnimatableSlotValue>(init('scaleX'))
-  const scaleY = useSharedValue<AnimatableSlotValue>(init('scaleY'))
-  const rotate = useSharedValue<AnimatableSlotValue>(init('rotate'))
-  const rotateX = useSharedValue<AnimatableSlotValue>(init('rotateX'))
-  const rotateY = useSharedValue<AnimatableSlotValue>(init('rotateY'))
-  const opacity = useSharedValue<AnimatableSlotValue>(init('opacity'))
-  const width = useSharedValue<AnimatableSlotValue>(init('width'))
-  const height = useSharedValue<AnimatableSlotValue>(init('height'))
-  const borderRadius = useSharedValue<AnimatableSlotValue>(init('borderRadius'))
-  const shadowOpacity = useSharedValue<AnimatableSlotValue>(
-    init('shadowOpacity'),
-  )
-  const shadowRadius = useSharedValue<AnimatableSlotValue>(init('shadowRadius'))
-  const elevation = useSharedValue<AnimatableSlotValue>(init('elevation'))
-  const backgroundColor = useSharedValue<AnimatableSlotValue>(
-    init('backgroundColor'),
-  )
-  const borderColor = useSharedValue<AnimatableSlotValue>(init('borderColor'))
-  const color = useSharedValue<AnimatableSlotValue>(init('color'))
-  const tintColor = useSharedValue<AnimatableSlotValue>(init('tintColor'))
-  const shadowColor = useSharedValue<AnimatableSlotValue>(init('shadowColor'))
-  const shadowOffsetWidth = useSharedValue<AnimatableSlotValue>(
-    init('shadowOffsetWidth'),
-  )
-  const shadowOffsetHeight = useSharedValue<AnimatableSlotValue>(
-    init('shadowOffsetHeight'),
-  )
-  const boxShadow = useSharedValue<AnimatableSlotValue>(init('boxShadow'))
+  const entries: [AnimatableKey, SharedValue<AnimatableSlotValue>][] = []
+  for (const key of ALL_KEYS) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    entries.push([key, useSharedValue<AnimatableSlotValue>(init(key))])
+  }
 
   const ref = useRef<SharedValueMap | null>(null)
   if (ref.current === null) {
-    ref.current = {
-      translateX,
-      translateY,
-      scale,
-      scaleX,
-      scaleY,
-      rotate,
-      rotateX,
-      rotateY,
-      opacity,
-      width,
-      height,
-      borderRadius,
-      shadowOpacity,
-      shadowRadius,
-      elevation,
-      backgroundColor,
-      borderColor,
-      color,
-      tintColor,
-      shadowColor,
-      shadowOffsetWidth,
-      shadowOffsetHeight,
-      boxShadow,
-    }
+    const map = {} as SharedValueMap
+    for (const [key, sv] of entries) map[key] = sv
+    ref.current = map
   }
 
   // Cancel every in-flight per-key animation when the primitive unmounts, so
