@@ -2131,7 +2131,7 @@ You cannot:
 - ❌ Make timing-based assertions — there is no timer to advance
 - ❌ Snapshot the gesture-driven UI (`gesture.pressed`) without firing the corresponding RN event first; the mock doesn't simulate input
 
-For frame-level correctness, validate manually in the example app — there's a screen per primitive in [`example/screens/`](https://github.com/rootnative/inertia/tree/main/example/screens).
+For frame-level correctness, validate manually in the example app — there's a screen per primitive in [`example/screens/`](https://github.com/rootnative/inertia/tree/main/example/screens). Features whose behavior only appears on real hardware — dropped-frame parity, native `inset` shadow rendering, shared-element measurement, layout-key reflow cost — have a run procedure in [Device validation](./device-validation).
 
 ## Migrating existing tests
 
