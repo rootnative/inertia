@@ -77,6 +77,18 @@ function mergeTransition(
   base: TransitionConfig | undefined,
   override: Partial<TransitionConfig>,
 ): TransitionConfig {
+  // A `no-animation` base is a ceiling, not a default, so no step override can
+  // talk its way past it. This is the reduced-motion gate: `configFor` in the
+  // factory swaps every per-key transition for `{ type: 'no-animation' }`, and
+  // the step-type rule below would otherwise hand a step its own `withTiming`
+  // back — silently animating for a user who asked the OS not to. Keep this
+  // branch first; it is the whole reason the gate holds for sequences.
+  //
+  // Returning `base` also drops any step `delay`, which matches how the rest
+  // of the resolver already treats this type: `delayOf` and `repeatOf` both
+  // return `undefined` for `no-animation`, so a snap is never deferred or
+  // repeated anywhere in the library.
+  if (base?.type === 'no-animation') return base
   // If the override declares a `type`, it wins outright — mixing fields from
   // a spring base into a timing override produces garbage. Otherwise inherit
   // the base's type and shallow-merge the rest.

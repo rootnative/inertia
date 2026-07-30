@@ -40,6 +40,18 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
   `AnimatableStyleKey` (the new type) and `ALL_KEYS` (the runtime array) are necessarily separate declarations — one is a type, the other a value in a module that imports it — so the pairing is pinned by tests on both sides: `__type-tests__/animate-keys.test-d.tsx` (23 compile-time assertions) proves the type accepts and rejects the right keys, and `__tests__/animatable-keys.test.tsx` (17 cases) proves every accepted key reaches the rendered style. A key added to one but not the other fails one of the two.
 
+### Fixed
+
+- **Reduced motion is no longer bypassed by a sequence step that declares its own `type`.** `<MotionConfig reducedMotion="always">` (and the `'user'` default under an OS reduce-motion setting) swaps every per-key transition for `{ type: 'no-animation' }`, but `mergeTransition` in `resolveSequence.ts` let a step-declared `type` win outright over the base whenever the two differed — so `animate={{ translateX: [0, { to: 100, type: 'timing', duration: 200 }, 0] }}` still called `withTiming` for a user who had asked the OS for no motion. Both sequence arrays and the single `{ to, ...override }` form were affected, for every step type.
+
+  A `no-animation` base is now treated as a **ceiling rather than a default**: it short-circuits the merge before the step-type rule runs. That rule is unchanged and still correct for ordinary bases — mixing a spring base's `tension` into a timing override produces garbage, which is why it exists.
+
+  This contradicted the contract stated in `createMotionComponent.tsx`, which had promised since the gate was written that reduced motion "overrides every per-key transition (and any nested sequence-step transition)". The code was the half that was wrong.
+
+  **Why it went unnoticed:** `reduced-motion.test.tsx` asserted only on per-key transitions, where the base reaches Reanimated unmodified — sequence steps were the one path that could talk its way past the gate, and nothing covered them. Three cases now do, including a `reducedMotion="never"` positive control so a future regression can't pass by asserting nothing. Dropping a step `delay` alongside the type matches how the rest of the resolver already treats this transition type (`delayOf` and `repeatOf` both return `undefined` for `no-animation`), so a snap is never deferred or repeated anywhere in the library.
+
+  Surfaced by the `@rootnative/ui` validation consumer, whose `LinearProgress` / `CircularProgress` both use an inline-typed snap-back step inside an infinite keyframe loop. Their local workaround — not mounting the `Motion.View` at all under reduced motion — remains the better render and is unaffected. No bundle-size change (one early-return branch; primitives stay at 8.9 kB against the 10.3 kB cap).
+
 ## [0.0.4] - 2026-07-29
 
 **Feature release.** The three deferred items the `0.0.3` audit left on the roadmap land together: `boxShadow` joins the declarative `animate` surface, and `layoutId` shared-element transitions gain window-coordinate measurement and a style carry. No breaking changes; the three adapters are lockstep-bumped with no runtime changes of their own.
