@@ -63,8 +63,12 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: 'pnpm'
 
+      # Pinned to a major rather than `@latest`. An unpinned upgrade silently
+      # re-versions the release path on every run: `npm version <same-version>`
+      # was a no-op through the 0.0.4 release and became a hard error two days
+      # later, which broke the first two 0.0.5 attempts with no repo change.
       - name: Upgrade npm (OIDC trusted publishing requires >=11.5.1)
-        run: npm install -g npm@latest
+        run: npm install -g npm@11
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -138,7 +142,11 @@ jobs:
 
           for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
             if [ -n "$CUSTOM_VERSION" ]; then
-              (cd "packages/$PKG_DIR" && npm version "$CUSTOM_VERSION" --no-git-tag-version)
+              # `--allow-same-version` because the CHANGELOG entry and the
+              # version bump are prepared in one commit before the release is
+              # triggered (see the tag history), so the tree is normally already
+              # at the target version by the time this runs.
+              (cd "packages/$PKG_DIR" && npm version "$CUSTOM_VERSION" --no-git-tag-version --allow-same-version)
               NEW_VERSION="$CUSTOM_VERSION"
             else
               VERSION_ARGS="${{ inputs.version }}"
@@ -216,7 +224,11 @@ jobs:
           for PKG_DIR in ${{ steps.packages.outputs.packages }}; do
             git add "packages/$PKG_DIR/package.json"
           done
-          git commit -m "release: ${TAG}"
+          # Nothing may be staged: if the bump commit already carried the
+          # version bump and the synced references, `check:versions:fix` finds
+          # nothing to repair. That is the normal path, not an error — the tag
+          # still has to be cut, so only skip the commit.
+          git diff --staged --quiet || git commit -m "release: ${TAG}"
           git tag "$TAG"
 
           echo "tag=$TAG" >> "$GITHUB_ENV"
