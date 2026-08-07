@@ -39,7 +39,6 @@ export function LayoutKeysScreen({ onBack }: { onBack: () => void }) {
       title="Layout keys"
       description="Padding, margin, insets, per-corner radii, border widths, flex, gap, and text metrics — the layout numerics added in 0.0.5. Tap to toggle."
       onBack={onBack}
-      fill
     >
       <View style={styles.stage}>
         <Pressable onPress={() => setOn((v) => !v)} style={styles.toggle}>
@@ -167,9 +166,8 @@ const SPRING = { type: 'spring' as const, tension: 180, friction: 20 }
 const styles = StyleSheet.create({
   stage: {
     alignItems: 'center',
+    alignSelf: 'stretch',
     gap: 14,
-    paddingHorizontal: 24,
-    paddingVertical: 24,
   },
   toggle: {
     paddingVertical: 10,
