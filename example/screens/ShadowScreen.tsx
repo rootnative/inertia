@@ -9,8 +9,12 @@ import { ScreenShell } from './ScreenShell'
  * (the one nested-object style) decomposes into two synthetic axis SVs that
  * the worklet recomposes into a `{ width, height }` style prop each frame.
  *
- * The hover sub-state lifts the card to MD3 level 3; press settles it back
- * to level 1. On native (no hover) the same cascade fires on press.
+ * Press raises the card to MD3 level 3 on every platform; hover adds an
+ * intermediate level 2 lift on web. Press must be the raise, not a settle
+ * back to rest — there is no hover on a touch device, so a settle-shaped
+ * cascade leaves `pressed` value-identical to rest and the demo renders no
+ * motion at all on iOS and Android. `elevation` is Android-only; the four
+ * `shadow*` keys are what iOS draws.
  */
 export function ShadowScreen({ onBack }: { onBack: () => void }) {
   return (
@@ -57,20 +61,24 @@ const REST_SHADOW = {
   elevation: 1,
 }
 
+// Level 2 — web-only intermediate lift. Sits between rest and pressed so the
+// hover and press states stay visually distinct where both exist.
 const HOVERED_SHADOW = {
   shadowColor: '#000000',
-  shadowOpacity: 0.22,
-  shadowRadius: 8,
-  shadowOffset: { width: 0, height: 4 },
-  elevation: 3,
+  shadowOpacity: 0.19,
+  shadowRadius: 6,
+  shadowOffset: { width: 0, height: 3 },
+  elevation: 2,
 }
 
+// Level 3 — the raise. Every value differs from REST_SHADOW, which is what
+// makes the demo move on a touch device.
 const PRESSED_SHADOW = {
-  shadowColor: '#000000',
-  shadowOpacity: 0.15,
-  shadowRadius: 3,
-  shadowOffset: { width: 0, height: 1 },
-  elevation: 1,
+  shadowColor: '#1d4ed8',
+  shadowOpacity: 0.34,
+  shadowRadius: 14,
+  shadowOffset: { width: 0, height: 8 },
+  elevation: 6,
 }
 
 const styles = StyleSheet.create({
