@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   padCard: {
     width: 114,
     height: 64,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#e0e7ff',
     borderRadius: 12,
     justifyContent: 'center',
     paddingHorizontal: 12,
@@ -207,18 +207,20 @@ const styles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    backgroundColor: '#c7d2fe',
+    backgroundColor: '#4f46e5',
     borderRadius: 6,
   },
+  // Tinted, not white: `ScreenShell`'s background is also `#fff`, so a white
+  // card is invisible and the per-corner radius demo shows nothing at all.
   card: {
     width: 240,
     height: 72,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#4f46e5',
   },
   field: {
     width: 240,
     height: 44,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f1f5f9',
     borderBottomColor: '#4f46e5',
     borderBottomWidth: 1,
     borderRadius: 6,
