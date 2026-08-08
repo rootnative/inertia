@@ -12,10 +12,12 @@ import { ScreenShell } from './ScreenShell'
  * What to watch for on a device, none of which a test can see:
  *
  *  1. **Reflow cost.** Each of these drives real layout, unlike `scale` /
- *     `translate*`, which composite. The two cards in the first row animate to
- *     visually similar end states — one by `scaleX`, one by `paddingHorizontal`
- *     — so the frame cost is directly comparable side by side. On a low-end
- *     Android device the padding card is the one that will drop frames first.
+ *     `translate*`, which composite. Both cards in the first row shrink an
+ *     identical 90pt bar to an identical 26pt — one by `paddingHorizontal` on
+ *     the parent, one by `scaleX` on the bar — so the frame cost is directly
+ *     comparable. On a low-end Android device the padding card is the one that
+ *     will drop frames first. Keep the two end states equal if you edit this:
+ *     the pairing is worthless the moment the bars land on different widths.
  *  2. **Per-corner radii springing independently.** Each corner has its own
  *     shared value, so an under-damped spring can overshoot them out of sync.
  *     That looks wrong on a card and is the reason to keep radius springs
@@ -54,17 +56,20 @@ export function LayoutKeysScreen({ onBack }: { onBack: () => void }) {
           >
             <View style={styles.inner} />
           </Motion.View>
-          <Motion.View
-            style={styles.padCard}
-            animate={{ scaleX: on ? 1.5 : 1 }}
-            transition={SPRING}
-          >
-            <View style={styles.inner} />
-          </Motion.View>
+          <View style={styles.padCard}>
+            <Motion.View
+              style={styles.inner}
+              animate={{ scaleX: on ? INNER_SCALE : 1 }}
+              transition={SPRING}
+            />
+          </View>
         </View>
         <Text style={styles.note}>
-          Left animates `paddingHorizontal` (reflows); right animates `scaleX`
-          (composites). Watch which one stutters first under load.
+          Both bars shrink from 90pt to 26pt. The left card reflows — the parent
+          re-lays-out its child every frame; the right composites — the bar is
+          scaled on the GPU and the layout never changes. Watch which one
+          stutters first under load, and note the right bar's rounded corners
+          squash horizontally while the left bar's stay circular.
         </Text>
 
         <Text style={styles.label}>Per-corner radius · squares off</Text>
@@ -133,17 +138,14 @@ export function LayoutKeysScreen({ onBack }: { onBack: () => void }) {
         <Text style={styles.label}>Text metrics · fontSize vs. scale</Text>
         <Motion.Text
           style={styles.metricText}
-          animate={{
-            fontSize: on ? 28 : 16,
-            letterSpacing: on ? 1.5 : 0,
-          }}
+          animate={{ fontSize: on ? 28 : 16 }}
           transition={SPRING}
         >
           fontSize reflows
         </Motion.Text>
         <Motion.Text
           style={styles.metricText}
-          animate={{ scale: on ? 1.75 : 1 }}
+          animate={{ scale: on ? 28 / 16 : 1 }}
           transition={SPRING}
         >
           scale composites
@@ -162,6 +164,12 @@ export function LayoutKeysScreen({ onBack }: { onBack: () => void }) {
 // radii visibly, which is the wrong look for a card even though each corner is
 // individually correct.
 const SPRING = { type: 'spring' as const, tension: 180, friction: 20 }
+
+// `padCard` is 114 wide with 12pt of horizontal padding, so the inner bar is
+// 90pt at rest and 26pt once padding animates to 44. The composite card scales
+// its bar by the same ratio so both land on the same width — otherwise the
+// pairing compares two different animations and proves nothing about reflow.
+const INNER_SCALE = 26 / 90
 
 const styles = StyleSheet.create({
   stage: {
@@ -184,16 +192,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  // Fixed width is load-bearing. Without it the card is content-sized around
+  // `inner`, so the padding card ends at 24 + 2*44 = 112pt while the scaleX
+  // card ends at 24 * 1.5 = 36 — the two stop being comparable, which is the
+  // entire point of the pairing.
   padCard: {
+    width: 114,
     height: 64,
     backgroundColor: '#ffffff',
     borderRadius: 12,
     justifyContent: 'center',
+    paddingHorizontal: 12,
     paddingVertical: 12,
   },
   inner: {
     flex: 1,
-    minWidth: 24,
     backgroundColor: '#c7d2fe',
     borderRadius: 6,
   },
@@ -239,11 +252,16 @@ const styles = StyleSheet.create({
     height: 48,
     gap: 6,
   },
+  // Static `flex` matches each pane's resting `animate` value. Without it both
+  // panes are zero-width until the first tap and the row renders empty on first
+  // paint, which reads as a broken demo rather than an un-animated one.
   paneA: {
+    flex: 1,
     backgroundColor: '#4f46e5',
     borderRadius: 8,
   },
   paneB: {
+    flex: 3,
     backgroundColor: '#c7d2fe',
     borderRadius: 8,
   },
@@ -266,7 +284,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginTop: 6,
   },
+  // Explicit base size matters: without it this text renders at RN's default
+  // (14) while its `fontSize` partner starts at 16, so the two labels would
+  // start and end at different sizes and the comparison would be invalid.
   metricText: {
+    fontSize: 16,
     color: '#111827',
     fontWeight: '600',
   },

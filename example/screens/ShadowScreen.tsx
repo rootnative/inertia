@@ -20,7 +20,7 @@ export function ShadowScreen({ onBack }: { onBack: () => void }) {
   return (
     <ScreenShell
       title="Shadow & elevation"
-      description="Animate shadowOpacity / shadowRadius / shadowOffset / shadowColor / elevation together. Hover or press to raise the card."
+      description="Animate shadowOpacity / shadowRadius / shadowOffset / shadowColor / elevation together. Press to raise the card."
       onBack={onBack}
       fill
     >
@@ -34,19 +34,26 @@ export function ShadowScreen({ onBack }: { onBack: () => void }) {
         >
           <Text style={styles.cardTitle}>Elevated card</Text>
           <Text style={styles.cardBody}>
-            Hover lifts to MD3 level 3. Press settles back to level 1.
+            Press raises to MD3 level 3 and shifts the shadow blue. On web,
+            hover adds an intermediate level 2.
           </Text>
         </Motion.Pressable>
 
         <Text style={styles.label}>shadowOffset only</Text>
         <Motion.View
           style={styles.smallCard}
-          initial={{ shadowOffset: { width: 0, height: 0 } }}
-          animate={{ shadowOffset: { width: 0, height: 8 } }}
+          initial={{ shadowOffset: { width: 0, height: 0 }, elevation: 0 }}
+          animate={{ shadowOffset: { width: 0, height: 8 }, elevation: 8 }}
           transition={{
             shadowOffset: { type: 'spring', tension: 120, friction: 14 },
+            elevation: { type: 'spring', tension: 120, friction: 14 },
           }}
         />
+        <Text style={styles.note}>
+          iOS draws this from `shadowOffset`; Android has no equivalent, so
+          `elevation` rides alongside on the same spring. Without it this card
+          is a plain white square on Android.
+        </Text>
       </View>
     </ScreenShell>
   )
@@ -121,5 +128,13 @@ const styles = StyleSheet.create({
     shadowColor: '#000000',
     shadowOpacity: 0.25,
     shadowRadius: 10,
+    elevation: 0,
+  },
+  note: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#6b7280',
+    paddingHorizontal: 8,
+    textAlign: 'center',
   },
 })

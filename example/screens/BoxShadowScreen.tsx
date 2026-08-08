@@ -61,9 +61,12 @@ export function BoxShadowScreen({ onBack }: { onBack: () => void }) {
         />
 
         <Text style={styles.note}>
-          `inset` is carried as a static per-layer flag, not interpolated — a
-          layer that is inset on one endpoint and not the other throws, because
-          there is no meaningful midpoint between an inner and an outer shadow.
+          `inset` is carried as a static per-layer flag, not interpolated — both
+          endpoints above are inset, so the flag holds while blur and offset
+          animate. Mixing an inset endpoint with a non-inset one throws: there
+          is no meaningful midpoint between an inner and an outer shadow. On
+          Android, check this card renders at all — inset support is thinner
+          there than on iOS.
         </Text>
       </View>
     </ScreenShell>
@@ -77,7 +80,9 @@ const FLAT = '0px 1px 2px rgba(0, 0, 0, 0.25)'
 const RAISED =
   '0px 6px 14px rgba(0, 0, 0, 0.28), 0px 2px 4px 1px rgba(0, 0, 0, 0.15)'
 
-// The same idea via RN's own array form.
+// RN's own array form — the other accepted input shape. Both endpoints are one
+// layer here on purpose: the CSS card above covers the mismatched-count path,
+// so this card isolates the structured parse and the `spreadDistance` field.
 const STRUCTURED_FLAT = [
   { offsetX: 0, offsetY: 1, blurRadius: 3, color: 'rgba(0, 0, 0, 0.3)' },
 ]
@@ -91,8 +96,12 @@ const STRUCTURED_RAISED = [
   },
 ]
 
-const INSET_DEEP = 'inset 0px 6px 10px rgba(0, 0, 0, 0.35)'
-const INSET_SHALLOW = 'inset 0px 1px 3px rgba(0, 0, 0, 0.2)'
+// Deliberately exaggerated. Android's `boxShadow` inset support is weaker than
+// iOS's, so the question this card answers is "does inset draw on Android at
+// all" — a subtle delta can't tell an unsupported key from one that moved too
+// little to see. A near-black 20px inset on a white card is unmistakable.
+const INSET_DEEP = 'inset 0px 14px 20px 4px rgba(0, 0, 0, 0.55)'
+const INSET_SHALLOW = 'inset 0px 2px 4px rgba(0, 0, 0, 0.12)'
 
 const styles = StyleSheet.create({
   stage: {
