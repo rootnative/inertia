@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Motion } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
@@ -17,10 +17,25 @@ import { ScreenShell } from './ScreenShell'
  *     `BoxShadowValue[]` with numeric fields.
  *  3. **Springs on a shadow.** The blur/offset/spread of every layer springs
  *     independently, which reads differently from a timing curve — this is the
- *     part that needs eyes on real hardware, not a test.
+ *     part that needs eyes on real hardware, not a test. It is also where the
+ *     `0.0.4` payload defect lived: the key animated under timing and was dead
+ *     under spring, so the spring card carries a settled/running readout to
+ *     make a non-terminating animation visible rather than merely still.
  */
 export function BoxShadowScreen({ onBack }: { onBack: () => void }) {
   const [raised, setRaised] = useState(false)
+  // A spring that never settles is invisible on its own — the shadow simply
+  // never moves, which looks the same as a shadow that isn't wired up. The
+  // readout makes the difference observable, and it is the specific thing the
+  // `0.0.4` payload defect broke: `withSpring` compared against `NaN`, so the
+  // animation ran forever and this label would have stayed on 'running'.
+  const [settled, setSettled] = useState(true)
+  const onShadowSettled = useCallback(() => setSettled(true), [])
+
+  const toggle = useCallback(() => {
+    setSettled(false)
+    setRaised((v) => !v)
+  }, [])
 
   return (
     <ScreenShell
@@ -30,18 +45,24 @@ export function BoxShadowScreen({ onBack }: { onBack: () => void }) {
       fill
     >
       <View style={styles.stage}>
-        <Pressable onPress={() => setRaised((v) => !v)} style={styles.toggle}>
+        <Pressable onPress={toggle} style={styles.toggle}>
           <Text style={styles.toggleLabel}>
             {raised ? 'Lower all' : 'Raise all'}
           </Text>
         </Pressable>
 
-        <Text style={styles.label}>CSS token · 1 layer ⇄ 2 layers</Text>
+        <Text style={styles.label}>
+          CSS token · 1 layer ⇄ 2 layers · spring{' '}
+          <Text style={settled ? styles.settledOk : styles.settledPending}>
+            {settled ? '· settled' : '· running'}
+          </Text>
+        </Text>
         <Motion.View
           style={styles.card}
           initial={{ boxShadow: FLAT }}
           animate={{ boxShadow: raised ? RAISED : FLAT }}
           transition={{ type: 'spring', tension: 160, friction: 18 }}
+          onAnimationEnd={onShadowSettled}
         />
 
         <Text style={styles.label}>Structured form · timing</Text>
@@ -141,5 +162,11 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     paddingHorizontal: 8,
     marginTop: 8,
+  },
+  settledOk: {
+    color: '#15803d',
+  },
+  settledPending: {
+    color: '#b45309',
   },
 })

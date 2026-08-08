@@ -5,8 +5,13 @@ module.exports = {
   setupFiles: ['<rootDir>/../../jest.setup.js'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testMatch: ['<rootDir>/src/**/__tests__/**/*.test.(ts|tsx)'],
+  // `react-native-reanimated` is in this list only for
+  // `reanimated-drivers.test.ts`, which imports Reanimated's real animation
+  // drivers by deep path to test them for real. Every other test gets the
+  // static mock from `jest-setup.js` and never loads the package at all, so
+  // widening this costs nothing outside that one file.
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-native-community)/)',
+    'node_modules/(?!(react-native|@react-native|@react-native-community|react-native-reanimated)/)',
   ],
   // The `react-native` preset's runtime polyfills (timers, the batched bridge)
   // keep a jest-worker alive past Jest's shutdown grace period, so the runner

@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Fixed
+
+- **A colour prop engaged only through `animate` now animates.** `fill`, `stroke`, and any key listed in `colorProps` seeded from `'transparent'` when neither a static prop nor `initial` supplied a value — and `'transparent'` is the one CSS colour name Reanimated's `isColor()` rejects, so the slot could not be animated away from. Under `type: 'timing'` the target still arrived when the duration elapsed, hiding it; under the default spring the animation never settled and the colour never appeared. Seeds are now `TRANSPARENT` (`'rgba(0, 0, 0, 0)'`), the same colour in a spelling Reanimated recognises. Affects `MotionPath`'s `fill` / `stroke` and every component built with `createMotionSvgComponent`. See the core changelog for the full mechanism.
+
 ## [0.0.5] - 2026-07-31
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.5` (40 layout and text-metric keys join the `animate` surface, `AnimateStyle<C>` narrows to reject keys the runtime doesn't drive, and reduced motion is no longer bypassable by a sequence step's own `type`). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.5`.

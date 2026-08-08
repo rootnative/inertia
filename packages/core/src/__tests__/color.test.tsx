@@ -1,3 +1,4 @@
+import { render } from '@testing-library/react-native'
 import * as Reanimated from 'react-native-reanimated'
 import { Motion } from '../motion'
 import { renderWithMotion } from '../testing'
@@ -17,6 +18,8 @@ function getStyle(
   const flat = Array.isArray(raw) ? raw.flat(Infinity) : [raw]
   return Object.assign({}, ...flat.filter(Boolean))
 }
+
+const STYLE_TRANSPARENT_BORDER = { borderColor: 'transparent' } as const
 
 describe('color animation', () => {
   beforeEach(() => {
@@ -130,5 +133,96 @@ describe('color animation', () => {
 
     const style = getStyle(result.toJSON() as never)
     expect(style.tintColor).toBe('#0a84ff')
+  })
+})
+
+// `'transparent'` is the one CSS colour name Reanimated's `isColor` rejects
+// (its colour table maps it to `undefined`), so a colour slot resting at the
+// keyword cannot be animated away from — it takes the prefix-number-suffix
+// branch and yields `NaN`. `reanimated-drivers.test.ts` proves that against the
+// real driver; these tests pin Inertia's side of it, which is that the keyword
+// never reaches a slot in the first place. Every route into one is covered.
+describe("colour slots never hold the 'transparent' keyword", () => {
+  it('rewrites it in the mount seed from `initial`', () => {
+    // Plain `render`, not `renderWithMotion`: the seed is what the slot holds
+    // before the effect assigns a target, so it is only visible at mount.
+    const result = render(
+      <Motion.View
+        testID="card"
+        initial={{ backgroundColor: 'transparent' }}
+        animate={{ backgroundColor: '#4f46e5' }}
+        transition={{ type: 'timing', duration: 150 }}
+      />,
+    )
+
+    expect(getStyle(result.toJSON() as never).backgroundColor).toBe(
+      'rgba(0, 0, 0, 0)',
+    )
+  })
+
+  it('rewrites it in the resting default for an undriven active key', () => {
+    // `borderColor` is in the active set only because a gesture sub-state
+    // mentions it, and nothing declares it — so it rests at DEFAULT_RESTING.
+    const result = render(
+      <Motion.View
+        testID="card"
+        animate={{ opacity: 1 }}
+        gesture={{ pressed: { borderColor: '#4f46e5' } }}
+      />,
+    )
+
+    expect(getStyle(result.toJSON() as never).borderColor).toBe(
+      'rgba(0, 0, 0, 0)',
+    )
+  })
+
+  it('rewrites it when the static style is what the key rests at', () => {
+    const result = render(
+      <Motion.View
+        testID="card"
+        style={STYLE_TRANSPARENT_BORDER}
+        animate={{ opacity: 1 }}
+        gesture={{ pressed: { borderColor: '#4f46e5' } }}
+      />,
+    )
+
+    expect(getStyle(result.toJSON() as never).borderColor).toBe(
+      'rgba(0, 0, 0, 0)',
+    )
+  })
+
+  it('rewrites it as a target, so a later animation can start from it', () => {
+    // A target of `'transparent'` animates fine — Reanimated dispatches on the
+    // *source*. It matters under `'no-animation'` (so under reduced motion),
+    // where the target is assigned straight into the slot and becomes the next
+    // animation's source.
+    const result = renderWithMotion(
+      <Motion.View
+        testID="card"
+        initial={{ backgroundColor: '#4f46e5' }}
+        animate={{ backgroundColor: 'transparent' }}
+        transition={{ type: 'no-animation' }}
+      />,
+    )
+
+    expect(getStyle(result.toJSON() as never).backgroundColor).toBe(
+      'rgba(0, 0, 0, 0)',
+    )
+  })
+
+  it('rewrites it inside a keyframe sequence', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+
+    renderWithMotion(
+      <Motion.View
+        testID="card"
+        animate={{ backgroundColor: ['transparent', '#4f46e5'] }}
+        transition={{ type: 'timing', duration: 100 }}
+      />,
+    )
+
+    const targets = withTiming.mock.calls.map(([value]) => value)
+    expect(targets).toContain('rgba(0, 0, 0, 0)')
+    expect(targets).not.toContain('transparent')
   })
 })

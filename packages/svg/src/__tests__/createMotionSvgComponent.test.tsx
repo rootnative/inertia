@@ -1,3 +1,4 @@
+import { render } from '@testing-library/react-native'
 import { MotionConfig } from '@rootnative/inertia'
 import { renderWithMotion } from '@rootnative/inertia/testing'
 import * as Reanimated from 'react-native-reanimated'
@@ -81,6 +82,24 @@ describe('createMotionSvgComponent', () => {
       expect.any(Object),
       undefined,
     )
+  })
+
+  // A colour prop engaged only through `animate` has no static value to seed
+  // from, so it falls back to the library default — which must be a colour
+  // Reanimated recognises. `'transparent'` is the one CSS colour name its
+  // `isColor()` rejects, and a slot resting at it cannot be animated away
+  // from: the value takes the prefix-number-suffix branch, yields `NaN`, and
+  // under the default spring never settles. Proven against the real driver in
+  // core's `reanimated-drivers.test.ts`.
+  it('seeds an animate-only color prop with an animatable transparent', () => {
+    // Plain `render`, not `renderWithMotion`: the seed is what the slot holds
+    // before the effect assigns the target, so it is only visible at mount.
+    const json = render(
+      <MotionCircle cx={50} cy={50} r={45} animate={{ fill: '#ff0000' }} />,
+    ).toJSON() as { props: Record<string, unknown> } | null
+    const animated = json!.props.animatedProps as { fill: string }
+
+    expect(animated.fill).toBe('rgba(0, 0, 0, 0)')
   })
 
   it('animates strokeDasharray element-wise', () => {

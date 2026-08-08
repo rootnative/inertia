@@ -166,6 +166,27 @@ function useMyAnimatedProp(target: number, transition?: TransitionInput) {
 
 This is how the Motion primitives and value-layer hooks support `transition="selection"` internally; adapter packages use the same two calls to join the registry.
 
+## `TRANSPARENT`
+
+The colour to seed a colour shared value with when a custom component has no other source for it.
+
+```tsx
+import { resolveTransition, TRANSPARENT } from '@rootnative/inertia'
+
+// A `fill` the consumer only supplied through `animate` has no starting value.
+const fill = useSharedValue(props.fill ?? TRANSPARENT)
+```
+
+It exists because the obvious choice is wrong in a way nothing points at. Reanimated dispatches an animation on the runtime shape of its **source** value, and `isColor()` gates the RGBA path — but Reanimated's colour table maps `transparent` to `undefined` while every other CSS colour name maps to a number, so the keyword is the single name that fails the gate. A slot resting at `'transparent'` takes the prefix-number-suffix branch built for values like `'100%'`, yields `NaN`, and never becomes a colour.
+
+The symptom is transition-dependent, which is what makes it hard to place: `withTiming` snaps to its target when the duration elapses regardless, so the colour still arrives and everything looks fine. `withSpring` — the default — decides it has settled by comparing against `NaN`, so it never settles, the colour never appears, and the frame loop never stops.
+
+`TRANSPARENT` is `'rgba(0, 0, 0, 0)'`: the same colour, recognised.
+
+:::note
+Only values passed to `withSpring` / `withTiming` are affected. `interpolateColor` parses `'transparent'` correctly, so a component that interpolates colours itself — [`useShadow`](./hooks.md#useshadow-from-to-progress-), [`useColorTransition`](./hooks.md#usecolortransitionprogress-from-to-options), the `gesture` cascade — can use the keyword freely.
+:::
+
 ## Which layer to use
 
 | You're writing…                                                     | Use                                                                                |
@@ -174,3 +195,4 @@ This is how the Motion primitives and value-layer hooks support `transition="sel
 | a component animating non-`style` props (SVG, gradients, text runs) | `resolveAnimatableValue` (full grammar) or `resolveTransition` (single targets)    |
 | a gesture-release worklet picking a transition on the UI thread     | [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue)      |
 | a manual `withTiming` call with consumer-supplied easing            | `ensureWorkletEasing`                                                              |
+| a colour shared value with no starting value to seed from           | `TRANSPARENT`                                                                      |

@@ -4,6 +4,36 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **`animate={{ boxShadow }}` now animates under `type: 'spring'`** — the library default, and the documented recommendation, so `animate={{ boxShadow }}` with no `transition` prop at all was the broken path. The key worked under `type: 'timing'` and was inert under spring, from its introduction in `0.0.4` until now.
+
+  The cause was the shape of the value handed to Reanimated. Its animation drivers walk a structured value by dispatching on each leaf's runtime shape, but the two container branches are **not symmetrical** (`animation/util.ts`): `objectOnStart` re-assigns the decorated `onStart` onto each child, so a child that is itself an object or a colour is dispatched again, recursively — while `arrayOnStart` does not, handing every element straight to the scalar spring/timing maths. `boxShadow`'s payload was an array of layer objects, so each layer was evaluated as `object - object` → `NaN`.
+
+  Why only spring broke: `withTiming` snaps to its target once the duration elapses, whatever the interpolation produced along the way, so the shadow still arrived and the fault stayed hidden. `withSpring` decides it has settled via `isAnimationTerminatingCalculation`, and every comparison against `NaN` is false — so the animation never finished, the shared value held `'[object Object]NaN'` indefinitely, `onAnimationEnd` never fired, and the frame loop never stopped.
+
+  The payload is now keyed by index (`{ 0: layer, 1: layer }`), which routes it down the object branch where the recursion works and each layer's colour reaches the RGBA-channel path. The change is internal: `animate={{ boxShadow }}` accepts the same CSS string and `BoxShadowValue[]` forms, endpoint padding is unchanged, and `onAnimationEnd`'s `value` is still reported as a layer list.
+
+- **Colour keys can now animate away from their resting default.** `'transparent'` is the one CSS colour name Reanimated's `isColor()` rejects — its colour table maps the keyword to `undefined` while every other name maps to a packed integer. A value that fails that gate but is still a string falls to the prefix-number-suffix branch built for values like `'100%'`, producing `'transparentNaN'` and, under spring, never settling.
+
+  `'transparent'` was Inertia's resting default for `backgroundColor`, `borderColor`, `color`, `tintColor`, and `shadowColor`, so `<Motion.View animate={{ backgroundColor: '#4f46e5' }} />` on an element with no static colour and no `initial` never animated. All five defaults are now `'rgba(0, 0, 0, 0)'` — the identical colour, recognised by the gate — and the keyword is rewritten to it wherever it would enter a colour slot: `initial`, `animate` (including keyframe sequences and `{ to }` steps), and the static `style` a never-driven key rests at.
+
+  Only values handed to `withSpring` / `withTiming` are affected. `interpolateColor` parses the keyword correctly, so the `gesture` cascade, the `layoutId` style carry, and `useShadow` were never affected and keep the consumer's own spelling.
+
+  **Visible difference:** a colour key resting at its default now renders `'rgba(0, 0, 0, 0)'` where it used to render `'transparent'`. Same colour, but a snapshot test asserting the literal string will need updating.
+
+- **`boxShadow`'s transparent padding layer** — added when the two endpoints have different layer counts — used the same keyword, so a single padding layer was enough to hang a whole shadow animation. It is now `'rgba(0, 0, 0, 0)'`.
+
+### Added
+
+- **`TRANSPARENT`** — the colour a custom animated component should seed a colour shared value with when it has no other source. Exported alongside `resolveTransition` and the other building blocks for custom components, because the obvious choice (`'transparent'`) is the one spelling Reanimated cannot animate away from, and nothing about the failure points at the cause.
+
+**Bundle cost: +0.13 kB (+1.5%) per primitive subpath**, 8.92 → 9.05 kB brotlied, +0.18 kB on the root entry (12.10 → 12.28 kB). No `size-limit` cap moved. The payload reshape is close to free — one index-keying pass on the JS thread and one loop in the worklet, replacing an array that crossed over by reference — and most of the delta is the colour normalization, which has to run on four separate paths into a slot.
+
+### Internal
+
+- **`reanimated-drivers.test.ts` runs Reanimated's real animation drivers**, imported by deep path, instead of the static mock the rest of the suite uses. Both defects above were invisible to that mock — `withSpring` and `withTiming` are the identity function there, so the payload Inertia produced looked correct in every assertion while being unanimatable in fact. The new file drives Reanimated's own `onStart` / `onFrame` protocol (the one its `valueSetter` runs) and asserts that leaves converge, that a spring settles, and that mid-flight frames carry numbers. It also pins the two upstream behaviours the fixes work around, so a Reanimated upgrade that changes either fails loudly rather than silently leaving dead workarounds behind.
+
 ## [0.0.5] - 2026-07-31
 
 **Correctness release for the `animate` type surface.** The 40 layout and text-metric style keys that typechecked but were silently dropped at runtime now either animate or fail to compile. No API removals; the type narrowing is technically breaking for code that passed a never-driven key, but that code was already a no-op.

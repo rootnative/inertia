@@ -46,11 +46,17 @@ Two things worth knowing before you run it:
 
 Screen: **boxShadow**. Two distinct questions, and the second is the one likely to bite.
 
+:::info This item already found one defect
+The first Android session on this screen found that `boxShadow` did not animate at all under `type: 'spring'` — the default — while working under `type: 'timing'`. The cause was the shape of the payload handed to Reanimated, and it is fixed; see the core changelog. The checks below are therefore **re-validation**, not first validation, and the spring boxes matter more than the rest of this page.
+:::
+
 **Multi-layer spring interpolation.** Tap **Raise all**. The first card animates a one-layer shadow to a two-layer one, so the padded transparent layer fades in rather than popping. Every length and colour of every layer springs independently.
 
+- [ ] The shadow animates **at all** under a spring — the regression check.
 - [ ] The extra layer **fades in** — no pop, no flash of an opaque shadow.
 - [ ] No visible banding or stepping as blur radius springs.
 - [ ] Under-damped overshoot (spring, `tension: 160`) doesn't make the two layers visibly desynchronise into a doubled edge.
+- [ ] The animation **finishes** — an `onAnimationEnd` on the card fires. A non-settling spring is invisible until something waits on it (a chained step, an `exit` inside `<Presence>`).
 
 **`inset` rendering.** This is the platform-risk item: `inset` box shadows have patchy native support, and the flag travels as a _static_ per-layer value rather than being interpolated.
 

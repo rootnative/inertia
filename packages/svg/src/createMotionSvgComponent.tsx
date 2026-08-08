@@ -7,6 +7,7 @@ import Animated, {
 import {
   resolveNamedTransition,
   resolveTransition,
+  TRANSPARENT,
   useNamedTransitions,
   useShouldReduceMotion,
   type NamedTransitions,
@@ -148,8 +149,8 @@ function pickTransition(
  *   interpolation needs a stable slot count — a target with a different
  *   length throws in dev and is ignored in production.
  * - Numeric keys engaged only via `animate` seed from `0`; color keys seed
- *   from `'transparent'`. Provide a static prop or `initial` value when the
- *   mount animation should start elsewhere.
+ *   from fully transparent black. Provide a static prop or `initial` value
+ *   when the mount animation should start elsewhere.
  *
  * @example An animatable `<Ellipse>`
  * ```tsx
@@ -260,9 +261,12 @@ export function createMotionSvgComponent<
     }
     const colorSvs: Record<string, SharedValue<string>> = {}
     for (const k of colorKeys) {
+      // `TRANSPARENT`, not the `'transparent'` keyword: Reanimated's color
+      // table maps the keyword to `undefined`, so a slot resting at it cannot
+      // be animated away from — under `withSpring` the animation never settles.
       // eslint-disable-next-line react-hooks/rules-of-hooks
       colorSvs[k] = useSharedValue<string>(
-        (seed?.[k] ?? statics[k] ?? 'transparent') as string,
+        (seed?.[k] ?? statics[k] ?? TRANSPARENT) as string,
       )
     }
     const arraySvs: Record<string, SharedValue<number>[]> = {}

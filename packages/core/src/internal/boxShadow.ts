@@ -12,6 +12,8 @@
  * loudly there, not silently render the wrong elevation.
  */
 
+import { normalizeAnimatableColor, TRANSPARENT } from './color'
+
 /**
  * One layer of a `box-shadow`, structurally mirroring React Native's
  * `BoxShadowValue` (RN 0.76+ `boxShadow` style). Lengths are px numbers.
@@ -205,7 +207,7 @@ function invisibleLayer(inset: boolean): ResolvedBoxShadowLayer {
     offsetY: 0,
     blurRadius: 0,
     spreadDistance: 0,
-    color: 'transparent',
+    color: TRANSPARENT,
     inset,
   }
 }
@@ -225,10 +227,10 @@ function invisibleLayer(inset: boolean): ResolvedBoxShadowLayer {
  * drive, and nothing it can't.
  *
  * `inset` is deliberately absent. `withTiming` / `withSpring` recurse into
- * arrays and objects and animate each leaf, and a boolean leaf falls through
- * to the plain numeric path — `false + (false - false) * p` evaluates to `0`,
- * so an in-flight frame hands the native shadow a number where it expects a
- * boolean. Inset is instead carried alongside as a static per-layer flag (see
+ * objects and animate each leaf, and a boolean leaf falls through to the plain
+ * numeric path — `false + (false - false) * p` evaluates to `0`, so an
+ * in-flight frame hands the native shadow a number where it expects a boolean.
+ * Inset is instead carried alongside as a static per-layer flag (see
  * `SplitBoxShadow.insets`) and reattached when the style is emitted.
  */
 export interface AnimatedBoxShadowLayer {
@@ -295,10 +297,16 @@ function coerceLength(value: unknown, field: string): number {
   return parseFloat(trimmed)
 }
 
-/** Drop `inset`, leaving only the fields Reanimated may drive. */
+/**
+ * Drop `inset`, leaving only the fields Reanimated may drive, and rewrite a
+ * `'transparent'` colour to its RGBA spelling — see {@link TRANSPARENT} for
+ * why the CSS keyword cannot be animated. Done here rather than at parse time
+ * so the `useShadow` path, which interpolates colours itself and accepts the
+ * keyword happily, keeps the consumer's own spelling.
+ */
 function strip(layer: ResolvedBoxShadowLayer): AnimatedBoxShadowLayer {
-  const { inset: _inset, ...rest } = layer
-  return rest
+  const { inset: _inset, color, ...rest } = layer
+  return { ...rest, color: normalizeAnimatableColor(color) }
 }
 
 /**
@@ -335,7 +343,7 @@ export function normalizeBoxShadow(input: BoxShadowInput): SplitBoxShadow {
  * Prepare a from/to pair for a Reanimated-driven `boxShadow` animation.
  *
  * Both sides come back padded to the same layer count, because Reanimated's
- * `arrayOnStart` walks the **current** value's indices and reads `toValue[i]`
+ * `objectOnStart` walks the **current** value's keys and reads `toValue[key]`
  * for each — a target with fewer layers leaves the surplus leaves with
  * `toValue: undefined`, and a target with more never animates the extras at
  * all. `pairBoxShadowLayers` supplies the padding (a transparent zero layer,
@@ -372,4 +380,58 @@ export function prepareBoxShadowAnimation(
     if (pair.to.inset) insets = markInset(insets, i, pairs.length)
   }
   return { from, to, insets }
+}
+
+/**
+ * The shape a `boxShadow` shared value actually holds: layers keyed by their
+ * index (`{ 0: layer, 1: layer }`) rather than an array.
+ *
+ * **This is not cosmetic, and an array does not work here.** Reanimated's
+ * animation drivers walk a structured value by dispatching on each leaf's
+ * runtime shape, but the two container branches are not symmetrical
+ * (`animation/util.ts`):
+ *
+ * - `objectOnStart` re-assigns the **decorated** `onStart` onto each child
+ *   (`animation[key].onStart = animation.onStart`), so a child that is itself
+ *   an object or a colour is dispatched again, recursively.
+ * - `arrayOnStart` does not. Each element gets the **base** scalar `onStart`,
+ *   so anything other than a number is handed straight to the spring/timing
+ *   maths. A layer object yields `object - object` → `NaN`; a colour string
+ *   yields the same.
+ *
+ * The failure is silent and total: `withTiming` still snaps to the target when
+ * its duration elapses, so an array *looks* like it works, while `withSpring`
+ * — Inertia's default — decides it has settled only when
+ * `isAnimationTerminatingCalculation` says so, and every comparison against
+ * `NaN` is false. The animation never finishes, the shared value holds
+ * `'[object Object]NaN'` forever, `onAnimationEnd` never fires, and the frame
+ * loop never stops.
+ *
+ * Keying by index sends the layer list down the object branch, where the
+ * recursion works and each layer's colour reaches the RGBA-channel path.
+ */
+export type BoxShadowPayload = Record<string, AnimatedBoxShadowLayer>
+
+/** Index-key a layer list into the shape a shared value can animate. */
+export function layersToPayload(
+  layers: readonly AnimatedBoxShadowLayer[],
+): BoxShadowPayload {
+  const payload: BoxShadowPayload = {}
+  for (let i = 0; i < layers.length; i++) payload[i] = layers[i]!
+  return payload
+}
+
+/**
+ * Read an index-keyed payload back out as a layer list.
+ *
+ * Callable from a worklet: the loop stops at the first missing index rather
+ * than asking for the key set, so no `Object.keys` runs at frame time.
+ */
+export function payloadToLayers(
+  payload: BoxShadowPayload,
+): AnimatedBoxShadowLayer[] {
+  'worklet'
+  const layers: AnimatedBoxShadowLayer[] = []
+  for (let i = 0; payload[i] !== undefined; i++) layers.push(payload[i]!)
+  return layers
 }

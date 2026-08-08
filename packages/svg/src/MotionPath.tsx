@@ -7,6 +7,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import {
   resolveTransition,
+  TRANSPARENT,
   useShouldReduceMotion,
   type TransitionConfig,
 } from '@rootnative/inertia'
@@ -182,12 +183,12 @@ export function MotionPath(props: MotionPathProps) {
   }
 
   // Scalar property SVs. Strings (`fill`, `stroke`) use color seeds so
-  // Reanimated recognizes them as colors from frame 1.
-  const fillSv = useSharedValue<string>(
-    seedSource?.fill ?? fill ?? 'transparent',
-  )
+  // Reanimated recognizes them as colors from frame 1 — which is exactly why
+  // the fallback is `TRANSPARENT` and not the `'transparent'` keyword, the one
+  // color name Reanimated's `isColor` rejects.
+  const fillSv = useSharedValue<string>(seedSource?.fill ?? fill ?? TRANSPARENT)
   const strokeSv = useSharedValue<string>(
-    seedSource?.stroke ?? stroke ?? 'transparent',
+    seedSource?.stroke ?? stroke ?? TRANSPARENT,
   )
   const strokeWidthSv = useSharedValue<number>(
     seedSource?.strokeWidth ?? strokeWidth ?? 1,

@@ -39,6 +39,10 @@ export {
   resolveAnimatableValue,
   ensureWorkletEasing,
 } from './transitions'
+// Seed value for any color shared value a custom animated component drives
+// through `resolveTransition`. Exported because the obvious choice —
+// `'transparent'` — cannot be animated away from; see the symbol's own docs.
+export { TRANSPARENT } from './internal/color'
 export {
   useAnimation,
   useAnimator,

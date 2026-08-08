@@ -5,12 +5,19 @@ import { Motion } from '../motion'
 import { renderWithMotion } from '../testing'
 
 // `boxShadow` is the first *structured* animatable key — its shared value holds
-// an array of layer objects rather than a scalar. That shape is load-bearing:
-// Reanimated dispatches on the runtime shape of the target value, and a CSS
-// box-shadow string would land in its prefix-number-suffix branch (built for
-// values like '100%') and pull a single number out of a four-value shadow. The
-// array form instead recurses into each layer and animates every leaf. These
-// tests pin the JS-thread normalization that makes that work.
+// the layers keyed by index rather than a scalar. That shape is load-bearing
+// twice over, and both halves are pinned below:
+//
+//   1. Not a CSS string. Reanimated dispatches on the runtime shape of the
+//      value, and a box-shadow string lands in its prefix-number-suffix branch
+//      (built for values like '100%'), pulling a single number out of a
+//      four-value shadow.
+//   2. Not an array. Reanimated's `objectOnStart` re-dispatches each child
+//      recursively; its `arrayOnStart` does not, so every element of an array
+//      is handed to the scalar spring/timing maths. `0.0.4` shipped the array
+//      form, which meant `boxShadow` never animated under the default spring.
+//
+// These tests pin the JS-thread normalization that makes both work.
 
 function getStyle(
   node: { props: { style?: unknown } } | null,
@@ -25,6 +32,17 @@ function layers(
   node: { props: { style?: unknown } } | null,
 ): Array<Record<string, unknown>> {
   return (getStyle(node).boxShadow ?? []) as Array<Record<string, unknown>>
+}
+
+/**
+ * Read the index-keyed payload handed to a Reanimated driver back out as a
+ * list. Assertions want a list; the driver requires an object.
+ */
+function targetLayers(target: unknown): Array<Record<string, unknown>> {
+  const payload = target as Record<string, Record<string, unknown>>
+  const list: Array<Record<string, unknown>> = []
+  for (let i = 0; payload[i] !== undefined; i++) list.push(payload[i]!)
+  return list
 }
 
 describe('boxShadow — target normalization', () => {
@@ -47,7 +65,7 @@ describe('boxShadow — target normalization', () => {
     const [target] = withTiming.mock.calls.at(-1)!
     // The whole point: never a string.
     expect(typeof target).not.toBe('string')
-    expect(target).toEqual([
+    expect(targetLayers(target)).toEqual([
       {
         offsetX: 0,
         offsetY: 4,
@@ -116,6 +134,36 @@ describe('boxShadow — target normalization', () => {
     })
   })
 
+  // The default transition, and the one `0.0.4` shipped untested — every other
+  // test in this file names `type: 'timing'` explicitly. Timing snaps to its
+  // target when the duration elapses whatever the interpolation did, so it
+  // cannot distinguish a payload Reanimated can animate from one it cannot;
+  // spring can. `reanimated-drivers.test.ts` is what proves the shape asserted
+  // here actually converges.
+  it('drives the default spring transition, with no transition prop at all', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+
+    renderWithMotion(
+      <Motion.View
+        testID="card"
+        animate={{ boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)' }}
+      />,
+    )
+
+    const [target] = withSpring.mock.calls.at(-1)!
+    // Keyed by index, NOT an array: Reanimated recurses into objects only.
+    expect(Array.isArray(target)).toBe(false)
+    expect(targetLayers(target)).toEqual([
+      {
+        offsetX: 0,
+        offsetY: 4,
+        blurRadius: 8,
+        spreadDistance: 0,
+        color: 'rgba(0, 0, 0, 0.3)',
+      },
+    ])
+  })
+
   it("treats 'none' as zero layers", () => {
     const result = renderWithMotion(
       <Motion.View testID="card" animate={{ boxShadow: 'none' }} />,
@@ -130,9 +178,9 @@ describe('boxShadow — endpoint padding', () => {
     __resetWarnOnceForTests()
   })
 
-  // Reanimated's `arrayOnStart` walks the CURRENT value's indices and reads
-  // `toValue[i]` for each. Without padding, growing the layer count leaves the
-  // new layers unanimated and shrinking it strands leaves at `toValue:
+  // Reanimated's `objectOnStart` walks the CURRENT value's keys and reads
+  // `toValue[key]` for each. Without padding, growing the layer count leaves
+  // the new layers unanimated and shrinking it strands leaves at `toValue:
   // undefined` — so both endpoints must be padded to a common length on the JS
   // thread before the animation starts.
   it('pads the target up when the seed has more layers', () => {
@@ -148,15 +196,18 @@ describe('boxShadow — endpoint padding', () => {
     )
 
     const [target] = withTiming.mock.calls.at(-1)!
-    expect(target).toHaveLength(2)
+    expect(targetLayers(target)).toHaveLength(2)
     // The absent second layer becomes an invisible one, so the surplus layer
-    // fades out rather than popping.
-    expect((target as unknown as Array<Record<string, unknown>>)[1]).toEqual({
+    // fades out rather than popping. Its colour is spelled `rgba(0, 0, 0, 0)`
+    // and not `'transparent'`: the CSS keyword is the one colour name
+    // Reanimated's `isColor` rejects, and a rejected leaf never settles, which
+    // would hang the whole shadow animation on the padding layer alone.
+    expect(targetLayers(target)[1]).toEqual({
       offsetX: 0,
       offsetY: 0,
       blurRadius: 0,
       spreadDistance: 0,
-      color: 'transparent',
+      color: 'rgba(0, 0, 0, 0)',
     })
   })
 
@@ -192,7 +243,7 @@ describe('boxShadow — endpoint padding', () => {
     )
 
     const [target] = withTiming.mock.calls.at(-1)!
-    expect(target).toHaveLength(1)
+    expect(targetLayers(target)).toHaveLength(1)
   })
 
   it('throws when a paired layer is inset on only one side', () => {
@@ -304,7 +355,7 @@ describe('boxShadow — integration with the rest of the surface', () => {
     )
 
     expect(withTiming).toHaveBeenCalledWith(
-      expect.any(Array),
+      expect.any(Object),
       expect.objectContaining({ duration: 120 }),
       undefined,
     )

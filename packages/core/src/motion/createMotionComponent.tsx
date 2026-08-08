@@ -23,11 +23,18 @@ import {
 } from '../config'
 import { isFocusVisible } from '../gestures'
 import {
+  layersToPayload,
   normalizeBoxShadow,
+  payloadToLayers,
   prepareBoxShadowAnimation,
-  type AnimatedBoxShadowLayer,
+  type BoxShadowPayload,
   type SplitBoxShadow,
 } from '../internal/boxShadow'
+import {
+  normalizeAnimatableColor,
+  normalizeAnimatableColorTarget,
+  TRANSPARENT,
+} from '../internal/color'
 import { warnOnce } from '../internal/warnOnce'
 import {
   resolveLayoutTransition,
@@ -191,16 +198,20 @@ const COLOR_KEYS = [
 const SHADOW_OFFSET_KEYS = ['shadowOffsetWidth', 'shadowOffsetHeight'] as const
 
 // Keys whose shared value holds a structure rather than a scalar. `boxShadow`
-// is the only one: its slot carries an array of layer objects, which
+// is the only one: its slot carries the layers keyed by index, which
 // Reanimated's animation drivers recurse into, animating each leaf number and
-// color independently (`arrayOnStart` → `objectOnStart` in Reanimated's
-// `animation/util.ts`).
+// color independently (`objectOnStart` in Reanimated's `animation/util.ts`).
 //
-// Passing the CSS string through instead would NOT work — a box-shadow string
-// isn't a color, so it lands in Reanimated's prefix-number-suffix branch,
-// which is built for values like '100%' and would pull a single number out of
-// a four-value shadow. All string parsing therefore happens on the JS thread,
-// once per change, in `internal/boxShadow.ts`.
+// Index-keyed and not an array, which is load-bearing — Reanimated recurses
+// into objects but not into arrays. See `BoxShadowPayload` for the mechanism
+// and for what it looked like when this was an array (`0.0.4`/`0.0.5`: dead
+// under the default spring, silently correct-looking under timing).
+//
+// Passing the CSS string through instead would NOT work either — a box-shadow
+// string isn't a color, so it lands in Reanimated's prefix-number-suffix
+// branch, which is built for values like '100%' and would pull a single number
+// out of a four-value shadow. All string parsing therefore happens on the JS
+// thread, once per change, in `internal/boxShadow.ts`.
 const STRUCTURED_KEYS = ['boxShadow'] as const
 
 // Keys a shared-element transition (`layoutId`) carries from the source
@@ -253,15 +264,16 @@ const SHARED_STYLE_KEY_SET = new Set<AnimatableKey>(SHARED_STYLE_KEYS)
 
 /**
  * What a per-key shared value can hold. Scalars for every key except
- * `boxShadow`, whose slot carries the layer array (see `STRUCTURED_KEYS`).
+ * `boxShadow`, whose slot carries the index-keyed layer payload (see
+ * `STRUCTURED_KEYS`).
  */
-type AnimatableSlotValue = number | string | readonly AnimatedBoxShadowLayer[]
+type AnimatableSlotValue = number | string | BoxShadowPayload
 
 /**
  * Resting `boxShadow` — no shadow at all. Frozen and hoisted so every
  * primitive shares one reference and an untouched slot never allocates.
  */
-const NO_BOX_SHADOW: readonly AnimatedBoxShadowLayer[] = Object.freeze([])
+const NO_BOX_SHADOW: BoxShadowPayload = Object.freeze({})
 
 const GESTURE_LAYER_NAMES = [
   'hovered',
@@ -341,15 +353,21 @@ const DEFAULT_RESTING: Record<AnimatableKey, AnimatableSlotValue> = {
   gap: 0,
   rowGap: 0,
   columnGap: 0,
-  // 'transparent' is the only safe universal default for colors: it works as
-  // an initial seed for any color animation (no jarring opaque flash on mount
-  // when `initial` is omitted) and rgba(0,0,0,0) interpolates cleanly into
-  // any opaque target via Reanimated's color util.
-  backgroundColor: 'transparent',
-  borderColor: 'transparent',
-  color: 'transparent',
-  tintColor: 'transparent',
-  shadowColor: 'transparent',
+  // Fully transparent black is the only safe universal default for colors: it
+  // works as an initial seed for any color animation (no jarring opaque flash
+  // on mount when `initial` is omitted) and interpolates cleanly into any
+  // opaque target.
+  //
+  // Spelled `rgba(0, 0, 0, 0)` and NOT `'transparent'`, which is not optional.
+  // Reanimated's color-name table maps `transparent` to `undefined`, so it is
+  // the one named color `isColor()` rejects — a slot resting at the keyword
+  // takes the prefix-number-suffix branch on its next animation and produces
+  // `NaN` instead of a color. See `TRANSPARENT` in `internal/boxShadow.ts`.
+  backgroundColor: TRANSPARENT,
+  borderColor: TRANSPARENT,
+  color: TRANSPARENT,
+  tintColor: TRANSPARENT,
+  shadowColor: TRANSPARENT,
   shadowOffsetWidth: 0,
   shadowOffsetHeight: 0,
   boxShadow: NO_BOX_SHADOW,
@@ -730,12 +748,20 @@ export function createMotionComponent<C extends ComponentType<any>>(
               const raw = flat.boxShadow as BoxShadowInput | undefined
               if (raw !== undefined) {
                 styleRestingShadow = normalizeBoxShadow(raw)
-                styleResting.boxShadow = styleRestingShadow.layers
+                styleResting.boxShadow = layersToPayload(
+                  styleRestingShadow.layers,
+                )
               }
               continue
             }
             const v = styleValueFor(flat, key)
-            if (v !== undefined) styleResting[key] = v
+            // A static `style` may legitimately say `'transparent'`; the slot
+            // it seeds must not, or the next animation off that value dies.
+            if (v !== undefined) {
+              styleResting[key] = COLOR_KEY_SET.has(key)
+                ? normalizeAnimatableColor(v)
+                : v
+            }
           }
         }
       }
@@ -754,14 +780,13 @@ export function createMotionComponent<C extends ComponentType<any>>(
         boxShadowSeedRef.current =
           source !== undefined
             ? normalizeBoxShadow(source)
-            : (styleRestingShadow ?? {
-                layers: [...NO_BOX_SHADOW],
-                insets: null,
-              })
+            : (styleRestingShadow ?? { layers: [], insets: null })
       }
 
       const sharedValues = useAnimatableSharedValues((key) => {
-        if (key === 'boxShadow') return boxShadowSeedRef.current!.layers
+        if (key === 'boxShadow') {
+          return layersToPayload(boxShadowSeedRef.current!.layers)
+        }
         // Shadow offset synthetics seed from the corresponding axis on the
         // `shadowOffset: { width, height }` source — the consumer doesn't write
         // `shadowOffsetWidth` / `shadowOffsetHeight` directly. Fall back to the
@@ -788,16 +813,21 @@ export function createMotionComponent<C extends ComponentType<any>>(
             DEFAULT_RESTING[key]
           )
         }
+        // Colors are normalized on the way in: `initial` and `animate` are
+        // consumer strings and may say `'transparent'`, which Reanimated
+        // cannot animate *away from* (see `internal/color.ts`). The two
+        // fallbacks below are already normalized.
         if (initial === false) {
           const a = animateRecord[key]
-          return restValue(a) ?? styleResting[key] ?? DEFAULT_RESTING[key]
+          const seed = restValue(a) ?? styleResting[key] ?? DEFAULT_RESTING[key]
+          return COLOR_KEY_SET.has(key) ? normalizeAnimatableColor(seed) : seed
         }
-        return (
+        const seed =
           initialRecord?.[key] ??
           restValue(animateRecord[key]) ??
           styleResting[key] ??
           DEFAULT_RESTING[key]
-        )
+        return COLOR_KEY_SET.has(key) ? normalizeAnimatableColor(seed) : seed
       })
 
       // Keep never-driven keys tracking the *live* static style. The seed above
@@ -1014,8 +1044,17 @@ export function createMotionComponent<C extends ComponentType<any>>(
             isExiting ? onSettle : undefined,
             TRANSFORM_KEY_SET.has(key) ? transformGroup : undefined,
           )
+          // Normalized for the driver only, and after `targetEndValue` above:
+          // `onAnimationEnd` reports the target the consumer declared, not our
+          // rewriting of it. A color target of `'transparent'` animates fine
+          // — Reanimated dispatches on the *source* — but under
+          // `'no-animation'` (and so under reduced motion) it is assigned
+          // straight into the slot, and the next animation would start from a
+          // value that can't be parsed.
           sharedValues[key].value = resolveAnimatableValue(
-            target,
+            COLOR_KEY_SET.has(key)
+              ? normalizeAnimatableColorTarget(target)
+              : target,
             cfg,
             factory,
           ) as never
@@ -1243,17 +1282,19 @@ export function createMotionComponent<C extends ComponentType<any>>(
           out.shadowOffset = { width: shadowOffsetW, height: shadowOffsetH }
         }
         if (hasBoxShadow) {
-          const layers = sharedValues.boxShadow
-            .value as readonly AnimatedBoxShadowLayer[]
+          // The slot holds the layers keyed by index (Reanimated recurses into
+          // objects, not arrays — see `BoxShadowPayload`); RN wants an array,
+          // so this is where the two shapes meet.
+          const payload = sharedValues.boxShadow.value as BoxShadowPayload
           const insets = boxShadowInsets.value
-          // Fast path — no inset layer anywhere, so the animated array is
-          // already exactly what RN wants and crosses over untouched.
+          // Fast path — no inset layer anywhere, so each layer crosses over by
+          // reference and only the array itself is allocated.
           if (insets === null) {
-            out.boxShadow = layers
+            out.boxShadow = payloadToLayers(payload)
           } else {
             const withInset = []
-            for (let i = 0; i < layers.length; i++) {
-              withInset.push({ ...layers[i], inset: insets[i] })
+            for (let i = 0; payload[i] !== undefined; i++) {
+              withInset.push({ ...payload[i], inset: insets[i] })
             }
             out.boxShadow = withInset
           }
@@ -1486,6 +1527,13 @@ function makeKeyCallbackFactory(
     const reportedIteration = state.iteration
     if (phase === 'sequence' || phase === 'repeat') state.iteration++
 
+    // `boxShadow`'s slot is keyed by index so Reanimated will recurse into it;
+    // that is an internal shape, and the consumer gets the layer list.
+    const reportedValue =
+      key === 'boxShadow' && value !== undefined
+        ? payloadToLayers(value as BoxShadowPayload)
+        : value
+
     const fn = onAnimationEndRef.current
     if (fn) {
       // Transform-group coalescing: a multi-axis translate / scale /
@@ -1501,7 +1549,7 @@ function makeKeyCallbackFactory(
           fn({
             key: 'transform' as never,
             finished,
-            value,
+            value: reportedValue,
             target,
             phase,
             step,
@@ -1512,7 +1560,7 @@ function makeKeyCallbackFactory(
         fn({
           key: key as never,
           finished,
-          value,
+          value: reportedValue,
           target,
           phase,
           step,
@@ -1609,20 +1657,18 @@ function driveBoxShadow(
   cfg: TransitionConfig | undefined,
   factory: CallbackFactory | undefined,
 ): void {
-  const currentLayers = Array.isArray(slot.value)
-    ? (slot.value as readonly AnimatedBoxShadowLayer[])
-    : NO_BOX_SHADOW
+  const currentLayers = payloadToLayers(slot.value as BoxShadowPayload)
   const { from, to, insets } = prepareBoxShadowAnimation(
-    { layers: [...currentLayers], insets: insetSlot.value },
+    { layers: currentLayers, insets: insetSlot.value },
     target,
   )
   insetSlot.value = insets
-  if (from.length !== currentLayers.length) slot.value = from
+  if (from.length !== currentLayers.length) slot.value = layersToPayload(from)
   // `resolveTransition` is typed for the scalar surface it was written for;
   // Reanimated itself accepts the structured target and recurses into it.
   slot.value = resolveTransition(
     cfg,
-    to as unknown as number,
+    layersToPayload(to) as unknown as number,
     factory?.('animation', undefined),
   ) as AnimatableSlotValue
 }

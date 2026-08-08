@@ -125,7 +125,7 @@ describe('pairBoxShadowLayers', () => {
       offsetY: 0,
       blurRadius: 0,
       spreadDistance: 0,
-      color: 'transparent',
+      color: 'rgba(0, 0, 0, 0)',
       inset: false,
     })
   })
