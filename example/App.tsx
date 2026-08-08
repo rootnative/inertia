@@ -1,6 +1,14 @@
-import { useState } from 'react'
+import { type ComponentType } from 'react'
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
+import {
+  CommonActions,
+  NavigationContainer,
+  useNavigation,
+  type InitialState,
+} from '@react-navigation/native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Motion } from '@rootnative/inertia'
 // Read the version from the package itself so the footer can't drift behind a
 // release the way a hardcoded string did (it advertised 0.0.0-alpha.0 through
@@ -82,45 +90,73 @@ type Route =
   | 'motion-config'
   | 'perf-bench'
 
-const VALID_ROUTES: ReadonlyArray<Route> = [
-  'home',
-  'view',
-  'text',
-  'image',
-  'color',
-  'transforms',
-  'shadow',
-  'box-shadow',
-  'layout-keys',
-  'variants',
-  'sequence',
-  'decay',
-  'drag',
-  'slider',
-  'touch-drag',
-  'swipe',
-  'pan',
-  'gesture',
-  'use-color-transition',
-  'use-color-cascade',
-  'use-interpolated-style',
-  'use-animator',
-  'use-gesture',
-  'use-gesture-layer',
-  'use-motion-value',
-  'use-scroll',
-  'use-shadow',
-  'pressable',
-  'scroll-view',
-  'presence',
-  'linear-gradient',
-  'path-morph',
-  'layout',
-  'shared-element',
-  'md3-switch',
-  'motion-config',
-  'perf-bench',
-]
+/** Every route takes no params — the gallery is a flat list of demos. */
+type RootStackParamList = Record<Route, undefined>
+
+type ScreenComponent = ComponentType<{ onBack: () => void }>
+
+/**
+ * Route name -> screen body. The screens keep their original
+ * `({ onBack }) => …` signature, so this map is the only place that knows
+ * they now live in a navigator.
+ */
+const SCREENS = {
+  view: ViewScreen,
+  text: TextScreen,
+  image: ImageScreen,
+  color: ColorScreen,
+  transforms: TransformsScreen,
+  shadow: ShadowScreen,
+  'box-shadow': BoxShadowScreen,
+  'layout-keys': LayoutKeysScreen,
+  variants: VariantsScreen,
+  sequence: SequenceScreen,
+  decay: DecayScreen,
+  drag: DragScreen,
+  slider: SliderScreen,
+  'touch-drag': TouchDragScreen,
+  swipe: SwipeScreen,
+  pan: PanScreen,
+  gesture: GestureScreen,
+  'use-color-transition': UseColorTransitionScreen,
+  'use-color-cascade': UseColorCascadeScreen,
+  'use-interpolated-style': UseInterpolatedStyleScreen,
+  'use-animator': UseAnimatorScreen,
+  'use-gesture': UseGestureScreen,
+  'use-gesture-layer': UseGestureLayerScreen,
+  'use-motion-value': UseMotionValueScreen,
+  'use-scroll': UseScrollScreen,
+  'use-shadow': UseShadowScreen,
+  pressable: PressableScreen,
+  'scroll-view': ScrollViewScreen,
+  presence: PresenceScreen,
+  'linear-gradient': LinearGradientScreen,
+  'path-morph': PathMorphScreen,
+  layout: LayoutScreen,
+  'shared-element': SharedElementScreen,
+  'md3-switch': MD3SwitchScreen,
+  'motion-config': MotionConfigScreen,
+  'perf-bench': PerfBenchScreen,
+} satisfies Record<Exclude<Route, 'home'>, ScreenComponent>
+
+/**
+ * Bind a screen to the navigator's back action. Built once at module scope so
+ * every `Stack.Screen` gets a stable component identity — an inline arrow here
+ * would remount the screen (and replay its mount animation) on every render of
+ * the navigator.
+ */
+function createRoute(Screen: ScreenComponent): ComponentType {
+  return function Route() {
+    const navigation = useNavigation()
+    return <Screen onBack={navigation.goBack} />
+  }
+}
+
+const ROUTES = (
+  Object.entries(SCREENS) as ReadonlyArray<
+    [Exclude<Route, 'home'>, ScreenComponent]
+  >
+).map(([name, Screen]) => [name, createRoute(Screen)] as const)
 
 type HomeLink = {
   route: Exclude<Route, 'home'>
@@ -351,62 +387,32 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
   },
 ]
 
-function readInitialRoute(): Route {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return 'home'
+/**
+ * The docs site embeds this app as an iframe and deep-links a single demo with
+ * `?screen=<route>` (see `docs/src/components/RunnableExample.tsx`). Seed the
+ * stack with `home` underneath the requested screen rather than making it the
+ * only entry, so `ScreenShell`'s back button still has somewhere to go.
+ */
+function readInitialState(): InitialState | undefined {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return undefined
   const params = new URLSearchParams(window.location.search)
   const screen = params.get('screen')
-  if (screen && (VALID_ROUTES as ReadonlyArray<string>).includes(screen)) {
-    return screen as Route
-  }
-  return 'home'
+  // `SCREENS` is the single source of truth for what routes exist — it is
+  // exhaustiveness-checked against `Route`, so validating against it here means
+  // there is no second list to keep in sync.
+  if (!screen || !Object.hasOwn(SCREENS, screen)) return undefined
+  return { index: 1, routes: [{ name: 'home' }, { name: screen }] }
 }
 
-export default function App() {
-  const [route, setRoute] = useState<Route>(readInitialRoute)
-  const goHome = () => setRoute('home')
+const SCREEN_OPTIONS = { headerShown: false } as const
 
-  if (route === 'view') return <ViewScreen onBack={goHome} />
-  if (route === 'text') return <TextScreen onBack={goHome} />
-  if (route === 'image') return <ImageScreen onBack={goHome} />
-  if (route === 'color') return <ColorScreen onBack={goHome} />
-  if (route === 'transforms') return <TransformsScreen onBack={goHome} />
-  if (route === 'shadow') return <ShadowScreen onBack={goHome} />
-  if (route === 'box-shadow') return <BoxShadowScreen onBack={goHome} />
-  if (route === 'layout-keys') return <LayoutKeysScreen onBack={goHome} />
-  if (route === 'variants') return <VariantsScreen onBack={goHome} />
-  if (route === 'sequence') return <SequenceScreen onBack={goHome} />
-  if (route === 'decay') return <DecayScreen onBack={goHome} />
-  if (route === 'drag') return <DragScreen onBack={goHome} />
-  if (route === 'slider') return <SliderScreen onBack={goHome} />
-  if (route === 'touch-drag') return <TouchDragScreen onBack={goHome} />
-  if (route === 'swipe') return <SwipeScreen onBack={goHome} />
-  if (route === 'pan') return <PanScreen onBack={goHome} />
-  if (route === 'gesture') return <GestureScreen onBack={goHome} />
-  if (route === 'use-color-transition')
-    return <UseColorTransitionScreen onBack={goHome} />
-  if (route === 'use-color-cascade')
-    return <UseColorCascadeScreen onBack={goHome} />
-  if (route === 'use-interpolated-style')
-    return <UseInterpolatedStyleScreen onBack={goHome} />
-  if (route === 'use-animator') return <UseAnimatorScreen onBack={goHome} />
-  if (route === 'use-gesture') return <UseGestureScreen onBack={goHome} />
-  if (route === 'use-gesture-layer')
-    return <UseGestureLayerScreen onBack={goHome} />
-  if (route === 'use-motion-value')
-    return <UseMotionValueScreen onBack={goHome} />
-  if (route === 'use-scroll') return <UseScrollScreen onBack={goHome} />
-  if (route === 'use-shadow') return <UseShadowScreen onBack={goHome} />
-  if (route === 'pressable') return <PressableScreen onBack={goHome} />
-  if (route === 'scroll-view') return <ScrollViewScreen onBack={goHome} />
-  if (route === 'presence') return <PresenceScreen onBack={goHome} />
-  if (route === 'linear-gradient')
-    return <LinearGradientScreen onBack={goHome} />
-  if (route === 'path-morph') return <PathMorphScreen onBack={goHome} />
-  if (route === 'layout') return <LayoutScreen onBack={goHome} />
-  if (route === 'shared-element') return <SharedElementScreen onBack={goHome} />
-  if (route === 'md3-switch') return <MD3SwitchScreen onBack={goHome} />
-  if (route === 'motion-config') return <MotionConfigScreen onBack={goHome} />
-  if (route === 'perf-bench') return <PerfBenchScreen onBack={goHome} />
+function HomeScreen() {
+  const navigation = useNavigation()
+  // `navigate`'s overloads distribute over the param list, so a union of route
+  // names satisfies none of them. Dispatching the action takes a plain string
+  // and keeps the call site cast-free.
+  const open = (route: Exclude<Route, 'home'>) =>
+    navigation.dispatch(CommonActions.navigate(route))
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -475,7 +481,7 @@ export default function App() {
             {section.links.map((link) => (
               <Motion.Pressable
                 key={link.route}
-                onPress={() => setRoute(link.route)}
+                onPress={() => open(link.route)}
                 gesture={{
                   pressed: { scaleX: 0.97, scaleY: 0.97, opacity: 0.85 },
                 }}
@@ -501,6 +507,28 @@ export default function App() {
         {inertiaVersion} · React Native · Reanimated 4
       </Text>
     </ScrollView>
+  )
+}
+
+const Stack = createNativeStackNavigator<RootStackParamList>()
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <NavigationContainer initialState={readInitialState()}>
+        <Stack.Navigator screenOptions={SCREEN_OPTIONS}>
+          {/*
+            Every screen renders its own header via `ScreenShell`, so the
+            navigator's is hidden. The stack keeps `home` mounted underneath,
+            which is what preserves the gallery's scroll offset on the way back.
+          */}
+          <Stack.Screen name="home" component={HomeScreen} />
+          {ROUTES.map(([name, Screen]) => (
+            <Stack.Screen key={name} name={name} component={Screen} />
+          ))}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   )
 }
 

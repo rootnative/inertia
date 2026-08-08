@@ -68,8 +68,8 @@ export function LayoutKeysScreen({ onBack }: { onBack: () => void }) {
           Both bars shrink from 90pt to 26pt. The left card reflows — the parent
           re-lays-out its child every frame; the right composites — the bar is
           scaled on the GPU and the layout never changes. Watch which one
-          stutters first under load, and note the right bar's rounded corners
-          squash horizontally while the left bar's stay circular.
+          stutters first under load, and note the right bar&apos;s rounded
+          corners squash horizontally while the left bar&apos;s stay circular.
         </Text>
 
         <Text style={styles.label}>Per-corner radius · squares off</Text>
