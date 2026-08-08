@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-08-08
+
+**Version bump alongside `@rootnative/inertia@0.0.6`, and this adapter carries half of that release's colour fix.** It seeded its own colour slots from the same unanimatable spelling, so the defect reached `MotionPath` independently of core. The `@rootnative/inertia` peer range moves to `>=0.0.6`.
+
 ### Fixed
 
 - **A colour prop engaged only through `animate` now animates.** `fill`, `stroke`, and any key listed in `colorProps` seeded from `'transparent'` when neither a static prop nor `initial` supplied a value — and `'transparent'` is the one CSS colour name Reanimated's `isColor()` rejects, so the slot could not be animated away from. Under `type: 'timing'` the target still arrived when the duration elapsed, hiding it; under the default spring the animation never settled and the colour never appeared. Seeds are now `TRANSPARENT` (`'rgba(0, 0, 0, 0)'`), the same colour in a spelling Reanimated recognises. Affects `MotionPath`'s `fill` / `stroke` and every component built with `createMotionSvgComponent`. See the core changelog for the full mechanism.
@@ -49,7 +53,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionPath` over `react-native-svg`. Animatable: `d` (element-wise scalar interpolation on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.5...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.6...HEAD
+[0.0.6]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.6
 [0.0.5]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.5
 [0.0.4]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.4
 [0.0.3]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.3

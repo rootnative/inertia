@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-08-08
+
+**Defect release: two animations that never ran.** Both trace to one assumption about what Reanimated accepts as an animatable value, and both were hidden by the same thing — `type: 'timing'` snaps to its target when the duration elapses, so a total interpolation failure still produced the right end state. `animate={{ boxShadow }}` was inert under the default spring; every colour key was inert when it rested at its default, which is the far more common path. Neither is caught by a mocked test suite, so this release also adds a test file that runs Reanimated's real drivers.
+
 ### Fixed
 
 - **`animate={{ boxShadow }}` now animates under `type: 'spring'`** — the library default, and the documented recommendation, so `animate={{ boxShadow }}` with no `transition` prop at all was the broken path. The key worked under `type: 'timing'` and was inert under spring, from its introduction in `0.0.4` until now.
@@ -221,7 +225,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.5...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.6...HEAD
+[0.0.6]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.6
 [0.0.5]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.5
 [0.0.4]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.4
 [0.0.3]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.3
