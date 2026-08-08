@@ -1027,6 +1027,38 @@ Only when neither `animate` nor `style` provides a value does the property fall 
 
 Use `focused` for state-layer fills (any focus, including click-focus on web) and `focusVisible` for focus rings (keyboard-only). Declaring both gives you the right behaviour automatically: clicking a button shows the state layer; tabbing to it shows the state layer **and** the ring.
 
+### Author `pressed` against rest, not against `hovered`
+
+Because `hovered` never activates on a touch device, a `pressed` target that only makes sense as a step down from `hovered` produces **no motion at all** on native:
+
+```tsx
+// Wrong on native: pressed is value-identical to rest, so nothing animates.
+<Motion.View
+  style={styles.card} // shadowOpacity: 0.15
+  gesture={{
+    hovered: { shadowOpacity: 0.22 }, // lift on hover (web)
+    pressed: { shadowOpacity: 0.15 }, // settle back down — same as rest
+  }}
+/>
+```
+
+On web this reads correctly: hover lifts the card, press settles it. On iOS and Android there is no hover layer, so the cascade runs rest → `pressed` — and the two values are the same. The animation is a no-op, and nothing warns you, because a target equal to the resting value is perfectly legal.
+
+Write each sub-state as an absolute target measured from **rest**, and treat `hovered` as an intermediate step that only some platforms see:
+
+```tsx
+// Right: every layer differs from rest, so each one moves on every platform.
+<Motion.View
+  style={styles.card} // shadowOpacity: 0.15
+  gesture={{
+    hovered: { shadowOpacity: 0.19 }, // web-only intermediate
+    pressed: { shadowOpacity: 0.34 }, // the raise — visible on touch
+  }}
+/>
+```
+
+The general rule: **verify each sub-state against rest on its own**, since that is the only comparison a touch device ever makes.
+
 ## Priority
 
 When multiple sub-states are active at once, they composite as a **priority cascade** in this order — later layers composite over earlier ones:
