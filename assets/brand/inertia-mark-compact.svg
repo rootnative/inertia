@@ -1,0 +1,18 @@
+<!--
+  Two-shape reduction for sizes where the middle ghost collapses into a
+  sliver: favicons, and anything below roughly 24 px.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inertia">
+  <title>Inertia</title>
+  <defs>
+    <linearGradient id="inertiaEchoCompact" gradientUnits="userSpaceOnUse" x1="6" y1="56" x2="59" y2="7">
+      <stop offset="0" stop-color="#ec4899" />
+      <stop offset="0.55" stop-color="#6366f1" />
+      <stop offset="1" stop-color="#4f46e5" />
+    </linearGradient>
+  </defs>
+  <g fill="url(#inertiaEchoCompact)">
+    <rect x="6" y="24" width="32" height="32" rx="10" opacity="0.45" />
+    <rect x="21" y="7" width="38" height="38" rx="12" />
+  </g>
+</svg>

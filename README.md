@@ -1,3 +1,5 @@
+<img src="assets/brand/inertia-mark.png" alt="" width="88" height="88" />
+
 # Inertia
 
 [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)

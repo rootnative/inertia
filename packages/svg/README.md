@@ -1,3 +1,6 @@
+<!-- Absolute URL: npm does not resolve repository-relative image paths. -->
+<img src="https://raw.githubusercontent.com/rootnative/inertia/main/assets/brand/inertia-mark.png" alt="" width="88" height="88" />
+
 # @rootnative/inertia-svg
 
 [![npm](https://img.shields.io/npm/v/@rootnative/inertia-svg.svg)](https://www.npmjs.com/package/@rootnative/inertia-svg)

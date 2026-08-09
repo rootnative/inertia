@@ -1,3 +1,9 @@
+<!--
+  Absolute URL, not a relative path: this README is the npm package page, and
+  npm does not resolve repository-relative image paths.
+-->
+<img src="https://raw.githubusercontent.com/rootnative/inertia/main/assets/brand/inertia-mark.png" alt="" width="88" height="88" />
+
 # @rootnative/inertia
 
 [![npm](https://img.shields.io/npm/v/@rootnative/inertia.svg)](https://www.npmjs.com/package/@rootnative/inertia)

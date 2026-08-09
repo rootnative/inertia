@@ -2,11 +2,16 @@ import path from 'path'
 import type * as Preset from '@docusaurus/preset-classic'
 import type { Config } from '@docusaurus/types'
 
+// Docusaurus resolves `baseUrl` for `favicon` and `themeConfig.image`, but not
+// for `headTags` hrefs — those are emitted verbatim, so they have to be built
+// from the same constant rather than hard-coded.
+const baseUrl = '/inertia/'
+
 const config: Config = {
   title: 'Inertia',
   tagline: 'Declarative animation primitives for React Native',
   url: 'https://rootnative.github.io',
-  baseUrl: '/inertia/',
+  baseUrl,
   onBrokenLinks: 'throw',
 
   markdown: {
@@ -22,6 +27,14 @@ const config: Config = {
   },
 
   headTags: [
+    {
+      tagName: 'link',
+      attributes: {
+        rel: 'apple-touch-icon',
+        sizes: '180x180',
+        href: `${baseUrl}img/favicon.png`,
+      },
+    },
     {
       tagName: 'link',
       attributes: {
@@ -92,8 +105,14 @@ const config: Config = {
   ],
 
   themeConfig: {
+    image: 'img/social-card.png',
     navbar: {
       title: 'Inertia',
+      logo: {
+        alt: 'Inertia',
+        src: 'img/logo.svg',
+        srcDark: 'img/logo-dark.svg',
+      },
       items: [
         {
           type: 'docSidebar',

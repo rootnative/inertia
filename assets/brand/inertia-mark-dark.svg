@@ -1,0 +1,19 @@
+<!--
+  Lighter accent pair, for the dark navbar and any dark surface where the
+  #4f46e5 lead loses contrast.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="Inertia">
+  <title>Inertia</title>
+  <defs>
+    <linearGradient id="inertiaEchoDark" gradientUnits="userSpaceOnUse" x1="4.5" y1="56.5" x2="59.5" y2="7.5">
+      <stop offset="0" stop-color="#f472b6" />
+      <stop offset="0.55" stop-color="#8b8ff9" />
+      <stop offset="1" stop-color="#818cf8" />
+    </linearGradient>
+  </defs>
+  <g fill="url(#inertiaEchoDark)">
+    <rect x="4.5" y="31.5" width="25" height="25" rx="8" opacity="0.3" />
+    <rect x="15.5" y="19.5" width="29" height="29" rx="9" opacity="0.6" />
+    <rect x="26.5" y="7.5" width="33" height="33" rx="10.5" />
+  </g>
+</svg>
