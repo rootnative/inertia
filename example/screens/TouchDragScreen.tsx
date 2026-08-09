@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { Motion } from '@rootnative/inertia'
 import { useTouchDrag } from '@rootnative/inertia/touch'
 import { ScreenShell } from './ScreenShell'
@@ -14,7 +14,7 @@ const TICKS = Array.from({ length: STEPS }, (_, i) => i * SPACING)
  * PanResponder-backed drag demo. Mirrors the gesture-handler `SliderScreen`
  * but uses `useTouchDrag` from `@rootnative/inertia/touch` — no
  * `react-native-gesture-handler` peer required, and keyboard a11y composes
- * cleanly via `onKeyDown` on the wrapping `Pressable`.
+ * cleanly via `onKeyDown` on the wrapping `View`.
  *
  * Release picks the nearest tick and springs in with the release velocity,
  * via Inertia's transition resolver.
@@ -74,14 +74,25 @@ export function TouchDragScreen({ onBack }: { onBack: () => void }) {
               <View key={i} style={styles.tick} />
             ))}
           </View>
-          <Pressable
+          {/*
+            The drag target is a `View`, NOT a `Pressable`, and that is
+            load-bearing on web. react-native-web's Pressable renders
+            `<View {...rest} {...pressEventHandlers} />` — its own
+            PressResponder handlers are spread AFTER the caller's, so every
+            responder prop in `panHandlers` is overwritten and the drag is
+            silently dead. `onKeyDown` survived (Pressable forwards it), but
+            it sat on the same node, so the keyboard path was dead too.
+            A plain View wires the responder system directly.
+          */}
+          <View
             accessibilityRole="adjustable"
+            focusable
             onKeyDown={handleKey}
             {...drag.panHandlers}
             style={styles.thumbHit}
           >
             <Motion.View style={[styles.thumb, drag.animatedStyle]} />
-          </Pressable>
+          </View>
         </View>
         <Text style={styles.hint}>
           Drag or use arrow keys. Release snaps to the nearest tick using the
@@ -92,10 +103,10 @@ export function TouchDragScreen({ onBack }: { onBack: () => void }) {
   )
 }
 
-// PressableProps.onKeyDown is web-only (RN-Web augmentation). RN's upstream
-// types omit it; declare locally so this file compiles cleanly.
+// ViewProps.onKeyDown is web-only (RN-Web augmentation). RN's upstream types
+// omit it; declare locally so this file compiles cleanly.
 declare module 'react-native' {
-  interface PressableProps {
+  interface ViewProps {
     onKeyDown?: (event: { nativeEvent: { key?: string } }) => void
   }
 }

@@ -4,6 +4,22 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **`gesture={{ pressed: … }}` now responds to a mouse on web.** On any primitive that isn't a `Pressable` — a plain `Motion.View`, `Motion.Text`, `Motion.Image` — the pressed layer never engaged under a desktop click. It has been inert on web since the `gesture` prop shipped in `0.0.1`.
+
+  The cause is which events the layer was wired to. `pressed` was driven by `onTouchStart` / `onTouchEnd` plus `onPressIn` / `onPressOut`. The press pair only exists on `Pressable`-style hosts, and react-native-web forwards `onTouchStart` to the DOM as a real `touchstart` listener — which a mouse never fires. So `Motion.Pressable` worked (it has the press path) while every other primitive had no live path at all for a pointer that isn't a finger.
+
+  The layer now also listens on `onPointerDown` / `onPointerUp` / `onPointerCancel`, which react-native-web forwards and which cover mouse, pen, and touch alike. `pressed` means "any pointer" on every platform. `onPointerCancel` is included so a browser-initiated takeover (a scroll or drag beginning mid-press) releases the layer instead of leaving it stuck on.
+
+  A web touch emits both `touchstart` and `pointerdown`; both set the same flag to the same value, so the overlap is idempotent rather than a double-toggle. React Native has no pointer props, so the added handlers are inert on iOS and Android. `hovered`, `focused`, and `focusVisible` were never affected — their events are forwarded on every primitive.
+
+  **Bundle cost: +0.06 kB (+0.7%) per primitive subpath**, 9.05 → 9.11 kB brotlied, +0.04 kB on the root entry. No `size-limit` cap moved. Handlers are still mounted only when `pressed` is declared, so the gesture-less path is unchanged.
+
+### Internal
+
+- **`pressed-modalities.test.tsx` asserts each input modality separately.** Every pre-existing gesture test fires `pressIn` — the one path that already worked on every platform — which is why a six-release gap in the touch and pointer paths went unseen. The new file drives touch, pointer, and press independently, plus the cancel path, the both-events-at-once overlap, composition with a consumer's own pointer handlers, and the guarantee that no pointer handler is mounted when `pressed` isn't declared.
+
 ## [0.0.6] - 2026-08-08
 
 **Defect release: two animations that never ran.** Both trace to one assumption about what Reanimated accepts as an animatable value, and both were hidden by the same thing — `type: 'timing'` snaps to its target when the duration elapses, so a total interpolation failure still produced the right end state. `animate={{ boxShadow }}` was inert under the default spring; every colour key was inert when it rested at its default, which is the far more common path. Neither is caught by a mocked test suite, so this release also adds a test file that runs Reanimated's real drivers.

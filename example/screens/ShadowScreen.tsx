@@ -51,8 +51,9 @@ export function ShadowScreen({ onBack }: { onBack: () => void }) {
         />
         <Text style={styles.note}>
           iOS draws this from `shadowOffset`; Android has no equivalent, so
-          `elevation` rides alongside on the same spring. Without it this card
-          is a plain white square on Android.
+          `elevation` rides alongside on the same spring. On web neither key
+          renders — use `boxShadow` there, which this screen&apos;s sibling demo
+          covers.
         </Text>
       </View>
     </ScreenShell>
@@ -123,7 +124,12 @@ const styles = StyleSheet.create({
   smallCard: {
     width: 80,
     height: 80,
-    backgroundColor: '#ffffff',
+    // NOT '#ffffff'. ScreenShell's background is also white, and on web the
+    // native `shadow*` keys don't render at all — so a white card here was an
+    // entirely invisible element under its own caption on every web build.
+    // Any demo element must contrast against the shell on every platform it
+    // is meant to validate.
+    backgroundColor: '#4f46e5',
     borderRadius: 12,
     shadowColor: '#000000',
     shadowOpacity: 0.25,

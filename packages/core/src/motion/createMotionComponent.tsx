@@ -2025,6 +2025,26 @@ function useGestureHandlers(
       // forward to those when present so wrapping consumers stay consistent.
       handlers.onPressIn = compose(rest.onPressIn, () => setPressed(true))
       handlers.onPressOut = compose(rest.onPressOut, () => setPressed(false))
+      // Web pointer events. `onTouchStart` reaches the DOM as a real
+      // `touchstart` listener under react-native-web, which a mouse never
+      // fires — so without these a plain `Motion.View` (anything that isn't a
+      // Pressable, i.e. has no `onPressIn` path) was inert under a desktop
+      // click while `Motion.Pressable` worked. Pointer events cover mouse, pen
+      // and touch, so `pressed` means "any pointer" on every platform.
+      //
+      // A web touch fires `touchstart` *and* `pointerdown`; both set the same
+      // boolean to the same value, so the overlap is idempotent, not a
+      // double-toggle. React Native has no pointer props, so these are inert
+      // on native and cost nothing there.
+      handlers.onPointerDown = compose(rest.onPointerDown, () =>
+        setPressed(true),
+      )
+      handlers.onPointerUp = compose(rest.onPointerUp, () => setPressed(false))
+      // Fires when the browser takes over the gesture (scroll, drag start) —
+      // without it the pressed layer would stick on after the pointer is gone.
+      handlers.onPointerCancel = compose(rest.onPointerCancel, () =>
+        setPressed(false),
+      )
     }
     // Mount onFocus/onBlur if either focus sub-state is declared. The two flags
     // are independent: `focused` always tracks focus; `focusVisible` only
@@ -2061,6 +2081,9 @@ function useGestureHandlers(
     rest.onTouchCancel,
     rest.onPressIn,
     rest.onPressOut,
+    rest.onPointerDown,
+    rest.onPointerUp,
+    rest.onPointerCancel,
     rest.onFocus,
     rest.onBlur,
     rest.onMouseEnter,

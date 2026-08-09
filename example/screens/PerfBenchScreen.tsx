@@ -18,10 +18,29 @@ import { ScreenShell } from './ScreenShell'
 // be repeated against each. See docs/docs/perf-bench.md for the manual
 // run procedure (PerfMonitor + JS profiler readout, dropped-frame count).
 //
-// Uses `FlatList` so the harness runs in Expo Go without a custom dev
-// client. For the canonical moti #322 reproduction, swap `FlatList` →
-// `FlashList` (one import + tag change); FlashList needs a dev client
-// because its native `AutoLayoutView` isn't bundled with Expo Go.
+// LIST BACKEND — read before recording numbers.
+//
+// The acceptance bar is specifically about FlashList, because moti #322 is a
+// FlashList recycling bug: a recycled row reuses a mounted component instance
+// with new props, which is the case a declarative animation layer can get
+// wrong. FlatList unmounts and remounts instead, so it does not exercise that
+// path and a green FlatList run does NOT close the bar.
+//
+// FlatList is the default only so the screen is usable in Expo Go —
+// FlashList's native `AutoLayoutView` is not bundled there. To run the
+// canonical reproduction:
+//
+//   1. pnpm --filter @rootnative/inertia-example add @shopify/flash-list
+//   2. npx expo run:android   (a dev client; Expo Go will not work)
+//   3. flip USE_FLASH_LIST below
+//
+// Record the result in CLAUDE.md's device-validation table either way, and
+// say which backend produced it.
+
+// Flip to true after installing @shopify/flash-list and building a dev
+// client (see the note above). Left as a flag rather than a bare import so
+// the swap is one edit and the screen still compiles in Expo Go.
+const USE_FLASH_LIST = false
 
 type Mode = 'inertia' | 'hand-rolled'
 
@@ -56,10 +75,35 @@ function buildItems(): Item[] {
   }))
 }
 
-// SPRING is shared between both row variants so the gesture animation is
-// physically identical — the only delta is which library drives the
-// pressed-state shared value.
-const SPRING = { stiffness: 320, damping: 22, mass: 1 } as const
+// Both rows animate the same physics. Inertia's public `tension` / `friction`
+// map to Reanimated's `stiffness` / `damping` identically — the conversion in
+// `transitions/spring.ts` is a rename, not a formula — so these two configs
+// describe one spring. Keep them in step; if they drift, the benchmark stops
+// measuring the library and starts measuring the config.
+const PRESS_SCALE = 0.96
+const SPRING_TENSION = 320
+const SPRING_FRICTION = 22
+
+const INERTIA_TRANSITION = {
+  type: 'spring',
+  tension: SPRING_TENSION,
+  friction: SPRING_FRICTION,
+} as const
+const INERTIA_GESTURE = { pressed: { scale: PRESS_SCALE } } as const
+
+const HAND_ROLLED_SPRING = {
+  stiffness: SPRING_TENSION,
+  damping: SPRING_FRICTION,
+  mass: 1,
+} as const
+
+// VIEW PARITY IS LOAD-BEARING. Both variants must render exactly one host
+// view per row. `Motion.Pressable` is a single animated pressable, so the
+// hand-rolled side uses `Animated.createAnimatedComponent(Pressable)` rather
+// than the more obvious `<Pressable><Animated.View/></Pressable>` — that
+// nesting costs one extra view per row, and across 1000 rows it makes the
+// comparison measure view count instead of animation overhead.
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
 const InertiaRow = memo(function InertiaRow({ item }: { item: Item }) {
   const rowStyle = useMemo(
@@ -68,8 +112,8 @@ const InertiaRow = memo(function InertiaRow({ item }: { item: Item }) {
   )
   return (
     <Motion.Pressable
-      gesture={{ pressed: { scale: 0.96 } }}
-      transition={{ type: 'spring', tension: 320, friction: 22 }}
+      gesture={INERTIA_GESTURE}
+      transition={INERTIA_TRANSITION}
       style={rowStyle}
     >
       <Text style={styles.rowLabel}>{item.label}</Text>
@@ -80,25 +124,33 @@ const InertiaRow = memo(function InertiaRow({ item }: { item: Item }) {
 const HandRolledRow = memo(function HandRolledRow({ item }: { item: Item }) {
   const pressed = useSharedValue(0)
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: withSpring(1 - pressed.value * 0.04, SPRING) }],
+    transform: [
+      {
+        scale: withSpring(
+          1 - pressed.value * (1 - PRESS_SCALE),
+          HAND_ROLLED_SPRING,
+        ),
+      },
+    ],
   }))
   const rowStyle = useMemo(
-    () => [styles.row, { backgroundColor: item.color }],
-    [item.color],
+    () => [styles.row, { backgroundColor: item.color }, animatedStyle],
+    [item.color, animatedStyle],
   )
+  const onPressIn = () => {
+    pressed.value = 1
+  }
+  const onPressOut = () => {
+    pressed.value = 0
+  }
   return (
-    <Pressable
-      onPressIn={() => {
-        pressed.value = 1
-      }}
-      onPressOut={() => {
-        pressed.value = 0
-      }}
+    <AnimatedPressable
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      style={rowStyle}
     >
-      <Animated.View style={[rowStyle, animatedStyle]}>
-        <Text style={styles.rowLabel}>{item.label}</Text>
-      </Animated.View>
-    </Pressable>
+      <Text style={styles.rowLabel}>{item.label}</Text>
+    </AnimatedPressable>
   )
 })
 
@@ -155,7 +207,10 @@ export function PerfBenchScreen({ onBack }: { onBack: () => void }) {
           </Text>
         </Pressable>
       </View>
-      <Text style={styles.caption}>{ITEM_COUNT} rows</Text>
+      <Text style={styles.caption}>
+        {ITEM_COUNT} rows · {USE_FLASH_LIST ? 'FlashList' : 'FlatList'}
+        {USE_FLASH_LIST ? '' : ' (does not close the moti #322 bar)'}
+      </Text>
       <View style={styles.listContainer}>
         <FlatList
           data={items}
