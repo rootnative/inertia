@@ -462,7 +462,7 @@ This is not a new animation API — it starts animations in Inertia's existing t
 
 ## `useScroll()`
 
-Track the scroll offset of a `Motion.ScrollView` as shared values. Scroll events fire on the UI thread, so the returned values are safe to read from any worklet without a JS-thread bounce.
+Track the scroll offset of a `Motion.ScrollView` or a `Motion.FlatList` as shared values. Scroll events fire on the UI thread, so the returned values are safe to read from any worklet without a JS-thread bounce.
 
 ```tsx
 import { useScroll, useTransform, Motion } from '@rootnative/inertia'
@@ -491,13 +491,13 @@ function StickyHeader() {
 
 Returns:
 
-| Field      | Type                                                       | Notes                                                                                                                 |
-| ---------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `scrollX`  | `SharedValue<number>`                                      | Horizontal scroll offset in points.                                                                                   |
-| `scrollY`  | `SharedValue<number>`                                      | Vertical scroll offset in points.                                                                                     |
-| `onScroll` | `(event: NativeSyntheticEvent<NativeScrollEvent>) => void` | Pass to `Motion.ScrollView`'s `onScroll` prop. Worklet-backed; safe to forward to any Reanimated-animated scrollable. |
+| Field      | Type                                                       | Notes                                                                                                            |
+| ---------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `scrollX`  | `SharedValue<number>`                                      | Horizontal scroll offset in points.                                                                              |
+| `scrollY`  | `SharedValue<number>`                                      | Vertical scroll offset in points.                                                                                |
+| `onScroll` | `(event: NativeSyntheticEvent<NativeScrollEvent>) => void` | Pass to the scrollable's `onScroll` prop. Worklet-backed; safe to forward to any Reanimated-animated scrollable. |
 
-Set `scrollEventThrottle={16}` on the `ScrollView` for steady 60 Hz updates; without it, Android can dispatch less frequently than iOS.
+Set `scrollEventThrottle={16}` on a `Motion.ScrollView` for steady 60 Hz updates; without it, Android can dispatch less frequently than iOS. [`Motion.FlatList`](../primitives/flat-list) needs no such prop — it defaults the throttle to 1. Reach for `Motion.FlatList` when the list is long enough that mounting every row costs more than the animation does.
 
 ## `useGesture(transition?)`
 

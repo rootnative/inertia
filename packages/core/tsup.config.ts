@@ -8,6 +8,7 @@ export default defineConfig({
     'motion/Image': 'src/motion/Image.tsx',
     'motion/Pressable': 'src/motion/Pressable.tsx',
     'motion/ScrollView': 'src/motion/ScrollView.tsx',
+    'motion/FlatList': 'src/motion/FlatList.tsx',
     'testing/index': 'src/testing/index.ts',
     'touch/index': 'src/touch/index.ts',
     'gestureLayer/index': 'src/gestureLayer/index.ts',

@@ -45,7 +45,7 @@ jest.mock('react-native/Libraries/Text/Text', () => {
 //      run; targets snap in one step.
 jest.mock('react-native-reanimated', () => {
   const React = require('react')
-  const { Image, ScrollView, Text, View } = require('react-native')
+  const { FlatList, Image, ScrollView, Text, View } = require('react-native')
 
   const wrap = (Component, displayName) => {
     const Wrapped = React.forwardRef((props, ref) =>
@@ -59,6 +59,10 @@ jest.mock('react-native-reanimated', () => {
   const AnimatedText = wrap(Text, 'Animated.Text')
   const AnimatedImage = wrap(Image, 'Animated.Image')
   const AnimatedScrollView = wrap(ScrollView, 'Animated.ScrollView')
+  // Reanimated's real `Animated.FlatList` also defaults `scrollEventThrottle`
+  // to 1 and injects a `CellRendererComponent`; neither is observable in this
+  // mock, so the wrapper is a plain pass-through like the others.
+  const AnimatedFlatList = wrap(FlatList, 'Animated.FlatList')
 
   return {
     __esModule: true,
@@ -67,6 +71,7 @@ jest.mock('react-native-reanimated', () => {
       Text: AnimatedText,
       Image: AnimatedImage,
       ScrollView: AnimatedScrollView,
+      FlatList: AnimatedFlatList,
       createAnimatedComponent: (c) =>
         wrap(c, `Animated(${c.displayName ?? c.name ?? 'Component'})`),
     },
@@ -74,6 +79,7 @@ jest.mock('react-native-reanimated', () => {
     Text: AnimatedText,
     Image: AnimatedImage,
     ScrollView: AnimatedScrollView,
+    FlatList: AnimatedFlatList,
     useSharedValue: (initial) => {
       const ref = React.useRef(null)
       if (ref.current === null) ref.current = { value: initial }

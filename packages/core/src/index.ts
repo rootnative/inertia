@@ -16,6 +16,7 @@ export {
   MotionImage,
   MotionPressable,
   MotionScrollView,
+  MotionFlatList,
   createMotionComponent,
 } from './motion'
 export {

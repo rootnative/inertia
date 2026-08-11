@@ -4,6 +4,20 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Added
+
+- **`Motion.FlatList` — a virtualized animated scroller.** Reachable from the `Motion` namespace, as the named export `MotionFlatList`, and through the new `@rootnative/inertia/flat-list` subpath.
+
+  It closes a gap that forced a real architectural compromise on consumers: `useScroll`'s `onScroll` is a worklet handler, which only functions on a Reanimated animated component, and until now the only animated scroller was `Motion.ScrollView` — which mounts every row. A long list could virtualize (a plain `FlatList`, no animation) or animate from scroll position (`Motion.ScrollView`, every row mounted), not both. Nothing about `useScroll` was ever specific to `ScrollView`; the primitive was simply missing.
+
+  Animation props apply to the scroll **container**, matching `Motion.ScrollView`. Rows animate via a `Motion.*` primitive inside `renderItem`, which is what makes scroll-driven row effects work. The `layout` prop animates the list frame; Reanimated's `itemLayoutAnimation` is forwarded untouched for per-row layout animation.
+
+  Typing keeps both inference paths that a naive wrapper loses. `createMotionComponent<C>` returns a non-generic component, so `data` / `renderItem` would collapse to `any` — the item type is restored with a generic call signature, the same fix Reanimated applies to its own `Animated.FlatList`. The variants map is a **second** generic on that one signature, so `animate="typo"` against a `variants` prop stays a compile error here exactly as on every other primitive; declaring only the item generic would have silently dropped that narrowing on this primitive alone.
+
+  Built on Reanimated's `Animated.FlatList` rather than RN's `FlatList`, which supplies the `CellRendererComponent` injection behind `itemLayoutAnimation` and defaults `scrollEventThrottle` to 1 — so a `useScroll` handler reports every frame with no extra prop.
+
+  **Bundle cost: 9.10 kB for the new subpath, +0.04 kB on the root entry**, and nothing on existing subpaths. The cheapest primitive added so far: it is almost entirely the shared factory, adding no parser, no interpolation, and no worklet branch.
+
 ### Fixed
 
 - **`gesture={{ pressed: … }}` now responds to a mouse on web.** On any primitive that isn't a `Pressable` — a plain `Motion.View`, `Motion.Text`, `Motion.Image` — the pressed layer never engaged under a desktop click. It has been inert on web since the `gesture` prop shipped in `0.0.1`.

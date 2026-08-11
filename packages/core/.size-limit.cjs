@@ -11,7 +11,29 @@
 // limit, decide whether to tighten or accept it; don't silently raise the
 // cap. Record any baseline shift here when you do.
 //
-// ── Recorded baselines, brotlied + minified, 2026-07-29, `layoutId` style-prop
+// ── Recorded baselines, brotlied + minified, 2026-08-12, `Motion.FlatList`
+//    (unreleased) ──
+//   Motion.View subpath        9.11 kB
+//   Motion.Text subpath        9.10 kB
+//   Motion.Image subpath       9.13 kB
+//   Motion.Pressable subpath   9.09 kB
+//   Motion.ScrollView subpath  9.11 kB
+//   Motion.FlatList subpath    9.10 kB   (new)
+//   Full namespace (root)     12.32 kB   (was 12.28)
+//   MotionView (barrel-shaken) 8.95 kB
+//   MotionText (barrel-shaken) 8.95 kB
+//   MotionImage (barrel-shaken)8.95 kB
+//   Testing helpers              223 B   (unchanged)
+//
+// The new primitive costs **+0.04 kB root** and nothing per existing subpath.
+// It is the cheapest primitive added so far because it is almost entirely the
+// shared factory: no parser, no new interpolation, no new worklet branch. The
+// only additions are `Animated.FlatList` (a peer import, so bundle-invisible)
+// and a type-level cast that compiles away. A new primitive landing at
+// parity with `Motion.ScrollView` is the expected shape — if one ever lands
+// materially above it, that means factory code leaked into the primitive.
+//
+// ── Previous entry, 2026-07-29, `layoutId` style-prop
 //    interpolation (unreleased, headed for `0.0.4`) ──
 //   Motion.View subpath        8.80 kB   (was 8.24)
 //   Motion.Text subpath        8.78 kB   (was 8.23)
@@ -117,6 +139,12 @@ module.exports = [
   {
     name: 'Motion.ScrollView (subpath) — @rootnative/inertia/scroll-view',
     path: 'dist/motion/ScrollView.mjs',
+    ignore: PEERS_IGNORE,
+    limit: '10.3 kB',
+  },
+  {
+    name: 'Motion.FlatList (subpath) — @rootnative/inertia/flat-list',
+    path: 'dist/motion/FlatList.mjs',
     ignore: PEERS_IGNORE,
     limit: '10.3 kB',
   },

@@ -1,3 +1,4 @@
+import { MotionFlatList } from './FlatList'
 import { MotionImage } from './Image'
 import { MotionPressable } from './Pressable'
 import { MotionScrollView } from './ScrollView'
@@ -11,6 +12,7 @@ export {
   MotionImage,
   MotionPressable,
   MotionScrollView,
+  MotionFlatList,
 }
 
 /**
@@ -23,4 +25,5 @@ export const Motion = {
   Image: MotionImage,
   Pressable: MotionPressable,
   ScrollView: MotionScrollView,
+  FlatList: MotionFlatList,
 } as const

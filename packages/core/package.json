@@ -72,6 +72,13 @@
       "import": "./dist/motion/ScrollView.mjs",
       "require": "./dist/motion/ScrollView.js"
     },
+    "./flat-list": {
+      "types": "./dist/motion/FlatList.d.ts",
+      "react-native": "./src/motion/FlatList.tsx",
+      "source": "./src/motion/FlatList.tsx",
+      "import": "./dist/motion/FlatList.mjs",
+      "require": "./dist/motion/FlatList.js"
+    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "react-native": "./src/testing/index.ts",

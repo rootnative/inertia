@@ -13,6 +13,7 @@ Every animatable surface is a `Motion.*` component. Each one is an animatable mi
 | [`Motion.Image`](./image)            | `Image`      | `ImageStyle` |
 | [`Motion.Pressable`](./pressable)    | `Pressable`  | `ViewStyle`  |
 | [`Motion.ScrollView`](./scroll-view) | `ScrollView` | `ViewStyle`  |
+| [`Motion.FlatList`](./flat-list)     | `FlatList`   | `ViewStyle`  |
 
 ## Per-primitive style inference
 

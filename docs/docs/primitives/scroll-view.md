@@ -33,3 +33,4 @@ import { MotionScrollView } from '@rootnative/inertia/scroll-view'
 
 - This animates the outer container. To drive animations from scroll position itself (parallax, sticky headers), pair this with [`useScroll`](../api/hooks#usescroll) — it returns `scrollX` / `scrollY` shared values plus an `onScroll` handler you drop on this primitive.
 - Per-row entrance animations belong on a `Motion.View` row inside the scroll view, not on the scroll view itself.
+- This primitive mounts every child. [`Motion.FlatList`](./flat-list) is the virtualized counterpart and takes the same `useScroll` handler — prefer it for long or unbounded lists, and keep this one for a short, fixed set of children.

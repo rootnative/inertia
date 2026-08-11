@@ -11,10 +11,10 @@ export interface UseScrollResult {
   /** Vertical scroll offset in points. */
   scrollY: SharedValue<number>
   /**
-   * Handler to pass to a `Motion.ScrollView`'s `onScroll` prop (or any other
-   * Reanimated `Animated.ScrollView`). The handler is opaque to JS — it runs
-   * as a worklet — but the type narrows to the same shape RN's native
-   * `onScroll` prop expects so it composes cleanly.
+   * Handler to pass to the `onScroll` prop of `Motion.ScrollView` or
+   * `Motion.FlatList` (or any other Reanimated animated scroller). The handler
+   * is opaque to JS — it runs as a worklet — but the type narrows to the same
+   * shape RN's native `onScroll` prop expects so it composes cleanly.
    */
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void
 }
@@ -47,9 +47,13 @@ export interface UseScrollResult {
  * read from any worklet (`useAnimatedStyle`, `useDerivedValue`,
  * `useTransform`) without a JS-thread bounce.
  *
- * Remember to set `scrollEventThrottle={16}` on the `ScrollView` for 60Hz
+ * Remember to set `scrollEventThrottle={16}` on a `Motion.ScrollView` for 60Hz
  * updates — RN's default is to dispatch on every event, which on iOS still
  * means one per frame, but Android benefits from the explicit cap.
+ *
+ * `Motion.FlatList` needs no such setting — it defaults `scrollEventThrottle`
+ * to 1 for you. Prefer it over `Motion.ScrollView` for long or unbounded lists:
+ * it virtualizes, and both accept this handler.
  */
 export function useScroll(): UseScrollResult {
   const scrollX = useSharedValue(0)

@@ -17,6 +17,7 @@ import { version as inertiaVersion } from '@rootnative/inertia/package.json'
 import { ColorScreen } from './screens/ColorScreen'
 import { DecayScreen } from './screens/DecayScreen'
 import { DragScreen } from './screens/DragScreen'
+import { FlatListScreen } from './screens/FlatListScreen'
 import { GestureScreen } from './screens/GestureScreen'
 import { ImageScreen } from './screens/ImageScreen'
 import { LayoutScreen } from './screens/LayoutScreen'
@@ -81,6 +82,7 @@ type Route =
   | 'use-shadow'
   | 'pressable'
   | 'scroll-view'
+  | 'flat-list'
   | 'presence'
   | 'linear-gradient'
   | 'path-morph'
@@ -129,6 +131,7 @@ const SCREENS = {
   'use-shadow': UseShadowScreen,
   pressable: PressableScreen,
   'scroll-view': ScrollViewScreen,
+  'flat-list': FlatListScreen,
   presence: PresenceScreen,
   'linear-gradient': LinearGradientScreen,
   'path-morph': PathMorphScreen,
@@ -199,6 +202,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         route: 'scroll-view',
         label: 'Motion.ScrollView',
         description: 'animated scroll container',
+      },
+      {
+        route: 'flat-list',
+        label: 'Motion.FlatList',
+        description: 'virtualized list + scroll-driven rows',
       },
       {
         route: 'color',

@@ -15,6 +15,7 @@ const sidebars: SidebarsConfig = {
         'primitives/image',
         'primitives/pressable',
         'primitives/scroll-view',
+        'primitives/flat-list',
       ],
     },
     { type: 'doc', id: 'transitions', label: 'Transitions' },
