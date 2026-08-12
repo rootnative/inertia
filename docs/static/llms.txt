@@ -34,7 +34,10 @@ import {
 import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
 // Render-layer Reanimated interop for custom animated components:
 import { Animated, useAnimatedStyle } from '@rootnative/inertia/reanimated'
-// or for tree-shaking the primitives:
+// or for tree-shaking the primitives. NOTE: these subpaths export a
+// differently NAMED symbol — `MotionScrollView`, not `Motion.ScrollView`.
+// `Motion` itself is only exported from the package root above, and there
+// is no '@rootnative/inertia/motion' subpath.
 import { MotionView } from '@rootnative/inertia/view'
 import { MotionText } from '@rootnative/inertia/text'
 import { MotionImage } from '@rootnative/inertia/image'
