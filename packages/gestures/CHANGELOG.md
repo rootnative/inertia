@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-08-14
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.7` (`Motion.FlatList`, a virtualized animated scroller, and `gesture={{ pressed }}` responding to a mouse on web). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.7`.
+
 ## [0.0.6] - 2026-08-08
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.6` (`boxShadow` animates under the default spring transition, and colour keys can animate away from their resting default). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.6`.
@@ -51,7 +55,8 @@ Initial alpha publish alongside `@rootnative/inertia@0.0.0-alpha.0`. Optional ad
 - `useDrag({ onRelease })` — release worklet returns per-axis Inertia transitions (snap-to-tick spring, decay with bounds, etc.). Velocity stays on the UI thread; no JS round-trip.
 - `useSwipe`, `usePan` hooks composable with any `Motion.*` primitive via `<GestureDetector>`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.6...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.7...HEAD
+[0.0.7]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.7
 [0.0.6]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.6
 [0.0.5]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.5
 [0.0.4]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.4

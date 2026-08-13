@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-08-14
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.7` (`Motion.FlatList`, a virtualized animated scroller, and `gesture={{ pressed }}` responding to a mouse on web). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.7`.
+
 ## [0.0.6] - 2026-08-08
 
 **Version bump alongside `@rootnative/inertia@0.0.6`, and this adapter carries half of that release's colour fix.** It seeded its own colour slots from the same unanimatable spelling, so the defect reached `MotionPath` independently of core. The `@rootnative/inertia` peer range moves to `>=0.0.6`.
@@ -53,7 +57,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionPath` over `react-native-svg`. Animatable: `d` (element-wise scalar interpolation on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.6...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.7...HEAD
+[0.0.7]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.7
 [0.0.6]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.6
 [0.0.5]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.5
 [0.0.4]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.4

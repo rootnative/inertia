@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-08-14
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.7` (`Motion.FlatList`, a virtualized animated scroller, and `gesture={{ pressed }}` responding to a mouse on web). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.7`.
+
 ## [0.0.6] - 2026-08-08
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.6` (`boxShadow` animates under the default spring transition, and colour keys can animate away from their resting default). This adapter was checked against both defects and is unaffected: it drives one shared value per colour slot, so no colour ever reaches Reanimated inside an array, and every slot is seeded from a real colour rather than a resting default. No runtime changes; the `@rootnative/inertia` peer range moves to `>=0.0.6`.
@@ -48,7 +52,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionLinearGradient` over `expo-linear-gradient`. Accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.6...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.7...HEAD
+[0.0.7]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.7
 [0.0.6]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.6
 [0.0.5]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.5
 [0.0.4]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.4
