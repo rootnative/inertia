@@ -9,9 +9,11 @@
  */
 
 import type { SharedValue } from 'react-native-reanimated'
+import type { ImageStyle, StyleProp, TextStyle, ViewStyle } from 'react-native'
 import { useInterpolatedStyle } from '../values'
 
 declare const progress: SharedValue<number>
+declare const base: ViewStyle
 
 export function InterpolatedStyleTypeProbe() {
   // Numeric keys take number stops.
@@ -46,4 +48,47 @@ export function InterpolatedStyleTypeProbe() {
   useInterpolatedStyle(progress, { notAStyleKey: [0, 1] })
 
   return null
+}
+
+/**
+ * The return type narrows to the style family the map's keys belong to.
+ *
+ * Reanimated's `useAnimatedStyle` resolves to `DefaultStyle`
+ * (`ViewStyle | ImageStyle | TextStyle`). That union is rejected inside a
+ * `StyleProp<ViewStyle>` array — every member is checked there, and `TextStyle`
+ * fails on `cursor` — so returning it forced consumers to cast at the call
+ * site. These assertions pin both directions: the right family is accepted, and
+ * a foreign key is still rejected.
+ */
+export function InterpolatedStyleReturnProbe() {
+  // Transform + opacity in a style array — the shape that forced the cast.
+  const card = useInterpolatedStyle(progress, {
+    scale: [0.84, 1, 0.84],
+    opacity: [0.45, 1, 0.45],
+    translateY: [18, 0, 18],
+  })
+  const viewStyle: StyleProp<ViewStyle> = [base, card]
+
+  // Text-metric keys satisfy a TextStyle slot.
+  const label = useInterpolatedStyle(progress, {
+    fontSize: [12, 16],
+    letterSpacing: [0, 1],
+  })
+  const textStyle: StyleProp<TextStyle> = [label]
+
+  // `tintColor` is Image-only.
+  const image = useInterpolatedStyle(progress, { tintColor: ['#fff', '#000'] })
+  const imageStyle: StyleProp<ImageStyle> = [image]
+
+  // A key shared by View and Text satisfies either slot.
+  const shared = useInterpolatedStyle(progress, {
+    backgroundColor: ['#fff', '#000'],
+  })
+  const sharedAsView: StyleProp<ViewStyle> = [shared]
+  const sharedAsText: StyleProp<TextStyle> = [shared]
+
+  // @ts-expect-error a text-only fragment does not satisfy a ViewStyle slot
+  const wrong: StyleProp<ViewStyle> = [label]
+
+  return [viewStyle, textStyle, imageStyle, sharedAsView, sharedAsText, wrong]
 }

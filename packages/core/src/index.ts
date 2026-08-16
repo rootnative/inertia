@@ -74,6 +74,7 @@ export type {
   ColorCascadeLayer,
   ColorStyleKey,
   ExtrapolationMode,
+  InterpolatedStyle,
   InterpolatedStyleMap,
   NumericStyleKey,
   ShadowConfig,

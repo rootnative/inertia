@@ -4,6 +4,16 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Changed
+
+- **`useInterpolatedStyle` types its return against the map it was given, so a `style` array no longer needs a cast.** The hook returned `ReturnType<typeof useAnimatedStyle>`, which resolves to Reanimated's `DefaultStyle` — the union `ViewStyle | ImageStyle | TextStyle`. Assigning that union to a single style works, but a **style array** checks every member, and `TextStyle` is not assignable to `ViewStyle` (`cursor` is `string` there and `CursorValue` here). So the documented, dominant call shape — a transform/opacity fragment spread into `style={[base, fragment]}` — was a type error, and consumers cast it away.
+
+  The return is now `InterpolatedStyle<K>`, computed from the map's own keys: view keys satisfy `StyleProp<ViewStyle>`, text-metric keys (`fontSize`, `lineHeight`, `letterSpacing`) satisfy `StyleProp<TextStyle>`, `tintColor` satisfies `StyleProp<ImageStyle>`, and transform keys collapse into the single `transform` array the worklet emits. The narrowing is exact rather than permissive — a text-only fragment is still rejected from a `ViewStyle` slot, pinned in both directions by `__type-tests__/interpolated-style.test-d.tsx`.
+
+  Types only: no runtime change, and no bundle-size change. Removing a now-unnecessary `as ViewStyle` is safe; the cast remains harmless if left in place. `InterpolatedStyle` is exported from the root barrel.
+
+  Surfaced by the `reelist` validation consumer, and it is the independent-application half of the loop reporting its first library defect.
+
 ## [0.0.8] - 2026-08-16
 
 ### Added

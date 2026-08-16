@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import type { ImageStyle, TextStyle, ViewStyle } from 'react-native'
 import {
   Extrapolation,
   interpolate,
@@ -82,6 +83,29 @@ export type InterpolatedStyleMap = {
 } & {
   [K in ColorStyleKey]?: readonly string[]
 }
+
+/**
+ * The style shape a map of `K` produces. Transform keys collapse into the
+ * single `transform` array the worklet emits; every other key survives under
+ * its own name, typed from the RN style family it belongs to.
+ *
+ * This is what lets the return narrow to `ViewStyle` at a call site whose map
+ * holds only view keys. Reanimated's own `useAnimatedStyle` resolves to
+ * `DefaultStyle` (`ViewStyle | ImageStyle | TextStyle`), and that union is
+ * rejected inside a `StyleProp<ViewStyle>` array — `TextStyle` fails on
+ * `cursor` — so a consumer had to cast.
+ */
+export type InterpolatedStyle<K extends keyof InterpolatedStyleMap> = {
+  [P in Exclude<K, TransformKey>]: P extends keyof TextStyle
+    ? TextStyle[P]
+    : P extends keyof ImageStyle
+      ? ImageStyle[P]
+      : P extends keyof ViewStyle
+        ? ViewStyle[P]
+        : never
+} & (Extract<K, TransformKey> extends never
+  ? unknown
+  : { transform: NonNullable<ViewStyle['transform']> })
 
 export interface UseInterpolatedStyleOptions {
   /**
@@ -262,17 +286,17 @@ function buildEntries(
  * hook stays fully declarative and hashable so unchanged maps produce zero
  * new UI-thread closures.
  */
-export function useInterpolatedStyle(
+export function useInterpolatedStyle<K extends keyof InterpolatedStyleMap>(
   progress: SharedValue<number>,
-  map: InterpolatedStyleMap,
+  map: Pick<InterpolatedStyleMap, K>,
   options?: UseInterpolatedStyleOptions,
-): ReturnType<typeof useAnimatedStyle> {
+): InterpolatedStyle<K> {
   const extrapolate = mapExtrapolation(options?.extrapolate)
 
   // Order-preserving signature: the map's key order is load-bearing (transform
   // lifting emits axes in author order), so `stableSig` (which sorts keys) is
   // wrong here — sign the ordered key/output pairs plus the options directly.
-  const sig = buildSignature(map, options)
+  const sig = buildSignature(map as InterpolatedStyleMap, options)
 
   // Resolve every key's plan once on the JS thread so the worklet body only
   // consumes flat arrays — consistent with the JS-thread resolver principle
@@ -280,9 +304,15 @@ export function useInterpolatedStyle(
   // principle 8). Memoized on `sig` so a fresh-but-equal map literal each
   // render yields the same `entries` reference — Reanimated then sees an
   // unchanged closure dependency and does not rebuild the UI-thread worklet.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const entries = useMemo<Entry[]>(() => buildEntries(map, options), [sig])
+  const entries = useMemo<Entry[]>(
+    () => buildEntries(map as InterpolatedStyleMap, options),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sig],
+  )
 
+  // The worklet builds a `Record<string, unknown>` by design — the emitted keys
+  // are only known from `entries` at run time. `InterpolatedStyle<K>` is the
+  // static statement of that same shape, so the cast is where the two meet.
   return useAnimatedStyle(() => {
     'worklet'
     const out: Record<string, unknown> = {}
@@ -313,7 +343,7 @@ export function useInterpolatedStyle(
     }
     if (transform.length > 0) out.transform = transform
     return out
-  })
+  }) as InterpolatedStyle<K>
 }
 
 declare const __DEV__: boolean

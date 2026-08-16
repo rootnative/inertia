@@ -18,6 +18,7 @@ export {
 } from './useGesture'
 export {
   useInterpolatedStyle,
+  type InterpolatedStyle,
   type InterpolatedStyleMap,
   type NumericStyleKey,
   type TransformKey,

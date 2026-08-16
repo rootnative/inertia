@@ -374,11 +374,25 @@ const fade = useInterpolatedStyle(
 )
 ```
 
-| Signature                                                                                                               | Returns                               |
-| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `useInterpolatedStyle(progress: SharedValue<number>, map: InterpolatedStyleMap, options?: UseInterpolatedStyleOptions)` | Animated style (spread onto `style`). |
+| Signature                                                                                                               | Returns                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `useInterpolatedStyle(progress: SharedValue<number>, map: InterpolatedStyleMap, options?: UseInterpolatedStyleOptions)` | `InterpolatedStyle<K>` — an animated style fragment typed from the map's own keys. |
 
 The map is memoized on an order-preserving signature, so a fresh-but-equal map literal each render produces zero new UI-thread closures (the factory rule).
+
+**The return type follows the map, so no cast is needed in a `style` array.** A map of view keys yields a fragment that satisfies `StyleProp<ViewStyle>`; text-metric keys (`fontSize`, `lineHeight`, `letterSpacing`) yield one that satisfies `StyleProp<TextStyle>`, and `tintColor` one that satisfies `StyleProp<ImageStyle>`. Transform keys collapse into the single `transform` array the hook emits.
+
+```tsx
+const card = useInterpolatedStyle(scrollX, {
+  scale: [0.84, 1, 0.84],
+  opacity: [0.45, 1, 0.45],
+})
+
+// Narrows to ViewStyle — no `as ViewStyle` at the call site.
+<Motion.View style={[styles.slot, card]} />
+```
+
+This matters because Reanimated's own `useAnimatedStyle` resolves to `DefaultStyle` (`ViewStyle | ImageStyle | TextStyle`). A style **array** checks every member of that union, and `TextStyle` fails against `ViewStyle` on `cursor` — so a union return forced consumers to cast. The narrowing is exact rather than merely permissive: a text-only fragment is still rejected from a `ViewStyle` slot.
 
 **`useInterpolatedStyle` vs `useTransform`.** `useTransform(progress, [0, 1], [a, b])` returns one raw `SharedValue` for you to compose. `useInterpolatedStyle` is the convenience for the dominant case — several style/transform keys driven from one progress value, returned as a spreadable fragment. For **function-valued** entries or **multi-source** composition (`Math.max(a, b)`), drop to `useTransform`'s worklet form or a hand-rolled `useAnimatedStyle` — this hook stays fully declarative and hashable by design.
 
