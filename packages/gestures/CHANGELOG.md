@@ -6,6 +6,16 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Added
+
+- **`useSwipe` snap-back is configurable: `releaseTransition`.** The reset to zero after a release was a hard-coded `withSpring(0)` — it could not join a design-token motion system, and it dropped the release velocity, so a flick that stopped short of the threshold reset as if the finger had been still. The option accepts a spring / timing / no-animation config inline, or a `TransitionName` registered on the nearest `<MotionConfig transitions={...}>`. The release velocity is passed into a spring automatically (unless the config sets `velocity` itself), on both the default spring and a configured one. Decay is excluded — the snap-back always targets zero and decay has no target; a name that resolves to a decay config dev-warns and falls back to the default spring.
+
+- **`useSwipe` commit exit: `onCommit` + `onSwipeEnd`.** The hook always sprang back to zero, which is right for swipe-to-delete and wrong for a card deck — a committed card must continue in the swipe direction and leave the screen, and consumers were rebuilding that with a parallel translation layer, an animation-end handler, and a safety timer. `onCommit` is a UI-thread worklet that fires when the gesture commits and returns per-axis release transitions (the same `ReleaseResult` shape as `useDrag`'s `onRelease`) to run **instead of** the snap-back; an omitted axis or a `void` return snaps back as usual. `onSwipeEnd(direction, { finished })` fires on the JS thread when the committed swipe's release animation settles — the commit exit if one ran, the snap-back otherwise — which is the "card is gone, advance the deck" moment `onSwipe` (fired at release) cannot give. It does not fire for a release that did not commit.
+
+- **`useSwipe` returns `reset()`.** Snaps both shared values back to zero with no animation, cancelling anything in flight. After a commit exit the values stay at the exit target; call `reset()` when the next card takes over the same mounted component. A keyed remount gets fresh values and doesn't need it.
+
+- New exported type: `SnapBackTransition` (the `releaseTransition` shapes). Requires `@rootnative/inertia` ≥ the release this ships in — the settle callback rides a new third parameter on core's `buildReleaseAnimation`.
+
 ## [0.0.7] - 2026-08-14
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.7` (`Motion.FlatList`, a virtualized animated scroller, and `gesture={{ pressed }}` responding to a mouse on web). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.7`.

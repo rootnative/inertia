@@ -6,7 +6,8 @@
  * - `useDrag` — one- or two-axis drag with optional constraints and
  *   rubber-band elasticity.
  * - `useSwipe` — directional commit-or-snap-back gesture (distance + velocity
- *   thresholds).
+ *   thresholds), with a configurable snap-back and an optional commit-exit
+ *   path for card decks.
  * - `usePan` — camera-style pan with momentum on release.
  */
 export { useDrag } from './useDrag'
@@ -21,4 +22,5 @@ export type {
   ReleaseInfo,
   ReleaseResult,
   ReleaseTransition,
+  SnapBackTransition,
 } from './types'

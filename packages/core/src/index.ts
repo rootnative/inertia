@@ -39,6 +39,7 @@ export {
   resolveTransition,
   resolveAnimatableValue,
   ensureWorkletEasing,
+  type AnimationCallback,
 } from './transitions'
 // Seed value for any color shared value a custom animated component drives
 // through `resolveTransition`. Exported because the obvious choice —

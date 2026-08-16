@@ -97,7 +97,7 @@ Internally this routes through `buildReleaseAnimation` exported from `@rootnativ
 
 ## `useSwipe`
 
-Directional commit-or-snap-back gesture. Tracks live translation while the user drags; on release, fires `onSwipe` if either the distance or velocity threshold is met along an allowed axis. Whether or not it commits, the position springs back to zero — the consumer drives the side effect (delete, dismiss, advance).
+Directional commit-or-snap-back gesture. Tracks live translation while the user drags; on release, fires `onSwipe` if either the distance or velocity threshold is met along an allowed axis. By default the position animates back to zero whether or not it commits — the right shape for swipe-to-delete, where the row returns and the consumer removes it. For a card deck, return a commit-exit transition from `onCommit` so the committed card continues off screen instead (see below).
 
 ```tsx
 const swipe = useSwipe({
@@ -118,14 +118,64 @@ return (
 )
 ```
 
-| Option              | Type                                          | Default  | Notes                                                             |
-| ------------------- | --------------------------------------------- | -------- | ----------------------------------------------------------------- |
-| `directions`        | `Array<'left' \| 'right' \| 'up' \| 'down'>`  | all four | Only commits along listed directions. Off-axis swipes do nothing. |
-| `distanceThreshold` | `number` (px)                                 | `80`     | Distance past which a release commits.                            |
-| `velocityThreshold` | `number` (px/sec)                             | `800`    | Flick velocity that commits even before distance threshold.       |
-| `onSwipe`           | `(direction, { distance, velocity }) => void` | none     | JS-thread callback. Direction is one of the allowed values.       |
+| Option              | Type                                                   | Default        | Notes                                                                  |
+| ------------------- | ------------------------------------------------------ | -------------- | ---------------------------------------------------------------------- |
+| `directions`        | `Array<'left' \| 'right' \| 'up' \| 'down'>`           | all four       | Only commits along listed directions. Off-axis swipes do nothing.      |
+| `distanceThreshold` | `number` (px)                                          | `80`           | Distance past which a release commits.                                 |
+| `velocityThreshold` | `number` (px/sec)                                      | `800`          | Flick velocity that commits even before distance threshold.            |
+| `releaseTransition` | `SnapBackTransition \| TransitionName`                 | default spring | Transition for the snap-back to zero — see below.                      |
+| `onSwipe`           | `(direction, { distance, velocity }) => void`          | none           | JS-thread callback at release. Direction is one of the allowed values. |
+| `onCommit`          | `(direction, info) => ReleaseResult \| void` (worklet) | none           | UI-thread commit-exit transition — see below.                          |
+| `onSwipeEnd`        | `(direction, { finished }) => void`                    | none           | JS-thread callback when a committed swipe's release animation settles. |
 
 The dominant axis (whichever of \|tx\|, \|ty\| is larger at release) decides which direction is checked.
+
+Returns `{ gesture, animatedStyle, swipeX, swipeY, isActive, reset }`. `reset()` snaps both shared values back to zero with no animation — useful after a commit exit when the next card takes over the same mounted component (a keyed remount gets fresh values and doesn't need it).
+
+### Snap-back transition (`releaseTransition`)
+
+The snap-back to zero defaults to the library default spring. Pass `releaseTransition` to use your own — inline, or as a `TransitionName` registered on the nearest [`<MotionConfig transitions={...}>`](./motion-config#named-transitions), which is how the reset joins a design-token motion system:
+
+```tsx
+const swipe = useSwipe({
+  directions: ['left', 'right'],
+  releaseTransition: 'spatial-default', // or { type: 'spring', tension: 220 }
+  onSwipe: (direction) => archive(direction),
+})
+```
+
+The release velocity is passed into a spring automatically (unless the config sets `velocity` itself), so a flick that stops short of the threshold resets with the momentum it had instead of resetting as if the finger had been still.
+
+`SnapBackTransition` is spring / timing / no-animation — decay is excluded, because the snap-back always targets zero and decay has no target. A registered name that resolves to a decay config dev-warns and falls back to the default spring.
+
+### Commit exit (`onCommit` + `onSwipeEnd`)
+
+The snap-back is right for swipe-to-delete, but a card deck needs the opposite: a **committed** card must continue in the swipe direction and leave the screen. Return per-axis release transitions from `onCommit` to run instead of the snap-back, and advance the deck from `onSwipeEnd` when the exit settles:
+
+```tsx
+const swipe = useSwipe({
+  directions: ['left', 'right'],
+  onCommit: (direction, info) => {
+    'worklet'
+    return {
+      x: {
+        type: 'spring',
+        to: direction === 'right' ? 500 : -500,
+        velocity: info.velocity.x, // continue the finger's momentum
+      },
+    }
+  },
+  onSwipeEnd: (direction, { finished }) => {
+    if (finished) advanceDeck(direction)
+  },
+})
+```
+
+`onCommit` runs as a **worklet** on the UI thread (author it with the `'worklet'` directive), fires only when the gesture commits, and receives the same `info` shape as `useDrag`'s `onRelease` — final translation plus release velocity. The return shape is the same `ReleaseResult` too, with one difference: an omitted axis (or a `void` return) snaps back to zero as usual, because zero is this hook's resting state.
+
+`onSwipeEnd` fires on the JS thread when the committed swipe's release animation settles — the commit exit if one ran, the snap-back otherwise. That is the "card is gone, the next one takes over" moment that `onSwipe` (which fires at release) cannot give you. `finished` is `false` when the animation was interrupted, for example by a new gesture. It does not fire for a release that did not commit.
+
+Composition: `onSwipe` (JS side effects at release) → `onCommit` (UI-thread exit decision) → `onSwipeEnd` (JS side effects at settle). Use whichever subset the interaction needs.
 
 ### `animatedStyle` owns the whole `transform` key
 
@@ -186,11 +236,11 @@ For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-c
 
 ## When to pick which
 
-| Gesture    | Snap back on release? | Momentum on release?         | Typical UX                                         |
-| ---------- | --------------------- | ---------------------------- | -------------------------------------------------- |
-| `useDrag`  | No — stays where left | No                           | Move-to-position, sliders, sortable handles.       |
-| `useSwipe` | Yes — always          | No (springs back)            | Swipe-to-delete rows, card stacks, dismiss sheets. |
-| `usePan`   | No — stays where left | Yes — coasts via `withDecay` | Maps, zoomable canvases, large-image navigation.   |
+| Gesture    | Snap back on release?                   | Momentum on release?         | Typical UX                                         |
+| ---------- | --------------------------------------- | ---------------------------- | -------------------------------------------------- |
+| `useDrag`  | No — stays where left                   | No                           | Move-to-position, sliders, sortable handles.       |
+| `useSwipe` | Yes — unless `onCommit` returns an exit | No (springs back)            | Swipe-to-delete rows, card stacks, dismiss sheets. |
+| `usePan`   | No — stays where left                   | Yes — coasts via `withDecay` | Maps, zoomable canvases, large-image navigation.   |
 
 ## Scope: touch + mouse only
 

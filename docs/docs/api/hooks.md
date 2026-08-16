@@ -727,7 +727,7 @@ function CustomExitable() {
 
 See [Presence](../presence) for the higher-level prop-driven usage.
 
-## `buildReleaseAnimation(transition, toValue)`
+## `buildReleaseAnimation(transition, toValue, callback?)`
 
 Worklet-safe single-step animation builder. Mirrors a subset of [`resolveTransition`](./transition-utilities.md#resolvetransitionconfig-tovalue-callback) for the UI-thread path where the transition config is picked at gesture-release time, not at render time. Supports `spring` / `timing` / `decay` / `no-animation`; sequences, top-level `repeat`, and easing-function auto-worklet-wrapping are not.
 
@@ -747,9 +747,11 @@ const pan = Gesture.Pan().onEnd((e) => {
 
 For decay transitions, the second argument is ignored — decay decelerates from the SV's current position via its own physics.
 
-| Signature                                                              | Returns                                                                  |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `buildReleaseAnimation(transition: TransitionConfig, toValue: number)` | Reanimated animation value (assign to a `SharedValue<number>` directly). |
+`callback`, when provided, fires once when the animation settles — the same `(finished) => void` shape Reanimated's `with*` factories accept. It runs on the UI thread; bridge to JS-thread code with `runOnJS(...)` inside it. For `no-animation` it fires synchronously with `finished: true`, since a direct assignment has no settle point of its own. This is what `useSwipe`'s `onSwipeEnd` rides on.
+
+| Signature                                                                                            | Returns                                                                  |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `buildReleaseAnimation(transition: TransitionConfig, toValue: number, callback?: AnimationCallback)` | Reanimated animation value (assign to a `SharedValue<number>` directly). |
 
 Most consumers reach for `useDrag({ onRelease })` from `@rootnative/inertia-gestures` instead — it wraps this builder behind a per-axis return shape. Use `buildReleaseAnimation` directly when you're authoring a custom `Gesture.*().onEnd(...)` worklet outside the adapter hooks.
 

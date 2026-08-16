@@ -4,6 +4,12 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Added
+
+- **`buildReleaseAnimation` accepts a settle callback.** A third, optional `callback` parameter — the same `(finished) => void` shape Reanimated's `with*` factories accept — is forwarded to the underlying `withSpring` / `withTiming` / `withDecay` call and fires once when the animation settles. For `no-animation` it fires synchronously with `finished: true`, since a direct assignment has no settle point of its own. Existing two-argument call sites are unchanged.
+
+  This is the primitive behind `useSwipe`'s new `onSwipeEnd` in `@rootnative/inertia-gestures`: a gesture-release worklet can now learn when its release animation has finished without polling a shared value. The `AnimationCallback` type is exported from the root barrel alongside it.
+
 ## [0.0.7] - 2026-08-14
 
 ### Added

@@ -49,11 +49,26 @@ export type ReleaseTransition =
 /**
  * Per-axis release transitions returned by `onRelease`. Omit an axis to leave
  * its SV where it landed (no release animation on that axis).
+ *
+ * `useSwipe`'s `onCommit` returns the same shape with one difference in the
+ * omit semantics: an omitted axis snaps back to zero (the hook's resting
+ * state) rather than staying where it landed.
  */
 export interface ReleaseResult {
   x?: ReleaseTransition
   y?: ReleaseTransition
 }
+
+/**
+ * Transition shapes `useSwipe` accepts for its snap-back (the
+ * `releaseTransition` option). The target is always zero, so decay — which
+ * has no target — is excluded; a registered name that resolves to a decay
+ * config dev-warns and falls back to the default spring.
+ */
+export type SnapBackTransition =
+  | SpringTransition
+  | TimingTransition
+  | NoAnimationTransition
 
 /**
  * Configuration for `useDrag`. All fields are optional; the defaults give an

@@ -1,4 +1,8 @@
-export { resolveTransition, type CallbackFactory } from './resolve'
+export {
+  resolveTransition,
+  type AnimationCallback,
+  type CallbackFactory,
+} from './resolve'
 export { resolveAnimatableValue } from './resolveSequence'
 export { cubicBezier } from './cubicBezier'
 export { ensureWorkletEasing } from './easing'

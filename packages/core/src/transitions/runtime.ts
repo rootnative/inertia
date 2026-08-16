@@ -5,6 +5,7 @@ import {
   withTiming,
 } from 'react-native-reanimated'
 import { springToReanimated } from './spring'
+import { type AnimationCallback } from './resolve'
 import { type TransitionConfig } from '../types'
 
 const DEFAULT_TIMING_DURATION = 250
@@ -26,13 +27,23 @@ const DEFAULT_TIMING_DURATION = 250
  *
  * For decay transitions, `toValue` is ignored — decay decelerates from the
  * SV's current position via its own physics. Pass `0` if you don't have one.
+ *
+ * `callback`, when provided, fires once when the animation settles — the same
+ * `(finished) => void` shape Reanimated's `with*` factories accept. It runs on
+ * the UI thread, so bridge to JS with `runOnJS(...)` inside it. For
+ * `no-animation` the callback fires synchronously with `finished: true`, since
+ * a direct assignment has no settle point of its own.
  */
 export function buildReleaseAnimation(
   transition: TransitionConfig,
   toValue: number,
+  callback?: AnimationCallback,
 ): unknown {
   'worklet'
-  if (transition.type === 'no-animation') return toValue
+  if (transition.type === 'no-animation') {
+    if (callback) callback(true, toValue)
+    return toValue
+  }
   if (transition.type === 'decay') {
     const cfg: {
       velocity: number
@@ -43,7 +54,7 @@ export function buildReleaseAnimation(
       cfg.deceleration = transition.deceleration
     }
     if (transition.clamp !== undefined) cfg.clamp = transition.clamp
-    return withDecay(cfg)
+    return withDecay(cfg, callback as never)
   }
   if (transition.type === 'timing') {
     // Reanimated 4's `Easing.bezier(...)` returns an `EasingFunctionFactory`
@@ -54,10 +65,14 @@ export function buildReleaseAnimation(
       e && typeof e === 'object' && 'factory' in e
         ? e.factory()
         : (e ?? Easing.inOut(Easing.ease))
-    return withTiming(toValue, {
-      duration: transition.duration ?? DEFAULT_TIMING_DURATION,
-      easing: easingFn,
-    })
+    return withTiming(
+      toValue,
+      {
+        duration: transition.duration ?? DEFAULT_TIMING_DURATION,
+        easing: easingFn,
+      },
+      callback as never,
+    )
   }
-  return withSpring(toValue, springToReanimated(transition))
+  return withSpring(toValue, springToReanimated(transition), callback as never)
 }

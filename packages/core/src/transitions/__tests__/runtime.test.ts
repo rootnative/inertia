@@ -17,17 +17,20 @@ describe('buildReleaseAnimation', () => {
       0,
     )
     expect(withDecay).toHaveBeenCalledTimes(1)
-    expect(withDecay).toHaveBeenCalledWith({
-      velocity: 1200,
-      deceleration: 0.997,
-      clamp: [-50, 50],
-    })
+    expect(withDecay).toHaveBeenCalledWith(
+      {
+        velocity: 1200,
+        deceleration: 0.997,
+        clamp: [-50, 50],
+      },
+      undefined,
+    )
   })
 
   it('omits deceleration / clamp from the decay config when not provided', () => {
     const withDecay = jest.spyOn(Reanimated, 'withDecay')
     buildReleaseAnimation({ type: 'decay', velocity: 500 }, 0)
-    expect(withDecay).toHaveBeenCalledWith({ velocity: 500 })
+    expect(withDecay).toHaveBeenCalledWith({ velocity: 500 }, undefined)
   })
 
   it('translates react-spring vocabulary to Reanimated stiffness/damping', () => {
@@ -44,6 +47,7 @@ describe('buildReleaseAnimation', () => {
         mass: 2,
         velocity: 800,
       }),
+      undefined,
     )
   })
 
@@ -53,6 +57,7 @@ describe('buildReleaseAnimation', () => {
     expect(withSpring).toHaveBeenCalledWith(
       50,
       expect.objectContaining({ stiffness: 170, damping: 26, mass: 1 }),
+      undefined,
     )
   })
 
@@ -63,6 +68,7 @@ describe('buildReleaseAnimation', () => {
     expect(withTiming).toHaveBeenCalledWith(
       200,
       expect.objectContaining({ duration: 400, easing }),
+      undefined,
     )
   })
 
@@ -75,5 +81,33 @@ describe('buildReleaseAnimation', () => {
     expect(withSpring).not.toHaveBeenCalled()
     expect(withTiming).not.toHaveBeenCalled()
     expect(withDecay).not.toHaveBeenCalled()
+  })
+
+  it('forwards the settle callback to withSpring as the third argument', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const callback = jest.fn()
+    buildReleaseAnimation({ type: 'spring' }, 0, callback)
+    expect(withSpring.mock.calls[0]![2]).toBe(callback)
+    // Not invoked by the builder itself — Reanimated fires it on settle.
+    expect(callback).not.toHaveBeenCalled()
+  })
+
+  it('forwards the settle callback to withTiming and withDecay', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    const withDecay = jest.spyOn(Reanimated, 'withDecay')
+    const callback = jest.fn()
+    buildReleaseAnimation({ type: 'timing', duration: 100 }, 0, callback)
+    buildReleaseAnimation({ type: 'decay', velocity: 500 }, 0, callback)
+    expect(withTiming.mock.calls[0]![2]).toBe(callback)
+    expect(withDecay.mock.calls[0]![1]).toBe(callback)
+    expect(callback).not.toHaveBeenCalled()
+  })
+
+  it('fires the callback synchronously for no-animation', () => {
+    const callback = jest.fn()
+    const result = buildReleaseAnimation({ type: 'no-animation' }, 42, callback)
+    expect(result).toBe(42)
+    expect(callback).toHaveBeenCalledTimes(1)
+    expect(callback).toHaveBeenCalledWith(true, 42)
   })
 })

@@ -8,7 +8,7 @@ The JS-thread resolver functions the Motion primitives are built on, exported fo
 
 Reach for this layer when a component animates something the core primitives can't reach (SVG props, gradient stops, any non-`style` target) but you still want it to accept the standard `transition={{ type: 'spring', tension: 180 }}` shape instead of inventing your own config.
 
-All of them run on the **JS thread** — call them from render, effects, or event handlers, and assign the result to a shared value. The baked animation executes on the UI thread; the resolution itself never happens at frame time. (For picking a transition inside a gesture-release **worklet**, see [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue) — that's the UI-thread counterpart to `resolveTransition`.)
+All of them run on the **JS thread** — call them from render, effects, or event handlers, and assign the result to a shared value. The baked animation executes on the UI thread; the resolution itself never happens at frame time. (For picking a transition inside a gesture-release **worklet**, see [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue-callback) — that's the UI-thread counterpart to `resolveTransition`.)
 
 ## `resolveTransition(config, toValue, callback?)`
 
@@ -189,10 +189,10 @@ Only values passed to `withSpring` / `withTiming` are affected. `interpolateColo
 
 ## Which layer to use
 
-| You're writing…                                                     | Use                                                                                |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| a component with declarative `animate` props over a `style` target  | [`createMotionComponent`](./create-motion-component.md) — no resolver calls needed |
-| a component animating non-`style` props (SVG, gradients, text runs) | `resolveAnimatableValue` (full grammar) or `resolveTransition` (single targets)    |
-| a gesture-release worklet picking a transition on the UI thread     | [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue)      |
-| a manual `withTiming` call with consumer-supplied easing            | `ensureWorkletEasing`                                                              |
-| a colour shared value with no starting value to seed from           | `TRANSPARENT`                                                                      |
+| You're writing…                                                     | Use                                                                                    |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| a component with declarative `animate` props over a `style` target  | [`createMotionComponent`](./create-motion-component.md) — no resolver calls needed     |
+| a component animating non-`style` props (SVG, gradients, text runs) | `resolveAnimatableValue` (full grammar) or `resolveTransition` (single targets)        |
+| a gesture-release worklet picking a transition on the UI thread     | [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue-callback) |
+| a manual `withTiming` call with consumer-supplied easing            | `ensureWorkletEasing`                                                                  |
+| a colour shared value with no starting value to seed from           | `TRANSPARENT`                                                                          |

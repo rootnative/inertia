@@ -14,6 +14,9 @@ interface Card {
   color: string
 }
 
+// Far enough that the card fully clears the 240pt stage on every device.
+const EXIT_DISTANCE = 500
+
 const INITIAL_CARDS: Card[] = [
   { id: 'a', title: 'Card A', color: '#ef4444' },
   { id: 'b', title: 'Card B', color: '#f97316' },
@@ -41,7 +44,7 @@ export function SwipeScreen({ onBack }: { onBack: () => void }) {
   return (
     <ScreenShell
       title="Swipe (card stack)"
-      description="useSwipe with directions=['left','right']. Drag the top card past the threshold to like or skip; release short and it springs back."
+      description="useSwipe with directions=['left','right'] and a commit exit: past the threshold, onCommit flies the card off screen with the release velocity and onSwipeEnd advances the deck. Release short and it springs back."
       onBack={onBack}
       fill
     >
@@ -88,7 +91,21 @@ function CardView({
   const swipe = useSwipe({
     directions: ['left', 'right'],
     distanceThreshold: 100,
-    onSwipe: (direction) => onSwipe(direction),
+    // Commit exit: the committed card continues off screen in the swipe
+    // direction, seeded with the release velocity. Runs on the UI thread.
+    onCommit: (direction, info) => {
+      'worklet'
+      return {
+        x: {
+          type: 'spring' as const,
+          to: direction === 'right' ? EXIT_DISTANCE : -EXIT_DISTANCE,
+          velocity: info.velocity.x,
+        },
+      }
+    },
+    // Advance the deck when the exit settles — not at release. The card is
+    // keyed, so the unmount replaces it and no reset() is needed.
+    onSwipeEnd: (direction) => onSwipe(direction),
   })
 
   const cardStyle = [

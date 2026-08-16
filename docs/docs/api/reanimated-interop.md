@@ -67,6 +67,6 @@ The animation factories (`withTiming`, `withSpring`, `withDecay`, `withSequence`
 
 - declaratively — the `animate` prop, [`useAnimation` / `useSpring` / `useBooleanSpring`](./hooks.md);
 - imperatively from the JS thread — [`resolveTransition`](./transition-utilities.md#resolvetransitionconfig-tovalue-callback);
-- from inside a gesture worklet — [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue).
+- from inside a gesture worklet — [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue-callback).
 
 All of those accept the standard `TransitionConfig` shape (named transitions included), which is the point: if this subpath re-exported `withTiming`, custom components would grow ad-hoc `{ duration, easing }` configs that bypass reduced-motion gating and the named-transition registry. If you find yourself wanting a `with*` factory, reach for the resolver that matches your thread instead.
