@@ -44,6 +44,13 @@ export interface UseSwipeResult {
    * Animated style fragment exposing live translation while the gesture is
    * active. Snaps back to `{ 0, 0 }` after release (whether or not the swipe
    * committed) via a default spring.
+   *
+   * This owns the whole `transform` style key. `transform` is one key in React
+   * Native, so a second style in the same array **replaces** this array rather
+   * than merging with it — `style={[swipe.animatedStyle, tiltStyle]}` silently
+   * drops the translation and only the tilt runs. To add a transform of your
+   * own, nest another animated view, or build one style from `swipeX` /
+   * `swipeY` yourself with `useInterpolatedStyle`.
    */
   animatedStyle: ReturnType<typeof useAnimatedStyle>
   /** Live x translation. */
@@ -73,6 +80,22 @@ const DEFAULT_DIRECTIONS: SwipeDirection[] = ['left', 'right', 'up', 'down']
  * return (
  *   <GestureDetector gesture={swipe.gesture}>
  *     <Motion.View style={swipe.animatedStyle}>...</Motion.View>
+ *   </GestureDetector>
+ * )
+ * ```
+ *
+ * `animatedStyle` owns the whole `transform` key, so it does not compose with
+ * a second transform style. To add rotation — the usual card-deck shape —
+ * build one style from `swipeX` instead of stacking two:
+ *
+ * ```tsx
+ * const cardStyle = useInterpolatedStyle(swipe.swipeX, {
+ *   translateX: [-200, 0, 200],
+ *   rotate: ['-12deg', '0deg', '12deg'],
+ * })
+ * return (
+ *   <GestureDetector gesture={swipe.gesture}>
+ *     <Motion.View style={cardStyle}>...</Motion.View>
  *   </GestureDetector>
  * )
  * ```

@@ -10,6 +10,21 @@ pnpm add @rootnative/inertia react-native-reanimated
 
 Enable the Reanimated Babel plugin per its install guide.
 
+## Which package has what
+
+The core package does not contain the gesture hooks, the gradient primitive, or the SVG primitives. Each is a separate install. `useSwipe` and `useDrag` are **not** in core — a swipe deck needs `@rootnative/inertia-gestures`.
+
+| You want | Package | Extra peer dependency |
+| --- | --- | --- |
+| `Motion.*`, `Presence`, `MotionConfig`, every value-layer hook | `@rootnative/inertia` | — (core, always required) |
+| `useDrag`, `useSwipe`, `usePan` | `@rootnative/inertia-gestures` | `react-native-gesture-handler` |
+| Animatable linear gradients | `@rootnative/inertia-gradients` | `expo-linear-gradient` |
+| Animatable SVG paths and shapes | `@rootnative/inertia-svg` | `react-native-svg` |
+
+`useTouchDrag` is the exception: a drag hook in **core**, under the `@rootnative/inertia/touch` subpath, because PanResponder is built into React Native. Use it for drag without `react-native-gesture-handler`, or when the drag needs keyboard accessibility.
+
+All four packages ship in **lockstep** — same version, released together. Install the same version of every `@rootnative/inertia*` package you use. Two things that mislead: the `@rootnative/core` and `@rootnative/components` packages of RootNative UI are a different library on a different version line, and `npm view` shows an `alpha` dist-tag on these packages that is **older** than `latest` (a prerelease leftover — follow `latest`).
+
 ## Imports
 
 ```ts

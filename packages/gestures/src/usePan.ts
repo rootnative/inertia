@@ -34,7 +34,12 @@ export interface PanOptions {
 export interface UsePanResult {
   /** Pan gesture to pass to a `<GestureDetector>`. */
   gesture: PanGesture
-  /** Stable animated `transform` style. */
+  /**
+   * Stable animated `transform` style. This owns the whole `transform` key —
+   * a second transform style in the same array replaces it rather than merging
+   * with it. Nest another animated view, or build one style from `panX` /
+   * `panY` with `useInterpolatedStyle`, to add a transform of your own.
+   */
   animatedStyle: ReturnType<typeof useAnimatedStyle>
   /** Live x translation, persistent across gestures. */
   panX: SharedValue<number>

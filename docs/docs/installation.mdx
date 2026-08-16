@@ -16,6 +16,28 @@ Inertia is a thin wrapper around `react-native-reanimated`. The Reanimated insta
 - `react-native-reanimated >= 4.0.0`
 - `react-native-worklets >= 0.5.0` — the worklet runtime Reanimated 4 is built on. It is a **peer** of both Reanimated and Inertia, so Yarn and pnpm will not install it for you.
 
+## Which package has what
+
+Read this before you install. The core package does not contain the gesture hooks, the gradient primitive, or the SVG primitives — each is a separate install. A swipe deck is one of the most common reasons to reach for this library, and `useSwipe` is **not** in the core package.
+
+| You want | Package | Install |
+| --- | --- | --- |
+| `Motion.*` primitives, `Presence`, `MotionConfig`, every value-layer hook | `@rootnative/inertia` | core, always required |
+| `useDrag`, `useSwipe`, `usePan` | `@rootnative/inertia-gestures` | + `react-native-gesture-handler` |
+| Animatable linear gradients | `@rootnative/inertia-gradients` | + `expo-linear-gradient` |
+| Animatable SVG paths and shapes | `@rootnative/inertia-svg` | + `react-native-svg` |
+
+`useTouchDrag` is the exception: it is a drag hook that lives in **core**, under the `@rootnative/inertia/touch` subpath, because PanResponder is built into React Native and needs no extra peer dependency. Reach for it when you want drag without taking `react-native-gesture-handler`, or when the drag needs keyboard accessibility.
+
+### Versions
+
+All four packages ship in **lockstep** — the same version number, released together. Install the same version of every `@rootnative/inertia*` package you use, and each adapter requires a core version at or above its own.
+
+Two things that mislead here:
+
+- The `@rootnative/core` and `@rootnative/components` packages of **RootNative UI** are a different library on a different version line. That family being on `0.0.0-alpha.x` while this one is on `0.0.x` is expected, not a mismatch.
+- `npm view` shows an `alpha` dist-tag on these packages that is **older** than `latest`. It is a leftover from the prerelease line. Follow `latest`.
+
 ## Install
 
 Yarn is the default. Switch tabs for npm, pnpm, or Bun — your selection persists across the docs.

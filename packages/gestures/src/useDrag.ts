@@ -13,8 +13,14 @@ export interface UseDragResult {
   /** Pan gesture to pass to a `<GestureDetector>`. */
   gesture: PanGesture
   /**
-   * Animated style fragment (a single `transform` entry) to stack onto the
-   * dragged Motion primitive's `style` prop. Stable across renders.
+   * Animated style fragment for the dragged Motion primitive's `style` prop.
+   * Stable across renders.
+   *
+   * This owns the whole `transform` key. Do not stack a second transform style
+   * beside it — `transform` is one key in React Native, so the later style
+   * replaces this one instead of merging, and the drag silently stops
+   * following the finger. Nest another animated view, or build one style from
+   * `dragX` / `dragY` with `useInterpolatedStyle`, to add a transform.
    */
   animatedStyle: ReturnType<typeof useAnimatedStyle>
   /** Current x translation in pixels. UI-thread shared value. */

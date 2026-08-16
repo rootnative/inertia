@@ -127,6 +127,36 @@ return (
 
 The dominant axis (whichever of \|tx\|, \|ty\| is larger at release) decides which direction is checked.
 
+### `animatedStyle` owns the whole `transform` key
+
+`animatedStyle` returns a complete `transform` array. In React Native `transform` is a **single** style key, so a second style carrying its own `transform` **replaces** this one rather than merging with it. Stacking a rotation beside it — the first thing almost every card deck does — silently drops the translation, and the card rotates without following the finger:
+
+```tsx
+// Broken: tiltStyle's transform replaces the swipe translation.
+<Motion.View style={[swipe.animatedStyle, tiltStyle]} />
+```
+
+Pairing `animatedStyle` with a static style is safe (`[styles.card, swipe.animatedStyle]` above) because a static style declares no `transform`. The conflict only appears when the second style is itself a transform.
+
+Build one style from `swipeX` instead of stacking two:
+
+```tsx
+const cardStyle = useInterpolatedStyle(swipe.swipeX, {
+  translateX: [-200, 0, 200],
+  rotate: ['-12deg', '0deg', '12deg'],
+})
+
+return (
+  <GestureDetector gesture={swipe.gesture}>
+    <Motion.View style={[styles.card, cardStyle]}>{children}</Motion.View>
+  </GestureDetector>
+)
+```
+
+Nesting a second `Motion.View` also works — one view per transform source — when the transforms come from genuinely independent drivers.
+
+The same applies to `useDrag` and `usePan`: each owns its `transform` key too.
+
 ## `usePan`
 
 Camera-style pan with momentum on release. Position **persists across separate gestures** — the next pan starts from the current offset, not zero — and on release the position continues gliding via Reanimated's `withDecay`.
