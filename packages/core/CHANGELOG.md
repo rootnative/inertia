@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.8] - 2026-08-16
+
 ### Added
 
 - **`<Stagger>` — parent-owned delays for a cascading list entrance.** Wrapping a list in `<Stagger interval={60}>` assigns each child a delay of `delay + position * interval` milliseconds, applied to the declarative animations (the `initial` → `animate` mount and any later `animate` change) of every `Motion.*` primitive in that child's subtree. No child computes `index * ms` itself, which removes the two structural problems of the per-child form: a list that filters or reorders staggers from stale indices, and the cascade cannot be turned off in one place. Positions re-derive from render order every render, `from="last"` reverses the cascade, and `enabled={false}` zeroes every delay — pass `enabled={revealed}` and the reveal cascades while the hide animates together.
@@ -271,7 +273,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.7...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.8...HEAD
+[0.0.8]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.8
 [0.0.7]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.7
 [0.0.6]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.6
 [0.0.5]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.5

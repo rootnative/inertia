@@ -6,6 +6,8 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.8] - 2026-08-16
+
 ### Added
 
 - **`useSwipe` snap-back is configurable: `releaseTransition`.** The reset to zero after a release was a hard-coded `withSpring(0)` — it could not join a design-token motion system, and it dropped the release velocity, so a flick that stopped short of the threshold reset as if the finger had been still. The option accepts a spring / timing / no-animation config inline, or a `TransitionName` registered on the nearest `<MotionConfig transitions={...}>`. The release velocity is passed into a spring automatically (unless the config sets `velocity` itself), on both the default spring and a configured one. Decay is excluded — the snap-back always targets zero and decay has no target; a name that resolves to a decay config dev-warns and falls back to the default spring.
@@ -14,7 +16,7 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 - **`useSwipe` returns `reset()`.** Snaps both shared values back to zero with no animation, cancelling anything in flight. After a commit exit the values stay at the exit target; call `reset()` when the next card takes over the same mounted component. A keyed remount gets fresh values and doesn't need it.
 
-- New exported type: `SnapBackTransition` (the `releaseTransition` shapes). Requires `@rootnative/inertia` ≥ the release this ships in — the settle callback rides a new third parameter on core's `buildReleaseAnimation`.
+- New exported type: `SnapBackTransition` (the `releaseTransition` shapes). Requires `@rootnative/inertia` >=0.0.8 — the settle callback rides a new third parameter on core's `buildReleaseAnimation`.
 
 ## [0.0.7] - 2026-08-14
 
@@ -65,7 +67,8 @@ Initial alpha publish alongside `@rootnative/inertia@0.0.0-alpha.0`. Optional ad
 - `useDrag({ onRelease })` — release worklet returns per-axis Inertia transitions (snap-to-tick spring, decay with bounds, etc.). Velocity stays on the UI thread; no JS round-trip.
 - `useSwipe`, `usePan` hooks composable with any `Motion.*` primitive via `<GestureDetector>`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.7...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.8...HEAD
+[0.0.8]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.8
 [0.0.7]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.7
 [0.0.6]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.6
 [0.0.5]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.5
