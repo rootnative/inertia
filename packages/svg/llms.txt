@@ -12,6 +12,18 @@
 
 `MotionPath` wraps `<Path>` and accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for the path data (`d`) plus color and numeric paint properties. Prebuilt [`MotionCircle` / `MotionRect` / `MotionLine`](#shapes) cover the other common shapes, and the [`createMotionSvgComponent`](#factory) factory behind them wraps any `react-native-svg` element.
 
+## When to pick which
+
+| You want                                                          | Reach for                                                                                                       |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Morph one shape into another (same command sequence)              | `MotionPath` with `animate.d` — see [structural compatibility](#structural-compatibility)                       |
+| Switch between structurally **different** shapes                  | A remount via `key={...}`, not a morph                                                                          |
+| Animate a circle / rect / line's geometry or paint                | [`MotionCircle` / `MotionRect` / `MotionLine`](#shapes)                                                          |
+| A "draw the stroke" effect (progress ring, signature)             | Animate `strokeDashoffset` against a static `strokeDasharray` — see the [progress-ring example](#shapes)         |
+| Animate any other `react-native-svg` element (`Ellipse`, …)       | [`createMotionSvgComponent`](#factory)                                                                           |
+| A gradient fill inside the SVG                                     | `<Defs>` + `<LinearGradient>` from `react-native-svg`; the path references it by `url(#id)` — not this package  |
+| Animate a non-SVG view                                             | The core `Motion.*` primitives — this package is for `react-native-svg` elements only                            |
+
 ## Install
 
 ```bash

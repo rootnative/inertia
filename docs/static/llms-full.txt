@@ -1448,6 +1448,16 @@ Splitting them off keeps core's surface area minimal and lets the gesture-handle
 
 `MotionLinearGradient` accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
+## When to pick which
+
+| You want                                                    | Reach for                                                                                                  |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Animate a **flat** background color                         | `Motion.View` with `animate={{ backgroundColor }}` from core — no gradient package needed                   |
+| Animate gradient stop colors, direction, or stop positions  | `MotionLinearGradient` (this package)                                                                        |
+| Change the **number** of stops                              | A remount via `key={...}` — the slot count is locked at mount                                                |
+| A radial or conic gradient                                  | Not covered — linear only; radial / conic are backlog, unscheduled                                           |
+| A gradient fill inside an SVG                               | `<Defs>` + `<LinearGradient>` from `react-native-svg`, referenced by `url(#id)` — see the [SVG page](./svg.mdx) |
+
 ## Install
 
 ```bash
@@ -1537,6 +1547,18 @@ Pass `initial` to override the mount-frame values (so the component starts somew
 `@rootnative/inertia-svg` adds animatable SVG primitives built on [`react-native-svg`](https://github.com/software-mansion/react-native-svg). It is an **optional** sibling package — install it only when you need to morph paths or animate `fill` / `stroke`. The core library has no required `react-native-svg` dependency.
 
 `MotionPath` wraps `<Path>` and accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for the path data (`d`) plus color and numeric paint properties. Prebuilt [`MotionCircle` / `MotionRect` / `MotionLine`](#shapes) cover the other common shapes, and the [`createMotionSvgComponent`](#factory) factory behind them wraps any `react-native-svg` element.
+
+## When to pick which
+
+| You want                                                          | Reach for                                                                                                       |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Morph one shape into another (same command sequence)              | `MotionPath` with `animate.d` — see [structural compatibility](#structural-compatibility)                       |
+| Switch between structurally **different** shapes                  | A remount via `key={...}`, not a morph                                                                          |
+| Animate a circle / rect / line's geometry or paint                | [`MotionCircle` / `MotionRect` / `MotionLine`](#shapes)                                                          |
+| A "draw the stroke" effect (progress ring, signature)             | Animate `strokeDashoffset` against a static `strokeDasharray` — see the [progress-ring example](#shapes)         |
+| Animate any other `react-native-svg` element (`Ellipse`, …)       | [`createMotionSvgComponent`](#factory)                                                                           |
+| A gradient fill inside the SVG                                     | `<Defs>` + `<LinearGradient>` from `react-native-svg`; the path references it by `url(#id)` — not this package  |
+| Animate a non-SVG view                                             | The core `Motion.*` primitives — this package is for `react-native-svg` elements only                            |
 
 ## Install
 

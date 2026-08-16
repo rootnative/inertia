@@ -10,6 +10,16 @@ import PackageManagerTabs from '@site/src/components/PackageManagerTabs'
 
 `MotionLinearGradient` accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
+## When to pick which
+
+| You want                                                    | Reach for                                                                                                  |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Animate a **flat** background color                         | `Motion.View` with `animate={{ backgroundColor }}` from core — no gradient package needed                   |
+| Animate gradient stop colors, direction, or stop positions  | `MotionLinearGradient` (this package)                                                                        |
+| Change the **number** of stops                              | A remount via `key={...}` — the slot count is locked at mount                                                |
+| A radial or conic gradient                                  | Not covered — linear only; radial / conic are backlog, unscheduled                                           |
+| A gradient fill inside an SVG                               | `<Defs>` + `<LinearGradient>` from `react-native-svg`, referenced by `url(#id)` — see the [SVG page](./svg.mdx) |
+
 ## Install
 
 <PackageManagerTabs packages="@rootnative/inertia-gradients expo-linear-gradient" />
