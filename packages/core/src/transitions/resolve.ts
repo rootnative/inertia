@@ -116,7 +116,13 @@ export function applyRepeat(
   return withRepeat(animation as never, count, alternate)
 }
 
-function applyDelay(animation: unknown, delay: number | undefined) {
+/**
+ * Wrap an animation in `withDelay`. A missing / zero / negative delay is a
+ * pass-through. Exported for the factory's stagger wrap, which must delay a
+ * fully-resolved animation exactly once — merging the delay into the base
+ * config instead would re-apply it per sequence step.
+ */
+export function applyDelay(animation: unknown, delay: number | undefined) {
   if (!delay || delay <= 0) return animation
   return withDelay(delay, animation as never)
 }

@@ -37,6 +37,7 @@ import { ShadowScreen } from './screens/ShadowScreen'
 import { SharedElementScreen } from './screens/SharedElementScreen'
 import { SliderScreen } from './screens/SliderScreen'
 import { SwipeScreen } from './screens/SwipeScreen'
+import { StaggerScreen } from './screens/StaggerScreen'
 import { TextScreen } from './screens/TextScreen'
 import { TouchDragScreen } from './screens/TouchDragScreen'
 import { TransformsScreen } from './screens/TransformsScreen'
@@ -84,6 +85,7 @@ type Route =
   | 'scroll-view'
   | 'flat-list'
   | 'presence'
+  | 'stagger'
   | 'linear-gradient'
   | 'path-morph'
   | 'layout'
@@ -133,6 +135,7 @@ const SCREENS = {
   'scroll-view': ScrollViewScreen,
   'flat-list': FlatListScreen,
   presence: PresenceScreen,
+  stagger: StaggerScreen,
   'linear-gradient': LinearGradientScreen,
   'path-morph': PathMorphScreen,
   layout: LayoutScreen,
@@ -271,6 +274,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         route: 'presence',
         label: 'Presence',
         description: 'mount and unmount transitions',
+      },
+      {
+        route: 'stagger',
+        label: 'Stagger',
+        description: 'per-child delays for a cascading list entrance',
       },
       {
         route: 'layout',

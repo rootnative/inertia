@@ -43,7 +43,9 @@ import {
   useSharedLayout,
 } from '../layout'
 import { usePresence } from '../presence'
+import { useStaggerDelay } from '../stagger'
 import {
+  applyDelay,
   isTopLevelTransition,
   resolveAnimatableValue,
   resolveTransition,
@@ -547,6 +549,13 @@ export function createMotionComponent<C extends ComponentType<any>>(
       // at app start — a runtime toggle takes effect on the next launch.
       const shouldReduceMotion = useShouldReduceMotion()
 
+      // Per-child delay assigned by the nearest <Stagger> ancestor; 0 outside
+      // one. Applied in the value-driving effect, not here: the effect's
+      // closure reads the value current at the render that starts an
+      // animation, and a delay change alone must not re-trigger anything —
+      // so it is deliberately absent from the effect's deps.
+      const staggerDelay = useStaggerDelay()
+
       // Pin the latest `onAnimationEnd` in a ref so the worklet callback always
       // dispatches against the current closure without re-resolving the
       // animation graph. Worklets can read refs via `runOnJS`.
@@ -962,6 +971,22 @@ export function createMotionComponent<C extends ComponentType<any>>(
                 transition,
               )
 
+        // <Stagger> delay for this run, wrapped around each key's fully
+        // resolved animation via `applyDelay` — once per animation, never
+        // merged into the base config (a sequence applies a base `delay` per
+        // step, which would stretch the whole sequence by N × delay). Composes
+        // with a consumer's own `transition.delay`, which `resolveTransition`
+        // has already applied inside.
+        //
+        // Deliberately 0 while exiting (an exit delayed by list position holds
+        // <Presence>'s unmount hostage to the cascade) and under reduced
+        // motion (a snap must not be deferred — same contract as `delayOf`
+        // returning `undefined` for `no-animation`).
+        const runStagger =
+          shouldReduceMotion || isExiting || staggerDelay <= 0
+            ? 0
+            : staggerDelay
+
         // Count transform axes participating in this effect run so the factory
         // can coalesce their terminal callbacks into a single transform-group
         // event. `undefined` when no transform axis is animating, which lets
@@ -996,6 +1021,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
               boxShadowInsets,
               shadowTarget,
               cfg,
+              runStagger,
               makeKeyCallbackFactory(
                 'boxShadow',
                 sharedValues.boxShadow,
@@ -1051,12 +1077,15 @@ export function createMotionComponent<C extends ComponentType<any>>(
           // `'no-animation'` (and so under reduced motion) it is assigned
           // straight into the slot, and the next animation would start from a
           // value that can't be parsed.
-          sharedValues[key].value = resolveAnimatableValue(
-            COLOR_KEY_SET.has(key)
-              ? normalizeAnimatableColorTarget(target)
-              : target,
-            cfg,
-            factory,
+          sharedValues[key].value = applyDelay(
+            resolveAnimatableValue(
+              COLOR_KEY_SET.has(key)
+                ? normalizeAnimatableColorTarget(target)
+                : target,
+              cfg,
+              factory,
+            ),
+            runStagger,
           ) as never
         }
 
@@ -1655,6 +1684,7 @@ function driveBoxShadow(
   insetSlot: SharedValue<boolean[] | null>,
   target: BoxShadowInput,
   cfg: TransitionConfig | undefined,
+  staggerDelay: number,
   factory: CallbackFactory | undefined,
 ): void {
   const currentLayers = payloadToLayers(slot.value as BoxShadowPayload)
@@ -1666,10 +1696,15 @@ function driveBoxShadow(
   if (from.length !== currentLayers.length) slot.value = layersToPayload(from)
   // `resolveTransition` is typed for the scalar surface it was written for;
   // Reanimated itself accepts the structured target and recurses into it.
-  slot.value = resolveTransition(
-    cfg,
-    layersToPayload(to) as unknown as number,
-    factory?.('animation', undefined),
+  // The stagger wrap sits outside, same as the scalar path — this key can't
+  // be a sequence, but keeping the delay out of `cfg` keeps one rule.
+  slot.value = applyDelay(
+    resolveTransition(
+      cfg,
+      layersToPayload(to) as unknown as number,
+      factory?.('animation', undefined),
+    ),
+    staggerDelay,
   ) as AnimatableSlotValue
 }
 

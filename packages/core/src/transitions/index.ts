@@ -1,4 +1,5 @@
 export {
+  applyDelay,
   resolveTransition,
   type AnimationCallback,
   type CallbackFactory,

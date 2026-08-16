@@ -74,6 +74,7 @@ const PAGES = [
   'gradients',
   'svg',
   'presence',
+  'stagger',
   'layout',
   'motion-config',
   'perf-bench',

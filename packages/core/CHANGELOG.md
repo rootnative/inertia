@@ -6,6 +6,14 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ### Added
 
+- **`<Stagger>` — parent-owned delays for a cascading list entrance.** Wrapping a list in `<Stagger interval={60}>` assigns each child a delay of `delay + position * interval` milliseconds, applied to the declarative animations (the `initial` → `animate` mount and any later `animate` change) of every `Motion.*` primitive in that child's subtree. No child computes `index * ms` itself, which removes the two structural problems of the per-child form: a list that filters or reorders staggers from stale indices, and the cascade cannot be turned off in one place. Positions re-derive from render order every render, `from="last"` reverses the cascade, and `enabled={false}` zeroes every delay — pass `enabled={revealed}` and the reveal cascades while the hide animates together.
+
+  The delay wraps each key's fully resolved animation exactly once, on the JS thread — never merged into the base transition config, which a keyframe sequence would re-apply per step. It composes with the child's own `transition.delay` (the two add). It deliberately does not delay `gesture` sub-state feedback (press feedback delayed by list position reads as lag), `<Presence>` exits (a positional delay holds `safeToRemove` — and therefore the unmount — hostage to the cascade), or reduced-motion snaps (a deferred snap is still choreography).
+
+  `<Stagger>` renders no host view — only per-child context providers, so it composes with any layout. Custom animated components built on `resolveTransition` / `resolveAnimatableValue` can participate through the new `useStaggerDelay()` hook, and `applyDelay(animation, ms)` is now exported alongside the other transition utilities.
+
+  Surfaced by the `purrfect-match` validation consumer (DX feedback entry 13), generalized here per the audience-and-scope rule: the shape follows Framer Motion's `staggerChildren` / `delayChildren`, renamed to `interval` / `delay` because the component's own name already says "children".
+
 - **`buildReleaseAnimation` accepts a settle callback.** A third, optional `callback` parameter — the same `(finished) => void` shape Reanimated's `with*` factories accept — is forwarded to the underlying `withSpring` / `withTiming` / `withDecay` call and fires once when the animation settles. For `no-animation` it fires synchronously with `finished: true`, since a direct assignment has no settle point of its own. Existing two-argument call sites are unchanged.
 
   This is the primitive behind `useSwipe`'s new `onSwipeEnd` in `@rootnative/inertia-gestures`: a gesture-release worklet can now learn when its release animation has finished without polling a shared value. The `AnimationCallback` type is exported from the root barrel alongside it.

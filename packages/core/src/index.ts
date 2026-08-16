@@ -33,7 +33,10 @@ export type {
 } from './config'
 export { Presence, usePresence } from './presence'
 export type { PresenceContextValue } from './presence'
+export { Stagger, useStaggerDelay } from './stagger'
+export type { StaggerProps } from './stagger'
 export {
+  applyDelay,
   buildReleaseAnimation,
   cubicBezier,
   resolveTransition,

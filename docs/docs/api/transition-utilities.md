@@ -99,6 +99,39 @@ Override merging follows the same rule as the primitives: if a step's override d
 
 The optional **`factory`** argument produces per-step completion callbacks. It's called with `(phase, step)` — `('step', i)` for each sequence step, `('animation', undefined)` for non-sequences — and returns a worklet callback (or `undefined` to skip). This is the mechanism behind the primitives' `onAnimationEnd` firing once per step; supply it only if your component surfaces step-level completion.
 
+## `applyDelay(animation, delay?)`
+
+Wrap a resolved animation in `withDelay`. A missing, zero, or negative `delay` is a pass-through — the animation comes back unchanged.
+
+Its job is delaying an animation that is already fully resolved, which is different from putting `delay` on the transition config in one important case: a keyframe sequence applies a base config's `delay` **per step**, while `applyDelay` defers the whole sequence once. This is how the `Motion.*` primitives apply a `<Stagger>` delay, and it is the composition point for custom components that want to participate in one:
+
+```ts
+import {
+  applyDelay,
+  resolveAnimatableValue,
+  useStaggerDelay,
+} from '@rootnative/inertia'
+
+function useStaggeredValue(
+  value: AnimatableValue<number>,
+  transition?: TransitionConfig,
+) {
+  const sv = useSharedValue(0)
+  const staggerDelay = useStaggerDelay() // 0 outside a <Stagger>
+
+  useEffect(() => {
+    sv.value = applyDelay(
+      resolveAnimatableValue(value, transition),
+      staggerDelay,
+    ) as number
+  }, [value, transition])
+
+  return sv
+}
+```
+
+Delays nest: an animation whose own config carries `delay: 30` wrapped in `applyDelay(…, 100)` starts after 130 ms — the two add rather than replace.
+
 ## `ensureWorkletEasing(easing)`
 
 Normalize any accepted easing input into a worklet function `withTiming` can consume. Three inputs, one output:
