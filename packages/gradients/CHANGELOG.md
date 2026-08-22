@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.9] - 2026-08-22
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.9` (`useInterpolatedStyle` types its return against the map it was given, so a `style` array no longer needs a cast). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.9`.
+
 ## [0.0.8] - 2026-08-16
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.8` (`<Stagger>`, parent-owned per-child delays for cascading list entrances, and a settle callback on `buildReleaseAnimation`). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.8`.
@@ -56,7 +60,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionLinearGradient` over `expo-linear-gradient`. Accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.8...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.9...HEAD
+[0.0.9]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.9
 [0.0.8]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.8
 [0.0.7]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.7
 [0.0.6]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.6

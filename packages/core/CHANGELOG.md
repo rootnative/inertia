@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.9] - 2026-08-22
+
 ### Changed
 
 - **`useInterpolatedStyle` types its return against the map it was given, so a `style` array no longer needs a cast.** The hook returned `ReturnType<typeof useAnimatedStyle>`, which resolves to Reanimated's `DefaultStyle` — the union `ViewStyle | ImageStyle | TextStyle`. Assigning that union to a single style works, but a **style array** checks every member, and `TextStyle` is not assignable to `ViewStyle` (`cursor` is `string` there and `CursorValue` here). So the documented, dominant call shape — a transform/opacity fragment spread into `style={[base, fragment]}` — was a type error, and consumers cast it away.
@@ -283,7 +285,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.8...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.9...HEAD
+[0.0.9]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.9
 [0.0.8]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.8
 [0.0.7]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.7
 [0.0.6]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.6
