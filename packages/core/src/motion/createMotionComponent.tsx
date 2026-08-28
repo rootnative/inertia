@@ -1880,6 +1880,14 @@ function resolveAnimateInput(
   variants: VariantsMap<unknown> | undefined,
   controllerKey: string | undefined,
 ): AnimateStyle<unknown> | undefined {
+  if (controllerKey !== undefined && animate !== undefined) {
+    warnOnce(
+      'controller-and-animate',
+      '[inertia] Both `controller` and `animate` are set on the same ' +
+        'primitive. The controller drives the animation and `animate` is ' +
+        'ignored — remove one of the two.',
+    )
+  }
   if (controllerKey !== undefined && variants && controllerKey in variants) {
     return variants[controllerKey]
   }

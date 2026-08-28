@@ -52,14 +52,7 @@ export function useSpring(
     // depending on `config` itself would rebuild the Reanimated config on
     // every render and defeat the memo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      spring?.tension,
-      spring?.friction,
-      spring?.mass,
-      spring?.velocity,
-      spring?.restSpeedThreshold,
-      spring?.restDisplacementThreshold,
-    ],
+    [spring?.tension, spring?.friction, spring?.mass, spring?.velocity],
   )
 
   const isSharedTarget = isSharedValue(target)

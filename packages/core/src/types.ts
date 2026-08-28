@@ -31,8 +31,6 @@ export interface SpringTransition {
   friction?: number
   mass?: number
   velocity?: number
-  restSpeedThreshold?: number
-  restDisplacementThreshold?: number
   delay?: number
   repeat?: RepeatConfig
 }

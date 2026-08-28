@@ -91,12 +91,12 @@ See the [docs](https://rootnative.github.io/inertia/) for sequences, variants, g
 
 ## Transition shapes
 
-| `type`               | Public config keys                                                                           | Maps to                                      |
-| -------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `'spring'` (default) | `tension`, `friction`, `mass`, `velocity`, `restSpeedThreshold`, `restDisplacementThreshold` | `withSpring` (converted from spring physics) |
-| `'timing'`           | `duration`, `easing`, `delay`                                                                | `withTiming`                                 |
-| `'decay'`            | `velocity`, `deceleration`, `clamp`                                                          | `withDecay`                                  |
-| `'no-animation'`     | —                                                                                            | direct assignment, no interpolation          |
+| `type`               | Public config keys                        | Maps to                                      |
+| -------------------- | ----------------------------------------- | -------------------------------------------- |
+| `'spring'` (default) | `tension`, `friction`, `mass`, `velocity` | `withSpring` (converted from spring physics) |
+| `'timing'`           | `duration`, `easing`, `delay`             | `withTiming`                                 |
+| `'decay'`            | `velocity`, `deceleration`, `clamp`       | `withDecay`                                  |
+| `'no-animation'`     | —                                         | direct assignment, no interpolation          |
 
 Any transition also accepts `delay` and `repeat` (a count, `'infinite'`, or `{ count, alternate }`), and per-property transitions take precedence over the top-level one.
 

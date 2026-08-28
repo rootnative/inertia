@@ -1,6 +1,6 @@
 ---
 sidebar_position: 5
-description: "Per-property keyframes and looping: arrays for sequence steps, and the unified repeat config on transitions."
+description: 'Per-property keyframes and looping: arrays for sequence steps, and the unified repeat config on transitions.'
 ---
 
 # Sequences and repeat

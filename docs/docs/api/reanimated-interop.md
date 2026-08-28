@@ -1,6 +1,6 @@
 ---
 sidebar_position: 4
-description: "@rootnative/inertia/reanimated re-exports the Reanimated render-layer primitives, so Inertia stays your only animation import."
+description: '@rootnative/inertia/reanimated re-exports the Reanimated render-layer primitives, so Inertia stays your only animation import.'
 ---
 
 # Reanimated interop

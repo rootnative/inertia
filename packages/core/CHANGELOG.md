@@ -4,6 +4,20 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Removed
+
+- **Breaking: `restSpeedThreshold` and `restDisplacementThreshold` are removed from `SpringTransition`.** Both keys were silently inert on every release since `0.0.1`. They are Reanimated 3 names: Reanimated 4 settles springs on an internal `energyThreshold`, its `SpringConfig` type does not have either key, and its runtime never reads them. Inertia forwarded both into `withSpring`, where they were ignored — a documented public key that did nothing, which is the defect class the `0.0.5` type narrowing exists to prevent. Found by the pre-`1.0.0` review of the transition vocabulary.
+
+  Migration: delete the two keys from any spring config. Their removal cannot change animation behavior, because they never had any. If a settle knob is needed later, Reanimated 4's `overshootClamping` / `energyThreshold` are the candidates, as a non-breaking addition.
+
+### Added
+
+- **Dev warning when `controller` and `animate` are set on the same primitive.** The controller drives the animation and `animate` is ignored; that precedence was documented but silent. It now warns once in dev.
+
+### Documentation
+
+- `useVariants` documents that the controller pins the variants map from the first render, and that later renders passing a different map object do not re-key it.
+
 ## [0.0.9] - 2026-08-22
 
 ### Changed

@@ -76,12 +76,12 @@ Both forms land at ~4.1–4.2 kB brotlied for a single primitive (peers excluded
 
 ## Transitions
 
-| `type`               | Public config keys                                                                           | Maps to                             |
-| -------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `'spring'` (default) | `tension`, `friction`, `mass`, `velocity`, `restSpeedThreshold`, `restDisplacementThreshold` | `withSpring`                        |
-| `'timing'`           | `duration`, `easing`, `delay`                                                                | `withTiming`                        |
-| `'decay'`            | `velocity`, `deceleration`, `clamp`                                                          | `withDecay`                         |
-| `'no-animation'`     | —                                                                                            | direct assignment, no interpolation |
+| `type`               | Public config keys                        | Maps to                             |
+| -------------------- | ----------------------------------------- | ----------------------------------- |
+| `'spring'` (default) | `tension`, `friction`, `mass`, `velocity` | `withSpring`                        |
+| `'timing'`           | `duration`, `easing`, `delay`             | `withTiming`                        |
+| `'decay'`            | `velocity`, `deceleration`, `clamp`       | `withDecay`                         |
+| `'no-animation'`     | —                                         | direct assignment, no interpolation |
 
 Plus, on any transition: `delay`, `repeat`. Per-property transitions take precedence over the top-level transition. Spring config uses **react-spring vocabulary** (`tension`/`friction`); Reanimated's raw `stiffness`/`damping` is never on the public surface.
 

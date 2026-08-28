@@ -14,8 +14,6 @@ export const TRANSITION_CONFIG_KEYS = new Set([
   'friction',
   'mass',
   'velocity',
-  'restSpeedThreshold',
-  'restDisplacementThreshold',
   'duration',
   'easing',
   'delay',

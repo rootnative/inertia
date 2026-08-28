@@ -1,6 +1,6 @@
 ---
 sidebar_position: 9
-description: "A provider for subtree-wide animation config: OS reduce-motion behavior and a registry of named transitions."
+description: 'A provider for subtree-wide animation config: OS reduce-motion behavior and a registry of named transitions.'
 ---
 
 # MotionConfig

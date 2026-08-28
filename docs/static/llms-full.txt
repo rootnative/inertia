@@ -688,8 +688,6 @@ transition={{
   friction: 26,         // default
   mass: 1,              // default
   velocity: 0,
-  restSpeedThreshold: undefined,
-  restDisplacementThreshold: undefined,
   delay: 0,
   repeat: undefined,
 }}
@@ -2910,7 +2908,7 @@ function Chained() {
 | ----------------------------------------------------------------------------------------------- | --------------------- |
 | `useSpring(target: number \| SharedValue<number>, config?: SpringTransition \| TransitionName)` | `SharedValue<number>` |
 
-Config accepts every field of [`SpringTransition`](../transitions): `tension`, `friction`, `mass`, `velocity`, `restSpeedThreshold`, `restDisplacementThreshold`. Reanimated's raw `stiffness` / `damping` names are never accepted — that conversion is private to the library.
+Config accepts every field of [`SpringTransition`](../transitions): `tension`, `friction`, `mass`, `velocity`. Reanimated's raw `stiffness` / `damping` names are never accepted — that conversion is private to the library.
 
 `config` also accepts a [named transition](../motion-config#named-transitions). Because the hook is spring-only, the name must be registered as a spring — a timing / decay / no-animation name warns in dev and falls back to the default spring (use `useAnimation` to honor the registered type). The same applies to `useBooleanSpring`.
 
@@ -3522,7 +3520,9 @@ Returns `{ current, transitionTo, subscribe }`:
 | `transitionTo` | `(next: keyof V & string) => void` | No-op if `next === current`. Warns on unknown keys in dev.       |
 | `subscribe`    | `(listener) => () => void`         | Internal. Motion primitives subscribe via the `controller` prop. |
 
-The controller is identity-stable — the hook returns the same object across renders.
+The controller is identity-stable — the hook returns the same object across renders. It also pins the `variants` map it received on the first render: if a later render passes a different map object, the controller keeps validating keys against the first one. Define the map once (module scope or `useMemo`) rather than inline in render.
+
+Do not set `controller` and `animate` on the same primitive — the controller drives the animation and `animate` is ignored (warns in dev).
 
 See [Variants](../variants) for the props-side usage.
 

@@ -1,6 +1,6 @@
 ---
 sidebar_position: 4
-description: "The transition prop decides how an animate value reaches its target: springs by default, with durations, decay, and instant assignment opt-in."
+description: 'The transition prop decides how an animate value reaches its target: springs by default, with durations, decay, and instant assignment opt-in.'
 ---
 
 # Transitions
@@ -59,8 +59,6 @@ transition={{
   friction: 26,         // default
   mass: 1,              // default
   velocity: 0,
-  restSpeedThreshold: undefined,
-  restDisplacementThreshold: undefined,
   delay: 0,
   repeat: undefined,
 }}

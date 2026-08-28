@@ -28,6 +28,13 @@ export const DEFAULT_SPRING: Required<
  * names differ but the underlying physics constants are the same. We don't
  * surface the raw names publicly because the react-spring vocabulary is
  * what designers and prior-art consumers expect.
+ *
+ * Settle control is deliberately absent: Reanimated 4 settles springs on an
+ * internal `energyThreshold` and ignores Reanimated 3's `restSpeedThreshold`
+ * / `restDisplacementThreshold`. Inertia surfaced those two names through
+ * `0.0.9`, where they were silently inert — do not re-add them. If a settle
+ * knob is ever needed, expose Reanimated 4's `overshootClamping` or
+ * `energyThreshold`, which the runtime actually reads.
  */
 export function springToReanimated(t: SpringTransition) {
   'worklet'
@@ -36,7 +43,5 @@ export function springToReanimated(t: SpringTransition) {
     damping: t.friction ?? DEFAULT_SPRING.friction,
     mass: t.mass ?? DEFAULT_SPRING.mass,
     velocity: t.velocity,
-    restSpeedThreshold: t.restSpeedThreshold,
-    restDisplacementThreshold: t.restDisplacementThreshold,
   }
 }
