@@ -1,5 +1,6 @@
 ---
 sidebar_position: 8
+description: Presence keeps a child mounted long enough to play its exit animation when it leaves the tree.
 ---
 
 # Presence

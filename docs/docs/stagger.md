@@ -1,5 +1,6 @@
 ---
 sidebar_position: 9
+description: Stagger gives each child a delay derived from its position, so a list entrance cascades without every child computing index * ms.
 ---
 
 # Stagger

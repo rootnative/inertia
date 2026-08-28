@@ -1,5 +1,6 @@
 ---
 sidebar_position: 1
+description: Maps the useSharedValue and useAnimatedStyle patterns we keep rewriting onto the props that replace them.
 ---
 
 # Migrating from raw Reanimated

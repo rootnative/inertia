@@ -1,5 +1,6 @@
 ---
 sidebar_position: 2
+description: Wrap any component with the Motion prop surface — its style prop type is inferred and flows through to animate, initial, exit, and gesture.
 ---
 
 # createMotionComponent

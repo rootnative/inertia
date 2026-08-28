@@ -1,5 +1,6 @@
 ---
 sidebar_position: 6
+description: Named animation states — define them once, then drive transitions by passing a key.
 ---
 
 # Variants

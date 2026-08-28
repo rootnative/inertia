@@ -1,5 +1,6 @@
 ---
 sidebar_position: 3
+description: The JS-thread resolver functions the Motion primitives are built on, exported for building your own animated component.
 ---
 
 # Transition utilities

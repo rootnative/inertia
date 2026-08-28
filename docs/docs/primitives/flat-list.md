@@ -1,5 +1,6 @@
 ---
 sidebar_position: 7
+description: Animatable, virtualized FlatList — the primitive that lets one list both virtualize and animate.
 ---
 
 # Motion.FlatList

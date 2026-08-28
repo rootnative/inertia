@@ -1,5 +1,6 @@
 ---
 sidebar_position: 2
+description: Animatable View — the default primitive for boxes, surfaces, and anything that is not text, an image, scrolling, or pressable.
 ---
 
 # Motion.View

@@ -13,6 +13,7 @@ const config: Config = {
   url: 'https://rootnative.github.io',
   baseUrl,
   onBrokenLinks: 'throw',
+  onBrokenAnchors: 'throw',
 
   markdown: {
     hooks: {
@@ -50,10 +51,13 @@ const config: Config = {
         crossorigin: 'anonymous',
       },
     },
-  ],
-
-  stylesheets: [
-    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap',
+    {
+      tagName: 'link',
+      attributes: {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap',
+      },
+    },
   ],
 
   presets: [
@@ -105,6 +109,9 @@ const config: Config = {
   ],
 
   themeConfig: {
+    colorMode: {
+      respectPrefersColorScheme: true,
+    },
     image: 'img/social-card.png',
     navbar: {
       title: 'Inertia',
@@ -127,8 +134,9 @@ const config: Config = {
         },
         {
           href: 'https://github.com/rootnative/inertia',
-          label: 'GitHub',
           position: 'right',
+          className: 'navbar-github-link',
+          'aria-label': 'GitHub repository',
         },
       ],
     },

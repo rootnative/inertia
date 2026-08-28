@@ -1,5 +1,6 @@
 ---
 sidebar_position: 4
+description: "The transition prop decides how an animate value reaches its target: springs by default, with durations, decay, and instant assignment opt-in."
 ---
 
 # Transitions

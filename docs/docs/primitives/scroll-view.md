@@ -1,5 +1,6 @@
 ---
 sidebar_position: 6
+description: Animatable ScrollView, where animations apply to the scroll container itself.
 ---
 
 # Motion.ScrollView

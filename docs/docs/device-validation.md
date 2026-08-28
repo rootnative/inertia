@@ -1,10 +1,11 @@
 ---
 sidebar_position: 11
+description: The run procedure for the five behaviors CI cannot validate, because the Jest mock resolves animations synchronously by design.
 ---
 
 # Device validation checklist
 
-Five features have shipped across `0.0.1`–`0.0.5` that CI cannot validate. The Jest mock resolves animations **synchronously by design** — `withSpring` is the identity function and `useAnimatedStyle` runs once per call with no frame loop — so no amount of test-writing observes a dropped frame, a colour crossfade at 60 Hz, or whether a native measurement resolved in time. Every item below is green in CI and unproven on hardware.
+Five features have shipped across `0.0.1`–`0.0.9` that CI cannot validate. The Jest mock resolves animations **synchronously by design** — `withSpring` is the identity function and `useAnimatedStyle` runs once per call with no frame loop — so no amount of test-writing observes a dropped frame, a colour crossfade at 60 Hz, or whether a native measurement resolved in time. Every item below is green in CI and unproven on hardware.
 
 This page is the run procedure. It is written to be completed in **one sitting with two physical devices** (one Android, one iOS), and to be checked off in place: record findings in the results table at the bottom, then mirror them into the standing-items bullet in the design contract so the next audit doesn't re-derive the list.
 
@@ -33,10 +34,11 @@ The package's own `android` / `ios` scripts only start the dev server (`expo sta
 
 The full procedure already exists — follow **[Perf bench](./perf-bench)** rather than duplicating it here. In short: open **Perf bench**, enable PerfMonitor from the dev menu, scroll hard for ~10 s on the **Inertia** toggle, then repeat the same motion on **Hand-rolled**, and compare UI-thread drops. Pass is `dropped_inertia <= dropped_handrolled * 1.05`.
 
-Two things worth knowing before you run it:
+Three things worth knowing before you run it:
 
 - The screen ships with **`FlatList`** so it runs in Expo Go. The canonical moti reproduction was against **FlashList**; swapping is one import plus one tag change in [PerfBenchScreen.tsx](https://github.com/rootnative/inertia/blob/main/example/screens/PerfBenchScreen.tsx), but FlashList needs a custom dev client. Run `FlatList` first — if Inertia is within 5% there, the swap is a confirmation rather than a discovery.
 - JS-thread drops should be near zero on **both** variants. If they aren't, something is running JS per frame and the UI-thread comparison is being masked — diagnose that first.
+- Since `0.0.7` the library ships **`Motion.FlatList`** (`@rootnative/inertia/flat-list`). The bar below is about a `Motion.Pressable` **row** inside a virtualized list, so it is unchanged by that — but if the bench screen is rebuilt on `Motion.FlatList`, record which scroller each number came from.
 
 **Android only.** iOS does not drop frames at this list size, so a green iOS run proves nothing.
 
@@ -94,7 +96,7 @@ Same screen. Each card uses a deliberately darker detail shade so the crossfade 
 - [ ] No frame where the arriving element wears _neither_ style (a flash of default/transparent).
 - [ ] Enable OS reduce-motion, repeat: rect **and** style both snap together. Half a transition degrading is worse than none.
 
-## 5. Layout keys — reflow cost (since `0.0.5`, this release)
+## 5. Layout keys — reflow cost (since `0.0.5`)
 
 Screen: **Layout keys**. Built specifically for this comparison: each layout key sits beside its transform equivalent so the frame cost is directly visible.
 

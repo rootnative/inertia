@@ -1,5 +1,6 @@
 ---
 sidebar_position: 10
+description: A manual harness for the Phase-3 acceptance bar, comparing Inertia against hand-rolled Reanimated on dropped frames.
 ---
 
 # Perf bench

@@ -1,5 +1,6 @@
 ---
 sidebar_position: 1
+description: Every animatable surface is a Motion.* component — an animatable mirror of a React Native primitive, with its prop surface unchanged.
 ---
 
 # Primitives

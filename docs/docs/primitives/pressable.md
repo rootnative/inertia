@@ -1,5 +1,6 @@
 ---
 sidebar_position: 5
+description: Animatable Pressable — gesture.pressed hooks into onPressIn and onPressOut, inheriting touch slop and accessibility semantics.
 ---
 
 # Motion.Pressable

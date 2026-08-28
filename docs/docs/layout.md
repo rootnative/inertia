@@ -1,5 +1,6 @@
 ---
 sidebar_position: 11
+description: The layout prop interpolates position and size changes that come from outside the animate flow, instead of letting them snap.
 ---
 
 # Layout

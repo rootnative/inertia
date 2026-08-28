@@ -1,5 +1,6 @@
 ---
 sidebar_position: 4
+description: Animatable Image, typed against ImageStyle — so tintColor autocompletes here and is rejected elsewhere.
 ---
 
 # Motion.Image

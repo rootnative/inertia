@@ -1,5 +1,6 @@
 ---
 sidebar_position: 11
+description: A Reanimated Jest mock and the renderWithMotion helper, so existing suites can assert on animated UI.
 ---
 
 # Testing

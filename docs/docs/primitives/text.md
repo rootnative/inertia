@@ -1,5 +1,6 @@
 ---
 sidebar_position: 3
+description: Animatable Text, with animate, initial, exit, and gesture typed against TextStyle.
 ---
 
 # Motion.Text

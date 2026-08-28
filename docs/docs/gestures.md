@@ -1,5 +1,6 @@
 ---
 sidebar_position: 7
+description: One gesture prop on every Motion primitive, with no handlers mounted at all when the prop is omitted.
 ---
 
 # Gestures
