@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { warnOnce } from '../internal/warnOnce'
 import { PresenceContext, type PresenceContextValue } from './PresenceContext'
 
 interface RenderEntry {
@@ -38,11 +39,10 @@ export function Presence({ children }: { children: ReactNode }) {
     Children.forEach(children, (child) => {
       if (!isValidElement(child)) return
       if (child.key === null) {
-        if (__DEV__) {
-          console.warn(
-            '[inertia] <Presence> children must have a `key`. Skipping a keyless child.',
-          )
-        }
+        warnOnce(
+          'presence-keyless-child',
+          '[inertia] <Presence> children must have a `key`. Skipping a keyless child.',
+        )
         return
       }
       out.push(child)
@@ -224,5 +224,3 @@ function PresenceItem({
     </PresenceContext.Provider>
   )
 }
-
-declare const __DEV__: boolean

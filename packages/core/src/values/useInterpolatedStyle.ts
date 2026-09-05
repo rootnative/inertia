@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
 import type { ImageStyle, TextStyle, ViewStyle } from 'react-native'
 import {
-  Extrapolation,
   interpolate,
   interpolateColor,
   useAnimatedStyle,
   type SharedValue,
 } from 'react-native-reanimated'
+import { warnOnce } from '../internal/warnOnce'
+import { mapExtrapolation, type ExtrapolationMode } from './extrapolation'
 import type { ColorStyleKey } from './useColorTransition'
-import type { ExtrapolationMode } from './useTransform'
 
 /**
  * Numeric style keys `useInterpolatedStyle` can emit directly (not lifted into
@@ -158,12 +158,6 @@ function evenlySpaced(count: number): number[] {
   return out
 }
 
-function mapExtrapolation(mode: ExtrapolationMode | undefined): Extrapolation {
-  if (mode === 'identity') return Extrapolation.IDENTITY
-  if (mode === 'extend') return Extrapolation.EXTEND
-  return Extrapolation.CLAMP
-}
-
 /**
  * Order-preserving structural signature of the map + options. Unlike
  * `stableSig` (which sorts keys), this walks `map` in insertion order because
@@ -202,8 +196,9 @@ function buildEntries(
         ? [0, 1]
         : evenlySpaced(output.length)
 
-    if (__DEV__ && explicitInput && explicitInput.length !== output.length) {
-      console.warn(
+    if (explicitInput && explicitInput.length !== output.length) {
+      warnOnce(
+        `interpolated-style-range:${String(key)}:${explicitInput.length}:${output.length}`,
         `[inertia] useInterpolatedStyle: inputRange has ${explicitInput.length} stops but the "${String(
           key,
         )}" output has ${output.length}. They must match — interpolation results are undefined otherwise.`,
@@ -345,5 +340,3 @@ export function useInterpolatedStyle<K extends keyof InterpolatedStyleMap>(
     return out
   }) as InterpolatedStyle<K>
 }
-
-declare const __DEV__: boolean

@@ -13,6 +13,7 @@ import {
 } from '../index'
 import { useGestureLayer } from '../gestureLayer'
 import { type NamedTransitions, type TransitionConfig } from '../types'
+import { __resetWarnOnceForTests } from '../internal/warnOnce'
 
 // §3.1 named transition registry: names registered on <MotionConfig
 // transitions> are accepted anywhere a TransitionConfig is. Semantics under
@@ -35,6 +36,7 @@ function providerFor(transitions: NamedTransitions) {
 describe('named transitions — registry semantics', () => {
   beforeEach(() => {
     jest.restoreAllMocks()
+    __resetWarnOnceForTests()
   })
 
   it('resolveNamedTransition passes configs through and looks names up', () => {
@@ -93,6 +95,7 @@ describe('named transitions — registry semantics', () => {
 describe('named transitions — Motion primitives', () => {
   beforeEach(() => {
     jest.restoreAllMocks()
+    __resetWarnOnceForTests()
   })
 
   it('accepts a name as the top-level transition prop', () => {
@@ -187,6 +190,7 @@ describe('named transitions — Motion primitives', () => {
 describe('named transitions — value-layer hooks', () => {
   beforeEach(() => {
     jest.restoreAllMocks()
+    __resetWarnOnceForTests()
   })
 
   it('useAnimation honors a named timing transition', () => {

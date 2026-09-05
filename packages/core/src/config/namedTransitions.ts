@@ -1,3 +1,4 @@
+import { warnOnce } from '../internal/warnOnce'
 import { isTopLevelTransition } from '../transitions/keys'
 import {
   type NamedTransitions,
@@ -5,8 +6,6 @@ import {
   type TransitionConfig,
   type TransitionInput,
 } from '../types'
-
-declare const __DEV__: boolean
 
 /**
  * Fallback used when a name isn't found in the registry: the library default
@@ -26,13 +25,12 @@ export function lookupNamedTransition(
 ): TransitionConfig {
   const cfg = registry[name]
   if (cfg) return cfg
-  if (__DEV__) {
-    console.warn(
-      `[inertia] Unknown transition name "${name}" — falling back to the ` +
-        `default spring. Register it on a provider: ` +
-        `<MotionConfig transitions={{ '${name}': { ... } }}>.`,
-    )
-  }
+  warnOnce(
+    `unknown-transition:${name}`,
+    `[inertia] Unknown transition name "${name}" — falling back to the ` +
+      `default spring. Register it on a provider: ` +
+      `<MotionConfig transitions={{ '${name}': { ... } }}>.`,
+  )
   return UNKNOWN_NAME_FALLBACK
 }
 

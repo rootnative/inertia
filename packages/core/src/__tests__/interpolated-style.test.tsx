@@ -7,6 +7,7 @@ import {
   type InterpolatedStyleMap,
   type UseInterpolatedStyleOptions,
 } from '../values'
+import { __resetWarnOnceForTests } from '../internal/warnOnce'
 
 // `useInterpolatedStyle` maps one progress SharedValue onto N style/transform
 // props via `interpolate` / `interpolateColor`. The static Reanimated mock
@@ -37,6 +38,7 @@ function readStyle(
 
 beforeEach(() => {
   jest.restoreAllMocks()
+  __resetWarnOnceForTests()
 })
 
 describe('useInterpolatedStyle — numeric keys', () => {
