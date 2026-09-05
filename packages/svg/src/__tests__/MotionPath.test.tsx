@@ -165,3 +165,36 @@ describe('MotionPath', () => {
     expect(animated.d).toBe('M 5 5L 20 20Z')
   })
 })
+
+describe('MotionPath — transition identity', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('does not restart the morph when a parent re-renders with a fresh transition literal', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    const ui = () => (
+      <MotionPath
+        d="M 0 0 L 10 10"
+        animate={{ d: 'M 5 5 L 20 20' }}
+        transition={{ type: 'timing', duration: 200 }}
+      />
+    )
+    const result = renderWithMotion(ui())
+    const afterMount = withTiming.mock.calls.length
+    expect(afterMount).toBeGreaterThan(0)
+
+    result.rerender(ui())
+    result.rerender(ui())
+    expect(withTiming.mock.calls.length).toBe(afterMount)
+
+    result.rerender(
+      <MotionPath
+        d="M 0 0 L 10 10"
+        animate={{ d: 'M 5 5 L 20 20' }}
+        transition={{ type: 'timing', duration: 900 }}
+      />,
+    )
+    expect(withTiming.mock.calls.length).toBeGreaterThan(afterMount)
+  })
+})

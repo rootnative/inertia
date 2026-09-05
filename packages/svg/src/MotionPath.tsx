@@ -10,6 +10,7 @@ import {
   TRANSPARENT,
   useShouldReduceMotion,
   type TransitionConfig,
+  stableSig,
 } from '@rootnative/inertia'
 import {
   diffTemplate,
@@ -209,6 +210,13 @@ export function MotionPath(props: MotionPathProps) {
   // Serialize scalar targets into stable keys so effects re-run on value
   // change, not on every parent re-render (a fresh `animate` literal each
   // render is the common case).
+  // Effects below key on this signature, not on the `transition` object. A
+  // parent that re-renders with an inline `transition={{ ... }}` literal makes
+  // a new object each time; keying on identity re-fired every effect and
+  // restarted the in-flight animation from its current value with the full
+  // duration. The signature only changes when the config itself changes.
+  const transitionSig = stableSig(transition)
+
   const animateD = animate?.d
   const animateFill = animate?.fill
   const animateStroke = animate?.stroke
@@ -236,21 +244,21 @@ export function MotionPath(props: MotionPathProps) {
     }
     // paramSvs / template are stable across renders by the locks above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animateD, reduce, transition])
+  }, [animateD, reduce, transitionSig])
 
   useEffect(() => {
     if (animateFill === undefined) return
     const cfg = reduce ? NO_ANIMATION : pickTransition(transition, 'fill')
     fillSv.value = resolveTransition(cfg, animateFill) as string
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animateFill, reduce, transition])
+  }, [animateFill, reduce, transitionSig])
 
   useEffect(() => {
     if (animateStroke === undefined) return
     const cfg = reduce ? NO_ANIMATION : pickTransition(transition, 'stroke')
     strokeSv.value = resolveTransition(cfg, animateStroke) as string
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animateStroke, reduce, transition])
+  }, [animateStroke, reduce, transitionSig])
 
   useEffect(() => {
     if (animateStrokeWidth === undefined) return
@@ -259,7 +267,7 @@ export function MotionPath(props: MotionPathProps) {
       : pickTransition(transition, 'strokeWidth')
     strokeWidthSv.value = resolveTransition(cfg, animateStrokeWidth) as number
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animateStrokeWidth, reduce, transition])
+  }, [animateStrokeWidth, reduce, transitionSig])
 
   useEffect(() => {
     if (animateStrokeOpacity === undefined) return
@@ -271,7 +279,7 @@ export function MotionPath(props: MotionPathProps) {
       animateStrokeOpacity,
     ) as number
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animateStrokeOpacity, reduce, transition])
+  }, [animateStrokeOpacity, reduce, transitionSig])
 
   useEffect(() => {
     if (animateFillOpacity === undefined) return
@@ -280,14 +288,14 @@ export function MotionPath(props: MotionPathProps) {
       : pickTransition(transition, 'fillOpacity')
     fillOpacitySv.value = resolveTransition(cfg, animateFillOpacity) as number
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animateFillOpacity, reduce, transition])
+  }, [animateFillOpacity, reduce, transitionSig])
 
   useEffect(() => {
     if (animateOpacity === undefined) return
     const cfg = reduce ? NO_ANIMATION : pickTransition(transition, 'opacity')
     opacitySv.value = resolveTransition(cfg, animateOpacity) as number
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animateOpacity, reduce, transition])
+  }, [animateOpacity, reduce, transitionSig])
 
   useEffect(() => {
     if (animateStrokeDashoffset === undefined) return
@@ -299,7 +307,7 @@ export function MotionPath(props: MotionPathProps) {
       animateStrokeDashoffset,
     ) as number
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animateStrokeDashoffset, reduce, transition])
+  }, [animateStrokeDashoffset, reduce, transitionSig])
 
   const animatedProps = useAnimatedProps(() => {
     'worklet'

@@ -200,6 +200,31 @@ function useMyAnimatedProp(target: number, transition?: TransitionInput) {
 
 This is how the Motion primitives and value-layer hooks support `transition="selection"` internally; adapter packages use the same two calls to join the registry.
 
+## `stableSig(value)`
+
+Returns a string signature of `value` that is stable across renders when the content is the same. Keys are sorted at every level, so two objects with the same entries in a different order give the same signature. `undefined` gives an empty string, and a function gives `null` inside the signature.
+
+Use it as an effect dependency in a custom animated component in place of the `transition` object itself. An inline `transition={{ type: 'timing', duration: 600 }}` literal is a new object on every render of the parent. An effect that depends on that object re-fires on every parent render and re-assigns the animation from its current value with the full duration. An effect that depends on `stableSig(transition)` re-fires only when the config changes.
+
+```tsx
+import { resolveTransition, stableSig } from '@rootnative/inertia'
+
+function useAnimatedRadius(
+  sv: SharedValue<number>,
+  target: number,
+  transition?: TransitionConfig,
+) {
+  const transitionSig = stableSig(transition)
+  useEffect(() => {
+    sv.value = resolveTransition(transition, target)
+    // `transition` is read through its signature on purpose.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sv, target, transitionSig])
+}
+```
+
+The factory primitives and the `-gradients` and `-svg` adapters key their own `transition` effects this way.
+
 ## `TRANSPARENT`
 
 The colour to seed a colour shared value with when a custom component has no other source for it.

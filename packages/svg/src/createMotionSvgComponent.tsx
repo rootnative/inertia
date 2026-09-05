@@ -13,6 +13,7 @@ import {
   type NamedTransitions,
   type TransitionConfig,
   type TransitionInput,
+  stableSig,
 } from '@rootnative/inertia'
 
 const NO_ANIMATION: TransitionConfig = { type: 'no-animation' }
@@ -299,6 +300,12 @@ export function createMotionSvgComponent<
       }
     }
 
+    // Effects below key on this signature, not on the `transition` object. A
+    // parent that re-renders with an inline `transition={{ ... }}` literal makes
+    // a new object each time; keying on identity re-fired every effect and
+    // restarted the in-flight animation from its current value with the full
+    // duration. The signature only changes when the config itself changes.
+    const transitionSig = stableSig(transition)
     // One effect per configured key (fixed count). Targets are read into
     // locals so the dep arrays key on the values, not on a fresh `animate`
     // literal each render.
@@ -318,7 +325,7 @@ export function createMotionSvgComponent<
         // SVs / engaged set are mount-stable; registry changes re-resolve via
         // the transition dep on the next animate change.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [target, reduce, transition])
+      }, [target, reduce, transitionSig])
     }
 
     for (const k of colorKeys) {
@@ -335,7 +342,7 @@ export function createMotionSvgComponent<
           : pickTransition(transition, k, registry)
         colorSvs[k]!.value = resolveTransition(cfg, target) as string
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [target, reduce, transition])
+      }, [target, reduce, transitionSig])
     }
 
     for (const k of arrayKeys) {
@@ -367,7 +374,7 @@ export function createMotionSvgComponent<
           svs[i]!.value = resolveTransition(cfg, target[i] ?? 0) as number
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [sig, reduce, transition])
+      }, [sig, reduce, transitionSig])
     }
 
     const animatedProps = useAnimatedProps(() => {

@@ -9,6 +9,7 @@ import {
   resolveTransition,
   useShouldReduceMotion,
   type TransitionConfig,
+  stableSig,
 } from '@rootnative/inertia'
 import type {
   GradientPoint,
@@ -174,6 +175,13 @@ export function MotionLinearGradient(props: MotionLinearGradientProps) {
   const endKey = animate?.end ? `${animate.end.x},${animate.end.y}` : ''
   const locationsKey = animate?.locations ? animate.locations.join('|') : ''
 
+  // Effects below key on this signature, not on the `transition` object. A
+  // parent that re-renders with an inline `transition={{ ... }}` literal makes
+  // a new object each time; keying on identity re-fired every effect and
+  // restarted the in-flight animation from its current value with the full
+  // duration. The signature only changes when the config itself changes.
+  const transitionSig = stableSig(transition)
+
   const animateColors = animate?.colors
   const animateStart = animate?.start
   const animateEnd = animate?.end
@@ -188,7 +196,7 @@ export function MotionLinearGradient(props: MotionLinearGradientProps) {
     }
     // colorSvs / colors are stable across renders by the length-lock above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colorsKey, reduce, transition])
+  }, [colorsKey, reduce, transitionSig])
 
   useEffect(() => {
     if (!animateStart) return
@@ -196,7 +204,7 @@ export function MotionLinearGradient(props: MotionLinearGradientProps) {
     startX.value = resolveTransition(cfg, animateStart.x) as number
     startY.value = resolveTransition(cfg, animateStart.y) as number
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startKey, reduce, transition])
+  }, [startKey, reduce, transitionSig])
 
   useEffect(() => {
     if (!animateEnd) return
@@ -204,7 +212,7 @@ export function MotionLinearGradient(props: MotionLinearGradientProps) {
     endX.value = resolveTransition(cfg, animateEnd.x) as number
     endY.value = resolveTransition(cfg, animateEnd.y) as number
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endKey, reduce, transition])
+  }, [endKey, reduce, transitionSig])
 
   useEffect(() => {
     if (!animateLocations) return
@@ -216,7 +224,7 @@ export function MotionLinearGradient(props: MotionLinearGradientProps) {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locationsKey, reduce, transition])
+  }, [locationsKey, reduce, transitionSig])
 
   const animatedProps = useAnimatedProps(() => {
     'worklet'

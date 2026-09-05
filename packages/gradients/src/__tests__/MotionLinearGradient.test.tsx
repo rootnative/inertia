@@ -224,3 +224,41 @@ describe('MotionLinearGradient', () => {
     ).toThrow(/locations length \(3\) must match colors length \(2\)/)
   })
 })
+
+describe('MotionLinearGradient — transition identity', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('does not restart the animation when a parent re-renders with a fresh transition literal', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    // Same props each time, but `transition` is a new object per render — the
+    // documented call shape. The value-driving effects must key on the
+    // config's content, not its identity, or every parent render restarts
+    // the in-flight animation.
+    const ui = () => (
+      <MotionLinearGradient
+        colors={['#000000', '#000000']}
+        animate={{ colors: ['#ff0000', '#0000ff'] }}
+        transition={{ type: 'timing', duration: 400 }}
+      />
+    )
+    const result = renderWithMotion(ui())
+    const afterMount = withTiming.mock.calls.length
+    expect(afterMount).toBeGreaterThan(0)
+
+    result.rerender(ui())
+    result.rerender(ui())
+    expect(withTiming.mock.calls.length).toBe(afterMount)
+
+    // A real config change still re-resolves.
+    result.rerender(
+      <MotionLinearGradient
+        colors={['#000000', '#000000']}
+        animate={{ colors: ['#ff0000', '#0000ff'] }}
+        transition={{ type: 'timing', duration: 800 }}
+      />,
+    )
+    expect(withTiming.mock.calls.length).toBeGreaterThan(afterMount)
+  })
+})

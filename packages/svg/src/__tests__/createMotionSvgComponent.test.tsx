@@ -321,3 +321,45 @@ describe('createMotionSvgComponent', () => {
     expect(MotionEllipse.displayName).toBe('MotionEllipse')
   })
 })
+
+describe('createMotionSvgComponent — transition identity', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('does not restart the animation when a parent re-renders with a fresh transition literal', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    const ui = () => (
+      <MotionCircle
+        cx={50}
+        cy={50}
+        r={10}
+        fill="#000000"
+        strokeDasharray={[10, 20]}
+        animate={{ r: 40, fill: '#ff0000', strokeDasharray: [20, 10] }}
+        transition={{ type: 'timing', duration: 300 }}
+      />
+    )
+    const result = renderWithMotion(ui())
+    const afterMount = withTiming.mock.calls.length
+    // r, fill, and two strokeDasharray entries.
+    expect(afterMount).toBe(4)
+
+    result.rerender(ui())
+    result.rerender(ui())
+    expect(withTiming.mock.calls.length).toBe(afterMount)
+
+    result.rerender(
+      <MotionCircle
+        cx={50}
+        cy={50}
+        r={10}
+        fill="#000000"
+        strokeDasharray={[10, 20]}
+        animate={{ r: 40, fill: '#ff0000', strokeDasharray: [20, 10] }}
+        transition={{ type: 'timing', duration: 600 }}
+      />,
+    )
+    expect(withTiming.mock.calls.length).toBe(afterMount * 2)
+  })
+})

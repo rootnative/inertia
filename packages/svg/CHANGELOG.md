@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Fixed
+
+- **An inline `transition` literal no longer restarts the animation on every parent re-render.** The value-driving effects keyed on the `transition` object's identity. The documented call shape passes `transition={{ type: 'timing', duration: 600 }}` inline, so each parent render made a new object, re-fired every effect, and re-assigned the animation from its current value with the full duration; a frequently re-rendering parent never let the animation finish. The effects now key on `stableSig(transition)`, exported from `@rootnative/inertia`, so only a change to the config's content re-resolves. Found by the `1.0.0` readiness audit (2026-09-05).
+
 ## [0.0.9] - 2026-08-22
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.9` (`useInterpolatedStyle` types its return against the map it was given, so a `style` array no longer needs a cast). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.9`.
