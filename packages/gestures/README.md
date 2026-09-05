@@ -36,12 +36,12 @@ import { useDrag } from '@rootnative/inertia-gestures'
 function DraggableBox() {
   const drag = useDrag({
     axis: 'both',
-    bounds: { left: -120, right: 120, top: -120, bottom: 120 },
+    constraints: { left: -120, right: 120, top: -120, bottom: 120 },
   })
 
   return (
     <GestureDetector gesture={drag.gesture}>
-      <Motion.View style={drag.style} />
+      <Motion.View style={drag.animatedStyle} />
     </GestureDetector>
   )
 }

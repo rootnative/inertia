@@ -125,7 +125,38 @@ function expandJsxComponents(md) {
   )
   // <RunnableExample ... /> → drop. The live demo isn't useful in a text dump.
   md = md.replace(/<RunnableExample\b[^/]*\/>/g, '')
-  return md
+  return dropEmptyHeadings(md)
+}
+
+// Remove a heading whose section holds only blank lines. This happens when a
+// section held one JSX component that `expandJsxComponents` dropped, for
+// example the `## Try it` section of the gestures adapter page. A heading
+// that is followed by a deeper heading is a parent, not empty, and stays.
+function dropEmptyHeadings(md) {
+  const lines = md.split('\n')
+  const out = []
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+    const heading = /^(#{1,6})\s/.exec(line)
+    if (heading) {
+      let j = i + 1
+      while (j < lines.length && lines[j].trim() === '') j++
+      const next = lines[j]
+      const nextHeading = next === undefined ? null : /^(#{1,6})\s/.exec(next)
+      const nextIsSameOrShallower =
+        nextHeading !== null && nextHeading[1].length <= heading[1].length
+      if (next === undefined || nextIsSameOrShallower) {
+        // Skip the heading and its blank lines. Keep one blank separator.
+        if (out.length > 0 && out[out.length - 1] !== '') out.push('')
+        i = j
+        continue
+      }
+    }
+    out.push(line)
+    i++
+  }
+  return out.join('\n')
 }
 
 function buildLlmsFull() {

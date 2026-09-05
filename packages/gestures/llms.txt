@@ -258,10 +258,6 @@ The full ladder:
 
 Both `useTouchDrag` and the gesture-handler `useDrag` accept the same `onRelease` shape and route through `buildReleaseAnimation`, so swapping between them only touches the wiring, not the release animation config.
 
-## Try it
-
-
-
 ## Why a separate package?
 
 The core library's `gesture` prop covers `pressed` / `focused` / `focusVisible` / `hovered` — boolean state-overlay gestures with no continuous translation. Drag, swipe, and pan are **value-driven**: the gesture publishes a continuous position that the consumer composes into the view's style. They don't fit the boolean-state model, and they need `react-native-gesture-handler` (which we don't want as a required peer of core).

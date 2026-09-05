@@ -1509,10 +1509,6 @@ The full ladder:
 
 Both `useTouchDrag` and the gesture-handler `useDrag` accept the same `onRelease` shape and route through `buildReleaseAnimation`, so swapping between them only touches the wiring, not the release animation config.
 
-## Try it
-
-
-
 ## Why a separate package?
 
 The core library's `gesture` prop covers `pressed` / `focused` / `focusVisible` / `hovered` — boolean state-overlay gestures with no continuous translation. Drag, swipe, and pan are **value-driven**: the gesture publishes a continuous position that the consumer composes into the view's style. They don't fit the boolean-state model, and they need `react-native-gesture-handler` (which we don't want as a required peer of core).
@@ -1714,7 +1710,7 @@ Path normalization that resamples between arbitrary shapes (the flubber-style ap
 | Key                | Shape    | Notes                                                                                                                       |
 | ------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `d`                | `string` | Path data. Source and target must share the same template — see above. Each scalar param springs / times independently.     |
-| `fill`             | `string` | Color, interpolated via Reanimated's color setter. Defaults to `'transparent'` if neither static nor `initial` is supplied. |
+| `fill`             | `string` | Color, interpolated via Reanimated's color setter. Defaults to `TRANSPARENT` (`rgba(0, 0, 0, 0)`) if neither static nor `initial` is supplied. |
 | `stroke`           | `string` | Same as `fill`.                                                                                                             |
 | `strokeWidth`      | `number` | Numeric. Default seed `1`.                                                                                                  |
 | `strokeOpacity`    | `number` | Numeric, 0–1.                                                                                                               |
@@ -1802,7 +1798,7 @@ Shape-specific rules (they mirror `MotionPath`'s command-sequence lock):
 
 - **Array props lock their length at first render.** `strokeDasharray` interpolates element-wise, so a target with a different length throws in dev and is ignored in production. Remount with a new `key` to change the length.
 - **A key only animates when it's present at mount** — in the static props, `initial`, or `animate`. Keys introduced into `animate` after mount warn in dev and are ignored. Keys never mentioned pass through as ordinary static props, so un-animated attributes keep their element defaults.
-- Numeric keys engaged only via `animate` seed from `0`; colors seed from `'transparent'`. Give the key a static prop or an `initial` value when the mount animation should start elsewhere.
+- Numeric keys engaged only via `animate` seed from `0`; colors seed from `TRANSPARENT` (`rgba(0, 0, 0, 0)`, exported from `@rootnative/inertia`). Give the key a static prop or an `initial` value when the mount animation should start elsewhere.
 
 ## createMotionSvgComponent {#factory}
 

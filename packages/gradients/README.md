@@ -16,7 +16,7 @@ Animatable linear gradient primitive for [`@rootnative/inertia`](../core), built
 pnpm add @rootnative/inertia-gradients expo-linear-gradient
 ```
 
-`expo-linear-gradient` works in bare React Native projects as well as Expo — no `expo-modules-core` runtime is required.
+`expo-linear-gradient` works in bare React Native projects as well as Expo, but it is an Expo Module. Bare projects need the Expo modules runtime installed. See [Installing Expo modules](https://docs.expo.dev/bare/installing-expo-modules/).
 
 **Peer dependencies:** `@rootnative/inertia` (workspace or installed), `react >=19.0.0`, `react-native >=0.81.0`, `react-native-reanimated >=4.0.0`, `expo-linear-gradient >=14.0.0`.
 
