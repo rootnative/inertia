@@ -10,6 +10,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
   Migration: delete the two keys from any spring config. Their removal cannot change animation behavior, because they never had any. If a settle knob is needed later, Reanimated 4's `overshootClamping` / `energyThreshold` are the candidates, as a non-breaking addition.
 
+### Fixed
+
+- **A key added to `animate` after mount now animates on native.** The `useAnimatedStyle` worklet read the active key set through plain `useRef` objects. `react-native-worklets` clones a captured plain object once, when the worklet is first serialised, and in dev it freezes the original, so later writes to `.current` were dropped with a `Tried to modify key 'current'` warning. The worklet only ever saw the mount-time set: a parent that changed `animate={{ opacity: 1 }}` to `animate={{ opacity: 1, translateX: 120 }}` drove the `translateX` shared value, but the element did not move. The set now crosses to the UI thread through a shared value that is rewritten once per growth. The Jest mock runs the worklet on the JS thread and never showed the defect; it was confirmed and fixed against an Android emulator. Found by the `1.0.0` readiness audit (2026-09-05).
+
 ### Added
 
 - **Dev warning when `controller` and `animate` are set on the same primitive.** The controller drives the animation and `animate` is ignored; that precedence was documented but silent. It now warns once in dev.

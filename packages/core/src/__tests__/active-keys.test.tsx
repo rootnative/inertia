@@ -21,6 +21,14 @@ function update(result: Rendered, ui: ReactElement): void {
 // changes `animate={{ opacity: 1 }}` to `animate={{ opacity: 1, scale: 2 }}`
 // gets the new shared value updated but never rendered, because the worklet
 // only iterates the frozen set. The set must never shrink.
+//
+// Scope of this file: it pins the JS-side bookkeeping only. The static-render
+// mock runs the `useAnimatedStyle` worklet on the JS thread, so it cannot see
+// whether the grown set actually reaches the UI thread on native. That path
+// (the set crosses through the `activeSetSV` shared value, not a captured
+// ref, because react-native-worklets snapshots and dev-freezes captured plain
+// objects) was confirmed on an Android emulator; re-check it on a device after
+// any change to how the worklet reads the active set.
 
 function getStyle(
   node: { props: { style?: unknown } } | null,

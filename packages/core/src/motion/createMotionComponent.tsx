@@ -272,6 +272,18 @@ const SHARED_STYLE_KEY_SET = new Set<AnimatableKey>(SHARED_STYLE_KEYS)
 type AnimatableSlotValue = number | string | BoxShadowPayload
 
 /**
+ * The keys one instance animates plus the three flags the worklet branches
+ * on. Grown monotonically on the JS thread and mirrored to the UI thread
+ * through a shared value — see `activeSetSV` in the factory.
+ */
+type ActiveKeySet = {
+  keys: readonly AnimatableKey[]
+  hasTransform: boolean
+  hasShadowOffset: boolean
+  hasBoxShadow: boolean
+}
+
+/**
  * Resting `boxShadow` — no shadow at all. Frozen and hoisted so every
  * primitive shares one reference and an untouched slot never allocates.
  */
@@ -603,10 +615,10 @@ export function createMotionComponent<C extends ComponentType<any>>(
       //      render silently dropped the new key (its SV updated, but the
       //      worklet — which iterates this set — never read it).
       //
-      // Growing-only keeps the worklet stable: the `activeKeysRef.current` array
-      // identity only changes on the renders that actually add a key, so the
-      // `useAnimatedStyle` worklet (which reads `.current` each frame) sees the
-      // expansion without churning frame-to-frame.
+      // Growing-only keeps the worklet stable: the set object only changes on
+      // the renders that actually add a key. The worklet reads it through a
+      // shared value (`activeSetSV`, below), so an expansion crosses to the UI
+      // thread once per growth and nothing churns frame-to-frame.
       const hasLayoutId = layoutId !== undefined
 
       // The static `style`, flattened at most once per render and only when
@@ -668,14 +680,11 @@ export function createMotionComponent<C extends ComponentType<any>>(
         }
       }
 
-      const activeKeysRef = useRef<readonly AnimatableKey[] | null>(null)
-      const hasTransformRef = useRef<boolean>(false)
-      const hasShadowOffsetRef = useRef<boolean>(false)
-      const hasBoxShadowRef = useRef<boolean>(false)
+      const activeSetRef = useRef<ActiveKeySet | null>(null)
       // Expand the active set only when this render touched a key we haven't
-      // recorded yet. When nothing new appears we keep the existing array
-      // identity so the worklet's captured ref doesn't see a fresh value.
-      const prevActive = activeKeysRef.current
+      // recorded yet. When nothing new appears we keep the existing object
+      // identity so the JS-side readers below see a stable value.
+      const prevActive = activeSetRef.current?.keys ?? null
       let grew = prevActive === null
       if (!grew && prevActive) {
         for (const k of touched) {
@@ -688,14 +697,13 @@ export function createMotionComponent<C extends ComponentType<any>>(
       if (grew) {
         const merged = new Set<AnimatableKey>(prevActive ?? [])
         for (const k of touched) merged.add(k)
-        activeKeysRef.current = ALL_KEYS.filter((k) => merged.has(k))
-        hasTransformRef.current = activeKeysRef.current.some((k) =>
-          TRANSFORM_KEY_SET.has(k),
-        )
-        hasShadowOffsetRef.current = activeKeysRef.current.some((k) =>
-          SHADOW_OFFSET_KEY_SET.has(k),
-        )
-        hasBoxShadowRef.current = activeKeysRef.current.includes('boxShadow')
+        const keys = ALL_KEYS.filter((k) => merged.has(k))
+        activeSetRef.current = {
+          keys,
+          hasTransform: keys.some((k) => TRANSFORM_KEY_SET.has(k)),
+          hasShadowOffset: keys.some((k) => SHADOW_OFFSET_KEY_SET.has(k)),
+          hasBoxShadow: keys.includes('boxShadow'),
+        }
         // Animating `boxShadow` alongside the native `shadow*` keys puts two
         // shadow systems on one element; whichever the underlying view resolves
         // last wins, and the result reads as a bug rather than a choice.
@@ -703,10 +711,8 @@ export function createMotionComponent<C extends ComponentType<any>>(
         // decides it, and this block only runs when that set grows.
         if (
           __DEV__ &&
-          hasBoxShadowRef.current &&
-          activeKeysRef.current.some(
-            (k) => k !== 'boxShadow' && k.startsWith('shadow'),
-          )
+          activeSetRef.current.hasBoxShadow &&
+          keys.some((k) => k !== 'boxShadow' && k.startsWith('shadow'))
         ) {
           warnOnce(
             'boxShadow-with-native-shadow',
@@ -717,6 +723,25 @@ export function createMotionComponent<C extends ComponentType<any>>(
           )
         }
       }
+      const activeKeys = activeSetRef.current!.keys
+
+      // The worklet's copy of the active set. It must be a shared value, not
+      // the ref above: react-native-worklets clones a captured plain object
+      // once, when the worklet is first serialised, and in dev it freezes the
+      // original so later writes to `.current` are dropped with a warning. A
+      // ref read inside the worklet therefore only ever sees the mount-time
+      // set, and a key added after mount drives its shared value but never
+      // reaches the screen (Worklet rule 2). The Jest mock runs the worklet on
+      // the JS thread, so only a device shows the difference. The write lives
+      // in an effect because Reanimated's strict mode warns on a shared-value
+      // write during render; it is declared before the value-driving effects
+      // below, so the grown set reaches the UI thread in the same commit as
+      // the first animation of the new key.
+      const activeSetSV = useSharedValue<ActiveKeySet>(activeSetRef.current!)
+      const activeSet = activeSetRef.current!
+      useEffect(() => {
+        if (activeSetSV.value !== activeSet) activeSetSV.value = activeSet
+      }, [activeSetSV, activeSet])
 
       // Which keys a record actually drives *right now*. Everything else in
       // the active set is there only because a gesture sub-state, an `exit`
@@ -741,7 +766,6 @@ export function createMotionComponent<C extends ComponentType<any>>(
       // Resting values pulled off the static `style`, for active keys nothing
       // has driven. Gated so the common `animate`-only instance never flattens
       // a style it has no use for.
-      const activeKeys = activeKeysRef.current!
       const everDriven = everDrivenRef.current
       const styleResting: Partial<Record<AnimatableKey, AnimatableSlotValue>> =
         {}
@@ -857,7 +881,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
 
       const styleRestingSig = stableSig(styleResting)
       useEffect(() => {
-        for (const key of activeKeysRef.current!) {
+        for (const key of activeKeys) {
           if (everDrivenRef.current.has(key)) continue
           sharedValues[key].value = (styleResting[key] ??
             DEFAULT_RESTING[key]) as never
@@ -1162,7 +1186,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
         if (!hasLayoutId) return undefined
         const out: SharedStyleSnapshot = {}
         let any = false
-        for (const key of activeKeysRef.current!) {
+        for (const key of activeKeys) {
           if (!SHARED_STYLE_KEY_SET.has(key)) continue
           const v = sharedValues[key].value
           // Structured slots can't be carried, and a key nothing ever gave a
@@ -1186,10 +1210,11 @@ export function createMotionComponent<C extends ComponentType<any>>(
       const carry = sharedLayout.carry
 
       const animatedStyle = useAnimatedStyle(() => {
-        const activeKeys = activeKeysRef.current!
-        const hasTransform = hasTransformRef.current
-        const hasShadowOffset = hasShadowOffsetRef.current
-        const hasBoxShadow = hasBoxShadowRef.current
+        const activeSet = activeSetSV.value
+        const activeKeys = activeSet.keys
+        const hasTransform = activeSet.hasTransform
+        const hasShadowOffset = activeSet.hasShadowOffset
+        const hasBoxShadow = activeSet.hasBoxShadow
         const out: Record<string, unknown> = {}
         const transform: Array<Record<string, unknown>> = []
         // shadow-offset reassembly buffers. The two synthetic axis SVs feed in
@@ -1448,7 +1473,7 @@ type SharedValueMap = Record<AnimatableKey, SharedValue<AnimatableSlotValue>>
  * The ESLint exhaustive-deps rule can't see through the loop, hence the
  * disable — the invariant it would check for us is asserted above instead.
  *
- * Unused shared values are cheap; the worklet skips them via `activeKeysRef`.
+ * Unused shared values are cheap; the worklet skips them via `activeSetSV`.
  * Color keys are seeded with the initial color string so Reanimated's value
  * setter recognizes the slot as a color from the first `withSpring` /
  * `withTiming` call.
