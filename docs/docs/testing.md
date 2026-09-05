@@ -66,6 +66,8 @@ The mock is **static-render**: animations don't actually run, but `useSharedValu
 
 Use it as a drop-in for `@testing-library/react-native`'s `render`. It returns the same render result, with the rendered tree already flushed to the `animate` target.
 
+`@rootnative/inertia/testing` is the only entry point that needs `@testing-library/react-native`. It is an optional peer of `@rootnative/inertia`, version 13 or later. Install it in your devDependencies before you import this entry point.
+
 ```ts
 import { renderWithMotion } from '@rootnative/inertia/testing'
 import { Motion } from '@rootnative/inertia'
