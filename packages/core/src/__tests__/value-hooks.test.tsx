@@ -117,6 +117,44 @@ describe('useSpring', () => {
     expect(withSpring).toHaveBeenCalled()
     expect(typeof probe.current!.value).toBe('number')
   })
+
+  it('re-wires the reaction when the SharedValue target is swapped', () => {
+    // The static mock runs the reaction once per render and ignores its
+    // dependency list, so a swapped target cannot be observed through the
+    // output value here. The regression is pinned on the contract instead:
+    // the explicit dependency list handed to `useAnimatedReaction` must
+    // carry the current target, because an explicit list replaces
+    // Reanimated's closure-derived one and a list without the target keeps
+    // the UI-thread reaction wired to the first shared value forever.
+    const reaction = jest.spyOn(Reanimated, 'useAnimatedReaction')
+    const a = { value: 0 } as Reanimated.SharedValue<number>
+    const b = { value: 10 } as Reanimated.SharedValue<number>
+    const probe: Probe<{ value: number }> = {}
+    const { rerender } = render(
+      <HookProbe use={() => useSpring(a)} probe={probe} />,
+    )
+    const depsA = reaction.mock.calls.at(-1)![2] as unknown[]
+    expect(depsA).toContain(a)
+
+    rerender(<HookProbe use={() => useSpring(b)} probe={probe} />)
+    const depsB = reaction.mock.calls.at(-1)![2] as unknown[]
+    expect(depsB).toContain(b)
+    expect(depsB).not.toContain(a)
+  })
+
+  it('does not re-register the reaction when a plain-number target changes', () => {
+    const reaction = jest.spyOn(Reanimated, 'useAnimatedReaction')
+    const probe: Probe<{ value: number }> = {}
+    const { rerender } = render(
+      <HookProbe use={() => useSpring(10)} probe={probe} />,
+    )
+    const depsBefore = reaction.mock.calls.at(-1)![2] as unknown[]
+    rerender(<HookProbe use={() => useSpring(20)} probe={probe} />)
+    const depsAfter = reaction.mock.calls.at(-1)![2] as unknown[]
+    // The number target is mapped to `null`, so the list is unchanged.
+    expect(depsAfter).toEqual(depsBefore)
+    expect(depsAfter).not.toContain(20)
+  })
 })
 
 describe('useBooleanSpring', () => {

@@ -75,18 +75,26 @@ export function useSpring(
   // it through `withSpring` on the UI thread. When the target is a plain
   // number we never declare a source so the reaction is inert (returns
   // `null`, never fires `react`).
+  //
+  // `source` is in the dependency list on purpose. An explicit list replaces
+  // Reanimated's closure-derived one, so a caller that swaps which shared
+  // value drives the spring would otherwise keep the reaction wired to the
+  // old one — the same stale-closure class `useColorCascade` fixed in 0.0.4.
+  // A plain-number target maps to `null`, so a changing number does not
+  // re-register the inert reaction.
+  const source = isSharedTarget ? target : null
   useAnimatedReaction(
     () => {
       'worklet'
-      if (!isSharedTarget) return null
-      return (target as SharedValue<number>).value
+      if (source === null) return null
+      return source.value
     },
     (next, prev) => {
       'worklet'
       if (next === null || next === prev) return
       output.value = withSpring(next, reanimConfig)
     },
-    [isSharedTarget, reanimConfig],
+    [source, reanimConfig],
   )
 
   // Stop the in-flight spring when the owning component unmounts so its
