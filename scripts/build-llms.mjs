@@ -55,36 +55,29 @@ const SIBLING_PACKAGES = [
   },
 ]
 
-// Doc page order — mirrors docs/sidebars.ts. Keep in sync when adding pages.
-// Entries are doc IDs relative to docs/docs/, no extension.
-const PAGES = [
-  'index',
-  'installation',
-  'primitives/index',
-  'primitives/view',
-  'primitives/text',
-  'primitives/image',
-  'primitives/pressable',
-  'primitives/scroll-view',
-  'transitions',
-  'sequences',
-  'variants',
-  'gestures',
-  'gestures-adapter',
-  'gradients',
-  'svg',
-  'presence',
-  'stagger',
-  'layout',
-  'motion-config',
-  'perf-bench',
-  'testing',
-  'migrations/from-reanimated',
-  'api/hooks',
-  'api/create-motion-component',
-  'api/transition-utilities',
-  'api/reanimated-interop',
-]
+// Doc page order — derived from docs/sidebars.ts so the two lists cannot
+// drift. The sidebar is TypeScript, and the repo supports Node 20, so we read
+// it as text instead of importing it. Every quoted string that is not a
+// `type`, `label`, or import specifier is a doc ID.
+const sidebarsPath = join(docsDir, 'sidebars.ts')
+
+function readSidebarDocIds(source) {
+  const body = source
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('import '))
+    .join('\n')
+    .replace(/\b(type|label)\s*:\s*(['"])(?:(?!\2).)*\2/g, '')
+  const ids = []
+  for (const match of body.matchAll(/(['"])((?:(?!\1).)+)\1/g)) {
+    ids.push(match[2])
+  }
+  if (ids.length === 0) {
+    throw new Error(`[build-llms] no doc IDs found in ${sidebarsPath}`)
+  }
+  return ids
+}
+
+const PAGES = readSidebarDocIds(readFileSync(sidebarsPath, 'utf8'))
 
 // Strip the leading YAML frontmatter block (--- … ---) from a markdown page.
 function stripFrontmatter(md) {
