@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Changed
+
+- **`react-native-worklets` is a required peer, not an optional one.** Core imports `isWorkletFunction` from it without a guard in `transitions/easing.ts` and `values/useTransform.ts`, so the package never worked without it. The `optional: true` flag in `peerDependenciesMeta` is removed. A package manager now warns when the peer is missing instead of staying silent. The installation docs already list it as a peer, so no install step changes. Core also declares it as a devDependency, pinned to `~0.5.1` next to Reanimated `~4.1.1`; before, the workspace typecheck passed only because the example app hoisted it. Found by the `1.0.0` readiness audit (2026-09-05).
+
 ### Removed
 
 - **Breaking: `restSpeedThreshold` and `restDisplacementThreshold` are removed from `SpringTransition`.** Both keys were silently inert on every release since `0.0.1`. They are Reanimated 3 names: Reanimated 4 settles springs on an internal `energyThreshold`, its `SpringConfig` type does not have either key, and its runtime never reads them. Inertia forwarded both into `withSpring`, where they were ignored — a documented public key that did nothing, which is the defect class the `0.0.5` type narrowing exists to prevent. Found by the pre-`1.0.0` review of the transition vocabulary.
