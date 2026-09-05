@@ -49,26 +49,28 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org
           cache: 'pnpm'
 
-      # Pinned to a major rather than `@latest`. An unpinned upgrade silently
+      # Pinned to an exact version, not a range. An unpinned upgrade silently
       # re-versions the release path on every run: `npm version <same-version>`
       # was a no-op through the 0.0.4 release and became a hard error two days
       # later, which broke the first two 0.0.5 attempts with no repo change.
-      - name: Upgrade npm (OIDC trusted publishing requires >=11.5.1)
-        run: npm install -g npm@11
+      # Bump the pin on purpose, in its own commit. Trusted publishing needs
+      # npm >= 11.5.1.
+      - name: Install npm (OIDC trusted publishing requires >=11.5.1)
+        run: npm install -g npm@11.19.1
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -84,7 +86,8 @@ jobs:
         id: packages
         run: |
           IFS=',' read -ra PKGS <<< "${{ inputs.packages }}"
-          VALIDATED=""
+          CORE=""
+          REST=""
           for PKG in "${PKGS[@]}"; do
             PKG=$(echo "$PKG" | xargs) # trim whitespace
             PKG_JSON="packages/$PKG/package.json"
@@ -97,9 +100,13 @@ jobs:
               echo "::error::Package '$PKG' is private and cannot be published."
               exit 1
             fi
-            VALIDATED="$VALIDATED $PKG"
+            # core first, then the adapters in input order. This is the
+            # publish order (adapters peer-depend on core) AND the order the
+            # release tag label is built from, the same as release.yml and
+            # scripts/check-versions.mjs.
+            if [ "$PKG" = "core" ]; then CORE="core"; else REST="$REST $PKG"; fi
           done
-          VALIDATED=$(echo "$VALIDATED" | xargs) # trim leading space
+          VALIDATED=$(echo "$CORE $REST" | xargs) # trim and collapse spaces
           echo "packages=$VALIDATED" >> "$GITHUB_OUTPUT"
           echo "Validated packages: $VALIDATED"
 
@@ -210,8 +217,10 @@ jobs:
 
       - name: Commit and tag
         run: |
-          # Build tag from package names and version
-          PKGS_LABEL=$(echo "${{ inputs.packages }}" | tr ',' '+')
+          # Build the tag from the VALIDATED, core-first package list, not the
+          # raw input. The raw string keeps user spacing and order, so
+          # "gestures, core" produced a label no other tool recognises.
+          PKGS_LABEL=$(echo "${{ steps.packages.outputs.packages }}" | tr ' ' '+')
           TAG="${PKGS_LABEL}@${{ steps.version.outputs.version }}"
 
           git add pnpm-lock.yaml
@@ -233,6 +242,16 @@ jobs:
 
           echo "tag=$TAG" >> "$GITHUB_ENV"
 
+      # Push BEFORE publish. npm publish cannot be undone, but a push can be
+      # rejected (branch protection, a commit that landed on main during the
+      # run). Publishing first left packages live on npm with no tag and no
+      # release commit on main; pushing first fails the run with nothing
+      # released, and a re-run is safe.
+      - name: Push to main
+        run: |
+          git push origin main
+          git push origin "${{ env.tag }}"
+
       - name: Publish packages
         run: |
           # Publish core first if included (other packages may depend on @rootnative/inertia)
@@ -252,7 +271,3 @@ jobs:
             (cd "packages/$PKG_DIR" && pnpm publish --provenance --access public --tag ${{ inputs.tag }} --no-git-checks)
           done
 
-      - name: Push to main
-        run: |
-          git push origin main
-          git push origin "${{ env.tag }}"
