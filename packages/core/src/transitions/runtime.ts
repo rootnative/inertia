@@ -4,11 +4,11 @@ import {
   withSpring,
   withTiming,
 } from 'react-native-reanimated'
+import { DEFAULT_TIMING_DURATION } from './constants'
+import { unwrapEasingFactory } from './easing'
 import { springToReanimated } from './spring'
 import { type AnimationCallback } from './resolve'
 import { type TransitionConfig } from '../types'
-
-const DEFAULT_TIMING_DURATION = 250
 
 /**
  * Worklet-safe single-step animation builder. Mirrors a subset of
@@ -58,13 +58,10 @@ export function buildReleaseAnimation(
   }
   if (transition.type === 'timing') {
     // Reanimated 4's `Easing.bezier(...)` returns an `EasingFunctionFactory`
-    // rather than the function itself. Unwrap inline so consumers calling
+    // rather than the function itself. Unwrap so consumers calling
     // `buildReleaseAnimation` from a gesture worklet don't have to.
     const e = transition.easing
-    const easingFn =
-      e && typeof e === 'object' && 'factory' in e
-        ? e.factory()
-        : (e ?? Easing.inOut(Easing.ease))
+    const easingFn = e ? unwrapEasingFactory(e) : Easing.inOut(Easing.ease)
     return withTiming(
       toValue,
       {

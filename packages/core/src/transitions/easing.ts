@@ -2,7 +2,11 @@
 // dep); Reanimated's own re-export is deprecated.
 import { isWorkletFunction } from 'react-native-worklets'
 import { warnNonWorkletOnce } from '../internal/nonWorkletWarning'
-import { type EasingInput } from '../types'
+import {
+  type EasingFunction,
+  type EasingFunctionFactory,
+  type EasingInput,
+} from '../types'
 
 /**
  * Reanimated 3.9+ validates that easing functions used in nested-transition
@@ -33,7 +37,7 @@ export function ensureWorkletEasing(
   // Reanimated 4 `EasingFunctionFactory` — unwrap via `.factory()` before
   // checking worklet status, so the wrapped fn (not the factory wrapper)
   // ends up in the transition config.
-  const fn = isEasingFactory(easing) ? easing.factory() : easing
+  const fn = unwrapEasingFactory(easing)
   if (isWorkletFunction(fn)) return fn
   warnNonWorkletOnce(
     'timing-easing',
@@ -46,13 +50,21 @@ export function ensureWorkletEasing(
   return wrapped
 }
 
-function isEasingFactory(
-  value: EasingInput,
-): value is { factory: () => (t: number) => number } {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'factory' in value &&
-    typeof (value as { factory: unknown }).factory === 'function'
-  )
+/**
+ * Return the easing function behind an `EasingInput`: a Reanimated 4
+ * `EasingFunctionFactory` is unwrapped through `.factory()`, a plain function
+ * passes through. Worklet, so `buildReleaseAnimation` can call it from a
+ * gesture `onEnd` handler on the UI thread.
+ */
+export function unwrapEasingFactory(easing: EasingInput): EasingFunction {
+  'worklet'
+  if (
+    typeof easing === 'object' &&
+    easing !== null &&
+    'factory' in easing &&
+    typeof (easing as { factory: unknown }).factory === 'function'
+  ) {
+    return (easing as EasingFunctionFactory).factory()
+  }
+  return easing as EasingFunction
 }

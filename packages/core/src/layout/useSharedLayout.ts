@@ -15,6 +15,7 @@ import {
   withSpring,
   withTiming,
 } from 'react-native-reanimated'
+import { DEFAULT_LAYOUT_DURATION } from '../transitions/constants'
 import { DEFAULT_SPRING, springToReanimated } from '../transitions/spring'
 import { type SpringTransition, type TransitionConfig } from '../types'
 import { measureWindowRect } from './measureWindow'
@@ -334,7 +335,7 @@ function legBuilder(
   transition: TransitionConfig | undefined,
 ): (from: number, to: number) => number {
   if (transition?.type === 'timing') {
-    const duration = transition.duration ?? 300
+    const duration = transition.duration ?? DEFAULT_LAYOUT_DURATION
     return (from, to) =>
       withSequence(
         withTiming(from, { duration: 0 }),

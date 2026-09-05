@@ -1,4 +1,5 @@
 import { LinearTransition } from 'react-native-reanimated'
+import { DEFAULT_LAYOUT_DURATION } from '../transitions/constants'
 import { ensureWorkletEasing } from '../transitions/easing'
 import { DEFAULT_SPRING, springToReanimated } from '../transitions/spring'
 import { type TransitionConfig } from '../types'
@@ -34,7 +35,9 @@ export function resolveLayoutTransition(
   if (cfg.type === 'no-animation') return undefined
 
   if (cfg.type === 'timing') {
-    let builder = LinearTransition.duration(cfg.duration ?? 300)
+    let builder = LinearTransition.duration(
+      cfg.duration ?? DEFAULT_LAYOUT_DURATION,
+    )
     const easing = ensureWorkletEasing(cfg.easing)
     if (easing) builder = builder.easing(easing)
     if (cfg.delay) builder = builder.delay(cfg.delay)
