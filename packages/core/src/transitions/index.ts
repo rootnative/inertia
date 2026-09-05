@@ -1,9 +1,14 @@
 export {
   applyDelay,
+  applyRepeat,
+  normalizeRepeat,
+  repeatIterationsOf,
   resolveTransition,
   type AnimationCallback,
   type CallbackFactory,
+  type NormalizedRepeat,
 } from './resolve'
+export { DEFAULT_LAYOUT_DURATION, DEFAULT_TIMING_DURATION } from './constants'
 export { resolveAnimatableValue } from './resolveSequence'
 export { cubicBezier } from './cubicBezier'
 export { ensureWorkletEasing } from './easing'

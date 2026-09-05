@@ -50,7 +50,9 @@ export function resolveAnimatableValue<V extends number | string>(
       resolveStep(step, stepBase, factory?.('step', i)),
     )
     const seq = withSequence(...(animations as never[]))
-    return applyRepeat(seq, base ? repeatOf(base) : undefined)
+    return applyRepeat(seq, base ? repeatOf(base) : undefined, {
+      sequence: true,
+    })
   }
   const step = value as SequenceStep<V>
   const cb = factory?.('animation', undefined)

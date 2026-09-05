@@ -1,5 +1,6 @@
 import * as Reanimated from 'react-native-reanimated'
 import { resolveAnimatableValue } from '../resolveSequence'
+import { __resetWarnOnceForTests } from '../../internal/warnOnce'
 
 // `resolveAnimatableValue` turns a per-property `animate` value into a baked
 // Reanimated animation. It handles the three shapes of `AnimatableValue`:
@@ -11,6 +12,7 @@ import { resolveAnimatableValue } from '../resolveSequence'
 
 beforeEach(() => {
   jest.restoreAllMocks()
+  __resetWarnOnceForTests()
 })
 
 describe('plain value', () => {
@@ -88,8 +90,34 @@ describe('sequence (array of steps)', () => {
     const withRepeat = jest.spyOn(Reanimated, 'withRepeat')
     resolveAnimatableValue([0, 100, 0], { type: 'spring', repeat: 2 })
     // One repeat wraps the whole sequence; the three steps have it stripped.
+    // `reverse` is not forwarded for a sequence: Reanimated only swaps the
+    // wrapped animation's `toValue`, which a sequence ignores.
     expect(withRepeat).toHaveBeenCalledTimes(1)
-    expect(withRepeat).toHaveBeenCalledWith(expect.anything(), 2, true)
+    expect(withRepeat).toHaveBeenCalledWith(expect.anything(), 2, false)
+  })
+
+  it('does not forward alternate for a sequence and warns when it is explicit', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const withRepeat = jest.spyOn(Reanimated, 'withRepeat')
+    // Implicit alternate (number / 'infinite' / omitted flag): silent.
+    resolveAnimatableValue([0, 100, 0], { type: 'spring', repeat: 'infinite' })
+    resolveAnimatableValue([0, 100, 0], {
+      type: 'spring',
+      repeat: { count: 3 },
+    })
+    expect(warn).not.toHaveBeenCalled()
+    // Explicit `alternate: true` on a sequence: warns once, still no reverse.
+    resolveAnimatableValue([0, 100, 0], {
+      type: 'spring',
+      repeat: { count: 3, alternate: true },
+    })
+    resolveAnimatableValue([0, 100, 0], {
+      type: 'spring',
+      repeat: { count: 3, alternate: true },
+    })
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0]![0]).toContain('alternate has no effect')
+    for (const call of withRepeat.mock.calls) expect(call[2]).toBe(false)
   })
 
   it('requests a step-phase callback once per index', () => {

@@ -60,6 +60,10 @@ We use `to` (not `value`) because steps describe a destination — "animate **to
 
 When applied to a sequence, repeat wraps the **whole sequence**, not each step. Per-step `repeat` overrides remain step-local — they apply only inside that step.
 
+`count` is the total number of iterations, including the first pass, so `repeat: 2` plays the animation twice. A count below `1` runs the animation once and warns in dev. It is not forwarded to Reanimated, which reads a count of `0` as endless.
+
+`alternate` has no effect on a sequence. Reanimated's `reverse` flag only swaps the wrapped animation's target, which a sequence ignores — every pass restarts at the first step. Write the reverse steps into the sequence to alternate: `[0, 80, 0]` instead of `[0, 80]` with `alternate`. An explicit `alternate: true` on a sequence warns in dev.
+
 `'no-animation'` and `'decay'` configs ignore `repeat`.
 
 ## `onAnimationEnd`

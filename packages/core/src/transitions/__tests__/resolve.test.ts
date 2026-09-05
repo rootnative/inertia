@@ -1,5 +1,6 @@
 import * as Reanimated from 'react-native-reanimated'
-import { resolveTransition } from '../resolve'
+import { repeatIterationsOf, resolveTransition } from '../resolve'
+import { __resetWarnOnceForTests } from '../../internal/warnOnce'
 
 // `resolveTransition` is a pure JS-thread function that produces baked
 // `withSpring` / `withTiming` / `withDecay` / `withRepeat` calls. Spy on the
@@ -8,6 +9,7 @@ import { resolveTransition } from '../resolve'
 
 beforeEach(() => {
   jest.restoreAllMocks()
+  __resetWarnOnceForTests()
 })
 
 describe('decay resolver', () => {
@@ -113,6 +115,46 @@ describe('repeat config', () => {
     const withRepeat = jest.spyOn(Reanimated, 'withRepeat')
     resolveTransition({ type: 'spring', repeat: { count: 2 } }, 100)
     expect(withRepeat).toHaveBeenCalledWith(expect.anything(), 2, true)
+  })
+})
+
+describe('repeat count validation', () => {
+  it('repeat: 0 runs once, skips withRepeat, and warns (Reanimated reads 0 as endless)', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const withRepeat = jest.spyOn(Reanimated, 'withRepeat')
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    resolveTransition({ type: 'spring', repeat: 0 }, 100)
+    expect(withSpring).toHaveBeenCalledTimes(1)
+    expect(withRepeat).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0]![0]).toContain('below 1')
+  })
+
+  it('{ count: 0 } and negative counts also run once', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const withRepeat = jest.spyOn(Reanimated, 'withRepeat')
+    resolveTransition({ type: 'spring', repeat: { count: 0 } }, 100)
+    resolveTransition({ type: 'spring', repeat: -2 }, 100)
+    expect(withRepeat).not.toHaveBeenCalled()
+  })
+
+  it('repeat: 1 is forwarded as one iteration', () => {
+    const withRepeat = jest.spyOn(Reanimated, 'withRepeat')
+    resolveTransition({ type: 'spring', repeat: 1 }, 100)
+    expect(withRepeat).toHaveBeenCalledWith(expect.anything(), 1, true)
+  })
+
+  it('repeatIterationsOf agrees with the resolver', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(repeatIterationsOf(undefined)).toBe(1)
+    expect(repeatIterationsOf(0)).toBe(1)
+    expect(repeatIterationsOf({ count: -1 })).toBe(1)
+    expect(repeatIterationsOf(3)).toBe(3)
+    expect(repeatIterationsOf({ count: 2 })).toBe(2)
+    expect(repeatIterationsOf('infinite')).toBe(Number.POSITIVE_INFINITY)
+    expect(repeatIterationsOf({ count: 'infinite' })).toBe(
+      Number.POSITIVE_INFINITY,
+    )
   })
 })
 

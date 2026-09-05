@@ -6,8 +6,10 @@ import {
   withSpring,
   withTiming,
 } from 'react-native-reanimated'
+import { DEFAULT_TIMING_DURATION } from './constants'
 import { ensureWorkletEasing } from './easing'
 import { springToReanimated } from './spring'
+import { warnOnce } from '../internal/warnOnce'
 import {
   type DecayTransition,
   type RepeatConfig,
@@ -36,8 +38,6 @@ export type CallbackFactory = (
   phase: 'step' | 'animation',
   step: number | undefined,
 ) => AnimationCallback | undefined
-
-const DEFAULT_TIMING_DURATION = 250
 
 function buildSpring(
   cfg: SpringTransition,
@@ -95,25 +95,100 @@ function buildOne(
 }
 
 /**
+ * Normalised repeat: `count` is the total number of iterations
+ * (`Number.POSITIVE_INFINITY` for `'infinite'`), `alternate` is the resolved
+ * flag, `explicitAlternate` says whether the caller set `alternate` by hand.
+ */
+export interface NormalizedRepeat {
+  count: number
+  alternate: boolean
+  explicitAlternate: boolean
+}
+
+/**
+ * Reduce the three public `repeat` shapes to one record, or `undefined` when
+ * the animation runs once. A count below `1` is treated as "run once" and
+ * warns in dev: Reanimated's `withRepeat` reads `0` and negative counts as
+ * endless, so forwarding them would turn `repeat: 0` into an infinite loop.
+ */
+export function normalizeRepeat(
+  repeat: RepeatConfig | undefined,
+): NormalizedRepeat | undefined {
+  if (repeat === undefined) return undefined
+  if (repeat === 'infinite') {
+    return {
+      count: Number.POSITIVE_INFINITY,
+      alternate: true,
+      explicitAlternate: false,
+    }
+  }
+  const rawCount = typeof repeat === 'number' ? repeat : repeat.count
+  const alternate = typeof repeat === 'number' ? true : repeat.alternate
+  if (rawCount === 'infinite') {
+    return {
+      count: Number.POSITIVE_INFINITY,
+      alternate: alternate ?? true,
+      explicitAlternate: alternate !== undefined,
+    }
+  }
+  if (!(rawCount >= 1)) {
+    warnOnce(
+      `repeat-count:${String(rawCount)}`,
+      `[inertia] repeat count ${String(rawCount)} is below 1 — the ` +
+        `animation runs once. Use \`repeat: 2\` or more to repeat, or ` +
+        `\`repeat: 'infinite'\`. (Reanimated reads a count of 0 as endless, ` +
+        `so it is not forwarded.)`,
+    )
+    return undefined
+  }
+  return {
+    count: rawCount,
+    alternate: alternate ?? true,
+    explicitAlternate: alternate !== undefined,
+  }
+}
+
+/**
+ * Total number of iterations an animation built from `repeat` runs, including
+ * the first pass. `1` when there is no repeat or the count is below 1;
+ * `Number.POSITIVE_INFINITY` for `'infinite'`.
+ */
+export function repeatIterationsOf(repeat: RepeatConfig | undefined): number {
+  return normalizeRepeat(repeat)?.count ?? 1
+}
+
+/**
  * Wrap an animation in `withRepeat` per the unified `repeat` shape:
  *   - `number`              → finite count, alternating direction
  *   - `'infinite'`          → endless, alternating direction
  *   - `{ count, alternate }`→ explicit; `alternate` defaults to `true`
+ *
+ * Pass `{ sequence: true }` when `animation` is a `withSequence` result.
+ * Reanimated's `reverse` flag only swaps the wrapped animation's `toValue`,
+ * which a sequence ignores — it restarts at step 0 on every pass — so the
+ * flag is not forwarded for sequences. An explicit `alternate: true` on a
+ * sequence warns in dev; write the reverse steps into the sequence instead.
  */
 export function applyRepeat(
   animation: unknown,
   repeat: RepeatConfig | undefined,
+  options?: { sequence?: boolean },
 ) {
-  if (repeat === undefined) return animation
-  if (repeat === 'infinite') {
-    return withRepeat(animation as never, -1, true)
+  const r = normalizeRepeat(repeat)
+  if (r === undefined) return animation
+  const count = Number.isFinite(r.count) ? r.count : -1
+  if (options?.sequence) {
+    if (r.explicitAlternate && r.alternate) {
+      warnOnce(
+        'repeat-sequence-alternate',
+        '[inertia] repeat.alternate has no effect on a sequence — Reanimated ' +
+          'restarts a sequence at its first step on every pass. Append the ' +
+          'reverse steps to the sequence to alternate.',
+      )
+    }
+    return withRepeat(animation as never, count, false)
   }
-  if (typeof repeat === 'number') {
-    return withRepeat(animation as never, repeat, true)
-  }
-  const count = repeat.count === 'infinite' ? -1 : repeat.count
-  const alternate = repeat.alternate ?? true
-  return withRepeat(animation as never, count, alternate)
+  return withRepeat(animation as never, count, r.alternate)
 }
 
 /**

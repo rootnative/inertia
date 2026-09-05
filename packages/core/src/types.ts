@@ -128,6 +128,15 @@ export type TransitionInput = TransitionConfig | TransitionName
 
 /**
  * Repeat config — one shape, not three flags. Default `alternate: true`.
+ *
+ * `count` is the total number of iterations, including the first pass, so
+ * `repeat: 2` plays the animation twice. A count below `1` runs the animation
+ * once and warns in dev.
+ *
+ * `alternate` reverses direction on every other pass for a single-value
+ * animation. It has no effect on a sequence (an array target): Reanimated
+ * restarts a sequence at its first step on every pass. Append the reverse
+ * steps to the sequence to alternate.
  */
 export type RepeatConfig =
   | number
