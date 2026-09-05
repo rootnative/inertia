@@ -20,3 +20,6 @@ export type {
   UseGestureLayerOptions,
   UseGestureLayerResult,
 } from './useGestureLayer'
+// The per-layer form of `UseGestureLayerOptions.transition`. Re-exported here
+// so a consumer of this subpath can name it without also importing the root.
+export type { GestureLayerTransitions } from '../types'

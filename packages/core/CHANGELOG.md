@@ -22,6 +22,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 - **`stableSig(value)` is exported from the root barrel.** It is the order-independent structural signature the factory already keys its `transition` effects on. Custom animated components built on `resolveTransition` need the same thing: an inline `transition` literal is a new object every render, so an effect keyed on its identity restarts the animation each time the parent renders. The three adapter packages now use it for exactly that; see `docs/docs/api/transition-utilities.md`.
 
+- **Three types that already appeared in exported signatures are now exported.** `GestureLayerTransitions` (the per-layer form of a gesture `transition`; from the root and from `@rootnative/inertia/gesture-layer`), `CallbackFactory` (the third parameter of `resolveAnimatableValue`), and `MotionComponentProps` (the props of a `Motion.*` primitive for a given component, for typing a wrapper). Pinned by `__type-tests__/public-types.test-d.tsx`. Found by the `1.0.0` readiness audit (2026-09-05).
+
 - **Dev warning when `controller` and `animate` are set on the same primitive.** The controller drives the animation and `animate` is ignored; that precedence was documented but silent. It now warns once in dev.
 
 ### Documentation

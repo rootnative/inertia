@@ -45,6 +45,7 @@ export {
   isTopLevelTransition,
   stableSig,
   type AnimationCallback,
+  type CallbackFactory,
 } from './transitions'
 // Seed value for any color shared value a custom animated component drives
 // through `resolveTransition`. Exported because the obvious choice —
@@ -99,8 +100,10 @@ export type {
   EasingFunction,
   EasingFunctionFactory,
   EasingInput,
+  GestureLayerTransitions,
   GestureSubStates,
   MotionComponent,
+  MotionComponentProps,
   MotionProps,
   NamedTransitions,
   NoAnimationTransition,

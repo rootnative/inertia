@@ -98,7 +98,7 @@ function usePulse(
 
 Override merging follows the same rule as the primitives: if a step's override declares a different `type` than `base`, the override wins outright — spring fields never bleed into a timing step.
 
-The optional **`factory`** argument produces per-step completion callbacks. It's called with `(phase, step)` — `('step', i)` for each sequence step, `('animation', undefined)` for non-sequences — and returns a worklet callback (or `undefined` to skip). This is the mechanism behind the primitives' `onAnimationEnd` firing once per step; supply it only if your component surfaces step-level completion.
+The optional **`factory`** argument (type `CallbackFactory`, exported from the root) produces per-step completion callbacks. It's called with `(phase, step)` — `('step', i)` for each sequence step, `('animation', undefined)` for non-sequences — and returns a worklet callback (or `undefined` to skip). This is the mechanism behind the primitives' `onAnimationEnd` firing once per step; supply it only if your component surfaces step-level completion.
 
 ## `applyDelay(animation, delay?)`
 
