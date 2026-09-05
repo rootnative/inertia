@@ -51,23 +51,39 @@ describe('isFocusVisible — web modality tracking', () => {
     expect(isFocusVisible()).toBe(true)
   })
 
-  it('installs the document listeners at import, before any isFocusVisible call', () => {
-    // The very first interaction with a page can be the mouse click that
-    // focuses a gesture-wired element. If the listeners attached lazily
-    // inside that focus dispatch, the preceding mousedown would go
-    // unobserved and the default keyboard modality would draw a focus ring
-    // for a pointer interaction.
+  it('does not touch the document at import — the package is sideEffects: false', () => {
+    const addEventListener = jest.fn()
+    ;(globalThis as { document?: unknown }).document = { addEventListener }
+    try {
+      require('../focusVisibility')
+      expect(addEventListener).not.toHaveBeenCalled()
+    } finally {
+      delete (globalThis as { document?: unknown }).document
+    }
+  })
+
+  it('installFocusVisibility attaches the listeners once, before any isFocusVisible call', () => {
+    // The click that focuses a gesture-wired element lands on an element
+    // that is already mounted, so a mount-time install observes the
+    // mousedown that precedes the focus. If the listeners only attached
+    // inside that focus dispatch, the mousedown would go unobserved and the
+    // default keyboard modality would draw a focus ring for a pointer
+    // interaction.
     const listeners = new Map<string, (event: unknown) => void>()
-    ;(globalThis as { document?: unknown }).document = {
-      addEventListener: (type: string, fn: (event: unknown) => void) => {
+    const addEventListener = jest.fn(
+      (type: string, fn: (event: unknown) => void) => {
         listeners.set(type, fn)
       },
-    }
+    )
+    ;(globalThis as { document?: unknown }).document = { addEventListener }
     try {
-      const { isFocusVisible } =
+      const { installFocusVisibility, isFocusVisible } =
         require('../focusVisibility') as typeof import('../focusVisibility')
 
-      // Registered by the import itself — no isFocusVisible call yet.
+      installFocusVisibility()
+      installFocusVisibility()
+      // Idempotent: four listeners, attached once.
+      expect(addEventListener).toHaveBeenCalledTimes(4)
       expect(Array.from(listeners.keys()).sort()).toEqual([
         'keydown',
         'mousedown',

@@ -12,15 +12,16 @@ import { Platform } from 'react-native'
  * arrives via D-pad, screen reader, or hardware keyboard, all of which are
  * keyboard-equivalent — so `isFocusVisible()` is unconditionally `true`.
  *
- * The web listeners attach eagerly at module import (capture phase, so they
- * run before the focus event reaches the focused element) and stay installed
- * for the lifetime of the document. Eager installation matters: the very
- * first interaction with a page can be the mouse click that focuses a
- * gesture-wired element, and if the listeners only attached during that
- * focus dispatch the mousedown would already have passed unobserved —
- * leaving the default `'keyboard'` modality and drawing a focus ring for a
- * pointer interaction. They are passive and idle-cheap; the cost is one
- * boolean read per `onFocus` dispatch.
+ * The web listeners attach when the first component that tracks
+ * `focusVisible` mounts (`installFocusVisibility`, called from a mount
+ * effect), in the capture phase so they run before the focus event reaches
+ * the focused element, and they stay installed for the lifetime of the
+ * document. Mount-time installation is early enough: the click that focuses
+ * a gesture-wired element can only land on an element that is already
+ * mounted, so its `mousedown` is observed. The listeners are not attached at
+ * import time — `@rootnative/inertia` declares `sideEffects: false`, and an
+ * import-time listener would make that declaration false. They are passive
+ * and idle-cheap; the cost is one boolean read per `onFocus` dispatch.
  */
 
 type InputModality = 'keyboard' | 'pointer'
@@ -38,7 +39,14 @@ function setPointer() {
   modality = 'pointer'
 }
 
-function ensureInstalled(): void {
+/**
+ * Attach the document listeners that track input modality on web. Idempotent
+ * and a no-op on native or without a `document`. Call it from a mount effect
+ * of any component that reads `isFocusVisible()`, so the pointer event that
+ * precedes the first focus is observed (see module doc above).
+ * `isFocusVisible` also calls it as a safety net.
+ */
+export function installFocusVisibility(): void {
   if (installed) return
   if (Platform.OS !== 'web') return
   if (typeof document === 'undefined') return
@@ -49,12 +57,6 @@ function ensureInstalled(): void {
   installed = true
 }
 
-// Install at import time so the pointer event that precedes the first focus
-// is observed (see module doc above). `ensureInstalled` stays in
-// `isFocusVisible` as a safety net for environments where `document` appears
-// after import.
-ensureInstalled()
-
 /**
  * `true` if the next `onFocus` should be treated as "focus-visible" (keyboard
  * focus). On native, always `true`. On web, reflects the most recent user
@@ -62,7 +64,7 @@ ensureInstalled()
  */
 export function isFocusVisible(): boolean {
   if (Platform.OS !== 'web') return true
-  ensureInstalled()
+  installFocusVisibility()
   return modality === 'keyboard'
 }
 

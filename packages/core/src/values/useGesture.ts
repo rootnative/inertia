@@ -1,11 +1,11 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useSharedValue, type SharedValue } from 'react-native-reanimated'
 import {
   resolveNamedTransitionProp,
   useNamedTransitions,
   useShouldReduceMotion,
 } from '../config'
-import { isFocusVisible } from '../gestures'
+import { installFocusVisibility, isFocusVisible } from '../gestures'
 import { isTopLevelTransition, resolveTransition } from '../transitions'
 import {
   type GestureLayerTransitions,
@@ -109,6 +109,13 @@ export function useGesture(
   // resolve against the nearest <MotionConfig transitions> at render time, so
   // the callbacks below only ever see concrete configs.
   const resolved = resolveNamedTransitionProp(transition, useNamedTransitions())
+
+  // The web modality listeners behind `focusVisible` attach on mount — see
+  // `focusVisibility.ts` for why mount time is early enough and import time
+  // is not an option.
+  useEffect(() => {
+    installFocusVisibility()
+  }, [])
 
   const setLayer = useCallback(
     (sv: SharedValue<number>, layer: LayerName, target: 0 | 1) => {

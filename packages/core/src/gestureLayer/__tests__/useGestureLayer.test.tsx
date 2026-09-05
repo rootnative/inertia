@@ -6,6 +6,7 @@ import { useGestureLayer } from '../useGestureLayer'
 
 jest.mock('../../gestures', () => ({
   isFocusVisible: jest.fn(() => true),
+  installFocusVisibility: jest.fn(),
 }))
 
 const { isFocusVisible } = jest.requireMock('../../gestures') as {

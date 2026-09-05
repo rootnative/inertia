@@ -1,1 +1,1 @@
-export { isFocusVisible } from './focusVisibility'
+export { installFocusVisibility, isFocusVisible } from './focusVisibility'
