@@ -198,3 +198,23 @@ describe('MotionPath — transition identity', () => {
     expect(withTiming.mock.calls.length).toBeGreaterThan(afterMount)
   })
 })
+
+describe('MotionPath — type-less spring config', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('treats a spring config without `type` as the top-level transition', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    renderWithMotion(
+      <MotionPath
+        d="M 0 0 L 10 10"
+        animate={{ d: 'M 5 5 L 20 20' }}
+        transition={{ tension: 300, friction: 20 }}
+      />,
+    )
+    expect(withSpring).toHaveBeenCalledTimes(4)
+    const [, config] = withSpring.mock.calls[0]!
+    expect(config).toMatchObject({ stiffness: 300, damping: 20 })
+  })
+})

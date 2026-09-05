@@ -6,11 +6,12 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated'
 import {
+  isTopLevelTransition,
   resolveTransition,
+  stableSig,
   TRANSPARENT,
   useShouldReduceMotion,
   type TransitionConfig,
-  stableSig,
 } from '@rootnative/inertia'
 import {
   diffTemplate,
@@ -35,7 +36,10 @@ function pickTransition(
   key: keyof PathPerPropertyTransition,
 ): TransitionConfig | undefined {
   if (!per) return undefined
-  if ('type' in per) return per as TransitionConfig
+  // Structural check, not `'type' in per`: `SpringTransition.type` is
+  // optional, so `{ tension: 300 }` is a valid top-level config with no
+  // `type` key and must not be read as a per-property map.
+  if (isTopLevelTransition(per)) return per
   return (per as PathPerPropertyTransition)[key]
 }
 

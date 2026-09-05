@@ -18,6 +18,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ### Added
 
+- **`isTopLevelTransition(value)` is exported from the root barrel.** It is the structural discriminator the factory uses to tell a single `TransitionConfig` from a per-property map: every key must be a known config field. Custom animated components that accept both shapes need the same test; `'type' in transition` is wrong because `SpringTransition.type` is optional. The three adapter packages had that bug and now use this export; see `docs/docs/api/transition-utilities.md`.
+
 - **`stableSig(value)` is exported from the root barrel.** It is the order-independent structural signature the factory already keys its `transition` effects on. Custom animated components built on `resolveTransition` need the same thing: an inline `transition` literal is a new object every render, so an effect keyed on its identity restarts the animation each time the parent renders. The three adapter packages now use it for exactly that; see `docs/docs/api/transition-utilities.md`.
 
 - **Dev warning when `controller` and `animate` are set on the same primitive.** The controller drives the animation and `animate` is ignored; that precedence was documented but silent. It now warns once in dev.

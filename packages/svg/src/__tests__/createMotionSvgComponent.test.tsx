@@ -363,3 +363,45 @@ describe('createMotionSvgComponent — transition identity', () => {
     expect(withTiming.mock.calls.length).toBe(afterMount * 2)
   })
 })
+
+describe('createMotionSvgComponent — type-less spring config', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('treats a spring config without `type` as the top-level transition', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    renderWithMotion(
+      <MotionCircle
+        cx={50}
+        cy={50}
+        r={10}
+        animate={{ r: 40 }}
+        transition={{ tension: 300, friction: 20 }}
+      />,
+    )
+    expect(withSpring).toHaveBeenCalledTimes(1)
+    const [target, config] = withSpring.mock.calls[0]!
+    expect(target).toBe(40)
+    expect(config).toMatchObject({ stiffness: 300, damping: 20 })
+  })
+
+  it('still reads a per-property map when keys are prop names', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    renderWithMotion(
+      <MotionCircle
+        cx={50}
+        cy={50}
+        r={10}
+        fill="#000000"
+        animate={{ r: 40, fill: '#ff0000' }}
+        transition={{ r: { type: 'timing', duration: 300 } }}
+      />,
+    )
+    // `r` takes the mapped timing; `fill` has no entry and takes the default
+    // spring.
+    expect(withTiming).toHaveBeenCalledTimes(1)
+    expect(withSpring).toHaveBeenCalledTimes(1)
+  })
+})

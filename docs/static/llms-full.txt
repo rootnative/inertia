@@ -3901,6 +3901,31 @@ function useMyAnimatedProp(target: number, transition?: TransitionInput) {
 
 This is how the Motion primitives and value-layer hooks support `transition="selection"` internally; adapter packages use the same two calls to join the registry.
 
+## `isTopLevelTransition(value)`
+
+Returns `true` when `value` is a single `TransitionConfig` and `false` when it is a per-property or per-layer map. The test is structural: every key on the object must be a known transition field (`type`, `tension`, `friction`, `mass`, `velocity`, `duration`, `easing`, `delay`, `repeat`, `deceleration`, `clamp`). An empty object, `null`, a string, and a map keyed by prop names all return `false`.
+
+Use it in a custom animated component that accepts both shapes on one `transition` prop. Do not test `'type' in transition`. `SpringTransition.type` is optional, so `{ tension: 300, friction: 20 }` is a valid top-level config with no `type` key. The `in` test reads it as a map, finds nothing under the prop name, and falls back to the default spring with no warning.
+
+```tsx
+import {
+  isTopLevelTransition,
+  type TransitionConfig,
+} from '@rootnative/inertia'
+
+type RadiusTransition = TransitionConfig | { r?: TransitionConfig }
+
+function pickTransition(
+  transition: RadiusTransition | undefined,
+): TransitionConfig | undefined {
+  if (!transition) return undefined
+  if (isTopLevelTransition(transition)) return transition
+  return transition.r
+}
+```
+
+The test is safe under additive growth of the config vocabulary: a valid map key is a style or prop name, and those are disjoint from the config field names.
+
 ## `stableSig(value)`
 
 Returns a string signature of `value` that is stable across renders when the content is the same. Keys are sorted at every level, so two objects with the same entries in a different order give the same signature. `undefined` gives an empty string, and a function gives `null` inside the signature.

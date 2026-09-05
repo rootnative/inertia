@@ -42,6 +42,7 @@ export {
   resolveTransition,
   resolveAnimatableValue,
   ensureWorkletEasing,
+  isTopLevelTransition,
   stableSig,
   type AnimationCallback,
 } from './transitions'

@@ -262,3 +262,26 @@ describe('MotionLinearGradient — transition identity', () => {
     expect(withTiming.mock.calls.length).toBeGreaterThan(afterMount)
   })
 })
+
+describe('MotionLinearGradient — type-less spring config', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('treats a spring config without `type` as the top-level transition', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    // `SpringTransition.type` is optional, so this is a valid top-level
+    // config. The old `'type' in per` check read it as a per-property map,
+    // found nothing under `colors`, and ran the default spring.
+    renderWithMotion(
+      <MotionLinearGradient
+        colors={['#000000', '#000000']}
+        animate={{ colors: ['#ff0000', '#0000ff'] }}
+        transition={{ tension: 300, friction: 20 }}
+      />,
+    )
+    expect(withSpring).toHaveBeenCalled()
+    const [, config] = withSpring.mock.calls[0]!
+    expect(config).toMatchObject({ stiffness: 300, damping: 20 })
+  })
+})

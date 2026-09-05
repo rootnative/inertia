@@ -6,10 +6,11 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated'
 import {
+  isTopLevelTransition,
   resolveTransition,
+  stableSig,
   useShouldReduceMotion,
   type TransitionConfig,
-  stableSig,
 } from '@rootnative/inertia'
 import type {
   GradientPoint,
@@ -35,7 +36,11 @@ function pickTransition(
   key: keyof LinearGradientPerPropertyTransition,
 ): TransitionConfig | undefined {
   if (!per) return undefined
-  if ('type' in per) return per as TransitionConfig
+  // Structural check, not `'type' in per`: `SpringTransition.type` is
+  // optional, so `{ tension: 300 }` is a valid top-level config with no
+  // `type` key. The old check treated it as a per-property map, looked up
+  // `map[key]`, got `undefined`, and ran the default spring instead.
+  if (isTopLevelTransition(per)) return per
   return (per as LinearGradientPerPropertyTransition)[key]
 }
 
