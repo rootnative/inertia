@@ -1,7 +1,17 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
+  "globalDependencies": ["tsconfig.base.json", "jest.setup.js", ".npmrc"],
   "tasks": {
+    "//#build:llms": {
+      "inputs": [
+        "scripts/build-llms.mjs",
+        "docs/sidebars.ts",
+        "docs/docs/**",
+        "docs/static/llms.txt"
+      ],
+      "outputs": ["docs/static/llms-full.txt", "packages/*/llms.txt"]
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "build/**"],
@@ -14,6 +24,20 @@
         "tsup.config.ts",
         "docusaurus.config.ts",
         "sidebars.ts",
+        "package.json"
+      ]
+    },
+    "@rootnative/inertia-docs#build": {
+      "dependsOn": ["^build", "//#build:llms"],
+      "outputs": ["build/**"],
+      "inputs": [
+        "docs/**",
+        "src/**",
+        "scripts/**",
+        "static/**",
+        "docusaurus.config.ts",
+        "sidebars.ts",
+        "tsconfig.json",
         "package.json"
       ]
     },

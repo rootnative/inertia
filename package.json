@@ -21,7 +21,7 @@
     "example:ios": "pnpm --filter @rootnative/inertia-example ios",
     "example:android": "pnpm --filter @rootnative/inertia-example android",
     "docs:dev": "pnpm --filter @rootnative/inertia-docs dev",
-    "docs:build": "pnpm --filter @rootnative/inertia-docs build",
+    "docs:build": "turbo run build --filter=@rootnative/inertia-docs",
     "docs:check": "pnpm --filter @rootnative/inertia-docs build:check",
     "docs:serve": "pnpm --filter @rootnative/inertia-docs serve",
     "build:brand": "node scripts/build-brand.mjs",
