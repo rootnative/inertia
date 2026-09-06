@@ -12,7 +12,9 @@
  *
  * Checks:
  *   1. Lockstep     — every non-private package is at the core version.
- *   2. Peer range   — each adapter's `@rootnative/inertia` peer is `>=<core>`.
+ *   2. Peer range   — each adapter's `@rootnative/inertia` peer is
+ *                     `>=<core> <next-minor>`. Pre-1.0.0, a minor bump is a
+ *                     breaking release, so the range stops at it.
  *   3. Changelog    — each package has a `## [<version>]` section (a release
  *                     with no entry is the failure mode that shipped in 0.0.2).
  *   4. Link refs    — every `## [x.y.z]` heading has a matching link
@@ -83,7 +85,12 @@ const FORM_SCAN_ROOTS = [
   { path: join('docs', 'static'), exts: ['.txt'] },
   { path: 'example', exts: ['.ts', '.tsx'] },
 ]
-const FORM_SCAN_IGNORE = new Set(['node_modules', 'dist', '.docusaurus', 'build'])
+const FORM_SCAN_IGNORE = new Set([
+  'node_modules',
+  'dist',
+  '.docusaurus',
+  'build',
+])
 /** `v` immediately followed by a version number — `v0.2`, `v1.0.0`, `v0.0.0-alpha.0`. */
 const V_PREFIX_RE = /\bv\d+\.\d+(?:\.\d+)?(?:-[\w.]+)?/g
 /** Stripped before scanning: a `v`-prefixed version inside a URL is somebody else's. */
@@ -113,7 +120,9 @@ const packageDirs = readdirSync(packagesDir, { withFileTypes: true })
   .sort()
 
 if (!packageDirs.includes('core')) {
-  console.error('[check-versions] no public `core` package found under packages/')
+  console.error(
+    '[check-versions] no public `core` package found under packages/',
+  )
   process.exit(1)
 }
 
@@ -126,6 +135,17 @@ const readPkg = (dir) =>
 
 const VERSION = readPkg('core').version
 const RELEASE_TAG = tagFor(orderedDirs, VERSION)
+
+/**
+ * Upper bound of the adapter peer range: the next minor of `version`. Every
+ * adapter ships in lockstep with core, and pre-1.0.0 a minor bump is where a
+ * breaking change lands, so an adapter at `0.0.x` must not accept core
+ * `0.1.0`. Both release workflows compute the same bound.
+ */
+export function peerRangeFor(version) {
+  const [major, minor] = version.split('.').map(Number)
+  return `>=${version} <${major}.${minor + 1}.0`
+}
 
 // ── 1. Lockstep versions ────────────────────────────────────────────────────
 
@@ -149,7 +169,7 @@ for (const dir of orderedDirs) {
   const pkg = readPkg(dir)
   const range = pkg.peerDependencies?.['@rootnative/inertia']
   if (range === undefined) continue
-  const expected = `>=${VERSION}`
+  const expected = peerRangeFor(VERSION)
   if (range !== expected) {
     fail(
       `packages/${dir}/package.json: peerDependencies["@rootnative/inertia"] is ` +
@@ -213,7 +233,9 @@ for (const dir of orderedDirs) {
       fixed(`${relPath}: rebuilt link-reference footer.`)
     } else {
       const missing = versions.filter(
-        (v) => !currentFooter.includes(`\n[${v}]:`) && !currentFooter.startsWith(`[${v}]:`),
+        (v) =>
+          !currentFooter.includes(`\n[${v}]:`) &&
+          !currentFooter.startsWith(`[${v}]:`),
       )
       fail(
         `${relPath}: link footer is stale` +
