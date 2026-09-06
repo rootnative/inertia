@@ -24,8 +24,14 @@ const RANGE = 120
 export function UseMotionValueScreen({ onBack }: { onBack: () => void }) {
   const x = useMotionValue(0)
 
-  // Transformer overload — arbitrary worklet derivation.
-  const scale = useTransform(() => 1 + Math.abs(x.value) / (RANGE * 2))
+  // Transformer overload — arbitrary worklet derivation. The `'worklet'`
+  // directive is required: the Babel plugin only auto-workletizes callbacks
+  // passed to Reanimated's own hooks, not to Inertia's, and a plain function
+  // cannot cross to the UI thread on native.
+  const scale = useTransform(() => {
+    'worklet'
+    return 1 + Math.abs(x.value) / (RANGE * 2)
+  })
   // Interpolation overload — numeric input onto a color ramp.
   const tint = useTransform(
     x,
