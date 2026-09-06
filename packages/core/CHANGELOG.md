@@ -18,11 +18,33 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ### Fixed
 
+- **`repeat: 0` (and any count below 1) runs the animation once instead of forever.** Reanimated's `withRepeat` reads a count of `0` or less as endless, and the resolver forwarded the count as given, so `repeat: 0` — the natural way to write "do not repeat" from a variable — looped without end. Counts below `1` are now treated as "run once", warn once in dev, and are not forwarded. `onAnimationEnd`'s iteration counter and `<Presence>`'s settle gate use the same rule through the new `repeatIterationsOf` helper, so the three cannot disagree. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- **`repeat.alternate` is no longer forwarded for a sequence, and an explicit `alternate: true` on a sequence warns.** Reanimated's `reverse` flag only swaps the wrapped animation's target, which a `withSequence` ignores — every pass restarts at the first step — so the flag never alternated a sequence. The resolver now passes `reverse: false` for sequences, the `RepeatConfig` docs state the limit, and the sequences page shows the working form: write the reverse steps into the sequence. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- **`<Presence>` no longer releases an exiting child early when its animation run is replaced mid-exit.** The settle counter that gates `safeToRemove` counted every callback, including the `finished: false` callbacks Reanimated fires for animations that a later effect run replaced. If the value-driving effect re-ran during an exit (a controller change, a reduce-motion flip), the replaced run drained its own counter and unmounted the child while the new run was still animating. Each run is now a token: the effect's cleanup marks the run done, and a superseded run's callbacks are ignored. Pinned by `phase3-audit.test.tsx`, which fails against the previous implementation. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- **An `onAnimationEnd` handler added after mount is wired without waiting for the next animation change.** The callback factory skips callback installation when there is no handler and nothing to settle. A handler that went from `undefined` to defined on a later render was read through a ref, but no callback existed to read it, so it stayed silent until `animate` or `transition` changed. The effect is now also keyed on the handler's presence (not its identity — a changing handler still costs nothing). Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- **`useSpring` and `useBooleanSpring` honour reduced motion.** Under `<MotionConfig reducedMotion>` both hooks assign the target to the output directly, with no spring, on the plain-number path and the shared-value path. They were the only value-layer hooks that ignored the setting. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- **Dev warnings fire once per misconfiguration, not once per render.** The unknown-variant warning (`animate="open"` with no matching variant), the unknown named-transition warning, the `<Presence>` keyless-child warning, the `useSpring` spring-only warning, and the `useInterpolatedStyle` range-length warning all went through a bare `console.warn` in render or in a per-render resolver, so a single mistake flooded the console. All now use `warnOnce`, keyed per distinct misconfiguration. `useSwipe`'s decay `releaseTransition` warning in `-gestures` is guarded the same way. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- **`useTouchDrag` no longer rebuilds its `PanResponder` when an inline callback changes identity.** `onDragStart` / `onDragEnd` / `onRelease` were dependencies of the responder memo, so `onRelease={(e) => ...}` written inline rebuilt the responder on every render. The callbacks are now read through a ref at call time; the responder depends only on the axis, constraint, and elastic scalars, and it always calls the latest callback. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- **`useShadow`, `useTransform`, and `useGestureLayer` no longer rebuild their worklet for inline literals.** `useShadow` re-parsed the `boxShadow` pairs on every render, `useTransform` captured a fresh `inputRange` / `outputRange` array, and `useGestureLayer` keyed its per-key table on the identity of each `states` layer object. Each render with inline literals — the documented way to call all three — produced a new UI-thread closure. All three now memoise on a structural signature (`stableSig`). Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- **`sideEffects: false` is now true.** The `focusVisible` input-modality tracker attached its web `document` listeners at import time, which is a side effect the package declared it did not have. The listeners now attach from a mount effect of the first component that tracks `focusVisible` (the `gesture` prop or `useGesture`). Mount time is early enough: the click that focuses an element lands on an element that is already mounted, so the preceding `mousedown` is observed. `installFocusVisibility` is exported from `./gestures` for the same purpose. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
 - **A key added to `animate` after mount now animates on native.** The `useAnimatedStyle` worklet read the active key set through plain `useRef` objects. `react-native-worklets` clones a captured plain object once, when the worklet is first serialised, and in dev it freezes the original, so later writes to `.current` were dropped with a `Tried to modify key 'current'` warning. The worklet only ever saw the mount-time set: a parent that changed `animate={{ opacity: 1 }}` to `animate={{ opacity: 1, translateX: 120 }}` drove the `translateX` shared value, but the element did not move. The set now crosses to the UI thread through a shared value that is rewritten once per growth. The Jest mock runs the worklet on the JS thread and never showed the defect; it was confirmed and fixed against an Android emulator. Found by the `1.0.0` readiness audit (2026-09-05).
 
 - **`useSpring` follows a swapped `SharedValue` target.** The UI-thread reaction listed only the target kind and the spring config as dependencies, and an explicit list replaces Reanimated's closure-derived one. A caller that changed which shared value drives the spring kept the reaction wired to the first one. The current target is now in the list; a plain-number target maps to `null` there, so a changing number does not re-register the inert reaction. Found by the `1.0.0` readiness audit (2026-09-05).
 
 ### Added
+
+- **`useTranslateStyle(x, y)` is exported from the root barrel.** The `transform: [{ translateX }, { translateY }]` animated style that `useTouchDrag`, `useDrag`, `usePan`, and `useSwipe` all return; the four hooks now share this one implementation. Use it directly when a custom gesture owns its own translation values. Documented in `docs/docs/api/hooks.md`. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- **`applyBounds(value, min, max, elastic)` is exported from the root barrel.** The worklet-safe clamp with optional rubber-band overshoot that `useTouchDrag` and `-gestures`' `useDrag` apply their `constraints` and `elastic` options through; the two hooks carried identical private copies. Documented in `docs/docs/api/hooks.md`. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
 
 - **`isTopLevelTransition(value)` is exported from the root barrel.** It is the structural discriminator the factory uses to tell a single `TransitionConfig` from a per-property map: every key must be a known config field. Custom animated components that accept both shapes need the same test; `'type' in transition` is wrong because `SpringTransition.type` is optional. The three adapter packages had that bug and now use this export; see `docs/docs/api/transition-utilities.md`.
 
@@ -35,6 +57,16 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 ### Documentation
 
 - `useVariants` documents that the controller pins the variants map from the first render, and that later renders passing a different map object do not re-key it.
+
+- `RepeatConfig` and the sequences page document the count rule (total iterations, minimum `1`) and the `alternate` limit for sequences. `useSpring` documents that it honours reduced motion.
+
+### Internal
+
+- The adapter peer range on `@rootnative/inertia` now has an upper bound: `>=<version> <next-minor>` instead of `>=<version>`. Pre-`1.0.0`, a minor bump is where a breaking change lands, so an adapter at `0.0.x` must not accept core `0.1.0`. `scripts/check-versions.mjs` check 2 and both release workflows compute the same bound. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- Duplicated code consolidated: `mapExtrapolation` (was in `useTransform` and `useInterpolatedStyle`) lives in `values/extrapolation.ts`; `DEFAULT_TIMING_DURATION` (250 ms, was declared in both `resolve.ts` and `runtime.ts`) and `DEFAULT_LAYOUT_DURATION` (300 ms, was a literal in two layout files) live in `transitions/constants.ts`; `buildReleaseAnimation` unwraps an `EasingFunctionFactory` through the same worklet helper `ensureWorkletEasing` uses (`unwrapEasingFactory`). Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- Tests added for the gaps the audit listed: `useVariants().transitionTo` driving a primitive, the `Motion.Image` runtime path, `useDrag`'s `onDragStart` and decay branch, `usePan`'s `withDecay` config, `MotionLinearGradient`'s locations-presence throw, and `MotionPath`'s `initial.d` mismatch throw.
 
 ## [0.0.9] - 2026-08-22
 

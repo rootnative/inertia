@@ -83,6 +83,8 @@ Config accepts every field of [`SpringTransition`](../transitions): `tension`, `
 
 `config` also accepts a [named transition](../motion-config#named-transitions). Because the hook is spring-only, the name must be registered as a spring — a timing / decay / no-animation name warns in dev and falls back to the default spring (use `useAnimation` to honor the registered type). The same applies to `useBooleanSpring`.
 
+Reduced motion is honoured. Under `<MotionConfig reducedMotion>` the hook assigns the target to the output directly, with no spring, on both the plain-number path and the shared-value path. The same applies to `useBooleanSpring`.
+
 ## `useBooleanSpring(active, config?)`
 
 Sugar over `useSpring` for the recurring "spring 0↔1 progress from a boolean" shape — checkbox checks, accordion expansions, drawer open/closed states, focus rings, and every other binary UI flip that wants spring physics rather than a hard cut.
@@ -159,7 +161,10 @@ Derive any value from any number of shared values via a worklet.
 ```tsx
 const x = useMotionValue(0)
 const y = useMotionValue(0)
-const distance = useTransform(() => Math.sqrt(x.value ** 2 + y.value ** 2))
+const distance = useTransform(() => {
+  'worklet'
+  return Math.sqrt(x.value ** 2 + y.value ** 2)
+})
 ```
 
 | Signature                               | Returns          |
@@ -771,6 +776,43 @@ For decay transitions, the second argument is ignored — decay decelerates from
 | `buildReleaseAnimation(transition: TransitionConfig, toValue: number, callback?: AnimationCallback)` | Reanimated animation value (assign to a `SharedValue<number>` directly). |
 
 Most consumers reach for `useDrag({ onRelease })` from `@rootnative/inertia-gestures` instead — it wraps this builder behind a per-axis return shape. Use `buildReleaseAnimation` directly when you're authoring a custom `Gesture.*().onEnd(...)` worklet outside the adapter hooks.
+
+## `useTranslateStyle(x, y)`
+
+Animated style that translates by two shared values: `transform: [{ translateX: x }, { translateY: y }]`. This is the `animatedStyle` every drag-style hook returns (`useTouchDrag`, and `useDrag` / `usePan` / `useSwipe` in `@rootnative/inertia-gestures`). Use it directly when a custom gesture owns its own translation values.
+
+```tsx
+import { Motion, useMotionValue, useTranslateStyle } from '@rootnative/inertia'
+
+function Puck() {
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
+  const style = useTranslateStyle(x, y)
+  return <Motion.View style={[styles.puck, style]} />
+}
+```
+
+| Signature                                                           | Returns                               |
+| ------------------------------------------------------------------- | ------------------------------------- |
+| `useTranslateStyle(x: SharedValue<number>, y: SharedValue<number>)` | `ReturnType<typeof useAnimatedStyle>` |
+
+The style owns the whole `transform` key. Do not stack a second transform style beside it — `transform` is one key in React Native, so the later style replaces this one instead of merging. Nest another animated view, or build one style from `x` / `y` with `useInterpolatedStyle`, to add a transform.
+
+## `applyBounds(value, min, max, elastic)`
+
+Clamp `value` to `[min, max]`. When `elastic > 0` the overshoot past a bound is scaled by `elastic` instead of hard-clamped, which gives a rubber-band feel. `min` / `max` may be `undefined` to leave that side unbounded. It is a worklet, so it runs inside a gesture-handler pan handler on the UI thread and from a JS-thread `PanResponder` callback alike. `useTouchDrag` and `useDrag` apply their `constraints` and `elastic` options through it.
+
+```ts
+import { applyBounds } from '@rootnative/inertia'
+
+applyBounds(120, -100, 100, 0) // 100
+applyBounds(120, -100, 100, 0.5) // 110
+applyBounds(50, undefined, 100, 0) // 50
+```
+
+| Signature                                                                                         | Returns  |
+| ------------------------------------------------------------------------------------------------- | -------- |
+| `applyBounds(value: number, min: number \| undefined, max: number \| undefined, elastic: number)` | `number` |
 
 ## `useTouchDrag(options?)`
 

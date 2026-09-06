@@ -6,6 +6,22 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Fixed
+
+- **`useDrag` and `useSwipe` no longer rebuild their gesture when an inline callback changes identity.** `onDragStart` / `onDragEnd` (`useDrag`) and `onSwipe` / `onSwipeEnd` (`useSwipe`) were dependencies of the gesture memo, so a callback written inline in the options rebuilt the `Pan` gesture on every render, and `<GestureDetector>` re-attached it. The JS-thread callbacks are now reached through stable wrappers (`useLatestCallback`) that always call the latest function; the worklet callbacks (`onRelease`, `onCommit`) stay direct dependencies because a worklet must capture them as-is. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- **`useSwipe`'s decay `releaseTransition` warning fires once per name, not once per render.** Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+### Changed
+
+- **The `@rootnative/inertia` peer range has an upper bound: `>=0.0.9 <0.1.0`.** Pre-`1.0.0`, a minor bump of core is where a breaking change lands, so this adapter must not accept it. Enforced by `check:versions`. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
+
+- `useDrag`, `usePan`, and `useSwipe` return the `animatedStyle` from core's new `useTranslateStyle`, and `useDrag` applies its constraints through core's exported `applyBounds`. Same behaviour, one implementation. Both come from `@rootnative/inertia`, so this adapter needs the core release that ships them; the lockstep release carries both.
+
+### Added
+
+- Tests for `useDrag`'s `onDragStart` and decay release branch, `usePan`'s `withDecay` config (velocity, deceleration, clamp widening), and gesture identity across inline callback changes.
+
 ## [0.0.9] - 2026-08-22
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.9` (`useInterpolatedStyle` types its return against the map it was given, so a `style` array no longer needs a cast). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.9`.

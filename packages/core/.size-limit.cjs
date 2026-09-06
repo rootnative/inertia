@@ -11,8 +11,32 @@
 // limit, decide whether to tighten or accept it; don't silently raise the
 // cap. Record any baseline shift here when you do.
 //
-// ── Recorded baselines, brotlied + minified, 2026-08-12, `Motion.FlatList`
+// ── Recorded baselines, brotlied + minified, 2026-09-06, audit Phase 3
 //    (unreleased) ──
+//   Motion.View subpath        9.49 kB   (was 9.22 at HEAD before the change)
+//   Motion.Text subpath        9.49 kB   (was 9.22)
+//   Motion.Image subpath       9.49 kB   (was 9.21)
+//   Motion.Pressable subpath   9.51 kB   (was 9.21)
+//   Motion.ScrollView subpath  9.49 kB   (was 9.22)
+//   Motion.FlatList subpath    9.49 kB   (was 9.21)
+//   Full namespace (root)     12.99 kB   (was 12.55)
+//   MotionView (barrel-shaken) 9.35 kB   (was 9.08)
+//   MotionText (barrel-shaken) 9.36 kB   (was 9.06)
+//   MotionImage (barrel-shaken)9.35 kB   (was 9.06)
+//   Testing helpers              223 B   (unchanged)
+//
+// +0.28 kB (+3%) per primitive subpath, +0.44 kB root. **The limits below did
+// not move.** Where it goes: the `repeat` count validation (`normalizeRepeat`
+// and its two dev warnings) reaches every primitive through the resolver; the
+// <Presence> run token and the `onAnimationEnd` presence key add two lines to
+// the value-driving effect; the mount-time `installFocusVisibility` effect
+// replaces the import-time install. The root also carries the new
+// `useTranslateStyle` and `applyBounds` exports and `useSpring`'s
+// reduced-motion branch. The "before" column was measured on the same day
+// from a HEAD worktree, not taken from the 2026-08-12 record below, which
+// predates `0.0.9` and the Phase 1 fixes.
+//
+// ── Previous entry, 2026-08-12, `Motion.FlatList` (unreleased) ──
 //   Motion.View subpath        9.11 kB
 //   Motion.Text subpath        9.10 kB
 //   Motion.Image subpath       9.13 kB
