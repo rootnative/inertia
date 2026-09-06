@@ -21,7 +21,7 @@ import {
   useNamedTransitions,
   useShouldReduceMotion,
 } from '../config'
-import { isFocusVisible } from '../gestures'
+import { installFocusVisibility, isFocusVisible } from '../gestures'
 import {
   layersToPayload,
   normalizeBoxShadow,
@@ -47,6 +47,7 @@ import { useStaggerDelay } from '../stagger'
 import {
   applyDelay,
   isTopLevelTransition,
+  repeatIterationsOf,
   resolveAnimatableValue,
   resolveTransition,
   stableSig,
@@ -950,6 +951,11 @@ export function createMotionComponent<C extends ComponentType<any>>(
         (isExiting ? '|exit' : '') +
         (shouldReduceMotion ? '|rm' : '')
       const transitionSig = stableSig(transition)
+      // The callback factory skips callback installation when there is no
+      // `onAnimationEnd` and nothing to settle, so a handler that appears
+      // after mount needs the effect to run again. Keyed on presence, not
+      // identity: a changing handler is read through `onAnimationEndRef`.
+      const hasAnimationEnd = onAnimationEnd !== undefined
 
       // Stable ref to the live `safeToRemove` so the effect's settle-counter
       // closure can reach the latest <Presence> binding without retriggering.
@@ -967,6 +973,10 @@ export function createMotionComponent<C extends ComponentType<any>>(
           return
         }
 
+        // `done` doubles as the run token. When this effect re-runs, the
+        // cleanup below sets it, so the callbacks of the superseded animations
+        // — which Reanimated fires with `finished: false` as they are replaced
+        // — cannot drain this run's counter and release <Presence> early.
         let pending = 0
         let done = false
         const onSettle = () => {
@@ -1119,8 +1129,11 @@ export function createMotionComponent<C extends ComponentType<any>>(
         if (isExiting && pending === 0) {
           safeToRemoveRef.current?.()
         }
+        return () => {
+          done = true
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [baseSig, transitionSig])
+      }, [baseSig, transitionSig, hasAnimationEnd])
 
       // Per-layer progress: when a sub-state activation flips, animate its
       // progress SV 0↔1 with the layer's own transition (or the parent
@@ -1830,12 +1843,9 @@ function stepCountOf(v: AnimatableValue<number | string> | undefined): number {
  */
 function totalIterationsOf(cfg: TransitionConfig | undefined): number {
   if (!cfg || cfg.type === 'no-animation' || cfg.type === 'decay') return 1
-  const r = cfg.repeat
-  if (r === undefined) return 1
-  if (r === 'infinite') return Number.POSITIVE_INFINITY
-  if (typeof r === 'number') return r
-  if (r.count === 'infinite') return Number.POSITIVE_INFINITY
-  return r.count
+  // Shares the resolver's count rule, so a `repeat: 0` that the resolver
+  // treats as "run once" is also counted as one iteration here.
+  return repeatIterationsOf(cfg.repeat)
 }
 
 /**
@@ -1918,11 +1928,10 @@ function resolveAnimateInput(
   }
   if (typeof animate === 'string') {
     if (variants && animate in variants) return variants[animate]
-    if (__DEV__) {
-      console.warn(
-        `[inertia] animate="${animate}" but no matching variant. Did you forget to pass \`variants\`?`,
-      )
-    }
+    warnOnce(
+      `missing-variant:${animate}`,
+      `[inertia] animate="${animate}" but no matching variant. Did you forget to pass \`variants\`?`,
+    )
     return undefined
   }
   return animate as AnimateStyle<unknown> | undefined
@@ -2080,6 +2089,12 @@ function useGestureHandlers(
   const hasFocused = gesture?.focused ? 1 : 0
   const hasFocusVisible = gesture?.focusVisible ? 1 : 0
   const hasHovered = gesture?.hovered ? 1 : 0
+  // The web modality listeners attach on the first mount that tracks
+  // `focusVisible` — see `focusVisibility.ts` for why mount time is early
+  // enough and why import time is not an option.
+  useEffect(() => {
+    if (hasFocusVisible) installFocusVisibility()
+  }, [hasFocusVisible])
   return useMemo(() => {
     if (!gesture) return {}
     const handlers: GestureHandlers = {}
