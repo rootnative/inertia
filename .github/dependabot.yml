@@ -1,12 +1,25 @@
-# Keep the GitHub Actions SHA pins and the npm dependencies current.
-# Actions are pinned to commit SHAs in .github/workflows/*.yml; Dependabot
-# updates the SHA and the version comment together.
+# Dependabot scope for this repository.
+#
+# GitHub Actions: keep the commit SHA pins current. Actions are pinned to
+# SHAs in .github/workflows/*.yml; Dependabot updates the SHA and the
+# version comment together, in one grouped PR per month.
+#
+# npm: security updates only. Dependabot picks the newest version that the
+# semver range allows. It does not know the Expo SDK 54 compatibility list,
+# and it does not know that every RootNative project pins the same runtime
+# (React 19.1, React Native 0.81, Expo SDK 54, Reanimated 4.1). Version
+# bumps are manual:
+#   - Expo managed native libraries: `npx expo install --fix` in example/.
+#   - Runtime and tooling: bump in lockstep across all RootNative repos.
+# `open-pull-requests-limit: 0` disables version-update PRs. Dependabot
+# still opens a PR for a security advisory.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 1
     groups:
       actions:
         patterns:
@@ -15,17 +28,5 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      dev-dependencies:
-        dependency-type: development
-    ignore:
-      # The runtime is pinned across every RootNative project: React 19.1,
-      # React Native 0.81, Expo SDK 54, Reanimated 4.1. Bump these by hand.
-      - dependency-name: react
-      - dependency-name: react-native
-      - dependency-name: react-native-reanimated
-      - dependency-name: react-native-worklets
-      - dependency-name: expo*
-      - dependency-name: '@expo/*'
+      interval: monthly
+    open-pull-requests-limit: 0
