@@ -284,4 +284,19 @@ describe('MotionLinearGradient — type-less spring config', () => {
     const [, config] = withSpring.mock.calls[0]!
     expect(config).toMatchObject({ stiffness: 300, damping: 20 })
   })
+
+  it('throws in __DEV__ when locations presence changes between renders', () => {
+    const result = renderWithMotion(
+      <MotionLinearGradient colors={['#000', '#fff']} testID="grad" />,
+    )
+    expect(() =>
+      result.rerender(
+        <MotionLinearGradient
+          colors={['#000', '#fff']}
+          locations={[0, 1]}
+          testID="grad"
+        />,
+      ),
+    ).toThrow(/locations presence changed/)
+  })
 })

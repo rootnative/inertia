@@ -120,6 +120,11 @@ export function MotionLinearGradient(props: MotionLinearGradientProps) {
   // allocate its shared-value table on the same path.
   const slotCountRef = useRef(colors.length)
   const hasLocationsRef = useRef(locations !== undefined)
+  // Plain boolean for the worklet below. A ref's `.current` must not be read
+  // on the UI thread — the worklet runtime clones the ref object once, so a
+  // later write would be invisible there. Presence is locked at mount, so the
+  // value cannot change after the first render.
+  const hasLocations = hasLocationsRef.current
 
   if (__DEV__) {
     if (slotCountRef.current !== colors.length) {
@@ -245,7 +250,7 @@ export function MotionLinearGradient(props: MotionLinearGradientProps) {
       start: { x: startX.value, y: startY.value },
       end: { x: endX.value, y: endY.value },
     }
-    if (hasLocationsRef.current) {
+    if (hasLocations) {
       const locsOut = new Array<number>(locationSvs.length)
       for (let i = 0; i < locationSvs.length; i++)
         locsOut[i] = locationSvs[i]!.value
