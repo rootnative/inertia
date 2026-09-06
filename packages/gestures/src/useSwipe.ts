@@ -2,20 +2,26 @@ import { useCallback, useMemo } from 'react'
 import { Gesture, type PanGesture } from 'react-native-gesture-handler'
 import {
   runOnJS,
-  useAnimatedStyle,
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
+import type { useAnimatedStyle } from 'react-native-reanimated'
 import {
   buildReleaseAnimation,
   resolveNamedTransition,
   useNamedTransitions,
+  useTranslateStyle,
   type TransitionConfig,
   type TransitionName,
 } from '@rootnative/inertia'
+import { useLatestCallback } from './useLatestCallback'
 import type { ReleaseInfo, ReleaseResult, SnapBackTransition } from './types'
 
 declare const __DEV__: boolean
+
+// Dev warning for a decay `releaseTransition`, keyed per name so it fires once
+// per misconfiguration instead of once per render.
+const warnedDecayNames = new Set<string>()
 
 export type SwipeDirection = 'left' | 'right' | 'up' | 'down'
 
@@ -201,7 +207,10 @@ export function useSwipe(options: SwipeOptions = {}): UseSwipeResult {
     const cfg =
       resolveNamedTransition(releaseTransition, registry) ?? DEFAULT_SNAP_BACK
     if (cfg.type === 'decay') {
-      if (__DEV__) {
+      const key =
+        typeof releaseTransition === 'string' ? releaseTransition : '<inline>'
+      if (__DEV__ && !warnedDecayNames.has(key)) {
+        warnedDecayNames.add(key)
         console.warn(
           '[inertia] useSwipe `releaseTransition` resolved to a decay ' +
             'transition, which has no target and cannot snap back to zero — ' +
@@ -212,6 +221,14 @@ export function useSwipe(options: SwipeOptions = {}): UseSwipeResult {
     }
     return cfg
   }, [releaseTransition, registry])
+
+  // JS-thread callbacks are read through stable wrappers so an inline arrow
+  // in `options` does not rebuild the gesture every render. `onCommit` is a
+  // worklet and stays a direct dependency.
+  const hasSwipe = onSwipe !== undefined
+  const hasSwipeEnd = onSwipeEnd !== undefined
+  const fireSwipe = useLatestCallback(onSwipe)
+  const fireSwipeEnd = useLatestCallback(onSwipeEnd)
 
   const gesture = useMemo(() => {
     const pan = Gesture.Pan()
@@ -239,7 +256,7 @@ export function useSwipe(options: SwipeOptions = {}): UseSwipeResult {
           allowUp,
           allowDown,
         )
-        if (direction !== null && onSwipe) {
+        if (direction !== null && hasSwipe) {
           const isHoriz = direction === 'left' || direction === 'right'
           const distance = isHoriz
             ? Math.abs(e.translationX)
@@ -247,7 +264,7 @@ export function useSwipe(options: SwipeOptions = {}): UseSwipeResult {
           const velocity = isHoriz
             ? Math.abs(e.velocityX)
             : Math.abs(e.velocityY)
-          runOnJS(onSwipe)(direction, { distance, velocity })
+          runOnJS(fireSwipe)(direction, { distance, velocity })
         }
 
         // A commit may return per-axis exit transitions to run instead of
@@ -264,11 +281,10 @@ export function useSwipe(options: SwipeOptions = {}): UseSwipeResult {
         // `onSwipeEnd` rides the settle callback of the swipe axis — the one
         // animation whose end means "the card has arrived".
         let settle: ((finished?: boolean) => void) | undefined
-        if (direction !== null && onSwipeEnd) {
+        if (direction !== null && hasSwipeEnd) {
           const dir = direction
-          const end = onSwipeEnd
           settle = (finished?: boolean) => {
-            runOnJS(end)(dir, { finished: finished === true })
+            runOnJS(fireSwipeEnd)(dir, { finished: finished === true })
           }
         }
         const isHorizontalCommit = direction === 'left' || direction === 'right'
@@ -320,17 +336,17 @@ export function useSwipe(options: SwipeOptions = {}): UseSwipeResult {
     allowUp,
     allowDown,
     snapBack,
-    onSwipe,
+    hasSwipe,
+    hasSwipeEnd,
+    fireSwipe,
+    fireSwipeEnd,
     onCommit,
-    onSwipeEnd,
     swipeX,
     swipeY,
     isActive,
   ])
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: swipeX.value }, { translateY: swipeY.value }],
-  }))
+  const animatedStyle = useTranslateStyle(swipeX, swipeY)
 
   const reset = useCallback(() => {
     swipeX.value = 0

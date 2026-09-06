@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
 import { Gesture, type PanGesture } from 'react-native-gesture-handler'
 import {
-  useAnimatedStyle,
   useSharedValue,
   withDecay,
   type SharedValue,
 } from 'react-native-reanimated'
+import type { useAnimatedStyle } from 'react-native-reanimated'
+import { useTranslateStyle } from '@rootnative/inertia'
 import type { DragConstraints } from './types'
 
 export interface PanOptions {
@@ -114,9 +115,7 @@ export function usePan(options: PanOptions = {}): UsePanResult {
     isPanning,
   ])
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: panX.value }, { translateY: panY.value }],
-  }))
+  const animatedStyle = useTranslateStyle(panX, panY)
 
   return { gesture, animatedStyle, panX, panY, isPanning }
 }

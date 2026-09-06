@@ -365,4 +365,23 @@ describe('useSwipe — commit exit (onCommit / onSwipeEnd)', () => {
     expect(result.current.swipeX.value).toBe(0)
     expect(result.current.swipeY.value).toBe(0)
   })
+
+  it('keeps the gesture identity when inline callbacks change, and calls the latest', () => {
+    const first = jest.fn()
+    const { result, rerender } = renderHook(
+      (props: { onSwipe: () => void }) => useSwipe(props),
+      { initialProps: { onSwipe: first } },
+    )
+    const gesture = result.current.gesture
+    const latest = jest.fn()
+    rerender({ onSwipe: latest })
+    expect(result.current.gesture).toBe(gesture)
+
+    const h = getHandlers(gesture)
+    h.onStart?.({})
+    h.onEnd?.(COMMIT_RIGHT)
+    expect(first).not.toHaveBeenCalled()
+    expect(latest).toHaveBeenCalledTimes(1)
+    expect(latest.mock.calls[0]![0]).toBe('right')
+  })
 })

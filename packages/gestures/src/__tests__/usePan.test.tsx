@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react-native'
+import * as Reanimated from 'react-native-reanimated'
 import { usePan } from '../usePan'
 
 type Handlers = Record<string, (e: unknown) => void>
@@ -8,6 +9,10 @@ function getHandlers(gesture: unknown): Handlers {
 }
 
 describe('usePan', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks()
+  })
+
   it('returns the documented shape', () => {
     const { result } = renderHook(() => usePan())
     expect(result.current.gesture).toBeDefined()
@@ -72,5 +77,49 @@ describe('usePan', () => {
       h.onUpdate?.({ translationX: 80, translationY: 0 })
       h.onEnd?.({ velocityX: 1200, velocityY: 0 })
     }).not.toThrow()
+  })
+
+  it('forwards velocity, deceleration, and clamp into withDecay on release', () => {
+    const withDecay = jest.spyOn(Reanimated, 'withDecay')
+    const { result } = renderHook(() =>
+      usePan({ deceleration: 0.995, constraints: { left: -100, right: 100 } }),
+    )
+    const h = getHandlers(result.current.gesture)
+    h.onStart?.({})
+    h.onUpdate?.({ translationX: 80, translationY: 0 })
+    h.onEnd?.({ velocityX: 1200, velocityY: -300 })
+    expect(withDecay).toHaveBeenCalledTimes(2)
+    expect(withDecay.mock.calls[0]![0]).toEqual({
+      velocity: 1200,
+      deceleration: 0.995,
+      clamp: [-100, 100],
+    })
+    // The y axis has no bounds, so no `clamp` key is sent.
+    expect(withDecay.mock.calls[1]![0]).toEqual({
+      velocity: -300,
+      deceleration: 0.995,
+    })
+  })
+
+  it('widens a one-sided constraint to an infinite far edge for withDecay', () => {
+    const withDecay = jest.spyOn(Reanimated, 'withDecay')
+    const { result } = renderHook(() => usePan({ constraints: { top: 0 } }))
+    const h = getHandlers(result.current.gesture)
+    h.onStart?.({})
+    h.onEnd?.({ velocityX: 0, velocityY: 500 })
+    expect(withDecay.mock.calls[1]![0]).toEqual({
+      velocity: 500,
+      clamp: [0, Number.POSITIVE_INFINITY],
+    })
+  })
+
+  it('disableMomentum skips withDecay on release', () => {
+    const withDecay = jest.spyOn(Reanimated, 'withDecay')
+    const { result } = renderHook(() => usePan({ disableMomentum: true }))
+    const h = getHandlers(result.current.gesture)
+    h.onStart?.({})
+    h.onEnd?.({ velocityX: 1200, velocityY: 0 })
+    expect(withDecay).not.toHaveBeenCalled()
+    expect(result.current.isPanning.value).toBe(false)
   })
 })

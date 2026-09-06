@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react-native'
+import * as Reanimated from 'react-native-reanimated'
 import { useDrag } from '../useDrag'
 
 describe('useDrag', () => {
@@ -176,5 +177,60 @@ describe('useDrag', () => {
     // SVs sit at the release position — no withSpring/withDecay assignment.
     expect(result.current.dragX.value).toBe(25)
     expect(result.current.dragY.value).toBe(25)
+  })
+
+  it('fires onDragStart when the pan starts', () => {
+    const onDragStart = jest.fn()
+    const { result } = renderHook(() => useDrag({ onDragStart }))
+    const handlers = (
+      result.current.gesture as unknown as {
+        handlers: Record<string, (e: unknown) => void>
+      }
+    ).handlers
+    handlers.onStart?.({})
+    expect(onDragStart).toHaveBeenCalledTimes(1)
+    expect(result.current.isDragging.value).toBe(true)
+  })
+
+  it('routes a decay release through withDecay with no target', () => {
+    const withDecay = jest.spyOn(Reanimated, 'withDecay')
+    const onRelease = jest.fn(() => ({
+      x: { type: 'decay' as const, velocity: 900 },
+    }))
+    const { result } = renderHook(() => useDrag({ onRelease }))
+    const handlers = (
+      result.current.gesture as unknown as {
+        handlers: Record<string, (e: unknown) => void>
+      }
+    ).handlers
+    handlers.onStart?.({})
+    handlers.onUpdate?.({ translationX: 40, translationY: 10 })
+    handlers.onEnd?.({ velocityX: 900, velocityY: 0 })
+    expect(withDecay).toHaveBeenCalledTimes(1)
+    expect(withDecay.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({ velocity: 900 }),
+    )
+    // The y axis was not in the result, so it stays where it landed.
+    expect(result.current.dragY.value).toBe(10)
+  })
+
+  it('keeps the gesture identity when inline callbacks change, and calls the latest', () => {
+    const first = jest.fn()
+    const { result, rerender } = renderHook(
+      (props: { onDragEnd: () => void }) => useDrag(props),
+      { initialProps: { onDragEnd: first } },
+    )
+    const gesture = result.current.gesture
+    const latest = jest.fn()
+    rerender({ onDragEnd: latest })
+    expect(result.current.gesture).toBe(gesture)
+
+    const handlers = (
+      gesture as unknown as { handlers: Record<string, (e: unknown) => void> }
+    ).handlers
+    handlers.onStart?.({})
+    handlers.onEnd?.({ velocityX: 0, velocityY: 0 })
+    expect(first).not.toHaveBeenCalled()
+    expect(latest).toHaveBeenCalledTimes(1)
   })
 })

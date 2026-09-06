@@ -2,11 +2,16 @@ import { useMemo } from 'react'
 import { Gesture, type PanGesture } from 'react-native-gesture-handler'
 import {
   runOnJS,
-  useAnimatedStyle,
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
-import { buildReleaseAnimation } from '@rootnative/inertia'
+import type { useAnimatedStyle } from 'react-native-reanimated'
+import {
+  applyBounds,
+  buildReleaseAnimation,
+  useTranslateStyle,
+} from '@rootnative/inertia'
+import { useLatestCallback } from './useLatestCallback'
 import type { DragConstraints, DragOptions } from './types'
 
 export interface UseDragResult {
@@ -77,6 +82,15 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
   const bottom = constraints?.bottom
   const elasticCoef = elastic
 
+  // JS-thread callbacks are read through stable wrappers so an inline arrow
+  // in `options` does not rebuild the gesture every render. `onRelease` is a
+  // worklet and stays a direct dependency — it must be captured by the
+  // gesture worklet as-is, since there is no ref on the UI thread.
+  const hasDragStart = onDragStart !== undefined
+  const hasDragEnd = onDragEnd !== undefined
+  const fireDragStart = useLatestCallback(onDragStart)
+  const fireDragEnd = useLatestCallback(onDragEnd)
+
   const gesture = useMemo(() => {
     const pan = Gesture.Pan()
       .onStart(() => {
@@ -84,7 +98,7 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
         startX.value = dragX.value
         startY.value = dragY.value
         isDragging.value = true
-        if (onDragStart) runOnJS(onDragStart)()
+        if (hasDragStart) runOnJS(fireDragStart)()
       })
       .onUpdate((e) => {
         'worklet'
@@ -134,8 +148,8 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
             }
           }
         }
-        if (onDragEnd) {
-          runOnJS(onDragEnd)({ x, y, velocity: { x: vx, y: vy } })
+        if (hasDragEnd) {
+          runOnJS(fireDragEnd)({ x, y, velocity: { x: vx, y: vy } })
         }
       })
     return pan
@@ -147,8 +161,10 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
     top,
     bottom,
     elasticCoef,
-    onDragStart,
-    onDragEnd,
+    hasDragStart,
+    hasDragEnd,
+    fireDragStart,
+    fireDragEnd,
     onRelease,
     dragX,
     dragY,
@@ -157,34 +173,9 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
     isDragging,
   ])
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: dragX.value }, { translateY: dragY.value }],
-  }))
+  const animatedStyle = useTranslateStyle(dragX, dragY)
 
   return { gesture, animatedStyle, dragX, dragY, isDragging }
-}
-
-/**
- * Clamp `value` to `[min, max]`. When `elastic > 0` the overshoot beyond a
- * bound is scaled by `elastic` instead of hard-clamped, giving a rubber-band
- * feel. `min` / `max` may be `undefined` to leave that side unbounded.
- *
- * Worklet — runs on the UI thread inside the pan handler.
- */
-function applyBounds(
-  value: number,
-  min: number | undefined,
-  max: number | undefined,
-  elastic: number,
-): number {
-  'worklet'
-  if (min !== undefined && value < min) {
-    return elastic > 0 ? min + (value - min) * elastic : min
-  }
-  if (max !== undefined && value > max) {
-    return elastic > 0 ? max + (value - max) * elastic : max
-  }
-  return value
 }
 
 export type { DragConstraints, DragOptions }
