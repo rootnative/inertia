@@ -8,6 +8,7 @@
  * prefer `useDrag` from `@rootnative/inertia-gestures` — its UI-thread
  * release path is more precise.
  */
+export { applyBounds } from './applyBounds'
 export { useTouchDrag } from './useTouchDrag'
 export type {
   TouchReleaseInfo,

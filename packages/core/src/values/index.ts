@@ -38,4 +38,5 @@ export {
   type ShadowConfig,
   type UseShadowOptions,
 } from './useShadow'
+export { useTranslateStyle } from './useTranslateStyle'
 export { useVariants } from './useVariants'

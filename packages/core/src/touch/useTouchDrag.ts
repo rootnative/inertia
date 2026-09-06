@@ -1,15 +1,14 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import {
   PanResponder,
   type PanResponderGestureState,
   type PanResponderInstance,
 } from 'react-native'
-import {
-  useAnimatedStyle,
-  useSharedValue,
-  type SharedValue,
-} from 'react-native-reanimated'
+import { useSharedValue, type SharedValue } from 'react-native-reanimated'
+import type { useAnimatedStyle } from 'react-native-reanimated'
 import { buildReleaseAnimation } from '../transitions'
+import { useTranslateStyle } from '../values/useTranslateStyle'
+import { applyBounds } from './applyBounds'
 import type { TransitionConfig } from '../types'
 
 /**
@@ -166,23 +165,17 @@ export function useTouchDrag(
   const top = constraints?.top
   const bottom = constraints?.bottom
   const elasticCoef = elastic
-  const { onDragStart, onDragEnd, onRelease } = options
+
+  // Callbacks are read through a ref at call time, so an inline arrow in
+  // `options` does not rebuild the PanResponder every render. PanResponder
+  // callbacks run on the JS thread, so a ref read is safe here.
+  const callbacksRef = useRef(options)
+  callbacksRef.current = options
 
   const responder = useMemo(
     () => buildResponder(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      lockX,
-      lockY,
-      left,
-      right,
-      top,
-      bottom,
-      elasticCoef,
-      onDragStart,
-      onDragEnd,
-      onRelease,
-    ],
+    [lockX, lockY, left, right, top, bottom, elasticCoef],
   )
 
   // Hoisted out of the inline `useMemo` factory to keep the dep list readable
@@ -196,6 +189,7 @@ export function useTouchDrag(
       // `@rootnative/inertia-gestures` API (px/sec from gesture-handler).
       const vx = g.vx * 1000
       const vy = g.vy * 1000
+      const { onRelease, onDragEnd } = callbacksRef.current
       if (onRelease) {
         const result = onRelease({ x, y, velocity: { x: vx, y: vy } })
         if (result) {
@@ -228,7 +222,7 @@ export function useTouchDrag(
         startX.value = dragX.value
         startY.value = dragY.value
         isDragging.value = true
-        if (onDragStart) onDragStart()
+        callbacksRef.current.onDragStart?.()
       },
       onPanResponderMove: (_e, g) => {
         if (lockX) {
@@ -253,9 +247,7 @@ export function useTouchDrag(
     })
   }
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: dragX.value }, { translateY: dragY.value }],
-  }))
+  const animatedStyle = useTranslateStyle(dragX, dragY)
 
   return {
     panHandlers: responder.panHandlers,
@@ -264,26 +256,4 @@ export function useTouchDrag(
     dragY,
     isDragging,
   }
-}
-
-/**
- * Clamp `value` to `[min, max]`. When `elastic > 0` the overshoot past a
- * bound is scaled by `elastic`, giving a rubber-band feel. `min` / `max`
- * may be `undefined` to leave that side unbounded.
- *
- * JS-thread (PanResponder callbacks are JS, not worklets).
- */
-function applyBounds(
-  value: number,
-  min: number | undefined,
-  max: number | undefined,
-  elastic: number,
-): number {
-  if (min !== undefined && value < min) {
-    return elastic > 0 ? min + (value - min) * elastic : min
-  }
-  if (max !== undefined && value > max) {
-    return elastic > 0 ? max + (value - max) * elastic : max
-  }
-  return value
 }

@@ -51,6 +51,9 @@ export {
 // through `resolveTransition`. Exported because the obvious choice —
 // `'transparent'` — cannot be animated away from; see the symbol's own docs.
 export { TRANSPARENT } from './internal/color'
+// Worklet-safe clamp shared by `useTouchDrag` and the gesture adapters'
+// `useDrag`; exported so a custom drag can apply the same rubber-band rule.
+export { applyBounds } from './touch/applyBounds'
 export {
   useAnimation,
   useAnimator,
@@ -64,6 +67,7 @@ export {
   useShadow,
   useSpring,
   useTransform,
+  useTranslateStyle,
   useVariants,
 } from './values'
 // The value-layer hooks above all return Reanimated `SharedValue`s — export

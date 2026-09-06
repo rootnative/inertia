@@ -186,4 +186,30 @@ describe('useTouchDrag', () => {
     expect(result.current.dragY.value).toBe(25)
     spy.mockRestore()
   })
+
+  it('does not rebuild the responder when an inline callback changes identity', () => {
+    const { spy } = captureConfig()
+    const first = jest.fn()
+    const { rerender } = renderHook(
+      (props: { onDragEnd: () => void; onDragStart: () => void }) =>
+        useTouchDrag(props),
+      { initialProps: { onDragEnd: first, onDragStart: first } },
+    )
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    const latestEnd = jest.fn()
+    const latestStart = jest.fn()
+    rerender({ onDragEnd: latestEnd, onDragStart: latestStart })
+    // Same PanResponder instance...
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    // ...and it calls the latest callbacks, not the ones it was built with.
+    const cfg = spy.mock.calls[0]![0] as ResponderConfig
+    cfg.onPanResponderGrant?.({}, gesture())
+    cfg.onPanResponderRelease?.({}, gesture(10, 0, 0, 0))
+    expect(first).not.toHaveBeenCalled()
+    expect(latestStart).toHaveBeenCalledTimes(1)
+    expect(latestEnd).toHaveBeenCalledTimes(1)
+    spy.mockRestore()
+  })
 })
