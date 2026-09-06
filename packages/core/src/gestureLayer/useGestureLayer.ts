@@ -210,7 +210,10 @@ export function useGestureLayer(
   // JS-thread precompute: union of keys across all layers, per-key type
   // (number vs color), and a rest-fallback table. The worklet body reads
   // from `meta` instead of probing each layer per frame — the type check
-  // only runs when layer identities change.
+  // only runs when the layers change structurally. Keyed on a signature, not
+  // on object identity: `states` is usually an inline literal, and a fresh
+  // `meta` each render would rebuild the animated style's worklet.
+  const statesSig = stableSig(states)
   const meta = useMemo(() => {
     const layers = {
       rest: states.rest,
@@ -251,14 +254,8 @@ export function useGestureLayer(
         restRaw !== undefined ? restRaw : isColor ? 'transparent' : 0
     }
     return { layers, keys, types, restValues }
-  }, [
-    states.rest,
-    states.hovered,
-    states.focused,
-    states.focusVisible,
-    states.pressed,
-    states.disabled,
-  ])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statesSig])
 
   const style = useAnimatedStyle(() => {
     const { layers, keys, types, restValues } = meta

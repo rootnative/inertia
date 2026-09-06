@@ -1,5 +1,5 @@
+import { useMemo } from 'react'
 import {
-  Extrapolation,
   interpolate,
   interpolateColor,
   useDerivedValue,
@@ -11,17 +11,10 @@ import {
 // import is always available wherever Inertia is.
 import { isWorkletFunction } from 'react-native-worklets'
 import { warnNonWorkletOnce } from '../internal/nonWorkletWarning'
+import { stableSig } from '../transitions/sig'
+import { mapExtrapolation, type ExtrapolationMode } from './extrapolation'
 
-/**
- * Extrapolation behavior at the edges of the input range. Mirrors
- * Reanimated's enum so consumers don't need a separate import.
- *
- * - `'clamp'` (default) — output stays pinned at the first/last value
- *   outside the input range. Matches Framer Motion's default.
- * - `'identity'` — return the input unchanged outside the range.
- * - `'extend'` — continue the linear slope beyond the range.
- */
-export type ExtrapolationMode = 'clamp' | 'identity' | 'extend'
+export type { ExtrapolationMode }
 
 export interface UseTransformOptions {
   extrapolateLeft?: ExtrapolationMode
@@ -34,7 +27,10 @@ export interface UseTransformOptions {
  * ```ts
  * const x = useMotionValue(0)
  * const y = useMotionValue(0)
- * const distance = useTransform(() => Math.sqrt(x.value ** 2 + y.value ** 2))
+ * const distance = useTransform(() => {
+ *   'worklet'
+ *   return Math.sqrt(x.value ** 2 + y.value ** 2)
+ * })
  * ```
  *
  * The transformer MUST be a worklet — put the `'worklet'` directive as its
@@ -87,6 +83,20 @@ export function useTransform<T>(
   // `useDerivedValue` exactly once. Keeping the hook call unconditional
   // satisfies rules-of-hooks; per-call branching (transformer vs
   // interpolation) is decided once at JS time, never at frame time.
+  // Range arrays are memoised on their contents: callers routinely write
+  // `useTransform(x, [0, 1], [0, 100])` inline, and a fresh array each render
+  // would otherwise change the producer's closure and rebuild the derived
+  // value's worklet every render.
+  const rangeSig = stableSig([inputRange, outputRange])
+  const ranges = useMemo(
+    () => ({
+      input: (inputRange ?? []) as readonly number[],
+      output: (outputRange ?? []) as readonly (number | string)[],
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rangeSig],
+  )
+
   let producer: () => unknown
   if (typeof arg1 === 'function') {
     // Transformer overload. Must be a worklet — the directive-wrapped
@@ -110,8 +120,8 @@ export function useTransform<T>(
     // Interpolation overload. We pre-resolve everything JS-side so the
     // worklet body only consumes flat values.
     const source = arg1
-    const input = inputRange as readonly number[]
-    const output = outputRange as readonly (number | string)[]
+    const input = ranges.input
+    const output = ranges.output
     const isColor = output.length > 0 && typeof output[0] === 'string'
     const extrapolateLeft = mapExtrapolation(options?.extrapolateLeft)
     const extrapolateRight = mapExtrapolation(options?.extrapolateRight)
@@ -139,10 +149,4 @@ export function useTransform<T>(
     | SharedValue<T>
     | SharedValue<number>
     | SharedValue<string>
-}
-
-function mapExtrapolation(mode: ExtrapolationMode | undefined): Extrapolation {
-  if (mode === 'identity') return Extrapolation.IDENTITY
-  if (mode === 'extend') return Extrapolation.EXTEND
-  return Extrapolation.CLAMP
 }

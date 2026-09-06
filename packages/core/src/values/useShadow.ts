@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   interpolate,
   interpolateColor,
@@ -9,6 +10,7 @@ import {
   resolveBoxShadowInput,
   type BoxShadowLayer,
 } from '../internal/boxShadow'
+import { stableSig } from '../transitions/sig'
 
 export type { BoxShadowLayer }
 
@@ -113,13 +115,22 @@ export function useShadow({
   // boxShadow layers: parse/pair once on the JS thread into flat records so
   // the worklet only interpolates numbers/colors and concatenates — no
   // frame-time parsing. `[]` when neither side provides the key.
-  const boxShadowPairs =
-    from.boxShadow !== undefined || to.boxShadow !== undefined
-      ? pairBoxShadowLayers(
-          resolveBoxShadowInput(from.boxShadow),
-          resolveBoxShadowInput(to.boxShadow),
-        )
-      : []
+  //
+  // Memoised on the inputs' structure: the pairs array is the one non-scalar
+  // the worklet captures, and `from` / `to` are usually inline literals, so
+  // without the memo a fresh array each render would rebuild the worklet.
+  const boxShadowSig = stableSig([from.boxShadow, to.boxShadow])
+  const boxShadowPairs = useMemo(
+    () =>
+      from.boxShadow !== undefined || to.boxShadow !== undefined
+        ? pairBoxShadowLayers(
+            resolveBoxShadowInput(from.boxShadow),
+            resolveBoxShadowInput(to.boxShadow),
+          )
+        : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [boxShadowSig],
+  )
 
   const opacityFrom = from.shadowOpacity ?? 0
   const opacityTo = to.shadowOpacity ?? 0
