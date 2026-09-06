@@ -217,4 +217,12 @@ describe('MotionPath — type-less spring config', () => {
     const [, config] = withSpring.mock.calls[0]!
     expect(config).toMatchObject({ stiffness: 300, damping: 20 })
   })
+
+  it('throws in dev when initial.d has a different command sequence', () => {
+    expect(() =>
+      renderWithMotion(
+        <MotionPath d="M 0 0 L 10 10 Z" initial={{ d: 'M 0 0 L 10 10' }} />,
+      ),
+    ).toThrow(/initial\.d template mismatch/)
+  })
 })
