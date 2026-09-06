@@ -6,6 +6,8 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.10] - 2026-09-06
+
 ### Fixed
 
 - **`useDrag` and `useSwipe` no longer rebuild their gesture when an inline callback changes identity.** `onDragStart` / `onDragEnd` (`useDrag`) and `onSwipe` / `onSwipeEnd` (`useSwipe`) were dependencies of the gesture memo, so a callback written inline in the options rebuilt the `Pan` gesture on every render, and `<GestureDetector>` re-attached it. The JS-thread callbacks are now reached through stable wrappers (`useLatestCallback`) that always call the latest function; the worklet callbacks (`onRelease`, `onCommit`) stay direct dependencies because a worklet must capture them as-is. Found by the `1.0.0` readiness audit (2026-09-05), Phase 3.
@@ -87,7 +89,8 @@ Initial alpha publish alongside `@rootnative/inertia@0.0.0-alpha.0`. Optional ad
 - `useDrag({ onRelease })` — release worklet returns per-axis Inertia transitions (snap-to-tick spring, decay with bounds, etc.). Velocity stays on the UI thread; no JS round-trip.
 - `useSwipe`, `usePan` hooks composable with any `Motion.*` primitive via `<GestureDetector>`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.9...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.10...HEAD
+[0.0.10]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.10
 [0.0.9]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.9
 [0.0.8]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.8
 [0.0.7]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.7

@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.10] - 2026-09-06
+
 ### Changed
 
 - **`react-native-worklets` is a required peer, not an optional one.** Core imports `isWorkletFunction` from it without a guard in `transitions/easing.ts` and `values/useTransform.ts`, so the package never worked without it. The `optional: true` flag in `peerDependenciesMeta` is removed. A package manager now warns when the peer is missing instead of staying silent. The installation docs already list it as a peer, so no install step changes. Core also declares it as a devDependency, pinned to `~0.5.1` next to Reanimated `~4.1.1`; before, the workspace typecheck passed only because the example app hoisted it. Found by the `1.0.0` readiness audit (2026-09-05).
@@ -349,7 +351,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.9...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.10...HEAD
+[0.0.10]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.10
 [0.0.9]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.9
 [0.0.8]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.8
 [0.0.7]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.7
