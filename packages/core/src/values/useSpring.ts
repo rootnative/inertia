@@ -6,15 +6,18 @@ import {
   withSpring,
   type SharedValue,
 } from 'react-native-reanimated'
-import { lookupNamedTransition, useNamedTransitions } from '../config'
+import {
+  lookupNamedTransition,
+  useNamedTransitions,
+  useShouldReduceMotion,
+} from '../config'
+import { warnOnce } from '../internal/warnOnce'
 import { springToReanimated } from '../transitions/spring'
 import {
   type NamedTransitions,
   type SpringTransition,
   type TransitionName,
 } from '../types'
-
-declare const __DEV__: boolean
 
 /**
  * Animate a shared value toward `target` with spring physics, using the
@@ -35,12 +38,16 @@ declare const __DEV__: boolean
  * must resolve to a spring config — a name registered as timing / decay /
  * no-animation warns in dev and falls back to the default spring (reach for
  * `useAnimation` when the named transition's type should be honored).
+ *
+ * Reduced motion (via `<MotionConfig reducedMotion>`) is honoured: the output
+ * is assigned the target directly, with no spring, on both paths.
  */
 export function useSpring(
   target: number | SharedValue<number>,
   config?: SpringTransition | TransitionName,
 ): SharedValue<number> {
   const spring = resolveSpringInput(config, useNamedTransitions())
+  const shouldReduceMotion = useShouldReduceMotion()
   // Reanimated config is rebuilt only when the public config object changes
   // shape. The worklet path reads this from JS-thread closure capture, which
   // is fine: it's the resolved config that's invariant across UI-thread
@@ -65,10 +72,12 @@ export function useSpring(
   // a stale closure.
   useEffect(() => {
     if (isSharedTarget) return
-    output.value = withSpring(target as number, reanimConfig)
+    output.value = shouldReduceMotion
+      ? (target as number)
+      : withSpring(target as number, reanimConfig)
     // `output` is identity-stable per hook instance (Reanimated guarantee).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSharedTarget, target, reanimConfig])
+  }, [isSharedTarget, target, reanimConfig, shouldReduceMotion])
 
   // SharedValue path. `useAnimatedReaction` runs the prepare worklet whenever
   // its returned value changes; we read `.value` off the target SV and pipe
@@ -92,9 +101,9 @@ export function useSpring(
     (next, prev) => {
       'worklet'
       if (next === null || next === prev) return
-      output.value = withSpring(next, reanimConfig)
+      output.value = shouldReduceMotion ? next : withSpring(next, reanimConfig)
     },
-    [source, reanimConfig],
+    [source, reanimConfig, shouldReduceMotion],
   )
 
   // Stop the in-flight spring when the owning component unmounts so its
@@ -123,14 +132,13 @@ function resolveSpringInput(
   if (typeof config !== 'string') return config
   const cfg = lookupNamedTransition(config, registry)
   if (cfg.type === undefined || cfg.type === 'spring') return cfg
-  if (__DEV__) {
-    console.warn(
-      `[inertia] Named transition "${config}" resolves to type ` +
-        `'${cfg.type}', but useSpring / useBooleanSpring are spring-only — ` +
-        `falling back to the default spring. Use useAnimation to honor ` +
-        `non-spring named transitions.`,
-    )
-  }
+  warnOnce(
+    `spring-only:${config}`,
+    `[inertia] Named transition "${config}" resolves to type ` +
+      `'${cfg.type}', but useSpring / useBooleanSpring are spring-only — ` +
+      `falling back to the default spring. Use useAnimation to honor ` +
+      `non-spring named transitions.`,
+  )
   return undefined
 }
 
