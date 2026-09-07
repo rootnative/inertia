@@ -5,11 +5,11 @@ import {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
-import type { useAnimatedStyle } from 'react-native-reanimated'
 import {
   applyBounds,
   buildReleaseAnimation,
   useTranslateStyle,
+  type TranslateStyle,
 } from '@rootnative/inertia'
 import { useLatestCallback } from './useLatestCallback'
 import type { DragConstraints, DragOptions } from './types'
@@ -27,7 +27,7 @@ export interface UseDragResult {
    * following the finger. Nest another animated view, or build one style from
    * `dragX` / `dragY` with `useInterpolatedStyle`, to add a transform.
    */
-  animatedStyle: ReturnType<typeof useAnimatedStyle>
+  animatedStyle: TranslateStyle
   /** Current x translation in pixels. UI-thread shared value. */
   dragX: SharedValue<number>
   /** Current y translation in pixels. UI-thread shared value. */

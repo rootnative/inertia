@@ -164,7 +164,7 @@ export function resolveBoxShadowInput(
     offsetY: coerceLength(layer.offsetY, 'offsetY'),
     blurRadius: coerceLength(layer.blurRadius, 'blurRadius'),
     spreadDistance: coerceLength(layer.spreadDistance, 'spreadDistance'),
-    color: layer.color ?? 'black',
+    color: coerceColor(layer.color),
     inset: layer.inset ?? false,
   }))
 }
@@ -273,7 +273,10 @@ export type BoxShadowInput =
       // rejected) by `coerceLength` like every other length.
       blurRadius?: unknown
       spreadDistance?: number | string | undefined
-      color?: string | undefined
+      // `unknown` because RN 0.86 widened this from `string` to `ColorValue`,
+      // which includes the opaque handle `PlatformColor()` returns. Coerced
+      // (and rejected) by `coerceColor`.
+      color?: unknown
       inset?: boolean | undefined
     }>
 
@@ -284,6 +287,25 @@ export type BoxShadowInput =
  * `parseBoxShadow` — px and unitless only, and anything else throws rather
  * than silently animating from a `NaN`.
  */
+/**
+ * Coerce one RN colour field to a string.
+ *
+ * RN 0.86 widened `BoxShadowValue.color` from `string` to `ColorValue`, which
+ * admits the opaque handle `PlatformColor()` and `DynamicColorIOS()` return.
+ * That handle is a platform reference, not a colour this code can read, so it
+ * cannot be interpolated. Reject it here with a message that names the cause,
+ * rather than letting it reach the worklet and animate to `NaN`.
+ */
+function coerceColor(value: unknown): string {
+  if (value === undefined) return 'black'
+  if (typeof value === 'string') return value
+  throw new Error(
+    '[inertia] boxShadow: color must be a colour string, got ' +
+      `${typeof value}. PlatformColor and DynamicColorIOS values cannot be ` +
+      'interpolated — pass a string colour on an animated shadow.',
+  )
+}
+
 function coerceLength(value: unknown, field: string): number {
   if (value === undefined) return 0
   if (typeof value === 'number') return value

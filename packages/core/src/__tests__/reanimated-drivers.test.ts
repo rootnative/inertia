@@ -169,13 +169,21 @@ describe('Reanimated drivers — structured values', () => {
 })
 
 describe('Reanimated drivers — colour sources', () => {
-  it("cannot animate away from the CSS keyword 'transparent'", () => {
-    // Reanimated's colour-name table maps `transparent` to `undefined`, so
-    // `isColor` rejects it and the value takes the prefix-number-suffix branch.
+  // Reanimated 4.1.7 mapped `transparent` to `undefined` in its colour-name
+  // table, so `isColor` rejected it, the value fell to the prefix-number-suffix
+  // branch, and a spring away from it produced NaN and never settled. That was
+  // the root cause of the `0.0.6` colour defect.
+  //
+  // 4.5 maps it to `0x00000000` — a real packed colour — so the keyword
+  // animates. This test pins the fix rather than the bug: a Reanimated that
+  // regresses it fails here instead of in a consumer's app. Inertia's own
+  // `TRANSPARENT` seed is belt-and-braces for the supported peer band
+  // (`>=4.5.0 <4.6.0`), not load-bearing, and could be retired deliberately.
+  it("animates away from the CSS keyword 'transparent'", () => {
     const result = run(withSpring('#ff0000', SPRING), 'transparent')
 
-    expect(result.settled).toBe(false)
-    expect(String(result.value)).toContain('NaN')
+    expect(result.settled).toBe(true)
+    expect(String(result.value)).not.toContain('NaN')
   })
 
   it('animates away from the rgba spelling Inertia rests colours at', () => {
@@ -185,15 +193,15 @@ describe('Reanimated drivers — colour sources', () => {
     expect(result.value).toBe('rgba(255, 0, 0, 1)')
   })
 
-  it('hides the keyword failure under withTiming, which is how it shipped', () => {
-    // Timing snaps to its target once the duration elapses, whatever the
-    // interpolation produced along the way. That is why `type: 'timing'` looked
-    // correct on device while spring was dead — and why testing a feature only
-    // under its non-default transition proves so little.
+  it('settles under both timing and spring, the default included', () => {
+    // `0.0.6` shipped with this key working under timing and dead under spring,
+    // because timing snaps to its target once the duration elapses whatever the
+    // interpolation produced along the way. Assert the **default** transition
+    // explicitly, so a future regression cannot hide behind the snapping one.
     const timing = run(withTiming('#ff0000', { duration: 300 }), 'transparent')
     expect(timing.settled).toBe(true)
 
     const spring = run(withSpring('#ff0000', SPRING), 'transparent')
-    expect(spring.settled).toBe(false)
+    expect(spring.settled).toBe(true)
   })
 })

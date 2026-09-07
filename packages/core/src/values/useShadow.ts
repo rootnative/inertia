@@ -43,6 +43,22 @@ export interface ShadowConfig {
   boxShadow?: string | readonly BoxShadowLayer[]
 }
 
+/**
+ * The style fragment {@link useShadow} returns: the native shadow keys plus the
+ * CSS `boxShadow`, each present only when the paired configs drive it.
+ *
+ * Deliberately **not** `ReturnType<typeof useAnimatedStyle>` — see
+ * {@link ColorStyle} for why the brand is erased here.
+ */
+export type ShadowStyle = {
+  shadowColor?: string
+  shadowOffset?: { width: number; height: number }
+  shadowOpacity?: number
+  shadowRadius?: number
+  elevation?: number
+  boxShadow?: string
+}
+
 export interface UseShadowOptions {
   /** Shadow state at `progress === 0`. */
   from: ShadowConfig
@@ -97,7 +113,7 @@ export function useShadow({
   from,
   to,
   progress,
-}: UseShadowOptions): ReturnType<typeof useAnimatedStyle> {
+}: UseShadowOptions): ShadowStyle {
   // Resolve presence + endpoints once on the JS thread so the worklet body
   // consumes flat literals — consistent with the JS-thread resolver
   // principle that keeps `Object.keys`-style walks off the UI thread.
@@ -198,5 +214,5 @@ export function useShadow({
       out.boxShadow = css
     }
     return out
-  })
+  }) as unknown as ShadowStyle
 }

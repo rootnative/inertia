@@ -328,7 +328,7 @@ describe('useShadow', () => {
         },
         progress,
       })
-      probe.current = style as Record<string, unknown>
+      probe.current = style as unknown as Record<string, unknown>
       return null
     }
     render(<Setup />)
@@ -349,7 +349,7 @@ describe('useShadow', () => {
         to: { shadowOpacity: 0.5 },
         progress,
       })
-      probe.current = style as Record<string, unknown>
+      probe.current = style as unknown as Record<string, unknown>
       return null
     }
     render(<Setup />)
@@ -387,7 +387,7 @@ describe('useShadow', () => {
         to: { boxShadow: '0px 2px 6px 2px rgba(0,0,0,0.15)' },
         progress,
       })
-      probe.current = style as Record<string, unknown>
+      probe.current = style as unknown as Record<string, unknown>
       return null
     }
     render(<Setup />)
@@ -408,7 +408,7 @@ describe('useShadow', () => {
         },
         progress,
       })
-      probe.current = style as Record<string, unknown>
+      probe.current = style as unknown as Record<string, unknown>
       return null
     }
     render(<Setup />)
@@ -441,7 +441,7 @@ describe('useShadow', () => {
         },
         progress,
       })
-      probe.current = style as Record<string, unknown>
+      probe.current = style as unknown as Record<string, unknown>
       return null
     }
     render(<Setup />)
@@ -457,7 +457,7 @@ describe('useColorTransition', () => {
       const progress = useMotionValue(0)
       progress.value = 1
       const style = useColorTransition(progress, ['#ffffff', '#000000'])
-      probe.current = style as Record<string, unknown>
+      probe.current = style as unknown as Record<string, unknown>
       return null
     }
     render(<Setup />)
@@ -473,7 +473,7 @@ describe('useColorTransition', () => {
       const style = useColorTransition(progress, ['#ffffff', '#4f46e5'], {
         key: 'borderColor',
       })
-      probe.current = style as Record<string, unknown>
+      probe.current = style as unknown as Record<string, unknown>
       return null
     }
     render(<Setup />)

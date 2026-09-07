@@ -8,6 +8,7 @@ export {
 } from './useColorCascade'
 export {
   useColorTransition,
+  type ColorStyle,
   type ColorStyleKey,
   type UseColorTransitionOptions,
 } from './useColorTransition'
@@ -36,7 +37,8 @@ export {
   useShadow,
   type BoxShadowLayer,
   type ShadowConfig,
+  type ShadowStyle,
   type UseShadowOptions,
 } from './useShadow'
-export { useTranslateStyle } from './useTranslateStyle'
+export { useTranslateStyle, type TranslateStyle } from './useTranslateStyle'
 export { useVariants } from './useVariants'

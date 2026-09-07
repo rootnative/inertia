@@ -5,7 +5,6 @@ import {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
-import type { useAnimatedStyle } from 'react-native-reanimated'
 import {
   buildReleaseAnimation,
   resolveNamedTransition,
@@ -13,6 +12,7 @@ import {
   useTranslateStyle,
   type TransitionConfig,
   type TransitionName,
+  type TranslateStyle,
 } from '@rootnative/inertia'
 import { useLatestCallback } from './useLatestCallback'
 import type { ReleaseInfo, ReleaseResult, SnapBackTransition } from './types'
@@ -120,7 +120,7 @@ export interface UseSwipeResult {
    * own, nest another animated view, or build one style from `swipeX` /
    * `swipeY` yourself with `useInterpolatedStyle`.
    */
-  animatedStyle: ReturnType<typeof useAnimatedStyle>
+  animatedStyle: TranslateStyle
   /** Live x translation. */
   swipeX: SharedValue<number>
   /** Live y translation. */

@@ -20,6 +20,21 @@ export type ColorStyleKey =
   | 'tintColor'
   | 'shadowColor'
 
+/**
+ * A one-key colour style fragment, as returned by {@link useColorTransition}
+ * and {@link useColorCascade}.
+ *
+ * Deliberately **not** `ReturnType<typeof useAnimatedStyle>`. Reanimated 4.5
+ * brands that value (`AnimatedStyleHandle`), and a branded type is rejected
+ * inside a `StyleProp` array — so every call site would need a cast, which is
+ * the defect `InterpolatedStyle` was introduced to remove in `0.0.9`. The brand
+ * is compile-time only, so the runtime value is unchanged.
+ *
+ * Optional per key because which slot is filled is chosen at run time from
+ * `options.key`; exactly one is ever present.
+ */
+export type ColorStyle = { [K in ColorStyleKey]?: string }
+
 export interface UseColorTransitionOptions {
   /**
    * Which style slot the interpolated color is emitted under. Defaults to
@@ -56,7 +71,7 @@ export function useColorTransition(
   progress: SharedValue<number>,
   range: readonly [string, string],
   options?: UseColorTransitionOptions,
-): ReturnType<typeof useAnimatedStyle> {
+): ColorStyle {
   // Resolve the slot key once on the JS thread so the worklet body
   // consumes a single string literal — consistent with the JS-thread
   // resolver principle that keeps `Object.keys`-style walks off the UI
@@ -68,5 +83,5 @@ export function useColorTransition(
   return useAnimatedStyle(() => {
     'worklet'
     return { [key]: interpolateColor(progress.value, [0, 1], [from, to]) }
-  })
+  }) as unknown as ColorStyle
 }

@@ -1,7 +1,7 @@
 // Jest preset for projects consuming `@rootnative/inertia` and its sibling
 // adapter packages (`@rootnative/inertia-gestures`, `-gradients`, `-svg`).
 //
-// Layered on top of `react-native`'s own preset. Adds:
+// Layered on top of `@react-native/jest-preset`. Adds:
 //   - the `react-native-worklets` + Reanimated mock surface Inertia exercises
 //     (worklet stubs, animation primitives, color/layout utilities)
 //   - `transformIgnorePatterns` widened so Jest transforms the published
@@ -19,7 +19,29 @@
 // If you need to allowlist additional packages for transformation, extend
 // `transformIgnorePatterns` in your own config — Jest merges over the preset.
 
-const rnPreset = require('react-native/jest-preset')
+// Resolve `@react-native/jest-preset` directly rather than through the
+// `react-native/jest-preset` shim. RN 0.86 moved the preset into its own
+// package and left the old path as a shim that re-exports it — but it declares
+// the new package as an **optional** peer, and no package manager installs an
+// optional peer. So on RN 0.86 the shim throws a migration error for any
+// consumer who has not installed it by hand, which is what a consumer of this
+// preset would have hit. Requiring it here means the failure names this
+// package's requirement instead.
+let rnPreset
+try {
+  rnPreset = require('@react-native/jest-preset')
+} catch (error) {
+  if (error.code === 'MODULE_NOT_FOUND') {
+    throw new Error(
+      '[inertia] `@rootnative/inertia/jest-preset` needs `@react-native/jest-preset`.\n' +
+        'React Native 0.86 moved its Jest preset into that package and declares\n' +
+        'it as an optional peer, so it is not installed for you. Add it as a\n' +
+        'devDependency at the version matching your react-native:\n\n' +
+        '  npm install --save-dev @react-native/jest-preset\n',
+    )
+  }
+  throw error
+}
 
 module.exports = {
   ...rnPreset,

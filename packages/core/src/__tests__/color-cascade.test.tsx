@@ -230,7 +230,7 @@ describe('useColorCascade — progress shared-value identity', () => {
     probe.b = b
     probe.current = useColorCascade(REST, [
       { progress: useSecond ? b : a, color: HOT },
-    ]) as Record<string, unknown>
+    ]) as unknown as Record<string, unknown>
     return null
   }
 

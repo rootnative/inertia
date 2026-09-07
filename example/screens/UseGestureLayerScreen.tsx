@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   halo: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 16,
   },
   cardTitle: {

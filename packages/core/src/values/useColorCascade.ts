@@ -4,7 +4,7 @@ import {
   useAnimatedStyle,
   type SharedValue,
 } from 'react-native-reanimated'
-import type { ColorStyleKey } from './useColorTransition'
+import type { ColorStyle, ColorStyleKey } from './useColorTransition'
 
 /**
  * One layer in a color cascade: its own `progress` shared value (0→1) and the
@@ -70,7 +70,7 @@ export function useColorCascade(
   rest: string,
   layers: readonly ColorCascadeLayer[],
   options?: UseColorCascadeOptions,
-): ReturnType<typeof useAnimatedStyle> {
+): ColorStyle {
   const key = options?.key ?? 'backgroundColor'
 
   // Resolve the layer chain into two flat arrays the worklet closes over — the
@@ -121,5 +121,5 @@ export function useColorCascade(
       )
     }
     return { [key]: acc }
-  })
+  }) as unknown as ColorStyle
 }

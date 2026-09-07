@@ -3739,9 +3739,11 @@ function Puck() {
 }
 ```
 
-| Signature                                                           | Returns                               |
-| ------------------------------------------------------------------- | ------------------------------------- |
-| `useTranslateStyle(x: SharedValue<number>, y: SharedValue<number>)` | `ReturnType<typeof useAnimatedStyle>` |
+| Signature                                                           | Returns          |
+| ------------------------------------------------------------------- | ---------------- |
+| `useTranslateStyle(x: SharedValue<number>, y: SharedValue<number>)` | `TranslateStyle` |
+
+`TranslateStyle`, `ColorStyle` (from `useColorTransition` / `useColorCascade`) and `ShadowStyle` (from `useShadow`) are **plain style objects**, not Reanimated's branded `AnimatedStyleHandle`. Reanimated 4.5 brands what `useAnimatedStyle` returns, and a branded value is rejected inside a `StyleProp` array — so these hooks state the plain shape instead, and a style-array call site needs no cast. The brand is compile-time only; the value is still the animated style Reanimated produced.
 
 The style owns the whole `transform` key. Do not stack a second transform style beside it — `transform` is one key in React Native, so the later style replaces this one instead of merging. Nest another animated view, or build one style from `x` / `y` with `useInterpolatedStyle`, to add a transform.
 

@@ -5,8 +5,7 @@ import {
   withDecay,
   type SharedValue,
 } from 'react-native-reanimated'
-import type { useAnimatedStyle } from 'react-native-reanimated'
-import { useTranslateStyle } from '@rootnative/inertia'
+import { useTranslateStyle, type TranslateStyle } from '@rootnative/inertia'
 import type { DragConstraints } from './types'
 
 export interface PanOptions {
@@ -41,7 +40,7 @@ export interface UsePanResult {
    * with it. Nest another animated view, or build one style from `panX` /
    * `panY` with `useInterpolatedStyle`, to add a transform of your own.
    */
-  animatedStyle: ReturnType<typeof useAnimatedStyle>
+  animatedStyle: TranslateStyle
   /** Live x translation, persistent across gestures. */
   panX: SharedValue<number>
   /** Live y translation, persistent across gestures. */

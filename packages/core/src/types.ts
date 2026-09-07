@@ -5,6 +5,7 @@ import {
   type Ref,
 } from 'react'
 import { type BoxShadowValue, type StyleProp } from 'react-native'
+import { type AnimatedProps } from 'react-native-reanimated'
 
 /**
  * A single animation step's destination, optionally overriding the transition
@@ -555,6 +556,14 @@ export interface MotionProps<C, V extends VariantsMap<C> = VariantsMap<C>> {
  * Props of a Motion primitive for a given underlying component `C` and a
  * concrete variants map `V`: the component's own props (minus `style`, which
  * we replace with an animated style) intersected with the Motion props.
+ *
+ * `style` is taken from `AnimatedProps<…>`, not from `C` directly, because a
+ * Motion primitive renders `Animated.createAnimatedComponent(C)` — so the
+ * styles it accepts are the ones that animated component accepts. Reanimated
+ * 4.5 brands what `useAnimatedStyle` returns, and `ComponentProps<C>['style']`
+ * rejects a branded value, which would have made the sanctioned escape hatch
+ * (Principle 2: own your `useAnimatedStyle` over Inertia-driven shared values,
+ * then pass it to a `Motion.*` primitive) require a cast at every call site.
  */
 export type MotionComponentProps<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -562,7 +571,11 @@ export type MotionComponentProps<
   V extends VariantsMap<ComponentProps<C>> = VariantsMap<ComponentProps<C>>,
 > = Omit<ComponentProps<C>, 'style'> &
   MotionProps<ComponentProps<C>, V> & {
-    style?: ComponentProps<C>['style']
+    style?: AnimatedProps<ComponentProps<C>> extends {
+      style?: infer S
+    }
+      ? S
+      : ComponentProps<C>['style']
     ref?: Ref<unknown>
   }
 

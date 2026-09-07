@@ -5,9 +5,11 @@ import {
   type PanResponderInstance,
 } from 'react-native'
 import { useSharedValue, type SharedValue } from 'react-native-reanimated'
-import type { useAnimatedStyle } from 'react-native-reanimated'
 import { buildReleaseAnimation } from '../transitions'
-import { useTranslateStyle } from '../values/useTranslateStyle'
+import {
+  useTranslateStyle,
+  type TranslateStyle,
+} from '../values/useTranslateStyle'
 import { applyBounds } from './applyBounds'
 import type { TransitionConfig } from '../types'
 
@@ -22,7 +24,7 @@ export interface UseTouchDragResult {
   /** Spread onto a `View` / `Pressable` to install the pan responder. */
   panHandlers: PanResponderInstance['panHandlers']
   /** Stable animated `transform` style. */
-  animatedStyle: ReturnType<typeof useAnimatedStyle>
+  animatedStyle: TranslateStyle
   /** Live x translation, persistent across gestures. */
   dragX: SharedValue<number>
   /** Live y translation, persistent across gestures. */

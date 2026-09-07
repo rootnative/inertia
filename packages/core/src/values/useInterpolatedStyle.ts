@@ -308,6 +308,13 @@ export function useInterpolatedStyle<K extends keyof InterpolatedStyleMap>(
   // The worklet builds a `Record<string, unknown>` by design — the emitted keys
   // are only known from `entries` at run time. `InterpolatedStyle<K>` is the
   // static statement of that same shape, so the cast is where the two meet.
+  //
+  // Through `unknown` because Reanimated 4.5 brands what `useAnimatedStyle`
+  // returns (`AnimatedStyleHandle`), and a branded type no longer overlaps a
+  // plain style object. Erasing the brand is the point of this hook: the
+  // returned value has to drop into a `StyleProp<ViewStyle>` array without the
+  // consumer casting. The brand is compile-time only, so the runtime value is
+  // unchanged — it is still the animated style Reanimated produced.
   return useAnimatedStyle(() => {
     'worklet'
     const out: Record<string, unknown> = {}
@@ -338,5 +345,5 @@ export function useInterpolatedStyle<K extends keyof InterpolatedStyleMap>(
     }
     if (transform.length > 0) out.transform = transform
     return out
-  }) as InterpolatedStyle<K>
+  }) as unknown as InterpolatedStyle<K>
 }
