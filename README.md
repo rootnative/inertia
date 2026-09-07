@@ -4,7 +4,7 @@
 
 [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![pnpm 10](https://img.shields.io/badge/pnpm-10.x-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
-[![Expo SDK 54](https://img.shields.io/badge/expo-54-000020?logo=expo&logoColor=white)](https://expo.dev/)
+[![Expo SDK 57](https://img.shields.io/badge/expo-57-000020?logo=expo&logoColor=white)](https://expo.dev/)
 [![Reanimated 4](https://img.shields.io/badge/reanimated-4.x-B57EDC)](https://docs.swmansion.com/react-native-reanimated/)
 [![Turborepo](https://img.shields.io/badge/monorepo-turbo-EF4444)](https://turbo.build/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -150,7 +150,7 @@ Inertia ships [llms.txt](https://llmstxt.org/) documentation for AI coding agent
 - Node.js `>=20`
 - pnpm `10.x`
 - React `19.1+`, React Native `0.81+`, Expo SDK `54+`
-- `react-native-reanimated >=4.0.0` (peer)
+- `react-native-reanimated >=4.5.0 <4.6.0` (peer)
 
 ### Setup
 
@@ -203,7 +203,7 @@ Tests live in `src/__tests__/` per package. The Reanimated mock resolves animati
 
 | Layer           | Technology                                              |
 | --------------- | ------------------------------------------------------- |
-| Runtime         | React 19.1, React Native 0.81+, Expo SDK 54+            |
+| Runtime         | React 19.2, React Native 0.86, Expo SDK 57              |
 | Animation       | `react-native-reanimated` `>=4.0.0` (peer)              |
 | Language        | TypeScript 5 (strict mode)                              |
 | Build           | tsup (package bundling), Turborepo (task orchestration) |

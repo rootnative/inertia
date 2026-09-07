@@ -18,7 +18,7 @@ pnpm add @rootnative/inertia-gradients expo-linear-gradient
 
 `expo-linear-gradient` works in bare React Native projects as well as Expo, but it is an Expo Module. Bare projects need the Expo modules runtime installed. See [Installing Expo modules](https://docs.expo.dev/bare/installing-expo-modules/).
 
-**Peer dependencies:** `@rootnative/inertia` (workspace or installed), `react >=19.0.0`, `react-native >=0.81.0`, `react-native-reanimated >=4.0.0`, `expo-linear-gradient >=14.0.0`.
+**Peer dependencies:** `@rootnative/inertia` (workspace or installed), `react >=19.2.3`, `react-native >=0.83.0 <0.87.0`, `react-native-reanimated >=4.5.0 <4.6.0`, `expo-linear-gradient >=14.0.0`.
 
 ## Usage
 

@@ -22,7 +22,7 @@ pnpm add @rootnative/inertia react-native-reanimated
 
 Then enable the [Reanimated Babel plugin](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation).
 
-**Peer dependencies:** `react >=19.0.0`, `react-native >=0.81.0`, `react-native-reanimated >=4.0.0`.
+**Peer dependencies:** `react >=19.2.3`, `react-native >=0.83.0 <0.87.0`, `react-native-reanimated >=4.5.0 <4.6.0`, `react-native-worklets >=0.10.0 <0.11.0`.
 
 ## Quick start
 

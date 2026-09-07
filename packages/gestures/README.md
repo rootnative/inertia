@@ -18,7 +18,7 @@ pnpm add @rootnative/inertia-gestures react-native-gesture-handler
 
 Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation) — it needs `<GestureHandlerRootView>` near the root of your app.
 
-**Peer dependencies:** `@rootnative/inertia` (workspace or installed), `react >=19.0.0`, `react-native >=0.81.0`, `react-native-reanimated >=4.0.0`, `react-native-gesture-handler >=2.0.0`.
+**Peer dependencies:** `@rootnative/inertia` (workspace or installed), `react >=19.2.3`, `react-native >=0.83.0 <0.87.0`, `react-native-reanimated >=4.5.0 <4.6.0`, `react-native-gesture-handler >=2.0.0`.
 
 ## What ships
 
