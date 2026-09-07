@@ -25,7 +25,15 @@ For prop changes after mount (a `useState` toggling `animate`, a controller tran
 
 ## Setup
 
-Inertia ships a Jest preset that wires everything up — the Reanimated mock, the `react-native-worklets` stub, the `Easing.bezier()` factory shape, and the `transformIgnorePatterns` widening needed to let Jest transform `@rootnative/inertia*`'s published ESM bundles. Point Jest at it with one line:
+Inertia ships a Jest preset that wires everything up — the Reanimated mock, the `react-native-worklets` stub, the `Easing.bezier()` factory shape, and the `transformIgnorePatterns` widening needed to let Jest transform `@rootnative/inertia*`'s published ESM bundles.
+
+Install `@react-native/jest-preset` first. React Native 0.86 moved its Jest preset into that package and declares it as an **optional** peer, which means no package manager installs it for you:
+
+```bash
+npm install --save-dev @react-native/jest-preset
+```
+
+Then point Jest at Inertia's preset with one line:
 
 ```js
 // jest.config.js
@@ -34,7 +42,7 @@ module.exports = {
 }
 ```
 
-The preset internally extends `react-native`'s own preset, so you don't need to reference both. If you already have setup files or `transformIgnorePatterns` of your own, extend the preset:
+The preset internally extends `@react-native/jest-preset`, so you don't need to reference both. If you already have setup files or `transformIgnorePatterns` of your own, extend the preset:
 
 ```js
 const inertia = require('@rootnative/inertia/jest-preset')
@@ -48,11 +56,11 @@ module.exports = {
 }
 ```
 
-If you can't use the preset (e.g. you have a custom transform pipeline that conflicts), add the setup file directly:
+If you can't use the preset (e.g. you have a custom transform pipeline that conflicts), add the setup file directly. Note the preset name: `preset: 'react-native'` was the pre-0.86 spelling and now throws, because that path is a shim that only re-exports the package above.
 
 ```js
 module.exports = {
-  preset: 'react-native',
+  preset: '@react-native/jest-preset',
   setupFiles: [require.resolve('@rootnative/inertia/jest-setup')],
   transformIgnorePatterns: [
     'node_modules/(?!(react-native|@react-native|@react-native-community|@rootnative/inertia|@rootnative/inertia-gestures|@rootnative/inertia-gradients|@rootnative/inertia-svg|react-native-worklets)/)',

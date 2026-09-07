@@ -261,11 +261,11 @@ import { resolveTransition, TRANSPARENT } from '@rootnative/inertia'
 const fill = useSharedValue(props.fill ?? TRANSPARENT)
 ```
 
-It exists because the obvious choice is wrong in a way nothing points at. Reanimated dispatches an animation on the runtime shape of its **source** value, and `isColor()` gates the RGBA path — but Reanimated's colour table maps `transparent` to `undefined` while every other CSS colour name maps to a number, so the keyword is the single name that fails the gate. A slot resting at `'transparent'` takes the prefix-number-suffix branch built for values like `'100%'`, yields `NaN`, and never becomes a colour.
+It exists because the obvious choice used to be wrong in a way nothing pointed at. Reanimated dispatches an animation on the runtime shape of its **source** value, and `isColor()` gates the RGBA path — but up to Reanimated 4.4 the colour table mapped `transparent` to `undefined` while every other CSS colour name mapped to a number, so the keyword was the single name that failed the gate. A slot resting at `'transparent'` took the prefix-number-suffix branch built for values like `'100%'`, yielded `NaN`, and never became a colour.
 
-The symptom is transition-dependent, which is what makes it hard to place: `withTiming` snaps to its target when the duration elapses regardless, so the colour still arrives and everything looks fine. `withSpring` — the default — decides it has settled by comparing against `NaN`, so it never settles, the colour never appears, and the frame loop never stops.
+The symptom was transition-dependent, which is what made it hard to place: `withTiming` snaps to its target when the duration elapses regardless, so the colour still arrived and everything looked fine. `withSpring` — the default — decides it has settled by comparing against `NaN`, so it never settled, the colour never appeared, and the frame loop never stopped.
 
-`TRANSPARENT` is `'rgba(0, 0, 0, 0)'`: the same colour, recognised.
+**Reanimated 4.5 fixed the colour table**, and that is the floor of Inertia's supported peer band (`>=4.5.0 <4.6.0`), so the keyword now animates like any other name. `TRANSPARENT` stays exported for two reasons: it is `'rgba(0, 0, 0, 0)'` — the same colour, spelled unambiguously — and it remains the safe seed for code that may also run against an older Reanimated.
 
 :::note
 Only values passed to `withSpring` / `withTiming` are affected. `interpolateColor` parses `'transparent'` correctly, so a component that interpolates colours itself — [`useShadow`](./hooks.md#useshadow-from-to-progress-), [`useColorTransition`](./hooks.md#usecolortransitionprogress-from-to-options), the `gesture` cascade — can use the keyword freely.

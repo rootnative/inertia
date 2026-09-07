@@ -12,10 +12,13 @@ Inertia is a thin wrapper around `react-native-reanimated`. The Reanimated insta
 
 ## Prerequisites
 
-- React Native `>= 0.81` (or Expo SDK `54+`)
-- React `>= 19`
-- `react-native-reanimated >= 4.0.0`
-- `react-native-worklets >= 0.5.0` — the worklet runtime Reanimated 4 is built on. It is a **peer** of both Reanimated and Inertia, so Yarn and pnpm will not install it for you.
+- Expo SDK `57` (React Native `0.86.x`, React `19.2.3`)
+- `react-native-reanimated` `>=4.5.0 <4.6.0`
+- `react-native-worklets` `>=0.10.0 <0.11.0` — the worklet runtime Reanimated 4 is built on. It is a **peer** of both Reanimated and Inertia, so Yarn and pnpm will not install it for you.
+
+Inertia targets **one SDK band, not a floor**, so `SDK 57+` is not correct: the peer ranges stop below React Native 0.87 and below Reanimated 4.6, which the next SDK will carry.
+
+The upper bounds are deliberate. Reanimated and `react-native-worklets` are version-locked to each other, and each pair works with one React Native band — Reanimated 4.5 needs worklets `0.10.x` and React Native 0.83–0.86. A wider range would let a package manager pair a new Reanimated with an old worklets, a combination that cannot install at all. Supporting a second SDK needs a second release line, not a wider range.
 
 ## Which package has what
 

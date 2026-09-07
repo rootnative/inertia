@@ -149,7 +149,7 @@ Inertia ships [llms.txt](https://llmstxt.org/) documentation for AI coding agent
 
 - Node.js `>=20`
 - pnpm `10.x`
-- React `19.1+`, React Native `0.81+`, Expo SDK `54+`
+- React `19.2.3`, React Native `0.86.x`, Expo SDK `57`
 - `react-native-reanimated >=4.5.0 <4.6.0` (peer)
 
 ### Setup
@@ -204,7 +204,7 @@ Tests live in `src/__tests__/` per package. The Reanimated mock resolves animati
 | Layer           | Technology                                              |
 | --------------- | ------------------------------------------------------- |
 | Runtime         | React 19.2, React Native 0.86, Expo SDK 57              |
-| Animation       | `react-native-reanimated` `>=4.0.0` (peer)              |
+| Animation       | `react-native-reanimated` `>=4.5.0 <4.6.0` (peer)       |
 | Language        | TypeScript 5 (strict mode)                              |
 | Build           | tsup (package bundling), Turborepo (task orchestration) |
 | Package Manager | pnpm 10 (workspace protocol)                            |
