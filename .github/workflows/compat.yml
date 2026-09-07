@@ -1,0 +1,80 @@
+name: CI / SDK Compatibility
+
+# Checks the packed release candidate against every Expo SDK fixture in
+# rootnative/sdk-compat, before it is published rather than after.
+#
+# This exists because a green test suite here says nothing about what a
+# consumer can install. Two failures got through that gap: `0.0.10` declares
+# `react-native >=0.81.0` and `react-native-reanimated >=4.0.0`, and the newest
+# Reanimated that range admits requires `react-native 0.83 - 0.87`, so npm
+# rejects our own advertised floor with ERESOLVE. Nothing in this repository
+# changed when that became true — Reanimated narrowed its own range.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/compat.yml"
+  pull_request:
+    paths:
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/compat.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compat-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pack:
+    name: Pack candidate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The tarball has to be built, not just packed: `files` ships `dist`, and
+      # the web export condition resolves to it. Packing an unbuilt tree would
+      # test a package that has no `dist` at all.
+      - name: Build
+        run: pnpm run build
+
+      - name: Pack core
+        run: pnpm --filter @rootnative/inertia pack --pack-destination pack
+
+      - name: Upload candidate
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: candidate-inertia
+          path: pack/*.tgz
+          if-no-files-found: error
+          retention-days: 1
+
+  compat:
+    name: Matrix
+    needs: pack
+    uses: rootnative/sdk-compat/.github/workflows/compat.yml@main
+    with:
+      package: "@rootnative/inertia"
+      tarball-artifact: candidate-inertia
+      # Enforced. The ranges were narrowed to the SDK 57 band, which is the
+      # widest set that admits no combination npm would reject.
+      enforce-range: true
