@@ -136,7 +136,6 @@
     "prepublishOnly": "node ../../scripts/build-llms.mjs"
   },
   "peerDependencies": {
-    "@react-native/jest-preset": ">=0.86.0 <0.87.0",
     "@testing-library/react-native": ">=13.0.0",
     "react": ">=19.2.3 <20.0.0",
     "react-native": ">=0.83.0 <0.87.0",
@@ -144,9 +143,6 @@
     "react-native-worklets": ">=0.10.0 <0.11.0"
   },
   "peerDependenciesMeta": {
-    "@react-native/jest-preset": {
-      "optional": true
-    },
     "@testing-library/react-native": {
       "optional": true
     }

@@ -19,6 +19,13 @@
 // If you need to allowlist additional packages for transformation, extend
 // `transformIgnorePatterns` in your own config — Jest merges over the preset.
 
+// This package is deliberately **not** declared as a peer dependency of
+// `@rootnative/inertia`. React Native pins it to an exact version (RN 0.86.3
+// requires exactly `@react-native/jest-preset@0.86.3`), so any range we
+// declared would advertise versions that cannot install — the sdk-compat range
+// audit fails on it — and an exact pin would break on every RN patch. The
+// version relationship belongs to `react-native`, which already declares it.
+//
 // Resolve `@react-native/jest-preset` directly rather than through the
 // `react-native/jest-preset` shim. RN 0.86 moved the preset into its own
 // package and left the old path as a shim that re-exports it — but it declares
