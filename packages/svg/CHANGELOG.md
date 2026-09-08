@@ -6,6 +6,14 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.11] - 2026-09-09
+
+### Changed
+
+- **Breaking: the peer ranges are narrowed to the Expo SDK 57 band.** `react` is now `>=19.2.3 <20.0.0`, `react-native` is `>=0.83.0 <0.87.0`, and `react-native-reanimated` is `>=4.5.0 <4.6.0`. This adapter tracks the band that `@rootnative/inertia` declares, so the two cannot disagree and no consumer can install a pair that resolves to different runtimes. The reason the band is this narrow is in the core changelog: each peer range resolves on its own, so a range wide enough for both SDK 54 and SDK 57 also admits `react-native 0.81` with Reanimated `4.6`, which cannot install.
+
+  Migration: move the app to Expo SDK 57 (React `19.2.3`, React Native `0.86.3`, Reanimated `4.5.1`, Worklets `0.10.1`). A project on SDK 54 stays on `0.0.10`. `react-native-svg` keeps its own floor, because its version relationship is with the Expo SDK and not with this adapter.
+
 ## [0.0.10] - 2026-09-06
 
 ### Changed
@@ -81,7 +89,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionPath` over `react-native-svg`. Animatable: `d` (element-wise scalar interpolation on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.10...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.11...HEAD
+[0.0.11]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.11
 [0.0.10]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.10
 [0.0.9]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.9
 [0.0.8]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.8

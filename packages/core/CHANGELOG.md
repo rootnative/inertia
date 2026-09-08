@@ -4,6 +4,26 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.11] - 2026-09-09
+
+### Changed
+
+- **Breaking: the peer ranges are narrowed to the Expo SDK 57 band.** `react` is now `>=19.2.3 <20.0.0`, `react-native` is `>=0.83.0 <0.87.0`, `react-native-reanimated` is `>=4.5.0 <4.6.0`, and `react-native-worklets` is `>=0.10.0 <0.11.0`. The old ranges advertised a floor that npm rejects. `0.0.10` declares `react-native >=0.81.0` and `react-native-reanimated >=4.0.0`, and the newest Reanimated that range admits requires `react-native 0.83 - 0.87`, so a fresh install can fail with `ERESOLVE`. Nothing in this repository changed when that became true — Reanimated narrowed its own range after the release, which is why a range needs a gate that re-checks it and not only a review at the time it is written.
+
+  The band cannot be wider. Each peer range resolves on its own, so any set that admits both SDK 54 (`react-native 0.81` with Reanimated `4.1`) and SDK 57 (`react-native 0.86` with Reanimated `4.5`) also admits `react-native 0.81` with Reanimated `4.6`, which cannot install. A range promises every combination it permits, not only the combinations that were tested.
+
+  A new `compat.yml` workflow now packs the release candidate and installs it into every Expo SDK fixture in `rootnative/sdk-compat` before the publish, with `enforce-range: true`. The test suite in this repository says nothing about what a consumer can install, and that gap is what let the `0.0.10` range ship.
+
+  Migration: move the app to Expo SDK 57 (React `19.2.3`, React Native `0.86.3`, Reanimated `4.5.1`, Worklets `0.10.1`). A project on SDK 54 stays on `0.0.10`. The dev pins and the example app moved to the same band, so the package now develops against the runtime it declares. `sdk-compat` records SDK 54 as a documented boundary, not as a failure.
+
+- **`@rootnative/inertia/jest-preset` needs `@react-native/jest-preset` in the consuming project.** React Native `0.86` moved its Jest preset into that package and left `react-native/jest-preset` as a shim that re-exports it. The shim declares the new package as an **optional** peer, and no package manager installs an optional peer, so the shim throws a migration error for every consumer who did not add the package by hand. The preset now resolves `@react-native/jest-preset` directly and throws a named error that says what to install, so the failure states this package's requirement instead of surfacing as a React Native migration message. Add it as a devDependency at the version that matches your `react-native`. The docs testing page carries the install step and the new `preset` spelling.
+
+  The package is deliberately **not** a peer dependency here. React Native pins it to an exact version — `0.86.3` requires exactly `@react-native/jest-preset@0.86.3` — so any range declared in this package would advertise versions that cannot install, and the `sdk-compat` range audit fails on it. An exact pin would break on every React Native patch. The version relationship belongs to `react-native`, which already declares it.
+
+### Added
+
+- **Three style types are exported: `ColorStyle`, `TranslateStyle` and `ShadowStyle`.** They are what `useColorTransition`, `useColorCascade`, `useTranslateStyle` and `useShadow` return. Each hook was public while the type of the style object it hands back was not, so a consumer could not name the value in a typed variable, a prop, or a wrapper hook's signature without rebuilding the type by hand.
+
 ### Fixed
 
 - **A keyframe array no longer crashes the whole render under reduced motion.** `withSequence` writes a `finished` flag onto every argument it is handed. Reduced motion collapses each step to `no-animation`, and `no-animation` resolves to the bare target rather than an animation object, so `animate={{ translateY: [0, -8, 0] }}` reached `withSequence(0, -8, 0)` and threw `TypeError: Cannot create property 'finished' on number` from inside render. React unmounted the tree, so any consumer using the documented keyframe form — the shape in this package's own `llms.txt` — served a blank page to every visitor with reduce-motion switched on at the OS level. The resolver now settles the property on the last keyframe instead of building a sequence, which is where the sequence would have ended; `repeat` and `delay` were already dropped for `no-animation`, so nothing is left pending. A per-step `{ type: 'no-animation' }` inside a sequence that otherwise animates hit the same throw and now becomes a zero-length timing, keeping its slot in the order.
@@ -357,7 +377,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.10...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.11...HEAD
+[0.0.11]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.11
 [0.0.10]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.10
 [0.0.9]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.9
 [0.0.8]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.8
