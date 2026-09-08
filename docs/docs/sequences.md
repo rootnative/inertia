@@ -66,6 +66,28 @@ When applied to a sequence, repeat wraps the **whole sequence**, not each step. 
 
 `'no-animation'` and `'decay'` configs ignore `repeat`.
 
+## Reduced motion
+
+A sequence under the reduced-motion gate does not play. The property snaps to the **last keyframe** — where the sequence would have ended — and no `withSequence` is built. `repeat` and `delay` are dropped with it, so an endless sequence rests rather than looping.
+
+```tsx
+// reduce-motion on at the OS level: opacity settles at 0.25, nothing animates.
+<Motion.View animate={{ opacity: [0, 1, 0.25] }} />
+```
+
+Write the keyframes so the last one is the state you want a reduce-motion visitor to see. A loop that returns to where it started (`[0, 80, 0]`) already does the right thing. A loop written as one leg plus `alternate` cannot, because [`alternate` has no effect on a sequence](#repeat) — for a two-state drift, prefer a single target and let `repeat` alternate it:
+
+```tsx
+// Oscillates between -8 and 0, and rests at 0 under reduced motion.
+<Motion.View
+  initial={{ translateY: -8 }}
+  animate={{ translateY: 0 }}
+  transition={{ type: 'timing', duration: 2600, repeat: 'infinite' }}
+/>
+```
+
+See [`MotionConfig`](./motion-config) for how the gate is resolved.
+
 ## `onAnimationEnd`
 
 Sequence and repeat lifecycle is reported through one callback:

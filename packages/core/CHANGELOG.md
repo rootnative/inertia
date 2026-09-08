@@ -4,6 +4,12 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **A keyframe array no longer crashes the whole render under reduced motion.** `withSequence` writes a `finished` flag onto every argument it is handed. Reduced motion collapses each step to `no-animation`, and `no-animation` resolves to the bare target rather than an animation object, so `animate={{ translateY: [0, -8, 0] }}` reached `withSequence(0, -8, 0)` and threw `TypeError: Cannot create property 'finished' on number` from inside render. React unmounted the tree, so any consumer using the documented keyframe form — the shape in this package's own `llms.txt` — served a blank page to every visitor with reduce-motion switched on at the OS level. The resolver now settles the property on the last keyframe instead of building a sequence, which is where the sequence would have ended; `repeat` and `delay` were already dropped for `no-animation`, so nothing is left pending. A per-step `{ type: 'no-animation' }` inside a sequence that otherwise animates hit the same throw and now becomes a zero-length timing, keeping its slot in the order.
+
+  Found from a consumer, not from CI, and the reason is worth keeping: **the Jest mock cannot observe this class of bug.** Its `withSequence` is `(...args) => args[args.length - 1]` and its `withTiming` / `withSpring` return their target, so every step looks like a bare value whether the gate is on or off — the existing reduced-motion sequence tests passed against the crashing code. The regression tests therefore assert the one thing that stays observable under the mock: a sequence under the gate never reaches `withSequence` at all. For the same reason the gate is now detected from the resolved config (`no-animation` base), never by inspecting the shape of a resolved step.
+
 ## [0.0.10] - 2026-09-06
 
 ### Changed

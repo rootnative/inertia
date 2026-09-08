@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native'
+import { render, screen } from '@testing-library/react-native'
 import * as Reanimated from 'react-native-reanimated'
 import { Motion, MotionConfig } from '../index'
 
@@ -119,6 +119,65 @@ describe('reduced motion — Phase-3 acceptance', () => {
       )
 
       expect(withTiming).toHaveBeenCalled()
+    })
+  })
+
+  // The gate held for the *transition* and not for the *shape*. Every step
+  // resolved to a bare target, and `withSequence` writes a `finished` flag
+  // onto each argument it is handed, so the array form threw
+  // `Cannot create property 'finished' on number` from inside render and
+  // blanked the entire page for anyone with reduce-motion on at the OS level.
+  //
+  // Jest cannot observe that throw. The Reanimated mock's `withSequence` is
+  // `(...args) => args[args.length - 1]`, which takes primitives happily, and
+  // its `withTiming` / `withSpring` return their target rather than an
+  // animation object — so under the mock every step looks snapped whether the
+  // gate is on or not. What IS observable, and is equivalent, is that a
+  // sequence under the gate never reaches `withSequence` at all.
+  describe('a snapped sequence never reaches withSequence', () => {
+    it('does not build a sequence for a keyframe array', () => {
+      const withSequence = jest.spyOn(Reanimated, 'withSequence')
+
+      render(
+        <MotionConfig reducedMotion="always">
+          <Motion.View animate={{ translateY: [0, -8, 0], opacity: [0, 1] }} />
+        </MotionConfig>,
+      )
+
+      expect(withSequence).not.toHaveBeenCalled()
+    })
+
+    it('settles the property on the last keyframe', () => {
+      // Built fresh on both passes. `renderWithMotion` only clones the element
+      // it is given, so with a `MotionConfig` on the outside the inner
+      // `Motion.View` keeps its reference and React bails out of re-rendering
+      // it — the flush never reaches the primitive whose style is under test.
+      const tree = () => (
+        <MotionConfig reducedMotion="always">
+          <Motion.View testID="seq" animate={{ opacity: [0, 1, 0.25] }} />
+        </MotionConfig>
+      )
+      const result = render(tree())
+      result.rerender(tree())
+
+      const raw = screen.getByTestId('seq').props.style
+      const flat = Array.isArray(raw) ? raw.flat(Infinity) : [raw]
+      const style = Object.assign({}, ...flat.filter(Boolean))
+      expect(style.opacity).toBe(0.25)
+    })
+
+    // Positive control: without the gate the same tree must still build a
+    // sequence, or the assertion above would pass for the wrong reason.
+    it('still builds a sequence when reducedMotion="never"', () => {
+      const withSequence = jest.spyOn(Reanimated, 'withSequence')
+
+      render(
+        <MotionConfig reducedMotion="never">
+          <Motion.View animate={{ translateY: [0, -8, 0] }} />
+        </MotionConfig>,
+      )
+
+      expect(withSequence).toHaveBeenCalled()
     })
   })
 })

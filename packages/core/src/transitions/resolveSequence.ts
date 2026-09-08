@@ -1,4 +1,4 @@
-import { withSequence } from 'react-native-reanimated'
+import { withSequence, withTiming } from 'react-native-reanimated'
 import {
   applyRepeat,
   repeatOf,
@@ -12,6 +12,18 @@ import {
   type SequenceStep,
   type TransitionConfig,
 } from '../types'
+
+/** A zero-length timing, for a snapped step inside an animated sequence. */
+const INSTANT = { duration: 0 } as const
+
+/**
+ * True when a resolved step is a bare target rather than a Reanimated
+ * animation object. `buildOne` returns the target itself for `no-animation`,
+ * which is what the reduced-motion gate collapses every step to.
+ */
+function isSnapped(step: unknown): step is number | string {
+  return typeof step === 'number' || typeof step === 'string'
+}
 
 /**
  * True when the value is a `{ to, ...transitionOverride }` sequence step.
@@ -37,6 +49,12 @@ function isStepObject<V>(
  *   3. array of either   → `withSequence` of resolved steps, with the
  *      top-level `repeat` applied at the **sequence level** (not per step).
  *      Per-step `repeat` overrides remain step-local.
+ *
+ * `withSequence` writes a `finished` flag onto each argument it is handed, so
+ * a bare target throws `Cannot create property 'finished' on number` and takes
+ * the whole render down with it. Two paths produce bare targets, and both are
+ * handled below rather than at the call site: reduced motion (every step) and
+ * a per-step `{ type: 'no-animation' }` override (some steps).
  */
 export function resolveAnimatableValue<V extends number | string>(
   value: AnimatableValue<V>,
@@ -49,7 +67,29 @@ export function resolveAnimatableValue<V extends number | string>(
     const animations = steps.map((step, i) =>
       resolveStep(step, stepBase, factory?.('step', i)),
     )
-    const seq = withSequence(...(animations as never[]))
+    // The reduced-motion gate. `mergeTransition` hands a `no-animation` base
+    // back untouched for every step, so the whole sequence is a snap and there
+    // is nothing to sequence. Settle on the last step — where the sequence
+    // would have ended. `repeat` and `delay` are already dropped for
+    // `no-animation` (`repeatOf` and `delayOf` both return `undefined`), so
+    // nothing needs to wrap this.
+    //
+    // Read off the config rather than sniffing the resolved values: under the
+    // Jest mock `withSpring` and `withTiming` also return bare targets, so a
+    // shape test reports every sequence as snapped and the gate stops being
+    // observable in either direction.
+    if (stepBase?.type === 'no-animation' && animations.length > 0) {
+      return animations[animations.length - 1]
+    }
+    // A step that declares `{ type: 'no-animation' }` inside a sequence that
+    // otherwise animates resolves to a bare target of its own. The step still
+    // owns its slot in the order, so it becomes an instant timing rather than
+    // being dropped.
+    const seq = withSequence(
+      ...(animations.map((a) =>
+        isSnapped(a) ? withTiming(a as number, INSTANT) : a,
+      ) as never[]),
+    )
     return applyRepeat(seq, base ? repeatOf(base) : undefined, {
       sequence: true,
     })
