@@ -11,6 +11,22 @@
 // limit, decide whether to tighten or accept it; don't silently raise the
 // cap. Record any baseline shift here when you do.
 //
+// ── Recorded baselines, brotlied + minified, 2026-09-13, `pointerHandlers`
+//    on `useGesture` (unreleased) ──
+//   Full namespace (root)     14.28 kB   (was 14.27)
+//   Every other entry                    (unchanged)
+//
+// +0.01 kB root, nothing anywhere else. `useGesture` is reachable from the
+// root barrel but from none of the primitive subpaths, so only the root moved.
+//
+// **The cap was not raised**, per the note below — which is why the shape of
+// the code here is load-bearing. The obvious implementation, a second
+// `useMemo` deriving `pointerHandlers` from `handlers`, cost +0.06 kB and put
+// the root at 14.33 kB against the 14.3 kB cap: a fail. Building both bags in
+// one memo costs +0.01 kB and reuses the hover/focus closures by reference,
+// which is the documented contract anyway. If you split that memo back in two,
+// this check fails and the fix is to re-merge it, not to move the cap.
+//
 // ── Recorded baselines, brotlied + minified, 2026-09-12, the static-export
 //    guard (unreleased) ──
 //   Motion.View subpath        9.75 kB   (was 9.62)

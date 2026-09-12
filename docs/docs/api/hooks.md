@@ -20,10 +20,10 @@ Create an animatable value owned by JS but readable from worklets. A thin pass-t
 The generic is **unconstrained**, so it holds anything `useSharedValue` holds — not only animatable values:
 
 ```ts
-const x = useMotionValue(0)                     // SharedValue<number>
-const tint = useMotionValue('#fff')             // SharedValue<string>
-const cellTops = useMotionValue<number[]>([])   // one measurement per item
-const ready = useMotionValue(false)             // SharedValue<boolean>
+const x = useMotionValue(0) // SharedValue<number>
+const tint = useMotionValue('#fff') // SharedValue<string>
+const cellTops = useMotionValue<number[]>([]) // one measurement per item
+const ready = useMotionValue(false) // SharedValue<boolean>
 ```
 
 The other value hooks (`useSpring`, `useTransform`) are numeric because interpolation is. This one is storage, so it is not narrowed to match them.
@@ -645,13 +645,13 @@ There is deliberately **no press pair** in `pointerHandlers`. A surface with pre
 
 Returns:
 
-| Field          | Type                  | Notes                                                                                              |
-| -------------- | --------------------- | -------------------------------------------------------------------------------------------------- |
-| `pressed`      | `SharedValue<number>` | 0↔1 progress for the pressed layer.                                                                |
-| `focused`      | `SharedValue<number>` | 0↔1 progress for any focus modality.                                                               |
-| `focusVisible` | `SharedValue<number>` | 0↔1 progress for keyboard-only focus (W3C `:focus-visible` semantics).                             |
-| `hovered`      | `SharedValue<number>` | 0↔1 progress for hover (web only — stays at 0 on native).                                          |
-| `handlers`     | `UseGestureHandlers`  | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on a `Pressable` that is a real control. |
+| Field             | Type                        | Notes                                                                                                                            |
+| ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `pressed`         | `SharedValue<number>`       | 0↔1 progress for the pressed layer.                                                                                              |
+| `focused`         | `SharedValue<number>`       | 0↔1 progress for any focus modality.                                                                                             |
+| `focusVisible`    | `SharedValue<number>`       | 0↔1 progress for keyboard-only focus (W3C `:focus-visible` semantics).                                                           |
+| `hovered`         | `SharedValue<number>`       | 0↔1 progress for hover (web only — stays at 0 on native).                                                                        |
+| `handlers`        | `UseGestureHandlers`        | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on a `Pressable` that is a real control.             |
 | `pointerHandlers` | `UseGesturePointerHandlers` | `{ onPointerEnter, onPointerLeave, onFocus, onBlur }`. The same callbacks by reference, keyed for a plain `View`. No press pair. |
 
 Transitions follow the same shape as the `gesture` prop's accompanying `transition`:

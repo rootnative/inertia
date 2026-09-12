@@ -44,7 +44,7 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ### Added
 
-- **`useGesture` returns a second handler bag, `pointerHandlers`, keyed for a plain `View`.** The hook's callbacks are all plain `() => void`; only the *names* in `handlers` (`onHoverIn`, `onPressIn`, …) tie it to `Pressable`. But its documentation said "spread on a `Pressable`" in all three places a reader looks — the interface doc, the `handlers` field, and the `@example` — so that is what consumers did, including for surfaces that only need hover.
+- **`useGesture` returns a second handler bag, `pointerHandlers`, keyed for a plain `View`.** The hook's callbacks are all plain `() => void`; only the _names_ in `handlers` (`onHoverIn`, `onPressIn`, …) tie it to `Pressable`. But its documentation said "spread on a `Pressable`" in all three places a reader looks — the interface doc, the `handlers` field, and the `@example` — so that is what consumers did, including for surfaces that only need hover.
 
   **That ships dead keyboard stops.** Measured against react-native-web 0.21: a `Pressable` with no `onPress` renders `tabindex="0"`, and it still does with `accessible={false}` **and** `focusable={false}` — neither prop suppresses it. A grid of five hover-lifting cards built that way adds five tab stops that go nowhere, on a page with eighteen real ones. Nothing surfaces it: no warning, no failing test, and it looks right in a browser. Only reading the built HTML shows it. (Found in the RootNative landing site.)
 
@@ -52,13 +52,13 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
   **No press pair, deliberately.** A surface with press feedback should be a real control — a `Pressable` with an `onPress` and a role — and that is what `handlers` is for. A test pins the exact key set so a press handler cannot be added later without the decision being revisited.
 
-  Purely additive: `handlers` is unchanged and every existing call site keeps working. New `UseGesturePointerHandlers` type exported from the root barrel. The docs now choose between the two bags by what the surface *is* rather than by what is being animated.
+  Purely additive: `handlers` is unchanged and every existing call site keeps working. New `UseGesturePointerHandlers` type exported from the root barrel. The docs now choose between the two bags by what the surface _is_ rather than by what is being animated.
 
 ### Changed
 
 - **`useMotionValue` holds anything a shared value holds.** Its generic was `T extends number | string`, while its own documentation called it a "thin pass-through over `useSharedValue<T>`" and named no limit. The two had disagreed since the value layer was introduced, and nothing — comment, changelog or test — ever defended the constraint.
 
-  The gap has a cost the docs could not warn about, because they did not describe it. A consumer keeping one array — a Y position per grid cell, read from a scroll worklet by index — cannot put it in a `useMotionValue`, and `@rootnative/inertia/reanimated` does not re-export `useSharedValue` either. So the one value the library could not hold forced the *only* direct `react-native-reanimated` import in an app otherwise built entirely on Inertia, and the sanctioned interop subpath did not cover it. (Found in the RootNative landing site.)
+  The gap has a cost the docs could not warn about, because they did not describe it. A consumer keeping one array — a Y position per grid cell, read from a scroll worklet by index — cannot put it in a `useMotionValue`, and `@rootnative/inertia/reanimated` does not re-export `useSharedValue` either. So the one value the library could not hold forced the _only_ direct `react-native-reanimated` import in an app otherwise built entirely on Inertia, and the sanctioned interop subpath did not cover it. (Found in the RootNative landing site.)
 
   The generic overload is now unconstrained. The two primitive overloads stay exactly as they were, so `useMotionValue(0)` and `useMotionValue('#fff')` still widen to `SharedValue<number>` / `SharedValue<string>` rather than to a literal type, and an explicit type argument still narrows (`useMotionValue<'open' | 'closed'>('open')`). Purely additive: every call that compiled before compiles unchanged.
 
@@ -68,7 +68,7 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 - **`useShadow`'s documentation told consumers to build a config that paints two shadows.** Two doc comments were wrong in the same way, and they had real consequences: a review of the RootNative landing site read them, concluded the fix was to give `@rootnative/core`'s `theme.elevation.level*` tokens a `boxShadow` field, and filed that as the plan. It would have fixed web by breaking new-architecture native.
 
-  `ShadowConfig.boxShadow` said to "provide `boxShadow` **alongside**" the classic `shadow*` keys when a tween must show on web. That is the one combination to avoid: RN 0.76+ on the new architecture renders `boxShadow` natively too, so a config carrying both applies two shadow systems to one view and whichever it resolves last wins. The `animate` surface already dev-warns on exactly this pairing; the hook's own docs recommended it. It now says to use `boxShadow` *instead of* the native keys on that platform, and to branch on `Platform.OS`.
+  `ShadowConfig.boxShadow` said to "provide `boxShadow` **alongside**" the classic `shadow*` keys when a tween must show on web. That is the one combination to avoid: RN 0.76+ on the new architecture renders `boxShadow` natively too, so a config carrying both applies two shadow systems to one view and whichever it resolves last wins. The `animate` surface already dev-warns on exactly this pairing; the hook's own docs recommended it. It now says to use `boxShadow` _instead of_ the native keys on that platform, and to branch on `Platform.OS`.
 
   The `useShadow` example was worse, because it did not compile. It showed `from: { boxShadow: theme.elevation.level1 }` with a trailing comment asserting that token is a CSS string. It is not — `@rootnative/core` builds every elevation level from the `shadow*` keys, so the example is a `TS2322` against the sibling package it names. The example now uses literal CSS strings, and says plainly that a design system's elevation token usually needs converting first, pointing at `elevationShadowConfig` in `@rootnative/components`, which does the conversion and the platform branch together.
 

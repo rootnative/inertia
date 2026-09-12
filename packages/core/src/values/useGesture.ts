@@ -197,35 +197,39 @@ export function useGesture(
     [shouldReduceMotion],
   )
 
-  const handlers = useMemo<UseGestureHandlers>(
-    () => ({
-      onPressIn: () => setLayer(pressed, 'pressed', 1),
-      onPressOut: () => setLayer(pressed, 'pressed', 0),
-      onHoverIn: () => setLayer(hovered, 'hovered', 1),
-      onHoverOut: () => setLayer(hovered, 'hovered', 0),
-      onFocus: () => {
-        setLayer(focused, 'focused', 1)
-        if (isFocusVisible()) setLayer(focusVisible, 'focusVisible', 1)
-      },
-      onBlur: () => {
-        setLayer(focused, 'focused', 0)
-        setLayer(focusVisible, 'focusVisible', 0)
-      },
-    }),
-    [setLayer, pressed, focused, focusVisible, hovered],
-  )
-
-  // Keyed for a `View`, sharing the same callbacks by reference so the two
-  // bags stay in lockstep and a consumer can switch between them freely.
-  const pointerHandlers = useMemo<UseGesturePointerHandlers>(
-    () => ({
-      onPointerEnter: handlers.onHoverIn,
-      onPointerLeave: handlers.onHoverOut,
-      onFocus: handlers.onFocus,
-      onBlur: handlers.onBlur,
-    }),
-    [handlers],
-  )
+  // Both bags come out of one memo. They share the hover and focus callbacks
+  // by reference — which is the contract — and building them together keeps
+  // that literal rather than derived, at no extra allocation. A second
+  // `useMemo` here costs root-entry bytes the cap has no room for; see
+  // `.size-limit.cjs`.
+  const { handlers, pointerHandlers } = useMemo(() => {
+    const onHoverIn = () => setLayer(hovered, 'hovered', 1)
+    const onHoverOut = () => setLayer(hovered, 'hovered', 0)
+    const onFocus = () => {
+      setLayer(focused, 'focused', 1)
+      if (isFocusVisible()) setLayer(focusVisible, 'focusVisible', 1)
+    }
+    const onBlur = () => {
+      setLayer(focused, 'focused', 0)
+      setLayer(focusVisible, 'focusVisible', 0)
+    }
+    return {
+      handlers: {
+        onPressIn: () => setLayer(pressed, 'pressed', 1),
+        onPressOut: () => setLayer(pressed, 'pressed', 0),
+        onHoverIn,
+        onHoverOut,
+        onFocus,
+        onBlur,
+      } satisfies UseGestureHandlers,
+      pointerHandlers: {
+        onPointerEnter: onHoverIn,
+        onPointerLeave: onHoverOut,
+        onFocus,
+        onBlur,
+      } satisfies UseGesturePointerHandlers,
+    }
+  }, [setLayer, pressed, focused, focusVisible, hovered])
 
   return { pressed, focused, focusVisible, hovered, handlers, pointerHandlers }
 }
