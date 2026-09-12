@@ -42,6 +42,16 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
   Known limit, documented rather than papered over: the element is measured on mount and when the container resizes, not continuously. Content that changes height _above_ an element leaves that element's trigger point stale; remount it if the layout above it moves.
 
+### Fixed
+
+- **`useShadow`'s documentation told consumers to build a config that paints two shadows.** Two doc comments were wrong in the same way, and they had real consequences: a review of the RootNative landing site read them, concluded the fix was to give `@rootnative/core`'s `theme.elevation.level*` tokens a `boxShadow` field, and filed that as the plan. It would have fixed web by breaking new-architecture native.
+
+  `ShadowConfig.boxShadow` said to "provide `boxShadow` **alongside**" the classic `shadow*` keys when a tween must show on web. That is the one combination to avoid: RN 0.76+ on the new architecture renders `boxShadow` natively too, so a config carrying both applies two shadow systems to one view and whichever it resolves last wins. The `animate` surface already dev-warns on exactly this pairing; the hook's own docs recommended it. It now says to use `boxShadow` *instead of* the native keys on that platform, and to branch on `Platform.OS`.
+
+  The `useShadow` example was worse, because it did not compile. It showed `from: { boxShadow: theme.elevation.level1 }` with a trailing comment asserting that token is a CSS string. It is not — `@rootnative/core` builds every elevation level from the `shadow*` keys, so the example is a `TS2322` against the sibling package it names. The example now uses literal CSS strings, and says plainly that a design system's elevation token usually needs converting first, pointing at `elevationShadowConfig` in `@rootnative/components`, which does the conversion and the platform branch together.
+
+  Documentation only — no runtime change, and `llms.txt` was already correct on both points.
+
 ## [0.0.11] - 2026-09-09
 
 ### Changed

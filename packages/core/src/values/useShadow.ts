@@ -31,14 +31,19 @@ export interface ShadowConfig {
   /**
    * CSS `box-shadow` — the shadow surface on web (react-native-web passes
    * it through as CSS) and on React Native 0.76+ new-architecture native.
-   * Accepts the CSS string form design systems store elevation tokens in
+   * Accepts a CSS string
    * (`'0px 1px 2px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15)'`;
    * px lengths only) or structured layers. Multi-layer shadows interpolate
    * per layer; when one side has fewer layers, it is padded with invisible
    * layers, CSS-transition style. A malformed string **throws** at render
    * (like `cubicBezier` — token mistakes should fail loudly at setup).
-   * The classic `shadow*`/`elevation` keys don't reach the web renderer —
-   * provide `boxShadow` alongside them when the tween must show up there.
+   *
+   * The classic `shadow*`/`elevation` keys don't reach the web renderer, so
+   * a tween built from them alone is invisible there. Use `boxShadow`
+   * **instead of** them on that platform, not beside them: RN 0.76+ new
+   * architecture renders both, and a config carrying both paints two
+   * shadows. A design system's elevation token is usually a `shadow*`
+   * object rather than a CSS string, so it needs converting first.
    */
   boxShadow?: string | readonly BoxShadowLayer[]
 }
@@ -103,11 +108,24 @@ export interface UseShadowOptions {
  *
  * ```tsx
  * const shadowStyle = useShadow({
- *   from: { boxShadow: theme.elevation.level1 }, // '0px 1px 2px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15)'
- *   to:   { boxShadow: theme.elevation.level2 },
+ *   from: { boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.16)' },
+ *   to: { boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)' },
  *   progress,
  * })
  * ```
+ *
+ * **Give one side `boxShadow` and the other the `shadow*` keys, not both on
+ * one config.** RN 0.76+ on the new architecture renders `boxShadow`
+ * natively as well, so a config carrying both paints two shadows and
+ * whichever the view resolves last wins. Branch on `Platform.OS` and return
+ * one surface per platform.
+ *
+ * A design system's elevation token is usually **not** a CSS string, so it
+ * cannot be dropped into `boxShadow` as-is. `@rootnative/core`, for one,
+ * builds every `theme.elevation.level*` from the `shadow*` keys, so
+ * `{ boxShadow: theme.elevation.level1 }` is a type error. Convert first —
+ * `@rootnative/components` exports `elevationShadowConfig`, which does the
+ * conversion and the platform branch together.
  */
 export function useShadow({
   from,
