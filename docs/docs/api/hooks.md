@@ -17,6 +17,22 @@ The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTr
 
 Create an animatable value owned by JS but readable from worklets. A thin pass-through over Reanimated's `useSharedValue` — the returned `SharedValue<T>` works anywhere a shared value is accepted (`useAnimatedStyle`, `useDerivedValue`, the other value hooks below).
 
+The generic is **unconstrained**, so it holds anything `useSharedValue` holds — not only animatable values:
+
+```ts
+const x = useMotionValue(0)                     // SharedValue<number>
+const tint = useMotionValue('#fff')             // SharedValue<string>
+const cellTops = useMotionValue<number[]>([])   // one measurement per item
+const ready = useMotionValue(false)             // SharedValue<boolean>
+```
+
+The other value hooks (`useSpring`, `useTransform`) are numeric because interpolation is. This one is storage, so it is not narrowed to match them.
+
+Two rules come from Reanimated rather than from this hook:
+
+- **Reassign a structured value; do not mutate it.** `cellTops.value.push(y)` updates nothing. Write a new array or record instead.
+- **Only numbers and colour strings animate.** A structured value is something you write from a handler or an effect, never something you hand to `withSpring` / `withTiming`.
+
 ```tsx
 import { useMotionValue, Motion } from '@rootnative/inertia'
 import { useAnimatedStyle } from 'react-native-reanimated'

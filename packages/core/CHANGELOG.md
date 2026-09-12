@@ -42,6 +42,16 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
   Known limit, documented rather than papered over: the element is measured on mount and when the container resizes, not continuously. Content that changes height _above_ an element leaves that element's trigger point stale; remount it if the layout above it moves.
 
+### Changed
+
+- **`useMotionValue` holds anything a shared value holds.** Its generic was `T extends number | string`, while its own documentation called it a "thin pass-through over `useSharedValue<T>`" and named no limit. The two had disagreed since the value layer was introduced, and nothing — comment, changelog or test — ever defended the constraint.
+
+  The gap has a cost the docs could not warn about, because they did not describe it. A consumer keeping one array — a Y position per grid cell, read from a scroll worklet by index — cannot put it in a `useMotionValue`, and `@rootnative/inertia/reanimated` does not re-export `useSharedValue` either. So the one value the library could not hold forced the *only* direct `react-native-reanimated` import in an app otherwise built entirely on Inertia, and the sanctioned interop subpath did not cover it. (Found in the RootNative landing site.)
+
+  The generic overload is now unconstrained. The two primitive overloads stay exactly as they were, so `useMotionValue(0)` and `useMotionValue('#fff')` still widen to `SharedValue<number>` / `SharedValue<string>` rather than to a literal type, and an explicit type argument still narrows (`useMotionValue<'open' | 'closed'>('open')`). Purely additive: every call that compiled before compiles unchanged.
+
+  Two Reanimated rules now stated in the docs, because a structured shared value is easy to get wrong: it must be **reassigned** to be seen (`arr.value.push(x)` updates nothing), and only numbers and colour strings are animatable, so a structured value is something you write, never something you hand to `withSpring`. `motion-value.test-d.ts` pins array, record and boolean cases — reinstating the constraint fails the typecheck rather than a consumer's app.
+
 ### Fixed
 
 - **`useShadow`'s documentation told consumers to build a config that paints two shadows.** Two doc comments were wrong in the same way, and they had real consequences: a review of the RootNative landing site read them, concluded the fix was to give `@rootnative/core`'s `theme.elevation.level*` tokens a `boxShadow` field, and filed that as the plan. It would have fixed web by breaking new-architecture native.

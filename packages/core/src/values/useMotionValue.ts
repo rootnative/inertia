@@ -30,21 +30,37 @@ import {
  * ```ts
  * onPress={() => { x.value = 100 }}
  * ```
+ *
+ * **It holds whatever `useSharedValue` holds**, not only a number or a
+ * string — an array of per-item measurements, a record of layout boxes, a
+ * boolean. The value layer's *other* hooks (`useSpring`, `useTransform`) are
+ * numeric because interpolation is, but this one is storage, and narrowing it
+ * would send consumers to a direct `react-native-reanimated` import for the
+ * one value the library could not hold.
+ *
+ * ```ts
+ * // One Y position per card, read from a scroll worklet by index.
+ * const cellTops = useMotionValue<number[]>([])
+ * onLayout={(e) => { cellTops.value = [...cellTops.value, e.nativeEvent.layout.y] }}
+ * ```
+ *
+ * Two things follow from Reanimated, not from this hook. A structured value
+ * must be **reassigned** to be seen — mutating in place (`arr.value.push(x)`)
+ * updates nothing, which is why the example above builds a new array. And
+ * only numbers and colour strings are animatable, so a structured value is
+ * something you write, never something you hand to `withSpring`.
  */
-// Overloads widen primitive literals: with a bare generic constrained to
-// `number | string`, TS skips literal widening, so `useMotionValue(0)` would
-// infer `SharedValue<0>` and reject every subsequent write. The primitive
-// overloads make `useMotionValue(0)` / `useMotionValue('#fff')` come back as
+// Overloads widen primitive literals: inferring a bare literal against a type
+// parameter skips literal widening, so `useMotionValue(0)` would come back as
+// `SharedValue<0>` and reject every subsequent write. The primitive overloads
+// make `useMotionValue(0)` / `useMotionValue('#fff')` infer
 // `SharedValue<number>` / `SharedValue<string>`; the generic overload stays
-// last for callers who want an explicit narrower type (e.g. a string union).
+// last and is **unconstrained**, so it takes both an explicit narrower type
+// (a string union) and any structured value `useSharedValue` accepts.
 export function useMotionValue(initial: number): SharedValue<number>
 export function useMotionValue(initial: string): SharedValue<string>
-export function useMotionValue<T extends number | string>(
-  initial: T,
-): SharedValue<T>
-export function useMotionValue<T extends number | string>(
-  initial: T,
-): SharedValue<T> {
+export function useMotionValue<T>(initial: T): SharedValue<T>
+export function useMotionValue<T>(initial: T): SharedValue<T> {
   const sv = useSharedValue<T>(initial)
   // Cancel any in-flight animation when the owning component unmounts, so a
   // mid-flight (or infinite-repeat) `withX` driving this value stops ticking
