@@ -606,14 +606,42 @@ function StateLayerButton() {
     ),
   }))
 
+  // A real control: it has an onPress, so its tab stop is earned.
   return (
-    <Pressable {...handlers}>
+    <Pressable onPress={submit} {...handlers}>
       <Animated.View pointerEvents="none" style={ringStyle} />
       <Animated.View pointerEvents="none" style={haloStyle} />
     </Pressable>
   )
 }
 ```
+
+### Which bag: `handlers` or `pointerHandlers`?
+
+Pick by what the surface **is**, not by what you are animating.
+
+A `Pressable` is a keyboard tab stop even when it does nothing. Measured against react-native-web 0.21: a `Pressable` with no `onPress` renders `tabindex="0"`, and it still does with `accessible={false}` **and** `focusable={false}` — neither prop suppresses it. Build a grid of five hover-lifting cards that way and the page gains five keyboard stops that go nowhere. Nothing surfaces it: no warning, no failing test, and it looks correct in a browser. Only the built HTML shows it.
+
+Every value in both bags is a plain `() => void`, so nothing about the behaviour needs a `Pressable` — only the prop names do. A surface that just reacts to the pointer takes `pointerHandlers` on a `Motion.View` and adds no tab stop:
+
+```tsx
+function HoverLift({ children }) {
+  const { hovered, pointerHandlers } = useGesture()
+  const liftStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -6 * hovered.value }],
+  }))
+
+  return (
+    <Animated.View style={liftStyle} {...pointerHandlers}>
+      {children}
+    </Animated.View>
+  )
+}
+```
+
+`onPointerEnter` / `onPointerLeave` have been `ViewProps` since React Native 0.71 and react-native-web forwards them to the DOM; `onFocus` / `onBlur` are `ViewProps` too.
+
+There is deliberately **no press pair** in `pointerHandlers`. A surface with press feedback should be a real control — give it a `Pressable`, an `onPress` and a role, and use `handlers`.
 
 Returns:
 
@@ -623,7 +651,8 @@ Returns:
 | `focused`      | `SharedValue<number>` | 0↔1 progress for any focus modality.                                                               |
 | `focusVisible` | `SharedValue<number>` | 0↔1 progress for keyboard-only focus (W3C `:focus-visible` semantics).                             |
 | `hovered`      | `SharedValue<number>` | 0↔1 progress for hover (web only — stays at 0 on native).                                          |
-| `handlers`     | `UseGestureHandlers`  | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on the host Pressable. |
+| `handlers`     | `UseGestureHandlers`  | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on a `Pressable` that is a real control. |
+| `pointerHandlers` | `UseGesturePointerHandlers` | `{ onPointerEnter, onPointerLeave, onFocus, onBlur }`. The same callbacks by reference, keyed for a plain `View`. No press pair. |
 
 Transitions follow the same shape as the `gesture` prop's accompanying `transition`:
 

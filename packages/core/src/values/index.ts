@@ -15,6 +15,7 @@ export {
 export {
   useGesture,
   type UseGestureHandlers,
+  type UseGesturePointerHandlers,
   type UseGestureResult,
 } from './useGesture'
 export { useInView, type UseInViewOptions } from './useInView'

@@ -93,6 +93,7 @@ export type {
   UseColorCascadeOptions,
   UseColorTransitionOptions,
   UseGestureHandlers,
+  UseGesturePointerHandlers,
   UseGestureResult,
   UseInterpolatedStyleOptions,
   UseInViewOptions,

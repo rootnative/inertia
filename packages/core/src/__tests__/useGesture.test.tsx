@@ -68,6 +68,52 @@ describe('useGesture', () => {
     expect(result.current.focusVisible.value).toBe(0)
   })
 
+  it('pointerHandlers drive the same layers as handlers', () => {
+    const { result } = renderHook(() => useGesture())
+
+    result.current.pointerHandlers.onPointerEnter()
+    expect(result.current.hovered.value).toBe(1)
+    result.current.pointerHandlers.onPointerLeave()
+    expect(result.current.hovered.value).toBe(0)
+
+    result.current.pointerHandlers.onFocus()
+    expect(result.current.focused.value).toBe(1)
+    expect(result.current.focusVisible.value).toBe(1)
+    result.current.pointerHandlers.onBlur()
+    expect(result.current.focused.value).toBe(0)
+  })
+
+  it('shares callbacks by reference between the two bags', () => {
+    // Identity, not just behaviour: the two bags must not drift into separate
+    // closures, or a consumer switching between them changes what runs.
+    const { result } = renderHook(() => useGesture())
+    const { handlers, pointerHandlers } = result.current
+
+    expect(pointerHandlers.onPointerEnter).toBe(handlers.onHoverIn)
+    expect(pointerHandlers.onPointerLeave).toBe(handlers.onHoverOut)
+    expect(pointerHandlers.onFocus).toBe(handlers.onFocus)
+    expect(pointerHandlers.onBlur).toBe(handlers.onBlur)
+  })
+
+  it('carries no press pair, so a hover surface cannot become a fake control', () => {
+    // Deliberate omission. Press feedback belongs on something with an
+    // `onPress` and a role — that is what `handlers` is for.
+    const { result } = renderHook(() => useGesture())
+    expect(Object.keys(result.current.pointerHandlers).sort()).toEqual([
+      'onBlur',
+      'onFocus',
+      'onPointerEnter',
+      'onPointerLeave',
+    ])
+  })
+
+  it('pointerHandlers identity is stable across renders', () => {
+    const { result, rerender } = renderHook(() => useGesture())
+    const first = result.current.pointerHandlers
+    rerender({})
+    expect(result.current.pointerHandlers).toBe(first)
+  })
+
   it('handler identity is stable across renders', () => {
     const { result, rerender } = renderHook(() => useGesture())
     const first = result.current.handlers

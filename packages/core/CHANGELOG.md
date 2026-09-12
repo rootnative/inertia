@@ -42,6 +42,18 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
   Known limit, documented rather than papered over: the element is measured on mount and when the container resizes, not continuously. Content that changes height _above_ an element leaves that element's trigger point stale; remount it if the layout above it moves.
 
+### Added
+
+- **`useGesture` returns a second handler bag, `pointerHandlers`, keyed for a plain `View`.** The hook's callbacks are all plain `() => void`; only the *names* in `handlers` (`onHoverIn`, `onPressIn`, …) tie it to `Pressable`. But its documentation said "spread on a `Pressable`" in all three places a reader looks — the interface doc, the `handlers` field, and the `@example` — so that is what consumers did, including for surfaces that only need hover.
+
+  **That ships dead keyboard stops.** Measured against react-native-web 0.21: a `Pressable` with no `onPress` renders `tabindex="0"`, and it still does with `accessible={false}` **and** `focusable={false}` — neither prop suppresses it. A grid of five hover-lifting cards built that way adds five tab stops that go nowhere, on a page with eighteen real ones. Nothing surfaces it: no warning, no failing test, and it looks right in a browser. Only reading the built HTML shows it. (Found in the RootNative landing site.)
+
+  `pointerHandlers` is `{ onPointerEnter, onPointerLeave, onFocus, onBlur }` — the same four callbacks **by reference**, so the two bags cannot drift into separate closures. `onPointerEnter` / `onPointerLeave` have been `ViewProps` since React Native 0.71 and react-native-web forwards them to the DOM; `onFocus` / `onBlur` are `ViewProps` too. A `View` carrying them renders no `tabindex` at all.
+
+  **No press pair, deliberately.** A surface with press feedback should be a real control — a `Pressable` with an `onPress` and a role — and that is what `handlers` is for. A test pins the exact key set so a press handler cannot be added later without the decision being revisited.
+
+  Purely additive: `handlers` is unchanged and every existing call site keeps working. New `UseGesturePointerHandlers` type exported from the root barrel. The docs now choose between the two bags by what the surface *is* rather than by what is being animated.
+
 ### Changed
 
 - **`useMotionValue` holds anything a shared value holds.** Its generic was `T extends number | string`, while its own documentation called it a "thin pass-through over `useSharedValue<T>`" and named no limit. The two had disagreed since the value layer was introduced, and nothing — comment, changelog or test — ever defended the constraint.
