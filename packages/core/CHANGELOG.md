@@ -4,6 +4,18 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Added
+
+- **`useInView(ref, options?)` — a 0↔1 shared value driven by whether an element is on screen.** The value layer had no source for "the user can see this": `useInterpolatedStyle`, `useShadow` and `useColorCascade` all take a progress value and leave the caller to supply it, and the only supplied source was `useScroll`, which reports a position and nothing about any particular element. So every entrance delay counted from mount, and an element below the fold finished its entrance before the visitor ever reached it. `useInView` closes that: hold a ref, and the returned value moves from `0` to `1` when the element arrives.
+
+  Options are `amount` (how much of the element must show, as a fraction of its own length), `once` (default `true` — hold at `1` after the first sighting), `margin` (grow or shrink the detection box, in points) and `transition` (any transition config or a registered name; reduced motion snaps it).
+
+  On web it uses `IntersectionObserver`. On native there is no such API, so the element must sit inside a `Motion.ScrollView` or a `Motion.FlatList`; both now publish their scroll offset and visible length to their descendants. The element is measured in window coordinates, so nesting depth does not matter. **Outside a scroll container on native the value is `1` from the start and the hook warns once in development** — an element on a fixed screen really is visible, and the animation then behaves exactly as it did before the hook existed.
+
+  The offset is read off the container's animated ref rather than through its `onScroll` prop. That prop holds a single opaque Reanimated handler with no supported way to run two, so a container that claimed it would have silently dropped a consumer's `useScroll` handler, or been dropped by it. Reading off the ref leaves the prop untouched and lets both hooks drive one container.
+
+  Known limit, documented rather than papered over: the element is measured on mount and when the container resizes, not continuously. Content that changes height _above_ an element leaves that element's trigger point stale; remount it if the layout above it moves.
+
 ## [0.0.11] - 2026-09-09
 
 ### Changed

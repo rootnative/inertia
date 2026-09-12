@@ -17,6 +17,7 @@ export {
   type UseGestureHandlers,
   type UseGestureResult,
 } from './useGesture'
+export { useInView, type UseInViewOptions } from './useInView'
 export {
   useInterpolatedStyle,
   type InterpolatedStyle,

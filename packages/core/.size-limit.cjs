@@ -11,6 +11,38 @@
 // limit, decide whether to tighten or accept it; don't silently raise the
 // cap. Record any baseline shift here when you do.
 //
+// ── Recorded baselines, brotlied + minified, 2026-09-12, `useInView`
+//    (unreleased) ──
+//   Motion.View subpath        9.62 kB   (unchanged)
+//   Motion.Text subpath        9.62 kB   (unchanged)
+//   Motion.Image subpath       9.62 kB   (unchanged)
+//   Motion.Pressable subpath   9.61 kB   (unchanged)
+//   Motion.ScrollView subpath  9.87 kB   (was 9.62)
+//   Motion.FlatList subpath    9.89 kB   (was 9.62)
+//   Full namespace (root)     14.16 kB   (was 13.13)
+//   MotionView (barrel-shaken) 9.48 kB   (was 9.45)
+//   MotionText (barrel-shaken) 9.48 kB   (was 9.46)
+//   MotionImage (barrel-shaken)9.46 kB   (unchanged)
+//   Testing helpers              223 B   (unchanged)
+//
+// +1.03 kB (+7.8%) root, +0.25/+0.27 kB on the two scroll containers, and
+// **nothing at all on the four primitives that do not scroll** — which is the
+// tree-shaking design doing its job: an app importing only
+// `@rootnative/inertia/view` pays nothing for a hook it never calls.
+//
+// Where it goes: `useInView` itself, the scroll context the two containers now
+// publish, and the window-measurement path the hook shares with `layoutId`.
+// The two "before" columns were measured the same day by reverting the change
+// in place and rebuilding, not taken from the record below — that one predates
+// `0.0.11`, whose SDK 57 work moved the root figure on its own.
+//
+// **The limits below did not move, and the root is now the tight one: 14.16 kB
+// against a 14.3 kB cap is 1% of headroom.** The next root-entry addition of
+// any size has to either raise that cap deliberately or take the lever this
+// file has always named (splitting the factory's gesture / variants / sequence
+// / shadow paths into lazily-reached chunks). Do not let it be raised as a
+// side effect of an unrelated change.
+//
 // ── Recorded baselines, brotlied + minified, 2026-09-06, audit Phase 3
 //    (unreleased) ──
 //   Motion.View subpath        9.49 kB   (was 9.22 at HEAD before the change)

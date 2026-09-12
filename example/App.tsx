@@ -48,6 +48,7 @@ import { UseInterpolatedStyleScreen } from './screens/UseInterpolatedStyleScreen
 import { UseGestureLayerScreen } from './screens/UseGestureLayerScreen'
 import { UseGestureScreen } from './screens/UseGestureScreen'
 import { UseMotionValueScreen } from './screens/UseMotionValueScreen'
+import { UseInViewScreen } from './screens/UseInViewScreen'
 import { UseScrollScreen } from './screens/UseScrollScreen'
 import { UseShadowScreen } from './screens/UseShadowScreen'
 import { VariantsScreen } from './screens/VariantsScreen'
@@ -79,6 +80,7 @@ type Route =
   | 'use-gesture'
   | 'use-gesture-layer'
   | 'use-motion-value'
+  | 'use-in-view'
   | 'use-scroll'
   | 'use-shadow'
   | 'pressable'
@@ -129,6 +131,7 @@ const SCREENS = {
   'use-gesture': UseGestureScreen,
   'use-gesture-layer': UseGestureLayerScreen,
   'use-motion-value': UseMotionValueScreen,
+  'use-in-view': UseInViewScreen,
   'use-scroll': UseScrollScreen,
   'use-shadow': UseShadowScreen,
   pressable: PressableScreen,
@@ -305,6 +308,11 @@ const SECTIONS: ReadonlyArray<HomeSection> = [
         route: 'use-scroll',
         label: 'useScroll',
         description: 'scroll offset interpolated onto a collapsing header',
+      },
+      {
+        route: 'use-in-view',
+        label: 'useInView',
+        description: 'entrance animations that start when a card scrolls in',
       },
       {
         route: 'use-shadow',

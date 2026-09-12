@@ -2987,7 +2987,7 @@ Open an issue with the before/after pair you're trying to migrate. The patterns 
 
 The escape-hatch surface — drop here when you need imperative control beyond what the props expose.
 
-The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useInterpolatedStyle`, `useScroll`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition` / `useInterpolatedStyle`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
+The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useInterpolatedStyle`, `useScroll`, `useInView`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition` / `useInterpolatedStyle`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
 
 :::note Unmount cleanup
 `useMotionValue`, `useSpring`, `useBooleanSpring`, and `useAnimation` cancel any in-flight animation on unmount, so a still-settling or `repeat: 'infinite'` animation stops ticking its worklet once its owning component is gone — you don't need a manual `cancelAnimation` teardown effect for that case. To cancel _mid-life_ (while the component stays mounted), import `cancelAnimation` from the [`/reanimated`](./reanimated-interop) interop subpath and call it yourself. The `Motion.*` primitives get the same unmount cleanup for their internal shared values.
@@ -3498,6 +3498,50 @@ Returns:
 | `onScroll` | `(event: NativeSyntheticEvent<NativeScrollEvent>) => void` | Pass to the scrollable's `onScroll` prop. Worklet-backed; safe to forward to any Reanimated-animated scrollable. |
 
 Set `scrollEventThrottle={16}` on a `Motion.ScrollView` for steady 60 Hz updates; without it, Android can dispatch less frequently than iOS. [`Motion.FlatList`](../primitives/flat-list) needs no such prop — it defaults the throttle to 1. Reach for `Motion.FlatList` when the list is long enough that mounting every row costs more than the animation does.
+
+## `useInView(ref, options?)`
+
+Drive a 0↔1 shared value from whether an element is on screen. This is the missing **source** for the value layer: `useInterpolatedStyle`, `useShadow`, and `useColorCascade` all take a progress value and leave the caller to decide what drives it. `useInView` makes that driver "the user can see this", so an entrance animation starts when the element arrives rather than when the screen mounts.
+
+```tsx
+import { useInView, useInterpolatedStyle, Motion } from '@rootnative/inertia'
+import { useRef } from 'react'
+import type { View } from 'react-native'
+
+function RevealCard() {
+  const ref = useRef<View>(null)
+  const inView = useInView(ref)
+  const style = useInterpolatedStyle(inView, {
+    opacity: [0, 1],
+    translateY: [24, 0],
+  })
+
+  return <Motion.View ref={ref} style={style} />
+}
+```
+
+Options:
+
+| Option       | Type              | Default    | Notes                                                                                                                                            |
+| ------------ | ----------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `amount`     | `number`          | `0`        | How much of the element must be visible, as a fraction of its own length. `0` fires on the first visible point, `1` waits for the whole element. |
+| `once`       | `boolean`         | `true`     | Hold at `1` after the first sighting. Pass `false` to track visibility both ways.                                                                |
+| `margin`     | `number`          | `0`        | Grow (positive) or shrink (negative) the detection box, in points. A positive margin fires before the element reaches the edge.                  |
+| `transition` | `TransitionInput` | the spring | How the value moves between `0` and `1`. Takes a config or a registered `TransitionName`. Reduced motion snaps it.                               |
+
+### What it needs to work
+
+On **web** it uses `IntersectionObserver`, so the ref is all it needs.
+
+On **native** there is no such API, so the element must sit inside a [`Motion.ScrollView`](../primitives/scroll-view) or a [`Motion.FlatList`](../primitives/flat-list). Those publish their scroll offset and their visible length; the hook measures the element once and then does the arithmetic on the UI thread. Nesting depth does not matter — the measurement is in window coordinates, so an element any number of views deep reports correctly.
+
+The offset is read off the container's animated ref, not from its `onScroll` prop. That prop stays free, so `useScroll` and `useInView` can drive the same container.
+
+### Limits, stated plainly
+
+- **Outside a scroll container on native the value is `1` from the start**, and the hook warns once in development. An element on a fixed screen really is visible, so the animation behaves exactly as it did before the hook existed. It is not a substitute for a scroll container.
+- **The element is measured on mount and when the container resizes, not continuously.** Content that changes height _above_ an element leaves that element's trigger point stale. Remount it (change its `key`) if the layout above it moves.
+- **An element longer than the container** can never satisfy a high `amount` literally, so the requirement caps at the container's own length: `amount: 1` there means "fills the container", not "never".
 
 ## `useGesture(transition?)`
 

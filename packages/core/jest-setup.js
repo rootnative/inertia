@@ -96,6 +96,28 @@ jest.mock('react-native-reanimated', () => {
       const value = typeof prepare === 'function' ? prepare() : undefined
       if (typeof react === 'function') react(value, undefined)
     },
+    // `useAnimatedRef` is a callable ref that also exposes `.current`, which
+    // is how `Motion.ScrollView` attaches it alongside a consumer's own ref.
+    // `useScrollViewOffset` reads the offset off that ref natively; under the
+    // mock there is no scroller, so it hands back a plain shared value a test
+    // can write to directly to simulate scrolling.
+    useAnimatedRef: () => {
+      const ref = React.useRef(null)
+      if (ref.current === null) {
+        const animatedRef = (node) => {
+          animatedRef.current = node ?? null
+          return 0
+        }
+        animatedRef.current = null
+        ref.current = animatedRef
+      }
+      return ref.current
+    },
+    useScrollViewOffset: (_ref, provided) => {
+      const ref = React.useRef(null)
+      if (ref.current === null) ref.current = provided ?? { value: 0 }
+      return ref.current
+    },
     useAnimatedScrollHandler: (handlers) => {
       // The real handler is an opaque worklet bag; in tests we return a plain
       // function that invokes the appropriate user handler synchronously so

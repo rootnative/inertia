@@ -1,5 +1,11 @@
-import type { FlatList as RNFlatList, FlatListProps } from 'react-native'
+import { forwardRef, type ComponentType } from 'react'
+import type {
+  FlatList as RNFlatList,
+  FlatListProps,
+  LayoutChangeEvent,
+} from 'react-native'
 import Animated from 'react-native-reanimated'
+import { ScrollContext, useScrollSource } from '../scroll'
 import type { MotionProps, VariantsMap } from '../types'
 import { createMotionComponent } from './createMotionComponent'
 
@@ -47,23 +53,58 @@ import { createMotionComponent } from './createMotionComponent'
  *   Note that row-level layout animation can fight the list's own measurement
  *   passes — measure before adopting it.
  */
-export const MotionFlatList = createMotionComponent(
+// Typed loosely for the wrapper below only. `Animated.FlatList` cannot carry
+// its generics through `createMotionComponent`, so the real call signature is
+// restored by the cast on the export.
+const BaseMotionFlatList = createMotionComponent(
   Animated.FlatList as never,
-  // `createMotionComponent<C>` returns a non-generic `MotionComponent<C>`, so
-  // `data` / `renderItem` would collapse to `any` and lose `ItemT` inference.
-  // Restore it with the same call-signature cast Reanimated itself uses for
-  // this exact problem (see its `ReanimatedFlatList` export, and the
-  // `@ts-expect-error` above `AnimatedFlatList` explaining that
-  // `createAnimatedComponent` cannot create generic components).
-  //
-  // **Both** generics live on the one call signature, and that is deliberate:
-  // `ItemT` infers from `data` while `V` infers from `variants`, independently.
-  // Declaring only `ItemT` (the obvious first cut) silently drops the
-  // variant-key narrowing that `MotionComponent` provides on every other
-  // primitive — `animate="typo"` would stop being a compile error here and
-  // nowhere else. Both directions are pinned in
-  // `__type-tests__/flat-list.test-d.tsx`.
-) as unknown as <
+) as unknown as ComponentType<Record<string, unknown>>
+
+/**
+ * Publishes the scroll context that `useInView` reads, exactly as
+ * `Motion.ScrollView` does — so a row rendered by `renderItem` can animate
+ * when it scrolls into view. The offset comes off the animated ref, leaving
+ * `onScroll` free for `useScroll()`.
+ */
+const MotionFlatListWithScroll = forwardRef<unknown, Record<string, unknown>>(
+  function MotionFlatList(props, ref) {
+    const { horizontal, onLayout, ...rest } = props as {
+      horizontal?: boolean | null
+      onLayout?: (event: LayoutChangeEvent) => void
+    }
+    const scroll = useScrollSource(horizontal === true, ref, onLayout)
+
+    const baseProps: Record<string, unknown> = {
+      ...rest,
+      horizontal,
+      ref: scroll.setRef,
+      onLayout: scroll.onLayout,
+    }
+
+    return (
+      <ScrollContext.Provider value={scroll.value}>
+        <BaseMotionFlatList {...baseProps} />
+      </ScrollContext.Provider>
+    )
+  },
+)
+
+// `createMotionComponent<C>` returns a non-generic `MotionComponent<C>`, and
+// the scroll wrapper above is a plain `forwardRef`, so `data` / `renderItem`
+// would collapse to `any` and lose `ItemT` inference. Restore it with the same
+// call-signature cast Reanimated itself uses for this exact problem (see its
+// `ReanimatedFlatList` export, and the `@ts-expect-error` above
+// `AnimatedFlatList` explaining that `createAnimatedComponent` cannot create
+// generic components).
+//
+// **Both** generics live on the one call signature, and that is deliberate:
+// `ItemT` infers from `data` while `V` infers from `variants`, independently.
+// Declaring only `ItemT` (the obvious first cut) silently drops the
+// variant-key narrowing that `MotionComponent` provides on every other
+// primitive — `animate="typo"` would stop being a compile error here and
+// nowhere else. Both directions are pinned in
+// `__type-tests__/flat-list.test-d.tsx`.
+export const MotionFlatList = MotionFlatListWithScroll as unknown as <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ItemT = any,
   V extends VariantsMap<FlatListProps<ItemT>> = VariantsMap<
