@@ -13,6 +13,7 @@ export default defineConfig({
     'touch/index': 'src/touch/index.ts',
     'gestureLayer/index': 'src/gestureLayer/index.ts',
     'reanimated/index': 'src/reanimated/index.ts',
+    'staticExport/index': 'src/staticExport/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

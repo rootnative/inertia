@@ -14,7 +14,7 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
-import { StyleSheet, type LayoutChangeEvent } from 'react-native'
+import { Platform, StyleSheet, type LayoutChangeEvent } from 'react-native'
 import {
   lookupNamedTransition,
   resolveNamedTransitionProp,
@@ -22,6 +22,10 @@ import {
   useShouldReduceMotion,
 } from '../config'
 import { installFocusVisibility, isFocusVisible } from '../gestures'
+import {
+  ENTRANCE_DATA_SET_KEY,
+  markInertiaReady,
+} from '../staticExport/internal'
 import {
   layersToPayload,
   normalizeBoxShadow,
@@ -512,13 +516,43 @@ export function createMotionComponent<C extends ComponentType<any>>(
         onAnimationEnd,
         style,
         onLayout: userOnLayout,
+        dataSet: userDataSet,
         ...rest
       } = props as Props & {
         style?: unknown
         layout?: LayoutProp | string
         layoutId?: string
         onLayout?: (event: LayoutChangeEvent) => void
+        dataSet?: Record<string, string | number | boolean>
       }
+
+      // ─── Static-export guard (web only) ──────────────────────────────────
+      //
+      // A pre-render writes this element's `initial` values into its own
+      // `style` attribute, so an entrance from `opacity: 0` ships as a blank
+      // element to any visitor whose bundle never runs. Mark it, so the
+      // stylesheet from `@rootnative/inertia/static-export` can reveal it.
+      //
+      // The condition is "`initial` is set", not "`initial` hides it". That is
+      // both cheaper and more honest: any `initial` is by definition a value
+      // the element is not meant to rest at, and the guard's reset is inert
+      // for one that was never hidden.
+      const marked =
+        Platform.OS === 'web' && initial !== undefined && initial !== false
+      const dataSet = useMemo(
+        () =>
+          marked
+            ? { ...userDataSet, [ENTRANCE_DATA_SET_KEY]: 'true' }
+            : userDataSet,
+        [marked, userDataSet],
+      )
+
+      // Mount is the moment the client takes over from the server-rendered
+      // HTML, which is exactly when the guard must stand down. Once per
+      // document, off web it does nothing.
+      useEffect(() => {
+        markInertiaReady()
+      }, [])
 
       // Resolve registered transition names (from the nearest <MotionConfig
       // transitions>) into concrete configs before anything downstream touches
@@ -1409,6 +1443,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
           ref={sharedLayout.setRef as never}
           {...(rest as object)}
           {...gestureHandlers}
+          dataSet={dataSet}
           onLayout={sharedLayout.onLayout}
           layout={layoutTransition}
           style={mergedStyle}

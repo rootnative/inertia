@@ -107,6 +107,13 @@
       "import": "./dist/reanimated/index.mjs",
       "require": "./dist/reanimated/index.js"
     },
+    "./static-export": {
+      "types": "./dist/staticExport/index.d.ts",
+      "react-native": "./src/staticExport/index.ts",
+      "source": "./src/staticExport/index.ts",
+      "import": "./dist/staticExport/index.mjs",
+      "require": "./dist/staticExport/index.js"
+    },
     "./jest-preset": "./jest-preset.js",
     "./jest-setup": "./jest-setup.js",
     "./package.json": "./package.json"

@@ -6,6 +6,32 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ### Added
 
+- **A static-export guard, so a pre-rendered page cannot ship blank.** A static export renders the tree on a server, so every `Motion.*` carrying `initial` is written into the HTML at its pre-animation value — `style="opacity: 0"`. That is correct while the bundle loads. It is a blank page for a visitor whose bundle fails, who is on a connection that drops it, or who blocks scripts. Nothing catches it: the build succeeds, the HTML is valid, the page is perfect in development, and no automated check can see it.
+
+  The whole integration is one style block in the HTML shell (`app/+html.tsx` for Expo Router):
+
+  ```tsx
+  import {
+    entranceGuardCss,
+    entranceGuardNoscriptCss,
+  } from '@rootnative/inertia/static-export'
+
+  <style dangerouslySetInnerHTML={{ __html: entranceGuardCss() }} />
+  <noscript>
+    <style dangerouslySetInnerHTML={{ __html: entranceGuardNoscriptCss }} />
+  </noscript>
+  ```
+
+  **Nothing is added per element.** On web, a `Motion.*` with `initial` writes `data-entrance` itself, and the first one to mount stamps `data-inertia-ready` on `<html>`, which switches the fallback off. The previous shape of this — a marker constant the consumer spread onto every hidden element — was a convention a human had to remember, and forgetting it produced no error, no warning, and no test failure.
+
+  **The ready signal is not optional.** A CSS animation outranks an inline style, so a timeout with no gate would fire on pages where the animation ran perfectly, revealing every element still deliberately hidden: an exit mid-flight, a gesture layer resting at zero opacity, a closed variant. The guard has to be able to tell "the JavaScript never arrived" from "the JavaScript decided this should be hidden".
+
+  The marker condition is "`initial` is set", not "`initial` hides the element". It is cheaper and more honest — any `initial` is by definition a value the element is not meant to rest at — and the fallback's reset is inert for one that was never hidden. `initial={false}`, which opts out of the mount animation, is not marked.
+
+  Exports, all from the new `@rootnative/inertia/static-export` subpath: `entranceGuardCss(options?)` (`options.timeoutMs`, default 4000), `entranceGuardNoscriptCss`, `ENTRANCE_ATTRIBUTE`, `READY_ATTRIBUTE`. The root entry does not re-export them — they are read once by an HTML shell, so an app that never pre-renders carries none of it. Full guidance is on the new "Static export & SSR" docs page and in `llms.txt`.
+
+  Known limit, documented rather than hidden: the fallback reveals to `opacity: 1; transform: none`, so an entrance whose target is a non-default opacity or a permanent transform is revealed at the default instead of its real target. The fallback's only job is to make the content readable, and it runs only on a page where no animation will ever run.
+
 - **`useInView(ref, options?)` — a 0↔1 shared value driven by whether an element is on screen.** The value layer had no source for "the user can see this": `useInterpolatedStyle`, `useShadow` and `useColorCascade` all take a progress value and leave the caller to supply it, and the only supplied source was `useScroll`, which reports a position and nothing about any particular element. So every entrance delay counted from mount, and an element below the fold finished its entrance before the visitor ever reached it. `useInView` closes that: hold a ref, and the returned value moves from `0` to `1` when the element arrives.
 
   Options are `amount` (how much of the element must show, as a fraction of its own length), `once` (default `true` — hold at `1` after the first sighting), `margin` (grow or shrink the detection box, in points) and `transition` (any transition config or a registered name; reduced motion snaps it).

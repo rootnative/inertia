@@ -11,6 +11,36 @@
 // limit, decide whether to tighten or accept it; don't silently raise the
 // cap. Record any baseline shift here when you do.
 //
+// ── Recorded baselines, brotlied + minified, 2026-09-12, the static-export
+//    guard (unreleased) ──
+//   Motion.View subpath        9.75 kB   (was 9.62)
+//   Motion.Text subpath        9.74 kB   (was 9.62)
+//   Motion.Image subpath       9.73 kB   (was 9.62)
+//   Motion.Pressable subpath   9.74 kB   (was 9.61)
+//   Motion.ScrollView subpath 10.00 kB   (was 9.87)
+//   Motion.FlatList subpath   10.05 kB   (was 9.89)
+//   Full namespace (root)     14.27 kB   (was 14.16)
+//   MotionView (barrel-shaken) 9.61 kB   (was 9.48)
+//   MotionText (barrel-shaken) 9.59 kB   (was 9.48)
+//   MotionImage (barrel-shaken)9.62 kB   (was 9.46)
+//   Testing helpers              223 B   (unchanged)
+//   static-export subpath        722 B   (new, ESM, unbundled)
+//
+// +0.13 kB per primitive, +0.11 kB root. The guard reaches every primitive
+// because the marker is written by the shared factory — that is the point of
+// it, so the cost is not avoidable by moving code. The CSS strings are **not**
+// in these figures: they live in the `/static-export` subpath, which nothing
+// else imports, so an app that never pre-renders carries none of them.
+//
+// **The root cap is now effectively spent: 14.27 kB against 14.3 kB is 0.2%.**
+// It passes today and will fail on the next dependency patch. Two ways out,
+// and both are deliberate decisions rather than edits to make in passing:
+// raise the cap (a re-baseline to the file's stated ~25% band would put it
+// near 17.8 kB, which is a large loosening of the guard), or take the lever
+// this file has always named — splitting the factory's gesture / variants /
+// sequence / shadow paths into lazily-reached chunks. **Do not raise it as a
+// side effect of an unrelated change.**
+//
 // ── Recorded baselines, brotlied + minified, 2026-09-12, `useInView`
 //    (unreleased) ──
 //   Motion.View subpath        9.62 kB   (unchanged)

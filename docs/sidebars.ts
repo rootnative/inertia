@@ -30,6 +30,7 @@ const sidebars: SidebarsConfig = {
     { type: 'doc', id: 'layout', label: 'Layout' },
     { type: 'doc', id: 'motion-config', label: 'MotionConfig' },
     { type: 'doc', id: 'perf-bench', label: 'Perf bench' },
+    { type: 'doc', id: 'static-export', label: 'Static export & SSR' },
     { type: 'doc', id: 'testing', label: 'Testing' },
     { type: 'doc', id: 'ai', label: 'AI agents & llms.txt' },
     {
