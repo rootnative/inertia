@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.12] - 2026-09-13
+
 ### Added
 
 - **A static-export guard, so a pre-rendered page cannot ship blank.** A static export renders the tree on a server, so every `Motion.*` carrying `initial` is written into the HTML at its pre-animation value — `style="opacity: 0"`. That is correct while the bundle loads. It is a blank page for a visitor whose bundle fails, who is on a connection that drops it, or who blocks scripts. Nothing catches it: the build succeeds, the HTML is valid, the page is perfect in development, and no automated check can see it.
@@ -41,8 +43,6 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
   The offset is read off the container's animated ref rather than through its `onScroll` prop. That prop holds a single opaque Reanimated handler with no supported way to run two, so a container that claimed it would have silently dropped a consumer's `useScroll` handler, or been dropped by it. Reading off the ref leaves the prop untouched and lets both hooks drive one container.
 
   Known limit, documented rather than papered over: the element is measured on mount and when the container resizes, not continuously. Content that changes height _above_ an element leaves that element's trigger point stale; remount it if the layout above it moves.
-
-### Added
 
 - **`useGesture` returns a second handler bag, `pointerHandlers`, keyed for a plain `View`.** The hook's callbacks are all plain `() => void`; only the _names_ in `handlers` (`onHoverIn`, `onPressIn`, …) tie it to `Pressable`. But its documentation said "spread on a `Pressable`" in all three places a reader looks — the interface doc, the `handlers` field, and the `@example` — so that is what consumers did, including for surfaces that only need hover.
 
@@ -447,7 +447,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.11...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.12...HEAD
+[0.0.12]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.12
 [0.0.11]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.11
 [0.0.10]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.10
 [0.0.9]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.9

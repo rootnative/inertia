@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.12] - 2026-09-13
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.12` (a static-export guard that keeps a pre-rendered page from shipping blank, the `useInView` hook, a `pointerHandlers` bag on `useGesture` for non-interactive surfaces, and `useMotionValue` widened to hold any shared-value type). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.12 <0.1.0`.
+
 ## [0.0.11] - 2026-09-09
 
 ### Changed
@@ -82,7 +86,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionLinearGradient` over `expo-linear-gradient`. Accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.11...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.12...HEAD
+[0.0.12]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.12
 [0.0.11]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.11
 [0.0.10]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.10
 [0.0.9]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.9
