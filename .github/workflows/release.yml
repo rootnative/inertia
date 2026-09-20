@@ -31,8 +31,64 @@ on:
           - rc
 
 jobs:
+  # The compat matrix gates the publish. compat.yml runs on push and pull
+  # request only, so without this job a release can ship from a commit whose
+  # matrix was red, or never ran. The candidate is the tree as dispatched,
+  # before the version bump; the bump changes the version field and the
+  # sibling `@rootnative/inertia` floors, nothing the fixtures install
+  # differently.
+  pack:
+    name: Pack candidate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `files` ships `dist`, and the web export condition resolves to it, so
+      # the tarball must be built before it is packed.
+      - name: Build
+        run: pnpm run build
+
+      - name: Pack core
+        run: pnpm --filter @rootnative/inertia pack --pack-destination pack
+
+      - name: Upload candidate
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: release-candidate-inertia
+          path: pack/*.tgz
+          if-no-files-found: error
+          retention-days: 1
+
+  # A push to main during this run starts compat.yml, and the two matrix runs
+  # share one concurrency group in sdk-compat. If this job is cancelled, re-run
+  # the release.
+  compat:
+    name: Matrix
+    needs: pack
+    uses: rootnative/sdk-compat/.github/workflows/compat.yml@main
+    with:
+      package: "@rootnative/inertia"
+      tarball-artifact: release-candidate-inertia
+      enforce-range: true
+
   release:
     name: Release
+    needs: compat
     runs-on: ubuntu-latest
     permissions:
       contents: write
