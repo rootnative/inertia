@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking: the `react-native-gesture-handler` peer range is `>=2.30.0 <3.0.0`.** It was `>=2.0.0`, an open floor far below the `~2.32.0` this package develops against. The floor is what Expo SDK 55 bundles, the oldest SDK the `react-native >=0.83.0 <0.87.0` range admits, and the ceiling is the next major. A range promises every version it admits, and nothing here was ever tested below the dev pin. SDK 55 bundles `~2.30.0`, SDK 56 `~2.31.1`, SDK 57 `~2.32.0`, so a project on any of them is inside the range. The ceiling excludes RNGH 3, where `Gesture.Pan()` is deprecated and this adapter has not run.
+
 ## [0.0.12] - 2026-09-13
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.12` (a static-export guard that keeps a pre-rendered page from shipping blank, the `useInView` hook, a `pointerHandlers` bag on `useGesture` for non-interactive surfaces, and `useMotionValue` widened to hold any shared-value type). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.12 <0.1.0`.

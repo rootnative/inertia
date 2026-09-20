@@ -62,7 +62,7 @@
     "@rootnative/inertia": ">=0.0.12 <0.1.0",
     "react": ">=19.2.3 <20.0.0",
     "react-native": ">=0.83.0 <0.87.0",
-    "react-native-gesture-handler": ">=2.0.0",
+    "react-native-gesture-handler": ">=2.30.0 <3.0.0",
     "react-native-reanimated": ">=4.5.0 <4.6.0"
   },
   "devDependencies": {

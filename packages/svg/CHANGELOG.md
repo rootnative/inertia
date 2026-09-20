@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking: the `react-native-svg` peer range is `>=15.15.0 <16.0.0`.** It was `>=15.0.0` while this package develops against `15.15.4`. SDK 55 bundles `15.15.3`, SDK 56 and 57 bundle `15.15.4`. The floor is what Expo SDK 55 bundles, the oldest SDK the `react-native >=0.83.0 <0.87.0` range admits, and the ceiling is the next major. A range promises every version it admits, and nothing here was ever tested below the dev pin.
+
 ## [0.0.12] - 2026-09-13
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.12` (a static-export guard that keeps a pre-rendered page from shipping blank, the `useInView` hook, a `pointerHandlers` bag on `useGesture` for non-interactive surfaces, and `useMotionValue` widened to hold any shared-value type). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.12 <0.1.0`.

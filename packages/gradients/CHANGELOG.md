@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking: the `expo-linear-gradient` peer range is `>=55.0.0 <58.0.0`.** It was `>=14.0.0`, an open floor from the SDK 52 era while this package develops against `~57.0.1`. Expo versions the package with the SDK from 55 on (SDK 55 `~55.0.18`, SDK 56 `~56.0.4`, SDK 57 `~57.0.1`). The floor is what Expo SDK 55 bundles, the oldest SDK the `react-native >=0.83.0 <0.87.0` range admits, and the ceiling is the next major. A range promises every version it admits, and nothing here was ever tested below the dev pin.
+
 ## [0.0.12] - 2026-09-13
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.12` (a static-export guard that keeps a pre-rendered page from shipping blank, the `useInView` hook, a `pointerHandlers` bag on `useGesture` for non-interactive surfaces, and `useMotionValue` widened to hold any shared-value type). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.12 <0.1.0`.
