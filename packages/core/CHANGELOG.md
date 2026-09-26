@@ -4,6 +4,15 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.13] - 2026-09-26
+
+**Lockstep version bump** alongside the three adapters, which now bound their third-party peer ranges (see each adapter's CHANGELOG). No runtime changes in this package.
+
+### Internal
+
+- **The release workflows test the packed tarball before they publish.** A `pack` job builds and packs the release candidate, and a `compat` job installs that tarball into every Expo SDK fixture in `rootnative/sdk-compat`. The `release` job needs `compat`, so a candidate that fails on a supported SDK is not published.
+- **`eslint-plugin-react-hooks` moves to `7.1.1`**, which adds the React Compiler rules. `react-hooks/immutability` is off for the whole repo, because a Reanimated `SharedValue` is written through `.value` and that write is the whole API of the type. `react-hooks/refs` is off for ten named files only, where a ref that is read or written during render is the design. The reason for each is in `eslint.config.mjs`.
+
 ## [0.0.12] - 2026-09-13
 
 ### Added
@@ -53,6 +62,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
   **No press pair, deliberately.** A surface with press feedback should be a real control — a `Pressable` with an `onPress` and a role — and that is what `handlers` is for. A test pins the exact key set so a press handler cannot be added later without the decision being revisited.
 
   Purely additive: `handlers` is unchanged and every existing call site keeps working. New `UseGesturePointerHandlers` type exported from the root barrel. The docs now choose between the two bags by what the surface _is_ rather than by what is being animated.
+
+- **The Jest preset mocks `useAnimatedRef` and `useScrollViewOffset`.** `Motion.ScrollView` and `Motion.FlatList` call both hooks from this release on, so a consumer test that renders either one under `@rootnative/inertia/jest-preset` needs the mocks. `useScrollViewOffset` returns a plain shared value, and a test can write to it to simulate a scroll. (This line was missing from the `0.0.12` entry when it was published.)
 
 ### Changed
 
@@ -447,7 +458,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.12...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.13...HEAD
+[0.0.13]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.13
 [0.0.12]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.12
 [0.0.11]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.11
 [0.0.10]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.10

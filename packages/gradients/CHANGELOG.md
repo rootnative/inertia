@@ -6,9 +6,13 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.13] - 2026-09-26
+
 ### Changed
 
 - **Breaking: the `expo-linear-gradient` peer range is `>=55.0.0 <58.0.0`.** It was `>=14.0.0`, an open floor from the SDK 52 era while this package develops against `~57.0.1`. Expo versions the package with the SDK from 55 on (SDK 55 `~55.0.18`, SDK 56 `~56.0.4`, SDK 57 `~57.0.1`). The floor is what Expo SDK 55 bundles, the oldest SDK the `react-native >=0.83.0 <0.87.0` range admits, and the ceiling is the next major. A range promises every version it admits, and nothing here was ever tested below the dev pin.
+
+- The `@rootnative/inertia` peer range moves to `>=0.0.13 <0.1.0`, in lockstep.
 
 ## [0.0.12] - 2026-09-13
 
@@ -90,7 +94,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionLinearGradient` over `expo-linear-gradient`. Accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.12...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.13...HEAD
+[0.0.13]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.13
 [0.0.12]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.12
 [0.0.11]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.11
 [0.0.10]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.10

@@ -6,9 +6,13 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.13] - 2026-09-26
+
 ### Changed
 
 - **Breaking: the `react-native-svg` peer range is `>=15.15.0 <16.0.0`.** It was `>=15.0.0` while this package develops against `15.15.4`. SDK 55 bundles `15.15.3`, SDK 56 and 57 bundle `15.15.4`. The floor is what Expo SDK 55 bundles, the oldest SDK the `react-native >=0.83.0 <0.87.0` range admits, and the ceiling is the next major. A range promises every version it admits, and nothing here was ever tested below the dev pin.
+
+- The `@rootnative/inertia` peer range moves to `>=0.0.13 <0.1.0`, in lockstep.
 
 ## [0.0.12] - 2026-09-13
 
@@ -97,7 +101,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionPath` over `react-native-svg`. Animatable: `d` (element-wise scalar interpolation on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.12...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.13...HEAD
+[0.0.13]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.13
 [0.0.12]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.12
 [0.0.11]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.11
 [0.0.10]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.10
