@@ -14,7 +14,6 @@ import { readFileSync } from 'node:fs'
 
 // Plain CJS with no declaration file, so state the shape this test reads
 // rather than pulling in `any`.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const preset = require('@rootnative/inertia/jest-preset') as {
   transform?: Record<string, unknown>
   setupFiles: string[]
