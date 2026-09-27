@@ -100,10 +100,16 @@ interface Entry {
 const REGISTRY = new Map<string, Entry>()
 
 /**
- * How long (ms) a released rect remains consumable. Sized to comfortably
+ * How long (ms) a *released* rect remains consumable. Sized to comfortably
  * cover a typical screen transition (slide animation, gesture-driven
  * dismiss) without leaving stale entries lying around if no incoming
  * mount picks them up.
+ *
+ * A *mounted* owner's entry never expires. `onLayout` fires only when the
+ * rect changes, so a list card that laid out once and then sat still for a
+ * minute is as valid a source as one that laid out a frame ago — and it can
+ * be re-measured on demand. Timing it out made every FLIP out of a settled
+ * list silently skip, which is the common case, not the edge.
  */
 export const SHARED_LAYOUT_TTL_MS = 1000
 
@@ -128,10 +134,9 @@ let lastSweep = 0
  * for a handful of hero images but not for per-item ids in a long-lived list
  * (`layoutId={`photo-${item.id}`}`).
  *
- * Sweeping a *live* element's entry is harmless: while mounted it re-registers
- * on every `onLayout`, and on unmount `releaseLayout` re-adds it with a fresh
- * TTL. So the only thing an over-eager sweep can cost is a FLIP source that was
- * already too old to be used.
+ * A *live* element's entry carries no expiry, so the sweep never touches it;
+ * on unmount `releaseLayout` replaces it with a timed one. The sweep only ever
+ * drops released rects that no incoming mount picked up.
  *
  * Time-gated so a burst of layout events doesn't turn into a burst of full
  * scans — worst case an expired entry survives one extra TTL window.
@@ -148,7 +153,8 @@ function sweepExpired(at: number): void {
  * Update the latest known rect for `id`. Called on every `onLayout` of a
  * Motion primitive with `layoutId` set so the registry always holds a
  * current measurement if that primitive becomes the source of a future
- * transition. Resets the TTL each call.
+ * transition. The entry carries no expiry: the owner is mounted, so its rect
+ * can be measured again at consume time, however long ago it last laid out.
  *
  * `remeasure` and `readStyles` are the still-mounted owner's offer to be read
  * again on demand — pass them while the element is live so a consumer can
@@ -164,7 +170,7 @@ export function registerLayout(
   sweepExpired(at)
   REGISTRY.set(id, {
     rect,
-    expiresAt: at + SHARED_LAYOUT_TTL_MS,
+    expiresAt: Number.POSITIVE_INFINITY,
     remeasure,
     readStyles,
   })

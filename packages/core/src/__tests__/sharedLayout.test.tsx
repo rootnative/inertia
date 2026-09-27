@@ -133,16 +133,31 @@ describe('sharedRegistry', () => {
     expect(consumeLayout('hero')).toBeUndefined()
   })
 
-  it('expired entries are dropped on consume', () => {
+  it('expired released entries are dropped on consume', () => {
     let now = 1000
     __setSharedLayoutClock(() => now)
-    registerLayout('hero', par(0, 0, 10, 10))
+    releaseLayout('hero', par(0, 0, 10, 10))
     now += SHARED_LAYOUT_TTL_MS + 1
     expect(consumeLayout('hero')).toBeUndefined()
     // peek also treats expired as missing
-    registerLayout('hero', par(1, 1, 1, 1))
+    releaseLayout('hero', par(1, 1, 1, 1))
     now += SHARED_LAYOUT_TTL_MS + 1
     expect(peekSharedLayout('hero')).toBeUndefined()
+  })
+
+  it('a mounted owner’s entry does not expire', () => {
+    // A list card lays out once and then sits still: `onLayout` never fires
+    // again, so the entry is never refreshed. It must still be a valid source
+    // a minute later, because the owner is there to be re-measured.
+    let now = 1000
+    __setSharedLayoutClock(() => now)
+    const remeasure = jest.fn()
+    registerLayout('hero', win(0, 0, 10, 10), remeasure)
+    now += SHARED_LAYOUT_TTL_MS * 60
+    expect(peekSharedLayout('hero')).toEqual(win(0, 0, 10, 10))
+    // A write for another id runs the sweep; the live entry survives it.
+    releaseLayout('other', par(1, 1, 1, 1))
+    expect(consumeLayout('hero')?.remeasure).toBe(remeasure)
   })
 
   it('releaseLayout overwrites the entry with a fresh TTL', () => {
@@ -836,17 +851,20 @@ describe('sharedRegistry — expiry sweep', () => {
     expect(__sharedRegistrySize()).toBe(2)
   })
 
-  it('a still-mounted element re-registers after its entry is swept', () => {
+  it('the sweep leaves a still-mounted element’s entry alone', () => {
     let now = 1_000
     __setSharedLayoutClock(() => now)
 
     registerLayout('hero', RECT)
     now += SHARED_LAYOUT_TTL_MS * 3
     registerLayout('unrelated', RECT)
-    expect(peekSharedLayout('hero')).toBeUndefined()
+    expect(peekSharedLayout('hero')).toEqual(RECT)
 
+    // Unmount replaces the open-ended entry with a timed one.
     releaseLayout('hero', RECT)
-    expect(consumeLayout('hero')?.rect).toEqual(RECT)
+    now += SHARED_LAYOUT_TTL_MS + 1
+    releaseLayout('other', RECT)
+    expect(peekSharedLayout('hero')).toBeUndefined()
   })
 
   it('still hands a fresh release to the next mount', () => {

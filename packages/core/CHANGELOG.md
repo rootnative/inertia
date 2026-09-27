@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **A `layoutId` source that is still mounted no longer expires.** The registry gave every entry a one-second TTL, and a mounted element refreshes its entry only from `onLayout`, which fires only when the rect changes. So a list card that laid out once and then sat still was an expired source by the time the user tapped it, and the FLIP into the detail screen silently skipped — the common case, not the edge. Found in `rootnative/ui-example` on an iOS simulator: no card ever grew into its hero. A mounted owner's entry now carries no expiry, because the owner is there to be re-measured at consume time; the TTL still applies to a rect that `releaseLayout` recorded on unmount, which is the case it was sized for.
+
 ## [0.0.13] - 2026-09-26
 
 **Lockstep version bump** alongside the three adapters, which now bound their third-party peer ranges (see each adapter's CHANGELOG). No runtime changes in this package.
