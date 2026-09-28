@@ -48,6 +48,7 @@ const sidebars: SidebarsConfig = {
         'api/create-motion-component',
         'api/transition-utilities',
         'api/reanimated-interop',
+        'api/types',
       ],
     },
   ],

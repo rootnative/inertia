@@ -11,6 +11,7 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 ### Documentation
 
 - **The layout page says that a native stack push can hide a `layoutId` FLIP on iOS.** The target mounts while the native slide still moves the new screen, so the FLIP does not show. A target screen with `presentation: 'transparentModal'` and `animation: 'none'` shows it. Found in `rootnative/ui-example` on an iOS simulator. Android is not measured.
+- **A Types page lists every type that the root entry exports.** 25 exported types had no mention in the docs or in `llms.txt`, for example `MotionProps`, `VariantsMap`, `RepeatConfig`, and `UseInViewOptions`. The new `API → Types` page describes each one, and `llms.txt` has a matching `## Types` section.
 
 ## [0.0.13] - 2026-09-26
 
