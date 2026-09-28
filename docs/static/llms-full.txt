@@ -2135,6 +2135,15 @@ Rules worth knowing:
 - **Window coordinates, where the host can supply them.** Rects are measured with `measureInWindow`, which resolves synchronously on the New Architecture (Fabric). That is what lets a source and target sit under containers at different screen offsets and still line up. Where a synchronous measurement isn't available — the legacy architecture, whose `measureInWindow` answers over the bridge, or a node that has already detached — both fall back to the parent-relative coordinates `onLayout` reports. That fallback is consistent but blind to the parents' own offsets, so nested-parent setups only line up on Fabric.
 - **Mixed coordinate spaces skip the transition.** A source recorded in one space and a target measured in the other are not comparable — the delta would be off by the parent's window offset. Inertia skips the animation and lets the element appear at its natural position rather than flinging it in from the wrong place.
 - **A still-mounted source is re-measured on demand.** `onLayout` does not fire when an _ancestor_ scrolls, so a stored window rect drifts while the element hasn't moved relative to its parent. When the target lays out, Inertia asks a still-mounted source (the usual case — a stack navigator keeps the previous screen alive underneath) for a current measurement instead of trusting the stored one. Scrolling a list before tapping a row therefore doesn't offset the transition. Once the source has unmounted, its last recorded rect is all that remains — and if the navigator has already begun translating the outgoing screen, the re-measurement catches it mid-transition, bounded by however far the transition has progressed.
+- **A native stack push can hide the FLIP on iOS.** The native stack slides the new screen in, and the target mounts while that slide still moves the screen. On an iOS simulator with Expo Router's native stack, the target appeared at its final size on the first frame of the new screen, with no FLIP. Android is not measured. To show the FLIP, present the target screen with no native animation, so that the FLIP is the transition:
+
+  ```tsx
+  <Stack.Screen
+    name="detail"
+    options={{ presentation: 'transparentModal', animation: 'none' }}
+  />
+  ```
+
 - **One mount per id.** Two `Motion.*` primitives with the same `layoutId` mounted simultaneously is undefined behavior. The most-recent layout commit wins as the source for the next consumer.
 - **TTL.** A source that is still mounted stays valid for as long as it is mounted: a list card that laid out once and then sat still for a minute is as good a source as one that laid out a frame ago, because it can be re-measured. A rect that a source recorded on unmount is consumable for ~1 second. If the new mount lands later (a slow navigation, a paused transition), no FLIP runs and the element just appears at its natural position — graceful degradation.
 - **In tests.** The Jest host mock's `measureInWindow` never invokes its callback, so a test suite always sees the parent-relative path. That's intentional: it keeps `layoutId` behavior in tests stable and independent of measurement.
