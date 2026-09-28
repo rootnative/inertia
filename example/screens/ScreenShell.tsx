@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export function ScreenShell({
   title,
@@ -17,10 +18,12 @@ export function ScreenShell({
   fill?: boolean
   children: ReactNode
 }) {
+  const insets = useSafeAreaInsets()
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Pressable onPress={onBack} hitSlop={12}>
           <Text style={styles.backLabel}>← Back</Text>
         </Pressable>
@@ -50,7 +53,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
-    paddingTop: 56,
     paddingHorizontal: 20,
     paddingBottom: 16,
     gap: 8,

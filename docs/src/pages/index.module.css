@@ -185,46 +185,67 @@
   gap: 1rem;
 }
 
+/*
+  The frame is a 340×620 mockup, but a 316px-wide viewport is narrower than any
+  real phone, and the example renders its type at full size in it. So the
+  iframe renders at a true phone viewport (430dp, a large phone) and is scaled
+  down to fit the bezel, the way a device mockup should behave. Keep the
+  frame/bezel/viewport values unitless: `--scale` divides them.
+*/
 .phoneFrame {
+  --frame-w: 340;
+  --frame-h: 620;
+  --bezel: 12;
+  --viewport-w: 430;
+  /* Status-bar strip the notch lives in, so it never sits over the app bar. */
+  --status-h: 20;
+  --scale: calc((var(--frame-w) - 2 * var(--bezel)) / var(--viewport-w));
   position: relative;
-  width: 340px;
-  max-width: 100%;
-  height: 620px;
-  padding: 12px;
-  border-radius: 40px;
+  width: calc(var(--frame-w) * 1px);
+  height: calc(var(--frame-h) * 1px);
+  padding: calc(var(--bezel) * 1px);
+  padding-top: calc((var(--bezel) + var(--status-h)) * 1px);
+  border-radius: 44px;
   background: #101012;
   box-shadow:
     0 0 0 1px var(--inertia-border-strong),
-    0 30px 60px -20px rgba(10, 10, 10, 0.45);
+    0 40px 80px -32px rgba(10, 10, 10, 0.5),
+    0 20px 40px -24px rgba(10, 10, 10, 0.4);
   overflow: hidden;
 }
 
 :global([data-theme='dark']) .phoneFrame {
   box-shadow:
     0 0 0 1px var(--inertia-border-strong),
-    0 30px 60px -20px rgba(0, 0, 0, 0.7);
+    0 40px 80px -32px rgba(0, 0, 0, 0.7),
+    0 20px 40px -24px rgba(0, 0, 0, 0.5);
 }
 
+/* Camera island, centered in the status strip above the screen. */
 .phoneNotch {
   position: absolute;
-  top: 12px;
+  top: calc((var(--bezel) + (var(--status-h) - 11) / 2) * 1px);
   left: 50%;
   transform: translateX(-50%);
-  width: 120px;
-  height: 20px;
-  border-radius: 0 0 14px 14px;
-  background: #101012;
+  width: 62px;
+  height: 11px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.09);
   z-index: 2;
   pointer-events: none;
 }
 
 .phoneScreen {
-  width: 100%;
-  height: 100%;
+  width: calc(var(--viewport-w) * 1px);
+  height: calc(
+    (var(--frame-h) - 2 * var(--bezel) - var(--status-h)) / var(--scale) * 1px
+  );
   border: none;
-  border-radius: 28px;
+  border-radius: calc(32 / var(--scale) * 1px);
   background: #fff;
   display: block;
+  transform: scale(var(--scale));
+  transform-origin: top left;
 }
 
 .demoOpenLink {
@@ -695,9 +716,14 @@
     max-width: 100%;
   }
 
+  /*
+    A 300px bezel can't show a 430dp app without shrinking the type past
+    readable — narrow the simulated viewport instead.
+  */
   .phoneFrame {
-    width: 300px;
-    height: 540px;
+    --frame-w: 300;
+    --frame-h: 540;
+    --viewport-w: 390;
   }
 
   .stats {

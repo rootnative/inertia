@@ -7,6 +7,24 @@ import styles from './index.module.css'
 
 const INSTALL_COMMAND = 'npm install @rootnative/inertia'
 
+const HIDE_SCROLLBAR_CSS = `
+  ::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
+  * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+`
+
+function injectStylesIntoIframe(iframe: HTMLIFrameElement) {
+  try {
+    const doc = iframe.contentDocument
+    if (!doc || doc.getElementById('docs-embed-style')) return
+    const style = doc.createElement('style')
+    style.id = 'docs-embed-style'
+    style.textContent = HIDE_SCROLLBAR_CSS
+    doc.head.appendChild(style)
+  } catch {
+    /* cross-origin — ignore */
+  }
+}
+
 function CopyCommand() {
   const [copied, setCopied] = React.useState(false)
 
@@ -59,6 +77,7 @@ function CopyCommand() {
 function Hero() {
   const { siteConfig } = useDocusaurusContext()
   const exampleUrl = useBaseUrl('/example/')
+  const iframeRef = React.useRef<HTMLIFrameElement>(null)
 
   return (
     <header className={styles.hero}>
@@ -90,11 +109,15 @@ function Hero() {
           <div className={styles.phoneFrame} aria-label="Live example preview">
             <div className={styles.phoneNotch} />
             <iframe
+              ref={iframeRef}
               src={exampleUrl}
               title="Inertia live example"
               className={styles.phoneScreen}
               loading="lazy"
               allow="accelerometer; gyroscope"
+              onLoad={() => {
+                if (iframeRef.current) injectStylesIntoIframe(iframeRef.current)
+              }}
             />
           </div>
           <Link

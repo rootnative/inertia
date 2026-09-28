@@ -8,7 +8,10 @@ import {
   type InitialState,
 } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { SafeAreaProvider } from 'react-native-safe-area-context'
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context'
 import { Motion } from '@rootnative/inertia'
 // Read the version from the package itself so the footer can't drift behind a
 // release the way a hardcoded string did (it advertised 0.0.0-alpha.0 through
@@ -432,6 +435,7 @@ const SCREEN_OPTIONS = { headerShown: false } as const
 
 function HomeScreen() {
   const navigation = useNavigation()
+  const insets = useSafeAreaInsets()
   // `navigate`'s overloads distribute over the param list, so a union of route
   // names satisfies none of them. Dispatching the action takes a plain string
   // and keeps the call site cast-free.
@@ -439,7 +443,10 @@ function HomeScreen() {
     navigation.dispatch(CommonActions.navigate(route))
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+    >
       <StatusBar style="auto" />
       <Motion.View
         initial={{ opacity: 0, translateY: 16 }}
@@ -563,7 +570,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 12,
-    paddingTop: 64,
     paddingBottom: 40,
     gap: 28,
   },
