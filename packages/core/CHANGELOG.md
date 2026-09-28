@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.14] - 2026-09-29
+
 ### Fixed
 
 - **A `layoutId` source that is still mounted no longer expires.** The registry gave every entry a one-second TTL, and a mounted element refreshes its entry only from `onLayout`, which fires only when the rect changes. So a list card that laid out once and then sat still was an expired source by the time the user tapped it, and the FLIP into the detail screen silently skipped — the common case, not the edge. Found in `rootnative/ui-example` on an iOS simulator: no card ever grew into its hero. A mounted owner's entry now carries no expiry, because the owner is there to be re-measured at consume time; the TTL still applies to a rect that `releaseLayout` recorded on unmount, which is the case it was sized for.
@@ -467,7 +469,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.13...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.14...HEAD
+[0.0.14]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.14
 [0.0.13]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.13
 [0.0.12]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.12
 [0.0.11]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.11

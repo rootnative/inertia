@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.14] - 2026-09-29
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.14` (a mounted `layoutId` source no longer expires, and a new Types page documents every type that the root entry exports). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.14 <0.1.0`.
+
 ## [0.0.13] - 2026-09-26
 
 ### Changed
@@ -101,7 +105,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionPath` over `react-native-svg`. Animatable: `d` (element-wise scalar interpolation on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.13...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.14...HEAD
+[0.0.14]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.14
 [0.0.13]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.13
 [0.0.12]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.12
 [0.0.11]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.11
