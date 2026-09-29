@@ -1,3 +1,4 @@
+import { Platform } from 'react-native'
 import { type CoordinateSpace, type SharedRect } from './sharedRegistry'
 
 /**
@@ -12,6 +13,9 @@ import { type CoordinateSpace, type SharedRect } from './sharedRegistry'
  *   through a synchronous JSI call — the callback runs before
  *   `measureInWindow` returns.
  * - **Paper** goes over the bridge, so the callback lands a tick later.
+ * - **react-native-web** runs the callback in a `setTimeout`, so it always
+ *   lands too late. The web path reads `getBoundingClientRect()` on the DOM
+ *   node instead: that is the value the deferred callback reads, read now.
  * - **A detached node calls back never at all.** Not an edge case and not a
  *   platform quirk: `ReactFabricHostComponent.measureInWindow` looks the node
  *   up and simply returns when it is missing. The Jest host mock behaves the
@@ -27,8 +31,9 @@ import { type CoordinateSpace, type SharedRect } from './sharedRegistry'
  * consistently parent-relative on a platform that can't measure synchronously —
  * which is exactly how this worked before window coordinates existed.
  *
- * Net effect: nested-parent shared elements are fixed on Fabric, and on Paper
- * the behavior is unchanged rather than intermittently broken.
+ * Net effect: nested-parent shared elements are fixed on Fabric and on the
+ * web, and on Paper the behavior is unchanged rather than intermittently
+ * broken.
  *
  * ## Why the result is validated rather than trusted
  *
@@ -54,6 +59,22 @@ export interface MeasuredRect {
  */
 export type WindowMeasurer = (node: unknown) => MeasuredRect | undefined
 
+type DomNode = {
+  getBoundingClientRect?: () => {
+    left: number
+    top: number
+    width: number
+    height: number
+  }
+}
+
+function measureDomRect(node: unknown): MeasuredRect | undefined {
+  const read = (node as DomNode | null)?.getBoundingClientRect
+  if (typeof read !== 'function') return undefined
+  const { left, top, width, height } = read.call(node)
+  return { x: left, y: top, width, height }
+}
+
 type MeasureInWindowNode = {
   measureInWindow?: (
     callback: (x: number, y: number, width: number, height: number) => void,
@@ -61,6 +82,10 @@ type MeasureInWindowNode = {
 }
 
 const defaultMeasurer: WindowMeasurer = (node) => {
+  // Gated on the platform, not on the method: React Native host elements also
+  // expose `getBoundingClientRect`, and native must keep `measureInWindow`.
+  if (Platform.OS === 'web') return measureDomRect(node)
+
   const measure = (node as MeasureInWindowNode | null)?.measureInWindow
   if (typeof measure !== 'function') return undefined
 

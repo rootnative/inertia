@@ -1,5 +1,6 @@
 import { act, render, renderHook } from '@testing-library/react-native'
 import { type ReactElement } from 'react'
+import { Platform } from 'react-native'
 import * as Reanimated from 'react-native-reanimated'
 import { Motion } from '../motion'
 import { flushMotion } from '../testing'
@@ -794,6 +795,55 @@ describe('measureWindowRect', () => {
       },
     }
     expect(measureWindowRect(node)).toBeUndefined()
+  })
+})
+
+// react-native-web answers `measureInWindow` from a `setTimeout`, so the
+// synchronous rule above would leave every web FLIP parent-relative. Found in
+// `rootnative/ui-example`: the detail hero grew from its own padding offset,
+// not from the card.
+describe('measureWindowRect — web', () => {
+  const NATIVE_OS = Platform.OS
+
+  function setPlatform(os: string): void {
+    Object.defineProperty(Platform, 'OS', { value: os, configurable: true })
+  }
+
+  afterEach(() => {
+    setPlatform(NATIVE_OS)
+  })
+
+  function domNode(left: number, top: number, width: number, height: number) {
+    return {
+      getBoundingClientRect: () => ({ left, top, width, height }),
+      measureInWindow: (cb: (...a: number[]) => void) => {
+        setTimeout(() => cb(left, top, width, height), 0)
+      },
+    }
+  }
+
+  it('reads the DOM rect synchronously on web', () => {
+    setPlatform('web')
+    expect(measureWindowRect(domNode(21, 300, 388, 160))).toEqual(
+      win(21, 300, 388, 160),
+    )
+  })
+
+  it('holds the DOM rect to the same validation', () => {
+    setPlatform('web')
+    expect(measureWindowRect(domNode(0, 0, 0, 0))).toBeUndefined()
+    expect(measureWindowRect(domNode(NaN, 0, 100, 100))).toBeUndefined()
+    expect(measureWindowRect({})).toBeUndefined()
+    expect(measureWindowRect(null)).toBeUndefined()
+  })
+
+  it('keeps measureInWindow on native when the node has a DOM rect too', () => {
+    setPlatform('ios')
+    const node = {
+      getBoundingClientRect: () => ({ left: 1, top: 2, width: 3, height: 4 }),
+      measureInWindow: (cb: (...a: number[]) => void) => cb(10, 410, 100, 100),
+    }
+    expect(measureWindowRect(node)).toEqual(win(10, 410, 100, 100))
   })
 })
 

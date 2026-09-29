@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **A `layoutId` FLIP on web starts from the source.** react-native-web answers `measureInWindow` from a `setTimeout`, and Inertia accepts only a synchronous answer, so every web rect fell back to parent-relative coordinates. The FLIP still ran, but it started from the target's offset inside its own parent, not from the source. Found in `rootnative/ui-example` in Chrome: the detail hero grew from 20pt above and left of its own position, not from the card it opened from. On web, Inertia now reads the DOM node's `getBoundingClientRect()`, which is the same window rect that the deferred callback reads. Native keeps `measureInWindow`, because React Native host elements expose `getBoundingClientRect` too.
+
 ## [0.0.14] - 2026-09-29
 
 ### Fixed

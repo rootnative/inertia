@@ -103,8 +103,9 @@ export interface SharedLayoutBindings {
  *      happens in the host's worklet; see `SharedLayoutStyleValues`.
  *
  * Coordinate space: rects are recorded in **window** coordinates when the host
- * can be measured synchronously (Fabric), and in the parent-relative
- * coordinates `onLayout` reports when it can't (Paper, or a detached node).
+ * can be measured synchronously (Fabric, and web through the DOM rect), and in
+ * the parent-relative coordinates `onLayout` reports when it can't (Paper, or a
+ * detached node).
  * Window coordinates are what let a source and target sitting under containers
  * at different screen offsets FLIP correctly — the case the original
  * parent-relative implementation got wrong. A source and target that ended up

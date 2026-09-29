@@ -526,11 +526,12 @@ export interface MotionProps<C, V extends VariantsMap<C> = VariantsMap<C>> {
    *
    * Reanimated 4 removed the `sharedTransitionTag` API — `layoutId` is the
    * Inertia-side measure-based replacement. Rects are recorded in **window**
-   * coordinates wherever the host can be measured synchronously (Fabric),
-   * which is what lets a source and target sit under containers at different
-   * screen offsets; elsewhere both fall back to the parent-relative
-   * coordinates `onLayout` reports. A source and target that ended up in
-   * different spaces skip the animation rather than play a wrong one.
+   * coordinates wherever the host can be measured synchronously (Fabric, and
+   * web through the DOM rect), which is what lets a source and target sit under
+   * containers at different screen offsets; elsewhere both fall back to the
+   * parent-relative coordinates `onLayout` reports. A source and target that
+   * ended up in different spaces skip the animation rather than play a wrong
+   * one.
    *
    * The same `transition` prop drives the FLIP animation (spring by
    * default; `'timing'` honored; `'decay'` downgrades to spring; reduced
