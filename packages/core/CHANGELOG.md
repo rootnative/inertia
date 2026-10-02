@@ -4,6 +4,14 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **The missing-plugin check runs in production, and names the bundler-neutral fix.** `ensureReanimatedInstalled` returned before its probe when `__DEV__` was false, so a production build with no worklets plugin showed no error at all. On web that build also does not crash: every animated style stays at its first frame. The check now runs once in every build. Its message no longer names only `babel.config.js` and Metro. It states the rule: `react-native-worklets/plugin` must run on the app source and on `node_modules/@rootnative`, `react-native-reanimated` and `react-native-worklets`, because all three ship raw `'worklet'` directives, and it gives the Metro case and the web-bundler case. A Vite app that ran the plugin on its own source only hit this: the dialog stayed at opacity 0 with an empty console.
+
+### Documentation
+
+- **Installation says that the plugin must run on `node_modules`.** A new section explains why a web bundler without Metro gets no animation, and shows a Vite include list.
+
 ## [0.0.15] - 2026-10-02
 
 ### Fixed

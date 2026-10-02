@@ -170,7 +170,25 @@ module.exports = function (api) {
 }
 ```
 
-The worklets plugin must be **last** in the plugins array. (`react-native-reanimated/plugin` still works in Reanimated 4 — it is a one-line shim that forwards to `react-native-worklets/plugin` — but the worklets name is the canonical one, and it's the one Inertia's own dev-time install check tells you to add.)
+The worklets plugin must be **last** in the plugins array. (`react-native-reanimated/plugin` still works in Reanimated 4 — it is a one-line shim that forwards to `react-native-worklets/plugin` — but the worklets name is the canonical one, and it's the one Inertia's own install check tells you to add.)
+
+### The plugin must run on `node_modules` too
+
+`@rootnative/inertia`, `react-native-reanimated` and `react-native-worklets` all ship their `'worklet'` directives untransformed. The plugin in the consumer's build turns them into UI-thread code. Metro runs Babel on `node_modules`, so an Expo or bare React Native app needs nothing more than the config above.
+
+A web bundler without Metro (Vite, webpack, Electron, Tauri) skips `node_modules` by default. The build then succeeds, and no animation plays: every animated style stays at its first frame, and a production build shows no error. Inertia logs one `console.error` at the first `Motion` render in that case, in production too. Add the three packages to the plugin's include list. A Vite example with `@rolldown/plugin-babel`:
+
+```ts
+babel({
+  include: [
+    /src\/.*\.tsx?$/,
+    /node_modules\/(@rootnative|react-native-reanimated|react-native-worklets)\/.*\.m?js$/,
+  ],
+  plugins: ['react-native-worklets/plugin'],
+})
+```
+
+The equivalent for `babel-loader` in webpack is an `include` array with the same paths.
 
 ## First animation
 

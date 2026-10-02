@@ -11,6 +11,18 @@
 // limit, decide whether to tighten or accept it; don't silently raise the
 // cap. Record any baseline shift here when you do.
 //
+// ── Recorded baselines, brotlied + minified, 2026-10-02, the install check
+//    runs in production (unreleased) ──
+//   Full namespace (root)     14.37 kB   (was 14.35)
+//   Motion.View subpath        9.68 kB   (was 9.75)
+//   Every other primitive subpath moved by about the same -0.07 kB.
+//
+// +0.02 kB root, and the primitive subpaths shrank. `ensureReanimatedInstalled`
+// lost its `__DEV__` gate, and its missing-plugin message grew to state the
+// `node_modules` rule and the web-bundler case. That text alone put the root
+// at 14.41 kB against the 14.4 kB cap. The offset is the old-Reanimated
+// message, which lost its install command. **The cap was not raised.**
+//
 // ── Recorded baselines, brotlied + minified, 2026-10-02, the web FLIP
 //    source fix (unreleased) ──
 //   Full namespace (root)     14.35 kB   (was 14.29)
