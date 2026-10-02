@@ -527,6 +527,89 @@ describe('layoutId — source re-measure at consume time', () => {
 // props while its frame animated — the most visible half of the transition
 // arriving instantly. The carry crossfades the source's values for those keys
 // over the same transition as the rect.
+describe('layoutId — the rect released on unmount', () => {
+  // A transform moves the measured rect without a layout pass. An element
+  // that enters with `scale: 0.4 → 1` lays out once, mid-entrance, and that
+  // rect is the only one `onLayout` ever reports. The unmount measurement is
+  // what hands the next mount the rect at full scale.
+  it('measures the node on unmount instead of trusting the last layout', () => {
+    const seen = stubMeasurements(
+      { x: 22, y: 22, width: 52, height: 52 },
+      { x: 0, y: 0, width: 96, height: 96 },
+    )
+
+    const view = render(
+      <Motion.View testID="el" layoutId="brand" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 0,
+      y: 0,
+      width: 96,
+      height: 96,
+    })
+    expect(peekSharedLayout('brand')).toEqual(win(22, 22, 52, 52))
+
+    view.unmount()
+    expect(peekSharedLayout('brand')).toEqual(win(0, 0, 96, 96))
+    // The cleanup ran while the ref was still attached: the measurer was
+    // asked about a node, not about `null`.
+    expect(seen).toHaveLength(2)
+    expect(seen[1]).not.toBeNull()
+    expect(seen[1]).toBe(seen[0])
+  })
+
+  it('falls back to the last layout rect when the node cannot be measured', () => {
+    stubMeasurements({ x: 22, y: 22, width: 52, height: 52 }, undefined)
+
+    const view = render(
+      <Motion.View testID="el" layoutId="brand" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 0,
+      y: 0,
+      width: 96,
+      height: 96,
+    })
+
+    view.unmount()
+    expect(peekSharedLayout('brand')).toEqual(win(22, 22, 52, 52))
+  })
+
+  it('the next mount FLIPs from the unmount-time rect', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    // Source: one layout at scale 0.55, full size at unmount. Target: 32pt.
+    stubMeasurements(
+      { x: 22, y: 22, width: 52, height: 52 },
+      { x: 0, y: 0, width: 96, height: 96 },
+      { x: 0, y: 0, width: 32, height: 32 },
+    )
+
+    const source = render(
+      <Motion.View testID="el" layoutId="brand" style={boxStyle} />,
+    )
+    fireLayout(source.getByTestId('el') as never, {
+      x: 0,
+      y: 0,
+      width: 96,
+      height: 96,
+    })
+    source.unmount()
+
+    const target = render(
+      <Motion.View testID="el" layoutId="brand" style={boxStyle} />,
+    )
+    fireLayout(target.getByTestId('el') as never, {
+      x: 0,
+      y: 0,
+      width: 32,
+      height: 32,
+    })
+
+    // Snap legs are dx, dy, sx, sy. 96 / 32 = 3, not 52 / 32 = 1.625.
+    expect(flipSnapValues(withTiming).slice(2)).toEqual([3, 3])
+  })
+})
+
 describe('layoutId — style carry', () => {
   const SOURCE: SharedStyleSnapshot = {
     backgroundColor: 'red',

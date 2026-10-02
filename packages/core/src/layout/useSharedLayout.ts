@@ -3,6 +3,7 @@ import {
   type Ref,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from 'react'
@@ -90,8 +91,9 @@ export interface SharedLayoutBindings {
  *   2. Track the latest layout rect via the `onLayout` event, and push it
  *      into the registry under `layoutId` so this primitive can serve as
  *      the source for a future transition.
- *   3. On unmount, hand the last measured rect to `releaseLayout` so the
- *      next mount with the same id can consume it.
+ *   3. On unmount, measure the node one last time and hand that rect to
+ *      `releaseLayout` so the next mount with the same id can consume it.
+ *      The last layout rect is the fallback when the node cannot be measured.
  *   4. On the first layout commit, consume any pending source rect and
  *      drive the FLIP shared values: snap them to the (delta, scale) that
  *      visually places the new element at the source position, then
@@ -274,15 +276,24 @@ export function useSharedLayout(options: {
     consumedRef.current = false
   }, [layoutId])
 
-  // On unmount, hand the latest rect — and a final snapshot of the carried
-  // style keys — to the registry under this id so the next mount can consume
-  // them. The styles are read by value here rather than left behind as a
-  // callback: after this the node is gone, and a later read would be measuring
-  // a component nobody owns.
-  useEffect(() => {
+  // On unmount, hand a final rect — and a final snapshot of the carried style
+  // keys — to the registry under this id so the next mount can consume them.
+  //
+  // The rect is measured here, not taken from the last layout commit. A
+  // transform moves the measured rect without a layout pass, so an element
+  // that entered with a `scale` animation has one layout commit, mid-entrance,
+  // and that rect is too small by the scale at that frame. The last layout
+  // rect stays as the fallback for a node that cannot be measured.
+  //
+  // A layout effect, not a passive one: React runs layout-effect cleanups
+  // while the removed subtree is still attached, and detaches the ref and the
+  // host node after them. In a passive cleanup the node is already gone, and
+  // the measurement would always miss. The styles are read by value for the
+  // same reason: after this, nothing owns the node.
+  useLayoutEffect(() => {
     return () => {
       if (!layoutId) return
-      const rect = lastRectRef.current
+      const rect = measureWindowRect(nodeRef.current) ?? lastRectRef.current
       if (!rect) return
       releaseLayout(layoutId, rect, snapshotStyles())
     }

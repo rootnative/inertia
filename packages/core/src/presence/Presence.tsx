@@ -32,6 +32,11 @@ interface RenderEntry {
  * Children also need explicit `key`s so removal is detectable across
  * renders. Without a key, React falls back to positional identity and
  * removal looks like a prop change — Presence has nothing to mark exiting.
+ *
+ * Every `Motion.*` under an exiting child reads the same context, and the
+ * first `safeToRemove` call drops the child. A nested `Motion.*` with no
+ * `exit` therefore unmounts the child at once, and one with a shorter `exit`
+ * cuts the parent's. The presence docs state the rule for consumers.
  */
 export function Presence({ children }: { children: ReactNode }) {
   const incoming = useMemo(() => {
