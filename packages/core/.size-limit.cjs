@@ -11,6 +11,27 @@
 // limit, decide whether to tighten or accept it; don't silently raise the
 // cap. Record any baseline shift here when you do.
 //
+// ── Recorded baselines, brotlied + minified, 2026-10-02, the web FLIP
+//    source fix (unreleased) ──
+//   Full namespace (root)     14.35 kB   (was 14.29)
+//   Every other entry                    (unchanged)
+//
+// +0.06 kB root, nothing anywhere else. The default measurer gained a web
+// branch that reads `getBoundingClientRect()`, because react-native-web
+// answers `measureInWindow` from a `setTimeout` and every web FLIP started
+// parent-relative. The branch is reachable only through `layoutId`, which the
+// primitive subpaths tree-shake away, so only the root moved.
+//
+// **The root cap moved from 14.3 kB to 14.4 kB. This is the deliberate raise
+// the two notes below asked for**, not a side effect: the root had 0.01 kB of
+// headroom, and three shapes of the web branch were measured — the helper
+// function that shipped (+0.06), the branch inlined into the measurer
+// (+0.07), and the inlined branch destructured onto the `{ x, y, width,
+// height }` names the native path already uses (+0.09). The helper is the
+// smallest. The raise is the minimum step that passes, so the next root-entry
+// addition faces the same decision; the lasting fix is still the lazy split
+// of the factory named at the bottom of this comment.
+//
 // ── Recorded baselines, brotlied + minified, 2026-09-13, `pointerHandlers`
 //    on `useGesture` (unreleased) ──
 //   Full namespace (root)     14.28 kB   (was 14.27)
@@ -254,7 +275,7 @@ module.exports = [
     name: 'Full Motion namespace — @rootnative/inertia (root entry)',
     path: 'dist/index.mjs',
     ignore: PEERS_IGNORE,
-    limit: '14.3 kB',
+    limit: '14.4 kB',
   },
   {
     name: 'MotionView (barrel, tree-shaken from root)',
