@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.15] - 2026-10-02
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.15` (a `layoutId` FLIP on web now starts from the source: Inertia reads the DOM rect synchronously instead of waiting on react-native-web's deferred `measureInWindow`). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.15 <0.1.0`.
+
 ## [0.0.14] - 2026-09-29
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.14` (a mounted `layoutId` source no longer expires, and a new Types page documents every type that the root entry exports). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.14 <0.1.0`.
@@ -113,7 +117,8 @@ Initial alpha publish alongside `@rootnative/inertia@0.0.0-alpha.0`. Optional ad
 - `useDrag({ onRelease })` — release worklet returns per-axis Inertia transitions (snap-to-tick spring, decay with bounds, etc.). Velocity stays on the UI thread; no JS round-trip.
 - `useSwipe`, `usePan` hooks composable with any `Motion.*` primitive via `<GestureDetector>`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.14...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.15...HEAD
+[0.0.15]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.15
 [0.0.14]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.14
 [0.0.13]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.13
 [0.0.12]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.12

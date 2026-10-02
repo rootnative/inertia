@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.15] - 2026-10-02
+
 ### Fixed
 
 - **A `layoutId` FLIP on web starts from the source.** react-native-web answers `measureInWindow` from a `setTimeout`, and Inertia accepts only a synchronous answer, so every web rect fell back to parent-relative coordinates. The FLIP still ran, but it started from the target's offset inside its own parent, not from the source. In Chrome, a detail hero grew from 20pt above and left of its own position, not from the card it opened from. On web, Inertia now reads the DOM node's `getBoundingClientRect()`, which is the same window rect that the deferred callback reads. Native keeps `measureInWindow`, because React Native host elements expose `getBoundingClientRect` too.
@@ -471,7 +473,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.14...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.15...HEAD
+[0.0.15]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.15
 [0.0.14]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.14
 [0.0.13]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.13
 [0.0.12]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.12
