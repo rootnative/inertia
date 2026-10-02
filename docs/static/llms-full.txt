@@ -8,6 +8,8 @@
 ---
 Inertia (`@rootnative/inertia`) is a thin, ergonomic wrapper around `react-native-reanimated`. Animations are expressed as props on a component — no shared values, no worklets, no `useAnimatedStyle` boilerplate. The vocabulary takes cues from **Framer Motion** (web) and **react-spring** (cross-platform).
 
+Inertia supports iOS, Android, and web (react-native-web). macOS, Windows, and Electron are not tested. See [Platforms](./installation#platforms).
+
 > **Status:** `0.0.15`. The full surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, the layout and shared-element features, and the value-layer hooks. Pre-`1.0.0`, minor breaking changes may still land; each one is called out in the [changelog](https://github.com/rootnative/inertia/blob/main/packages/core/CHANGELOG.md).
 
 ## What you get
@@ -94,6 +96,35 @@ Inertia is a thin wrapper around `react-native-reanimated`. The Reanimated insta
 Inertia targets **one SDK band, not a floor**, so `SDK 57+` is not correct: the peer ranges stop below React Native 0.87 and below Reanimated 4.6, which the next SDK will carry.
 
 The upper bounds are deliberate. Reanimated and `react-native-worklets` are version-locked to each other, and each pair works with one React Native band — Reanimated 4.5 needs worklets `0.10.x` and React Native 0.83–0.86. A wider range would let a package manager pair a new Reanimated with an old worklets, a combination that cannot install at all. Supporting a second SDK needs a second release line, not a wider range.
+
+## Platforms
+
+| Platform | Status |
+| --- | --- |
+| iOS | Supported |
+| Android | Supported |
+| Web (react-native-web `0.21`, through Expo) | Supported. The example app and the docs demo run on web. Tests ran in Chromium only. Safari and Firefox are not tested. |
+| macOS (react-native-macos) | Not tested |
+| Windows (react-native-windows) | Not tested |
+| Electron | Not tested. Expo does not supply an Electron target. |
+
+Inertia uses the same API on every supported platform. For web, add the web dependencies to an Expo app:
+
+```bash
+npx expo install react-dom react-native-web
+```
+
+Some behavior is different on web:
+
+- `gesture.hovered` operates on web only. On iOS and Android it does nothing. See [Gestures](./gestures).
+- `layoutId` measures the DOM rect with `getBoundingClientRect()` on web. See [Layout](./layout).
+- A static web export writes each element at its `initial` values. Without the entrance guard, the page stays blank when the JavaScript bundle does not run. See [Static export](./static-export).
+
+The adapter packages use the web support of their peer dependency:
+
+- `@rootnative/inertia-gestures` operates on web through the web support of `react-native-gesture-handler`.
+- `@rootnative/inertia-svg` operates on web through the web support of `react-native-svg`.
+- `@rootnative/inertia-gradients` operates on web through the web component of `expo-linear-gradient`. On web, Reanimated can log a console error on each frame for this component. The gradient renders and animates correctly.
 
 ## Which package has what
 

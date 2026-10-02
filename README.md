@@ -62,6 +62,8 @@ yarn add @rootnative/inertia-gradients expo-linear-gradient
 yarn add @rootnative/inertia-svg react-native-svg
 ```
 
+**Platforms** — iOS and Android are supported. Web (react-native-web `0.21`, through Expo) is supported; add `npx expo install react-dom react-native-web` for web. macOS, Windows, and Electron are not tested. See [Platforms](https://rootnative.github.io/inertia/installation#platforms) for the web differences.
+
 ## Quick Start
 
 ```tsx
@@ -151,6 +153,7 @@ Inertia ships [llms.txt](https://llmstxt.org/) documentation for AI coding agent
 - pnpm `10.x`
 - React `19.2.3`, React Native `0.86.x`, Expo SDK `57`
 - `react-native-reanimated >=4.5.0 <4.6.0` (peer)
+- Platforms: iOS, Android, and web (react-native-web `0.21`). macOS, Windows, and Electron are not tested.
 
 ### Setup
 

@@ -9,7 +9,8 @@ const baseUrl = '/inertia/'
 
 const config: Config = {
   title: 'Inertia',
-  tagline: 'Declarative animation primitives for React Native',
+  tagline:
+    'Declarative animation primitives for React Native on iOS, Android, and web',
   url: 'https://rootnative.github.io',
   baseUrl,
   onBrokenLinks: 'throw',

@@ -42,16 +42,22 @@ const SIBLING_PACKAGES = [
     pkg: 'gestures',
     docId: 'gestures-adapter',
     name: '@rootnative/inertia-gestures',
+    platforms:
+      'iOS, Android, and web. Web uses the web support of react-native-gesture-handler. macOS, Windows, and Electron are not tested.',
   },
   {
     pkg: 'gradients',
     docId: 'gradients',
     name: '@rootnative/inertia-gradients',
+    platforms:
+      'iOS, Android, and web. Web uses the web component of expo-linear-gradient; Reanimated can log a console error on each frame there, and the gradient still animates. macOS, Windows, and Electron are not tested.',
   },
   {
     pkg: 'svg',
     docId: 'svg',
     name: '@rootnative/inertia-svg',
+    platforms:
+      'iOS, Android, and web. Web uses the web support of react-native-svg. macOS, Windows, and Electron are not tested.',
   },
 ]
 
@@ -182,7 +188,7 @@ function buildLlmsFull() {
   return header + body + '\n'
 }
 
-function buildSiblingLlms({ docId, name }) {
+function buildSiblingLlms({ docId, name, platforms }) {
   const path = resolveDocPath(docId)
   const raw = readFileSync(path, 'utf8')
   const body = expandJsxComponents(
@@ -192,6 +198,8 @@ function buildSiblingLlms({ docId, name }) {
   const header = [
     `> ${name} — adapter package for @rootnative/inertia.`,
     '> This file is generated from the matching docs page by scripts/build-llms.mjs — do not edit by hand.',
+    '',
+    `> Platforms: ${platforms}`,
     '',
     '> Full docs:    https://rootnative.github.io/inertia/',
     '> Core overview: see @rootnative/inertia/llms.txt (or docs/static/llms.txt in the repo)',
