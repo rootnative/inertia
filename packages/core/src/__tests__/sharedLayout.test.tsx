@@ -799,9 +799,8 @@ describe('measureWindowRect', () => {
 })
 
 // react-native-web answers `measureInWindow` from a `setTimeout`, so the
-// synchronous rule above would leave every web FLIP parent-relative. Found in
-// `rootnative/ui-example`: the detail hero grew from its own padding offset,
-// not from the card.
+// synchronous rule above would leave every web FLIP parent-relative: a detail
+// hero grew from its own padding offset, not from the card.
 describe('measureWindowRect — web', () => {
   const NATIVE_OS = Platform.OS
 
