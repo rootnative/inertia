@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.16] - 2026-10-03
+
 ### Fixed
 
 - **The missing-plugin check runs in production, and names the bundler-neutral fix.** `ensureReanimatedInstalled` returned before its probe when `__DEV__` was false, so a production build with no worklets plugin showed no error at all. On web that build also does not crash: every animated style stays at its first frame. The check now runs once in every build. Its message no longer names only `babel.config.js` and Metro. It states the rule: `react-native-worklets/plugin` must run on the app source and on `node_modules/@rootnative`, `react-native-reanimated` and `react-native-worklets`, because all three ship raw `'worklet'` directives, and it gives the Metro case and the web-bundler case. A Vite app that ran the plugin on its own source only hit this: the dialog stayed at opacity 0 with an empty console.
@@ -484,7 +486,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.15...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.16...HEAD
+[0.0.16]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.16
 [0.0.15]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.15
 [0.0.14]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.14
 [0.0.13]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.13

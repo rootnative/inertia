@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.16] - 2026-10-03
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.16` (the missing-plugin check now runs in production builds, and a `layoutId` source measures its node as it unmounts). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.16 <0.1.0`.
+
 ## [0.0.15] - 2026-10-02
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.15` (a `layoutId` FLIP on web now starts from the source: Inertia reads the DOM rect synchronously instead of waiting on react-native-web's deferred `measureInWindow`). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.15 <0.1.0`.
@@ -109,7 +113,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionPath` over `react-native-svg`. Animatable: `d` (element-wise scalar interpolation on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.15...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.16...HEAD
+[0.0.16]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.16
 [0.0.15]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.15
 [0.0.14]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.14
 [0.0.13]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.13
