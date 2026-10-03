@@ -11,6 +11,25 @@
 // limit, decide whether to tighten or accept it; don't silently raise the
 // cap. Record any baseline shift here when you do.
 //
+// ── Recorded baselines, brotlied + minified, 2026-10-03, nested `Motion.*`
+//    exits under `<Presence>` (unreleased) ──
+//   Full namespace (root)     14.59 kB   (was 14.38)
+//   Motion.View subpath        9.91 kB
+//   Motion.ScrollView subpath 10.18 kB   (FlatList the same)
+//
+// +0.21 kB root. An exiting `<Presence>` child now waits for every `Motion.*`
+// under it, not for the first one to call `safeToRemove`, so a nested
+// `Motion.*` with no `exit` cannot remove a dialog on the first frame of its
+// exit. Each `PresenceItem` keeps a registry, and each `Motion.*` registers
+// with it through `useMotionPresence`. Two shapes were measured: a `Map` held
+// in four refs (+0.21, shipped) and one mutable object held in `useState`
+// (+0.22).
+//
+// **The root cap moved from 14.4 kB to 14.6 kB, deliberately.** The root had
+// 0.02 kB of headroom, and this is a correctness fix. The raise is the
+// minimum step that passes. The lasting fix is still the lazy split of the
+// factory named at the bottom of this comment.
+//
 // ── Recorded baselines, brotlied + minified, 2026-10-02, the install check
 //    runs in production (unreleased) ──
 //   Full namespace (root)     14.37 kB   (was 14.35)
@@ -287,7 +306,7 @@ module.exports = [
     name: 'Full Motion namespace — @rootnative/inertia (root entry)',
     path: 'dist/index.mjs',
     ignore: PEERS_IGNORE,
-    limit: '14.4 kB',
+    limit: '14.6 kB',
   },
   {
     name: 'MotionView (barrel, tree-shaken from root)',

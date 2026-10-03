@@ -1999,27 +1999,30 @@ An exiting child animates out **in place**: it holds the slot it occupied among 
 
 ## Nested `Motion.*` children
 
-Every `Motion.*` inside an exiting child reads the same presence context as that child. Each one calls `safeToRemove()` when its own `exit` settles, or at once when it has no `exit`. The **first** call removes the whole child. Two shapes follow from this rule:
-
-- A nested `Motion.*` **without** `exit` removes the child on the first frame of the exit. The parent's exit animation does not play. This holds for a `Motion.View` with no props at all.
-- A nested `Motion.*` with a **shorter** `exit` removes the child when its own exit ends. The parent's exit is cut at that point.
+An exiting child stays mounted until every `Motion.*` inside it has finished its exit. A nested `Motion.*` with no `exit` is finished at once, so it does not cut the exit of the child that holds it. A nested `Motion.*` with a longer `exit` holds the child until that exit ends.
 
 ```tsx
 <Presence>
   {open ? (
     <Motion.View key="sheet" exit={{ translateY: 400 }}>
-      {/* Wrong: no `exit`, so the sheet unmounts at once. */}
-      <Motion.View animate={{ opacity: 1 }} />
-      {/* Right: a plain View does not read the presence context. */}
-      <View />
-      {/* Right: an `exit` that runs at least as long as the sheet's. */}
-      <Motion.View exit={{ opacity: 0 }} transition={sheetTransition} />
+      {/* No `exit`: the sheet still slides out in full. */}
+      <Motion.View
+        animate={{ rotate: 360 }}
+        transition={{ repeat: 'infinite' }}
+      />
+      {/* A shorter `exit`: it fades, and the sheet keeps sliding. */}
+      <Motion.View
+        exit={{ opacity: 0 }}
+        transition={{ type: 'timing', duration: 100 }}
+      />
     </Motion.View>
   ) : null}
 </Presence>
 ```
 
-So give each `Motion.*` inside a `<Presence>` child an `exit` whose transition is at least as long as the child's own, or use a plain `View` for a child that must not animate out. A custom component that calls `usePresence()` follows the same rule.
+So a component that animates on its own, such as a spinner or a skeleton, can go inside a sheet or a dialog without an `exit` of its own.
+
+A custom component that calls `usePresence()` and then `safeToRemove()` removes the child at once. It does not wait for the `Motion.*` exits, so call it only after the whole exit has finished.
 
 ## What can be a child?
 

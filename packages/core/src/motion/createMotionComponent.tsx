@@ -46,7 +46,7 @@ import {
   type SharedStyleSnapshot,
   useSharedLayout,
 } from '../layout'
-import { usePresence } from '../presence'
+import { useMotionPresence } from '../presence'
 import { useStaggerDelay } from '../stagger'
 import {
   applyDelay,
@@ -480,10 +480,10 @@ export function createMotionComponent<C extends ComponentType<any>>(
 
     // Presence coordination. A prop-less child inside <Presence> has no exit
     // animation, so it must signal `safeToRemove` immediately once it starts
-    // exiting — otherwise it lingers in the snapshot forever. This is a context
-    // read plus an unmount-scoped effect: no shared values, no worklet, no
-    // per-render allocation. `null` when there is no <Presence> ancestor.
-    const presence = usePresence()
+    // exiting — otherwise it lingers in the snapshot forever. This is two
+    // context reads plus two effects: no shared values and no worklet. `null`
+    // when there is no <Presence> ancestor.
+    const presence = useMotionPresence()
     const isExiting = presence !== null && presence.isPresent === false
     const safeToRemoveRef = useRef<(() => void) | undefined>(undefined)
     safeToRemoveRef.current = presence?.safeToRemove
@@ -586,7 +586,7 @@ export function createMotionComponent<C extends ComponentType<any>>(
       // <Presence> contract: when an ancestor flips `isPresent` to false the
       // child stays rendered until `safeToRemove` is called, giving the exit
       // animation time to play. `null` when there is no <Presence> ancestor.
-      const presence = usePresence()
+      const presence = useMotionPresence()
       const isExiting = presence !== null && presence.isPresent === false
 
       // Resolved reduced-motion preference for this subtree. When true, every

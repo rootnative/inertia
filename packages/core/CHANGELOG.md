@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **A nested `Motion.*` no longer removes an exiting `<Presence>` child early.** Every `Motion.*` inside an exiting child read the same presence context, and the first `safeToRemove` call removed the whole child. A nested `Motion.*` with no `exit`, such as a progress bar or a skeleton inside a dialog, removed the dialog on the first frame of its exit, so the dialog's own exit did not play. A nested `Motion.*` with a shorter `exit` cut the parent's exit. Now `<Presence>` removes the child only when every `Motion.*` inside it has finished its exit, and a `Motion.*` with no `exit` is finished at once. A custom component that calls `usePresence().safeToRemove()` still removes the child at once.
+
 ## [0.0.16] - 2026-10-03
 
 ### Fixed

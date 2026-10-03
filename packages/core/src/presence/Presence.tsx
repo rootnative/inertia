@@ -5,12 +5,17 @@ import {
   type ReactElement,
   type ReactNode,
   useCallback,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react'
 import { warnOnce } from '../internal/warnOnce'
 import { PresenceContext, type PresenceContextValue } from './PresenceContext'
+import {
+  type PresenceRegistry,
+  PresenceRegistryContext,
+} from './useMotionPresence'
 
 interface RenderEntry {
   key: Key
@@ -33,10 +38,10 @@ interface RenderEntry {
  * renders. Without a key, React falls back to positional identity and
  * removal looks like a prop change — Presence has nothing to mark exiting.
  *
- * Every `Motion.*` under an exiting child reads the same context, and the
- * first `safeToRemove` call drops the child. A nested `Motion.*` with no
- * `exit` therefore unmounts the child at once, and one with a shorter `exit`
- * cuts the parent's. The presence docs state the rule for consumers.
+ * An exiting child is removed when every `Motion.*` under it has finished its
+ * exit. A `Motion.*` with no `exit` is finished at once, so it cannot cut the
+ * exit of an ancestor. A custom `usePresence()` consumer that calls
+ * `safeToRemove` still removes the child at once.
  */
 export function Presence({ children }: { children: ReactNode }) {
   const incoming = useMemo(() => {
@@ -223,9 +228,57 @@ function PresenceItem({
     }),
     [isPresent, itemKey, onRemove],
   )
+
+  // Released state per registered `Motion.*`. Refs, not state: a release must
+  // not re-render the subtree that is animating out.
+  const releasedRef = useRef(new Map<string, boolean>())
+  const exitingRef = useRef(!isPresent)
+  const itemKeyRef = useRef(itemKey)
+  const onRemoveRef = useRef(onRemove)
+
+  // A layout effect, because the `Motion.*` effects that release are passive
+  // and run after it in the same commit. A child that returns mid-exit starts
+  // the next exit with every release cleared.
+  useLayoutEffect(() => {
+    exitingRef.current = !isPresent
+    itemKeyRef.current = itemKey
+    onRemoveRef.current = onRemove
+    if (isPresent) {
+      for (const id of releasedRef.current.keys()) {
+        releasedRef.current.set(id, false)
+      }
+    }
+  }, [isPresent, itemKey, onRemove])
+
+  const registry = useMemo<PresenceRegistry>(() => {
+    const removeIfAllReleased = () => {
+      if (!exitingRef.current) return
+      for (const released of releasedRef.current.values()) {
+        if (!released) return
+      }
+      onRemoveRef.current(itemKeyRef.current)
+    }
+    return {
+      register: (id) => {
+        releasedRef.current.set(id, false)
+        return () => {
+          releasedRef.current.delete(id)
+          removeIfAllReleased()
+        }
+      },
+      release: (id) => {
+        if (!exitingRef.current || !releasedRef.current.has(id)) return
+        releasedRef.current.set(id, true)
+        removeIfAllReleased()
+      },
+    }
+  }, [])
+
   return (
     <PresenceContext.Provider value={value}>
-      {children}
+      <PresenceRegistryContext.Provider value={registry}>
+        {children}
+      </PresenceRegistryContext.Provider>
     </PresenceContext.Provider>
   )
 }
