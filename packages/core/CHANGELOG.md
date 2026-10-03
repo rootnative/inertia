@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.17] - 2026-10-03
+
 ### Fixed
 
 - **A nested `Motion.*` no longer removes an exiting `<Presence>` child early.** Every `Motion.*` inside an exiting child read the same presence context, and the first `safeToRemove` call removed the whole child. A nested `Motion.*` with no `exit`, such as a progress bar or a skeleton inside a dialog, removed the dialog on the first frame of its exit, so the dialog's own exit did not play. A nested `Motion.*` with a shorter `exit` cut the parent's exit. Now `<Presence>` removes the child only when every `Motion.*` inside it has finished its exit, and a `Motion.*` with no `exit` is finished at once. A custom component that calls `usePresence().safeToRemove()` still removes the child at once.
@@ -490,7 +492,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.16...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.17...HEAD
+[0.0.17]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.17
 [0.0.16]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.16
 [0.0.15]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.15
 [0.0.14]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.14
