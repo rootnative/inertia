@@ -199,9 +199,7 @@ export function useGesture(
 
   // Both bags come out of one memo. They share the hover and focus callbacks
   // by reference — which is the contract — and building them together keeps
-  // that literal rather than derived, at no extra allocation. A second
-  // `useMemo` here costs root-entry bytes the cap has no room for; see
-  // `.size-limit.cjs`.
+  // that literal rather than derived, at no extra allocation.
   const { handlers, pointerHandlers } = useMemo(() => {
     const onHoverIn = () => setLayer(hovered, 'hovered', 1)
     const onHoverOut = () => setLayer(hovered, 'hovered', 0)

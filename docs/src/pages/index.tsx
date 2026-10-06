@@ -279,7 +279,7 @@ const features = [
   {
     title: 'Tree-shakable subpaths',
     description:
-      'Import only what you animate via @rootnative/inertia/view, /text, /image, /pressable, /scroll-view. Bundle size is verified per primitive in CI.',
+      'Import only what you animate via @rootnative/inertia/view, /text, /image, /pressable, /scroll-view.',
     icon: (
       <svg
         viewBox="0 0 24 24"

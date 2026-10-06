@@ -72,7 +72,7 @@ Or the barrel — same primitives, named imports tree-shake cleanly because the 
 import { MotionView } from '@rootnative/inertia'
 ```
 
-Both forms land at ~4.1–4.2 kB brotlied for a single primitive (peers excluded). The full namespace (`import { Motion } from '@rootnative/inertia'`, then `Motion.View`) cannot tree-shake — accessing one property of a literal object holds the whole object live — and lands at ~4.8 kB. CI checks all three forms via `size-limit` so the gap doesn't drift.
+The full namespace (`import { Motion } from '@rootnative/inertia'`, then `Motion.View`) cannot tree-shake. Access to one property of a literal object keeps the whole object in the bundle. Use a named import when bundle size is important.
 
 ## Transitions
 

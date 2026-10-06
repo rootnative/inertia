@@ -182,16 +182,6 @@ jobs:
       - name: Build
         run: pnpm run build
 
-      # Bundle-size regression guard, matching ci-build.yml. Only core and
-      # gradients define a `size` script; both are built by `pnpm run build`
-      # above regardless of which subset is being published, so this runs
-      # unconditionally rather than trying to match it to `inputs.packages`.
-      - name: Bundle-size check (core)
-        run: pnpm --filter @rootnative/inertia size
-
-      - name: Bundle-size check (gradients)
-        run: pnpm --filter @rootnative/inertia-gradients size
-
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"

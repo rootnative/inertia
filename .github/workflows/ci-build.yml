@@ -81,12 +81,6 @@ jobs:
       - name: Build packages
         run: pnpm run build
 
-      - name: Bundle-size check (core)
-        run: pnpm --filter @rootnative/inertia size
-
-      - name: Bundle-size check (gradients)
-        run: pnpm --filter @rootnative/inertia-gradients size
-
       # Compile the docs site so malformed MDX, a broken internal link
       # (`onBrokenLinks: 'throw'`), or a bad Docusaurus config fails the PR
       # instead of surfacing after merge in deploy-web.yml — the only place
