@@ -200,28 +200,42 @@ function useMyAnimatedProp(target: number, transition?: TransitionInput) {
 
 This is how the Motion primitives and value-layer hooks support `transition="selection"` internally; adapter packages use the same two calls to join the registry.
 
-## `isTopLevelTransition(value)`
+## `transitionForKey(transition, key)`
 
-Returns `true` when `value` is a single `TransitionConfig` and `false` when it is a per-property or per-layer map. The test is structural: every key on the object must be a known transition field (`type`, `tension`, `friction`, `mass`, `velocity`, `duration`, `easing`, `delay`, `repeat`, `deceleration`, `clamp`). An empty object, `null`, a string, and a map keyed by prop names all return `false`.
+Returns the transition that a `transition` prop gives one key. A custom animated component calls it once for each prop it animates.
 
-Use it in a custom animated component that accepts both shapes on one `transition` prop. Do not test `'type' in transition`. `SpringTransition.type` is optional, so `{ tension: 300, friction: 20 }` is a valid top-level config with no `type` key. The `in` test reads it as a map, finds nothing under the prop name, and falls back to the default spring with no warning.
+- A top-level config or a registered name applies to every key. It comes back as given.
+- A map gives a key its own entry.
+- A key with no entry gets the config keys of the map as its default. `{ type: 'spring', tension: 120, opacity: { type: 'timing' } }` springs every key except `opacity`. An entry replaces the default whole. The two do not merge.
+
+A name comes back as a string. Pass the result to `resolveNamedTransition` to get a config.
 
 ```tsx
 import {
-  isTopLevelTransition,
+  resolveNamedTransition,
+  transitionForKey,
+  useNamedTransitions,
   type TransitionConfig,
+  type TransitionInput,
 } from '@rootnative/inertia'
 
-type RadiusTransition = TransitionConfig | { r?: TransitionConfig }
+type RadiusTransition = TransitionInput | { r?: TransitionInput }
 
-function pickTransition(
+function useRadiusTransition(
   transition: RadiusTransition | undefined,
 ): TransitionConfig | undefined {
-  if (!transition) return undefined
-  if (isTopLevelTransition(transition)) return transition
-  return transition.r
+  const registry = useNamedTransitions()
+  return resolveNamedTransition(transitionForKey(transition, 'r'), registry)
 }
 ```
+
+This is the lookup the Motion primitives, the gesture hooks and the svg adapter use.
+
+## `isTopLevelTransition(value)`
+
+Returns `true` when `value` is a single `TransitionConfig` and `false` when it is a per-property or per-layer map. The test is structural: every key on the object must be a known transition field (`type`, `tension`, `friction`, `mass`, `velocity`, `duration`, `easing`, `delay`, `repeat`, `deceleration`, `clamp`). An empty object, `null`, a string, and a map keyed by prop names all return `false`. A map that also carries config keys, such as `{ type: 'spring', opacity: { … } }`, returns `false`, and those keys are its default.
+
+Use it when a custom animated component must tell the two shapes apart. To read the transition for one key, use `transitionForKey`, which runs this test and also gives a key the default of a mixed map. Do not test `'type' in transition`. `SpringTransition.type` is optional, so `{ tension: 300, friction: 20 }` is a valid top-level config with no `type` key. The `in` test reads it as a map, finds nothing under the prop name, and falls back to the default spring with no warning.
 
 The test is safe under additive growth of the config vocabulary: a valid map key is a style or prop name, and those are disjoint from the config field names.
 

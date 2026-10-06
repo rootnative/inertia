@@ -11,11 +11,7 @@ import {
   useNamedTransitions,
   useShouldReduceMotion,
 } from '../config'
-import {
-  isTopLevelTransition,
-  resolveTransition,
-  stableSig,
-} from '../transitions'
+import { resolveTransition, stableSig, transitionForKey } from '../transitions'
 import { useGesture, type UseGestureHandlers } from '../values/useGesture'
 import {
   type GestureLayerTransitions,
@@ -62,9 +58,9 @@ export interface GestureLayerStates {
 export interface UseGestureLayerOptions {
   /**
    * When `true`, the `disabled` layer becomes active (or `rest` if `disabled`
-   * is undefined). Animates via the top-level transition or the library
-   * default spring; per-layer transitions (`GestureLayerTransitions`) do not
-   * apply to `disabled`.
+   * is undefined). Animates via the top-level transition, the config keys
+   * of a transition map, or the library default spring; per-layer entries
+   * (`GestureLayerTransitions`) do not apply to `disabled`.
    */
   disabled?: boolean
   /**
@@ -360,7 +356,7 @@ export function useGestureLayer(
 function disabledTransition(
   transition: TransitionConfig | GestureLayerTransitions | undefined,
 ): TransitionConfig | undefined {
-  if (!transition) return undefined
-  if (isTopLevelTransition(transition)) return transition
-  return undefined
+  return transitionForKey(transition, 'disabled') as
+    | TransitionConfig
+    | undefined
 }

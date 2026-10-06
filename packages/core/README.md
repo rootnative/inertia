@@ -83,7 +83,7 @@ Both forms land at ~4.1–4.2 kB brotlied for a single primitive (peers excluded
 | `'decay'`            | `velocity`, `deceleration`, `clamp`       | `withDecay`                         |
 | `'no-animation'`     | —                                         | direct assignment, no interpolation |
 
-Plus, on any transition: `delay`, `repeat`. Per-property transitions take precedence over the top-level transition. Spring config uses **react-spring vocabulary** (`tension`/`friction`); Reanimated's raw `stiffness`/`damping` is never on the public surface.
+Plus, on any transition: `delay`, `repeat`. A per-property map may also carry config keys, which are the default for every key it does not name: `{ type: 'spring', tension: 120, opacity: { type: 'timing' } }` springs every key except `opacity`. Spring config uses **react-spring vocabulary** (`tension`/`friction`); Reanimated's raw `stiffness`/`damping` is never on the public surface.
 
 ## Caveats
 

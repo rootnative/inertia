@@ -1,5 +1,8 @@
 import { warnOnce } from '../internal/warnOnce'
-import { isTopLevelTransition } from '../transitions/keys'
+import {
+  isTopLevelTransition,
+  TRANSITION_CONFIG_KEYS,
+} from '../transitions/keys'
 import {
   type NamedTransitions,
   type Transition,
@@ -69,7 +72,8 @@ export function resolveNamedTransitionProp<S>(
   let out: Record<string, unknown> | null = null
   for (const key in map) {
     const value = map[key]
-    if (typeof value === 'string') {
+    // A config key on a map is its default (`type: 'spring'`), not a name.
+    if (typeof value === 'string' && !TRANSITION_CONFIG_KEYS.has(key)) {
       if (out === null) out = { ...map }
       out[key] = lookupNamedTransition(value, registry)
     }

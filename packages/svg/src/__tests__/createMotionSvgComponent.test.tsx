@@ -167,6 +167,37 @@ describe('createMotionSvgComponent', () => {
     )
   })
 
+  it('gives a prop with no entry the config keys of a mixed map', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+
+    renderWithMotion(
+      <MotionCircle
+        cx={50}
+        cy={50}
+        r={10}
+        fill="#000"
+        animate={{ r: 40, fill: '#fff' }}
+        transition={{
+          type: 'timing',
+          duration: 260,
+          fill: { type: 'spring', tension: 200 },
+        }}
+      />,
+    )
+
+    expect(withTiming).toHaveBeenCalledWith(
+      40,
+      expect.objectContaining({ duration: 260 }),
+      undefined,
+    )
+    expect(withSpring).toHaveBeenCalledWith(
+      '#fff',
+      expect.any(Object),
+      undefined,
+    )
+  })
+
   it('resolves named transitions from the nearest MotionConfig', () => {
     const withTiming = jest.spyOn(Reanimated, 'withTiming')
 

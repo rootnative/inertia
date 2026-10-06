@@ -11,6 +11,26 @@
 // limit, decide whether to tighten or accept it; don't silently raise the
 // cap. Record any baseline shift here when you do.
 //
+// ── Recorded baselines, brotlied + minified, 2026-10-07, the mixed
+//    transition map (unreleased) ──
+//   Full namespace (root)     14.63 kB   (was 14.59)
+//   Motion.View subpath        9.95 kB   (was 9.91)
+//   Motion.ScrollView subpath 10.22 kB   (was 10.18; FlatList 10.23)
+//
+// +0.04 kB on the root and on every primitive subpath. A transition map may
+// carry config keys next to its entries, `{ type: 'spring', tension: 120,
+// opacity: { … } }`, and those keys are now the default for every key the map
+// gives no entry. Before, the name resolver read `type: 'spring'` as a name
+// and warned, and the config keys did nothing. One helper, `transitionForKey`
+// (a new root export, so the svg adapter can share it), replaces the five
+// lookups that read a map.
+//
+// **The root cap moved from 14.6 kB to 14.7 kB, deliberately.** The root had
+// 0.01 kB of headroom, the type already accepted the mixed form, and the
+// README promised it. The raise is the minimum step that passes. The lasting
+// fix is still the lazy split of the factory named at the bottom of this
+// comment.
+//
 // ── Recorded baselines, brotlied + minified, 2026-10-03, nested `Motion.*`
 //    exits under `<Presence>` (unreleased) ──
 //   Full namespace (root)     14.59 kB   (was 14.38)
@@ -306,7 +326,7 @@ module.exports = [
     name: 'Full Motion namespace — @rootnative/inertia (root entry)',
     path: 'dist/index.mjs',
     ignore: PEERS_IGNORE,
-    limit: '14.6 kB',
+    limit: '14.7 kB',
   },
   {
     name: 'MotionView (barrel, tree-shaken from root)',

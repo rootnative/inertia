@@ -4,6 +4,14 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **The config keys of a transition map are its default, and they no longer warn.** The README said that per-property transitions take precedence over the top-level one, and the type accepted `transition={{ type: 'spring', tension: 120, friction: 18, opacity: { type: 'timing', duration: 320 } }}`. At run time that form did two wrong things. The name resolver read `type: 'spring'` as a registered transition name, so every start logged `Unknown transition name "spring"`. And every key with no entry of its own got the library default spring, so `tension` and `friction` did nothing. Now the config keys of a map are the default for every style key, every gesture layer, the `disabled` layer of `useGestureLayer`, and the `layoutId` FLIP, when the map gives that key no entry. An entry replaces the default whole; the two do not merge. A map with no config key behaves as before.
+
+### Added
+
+- **`transitionForKey(transition, key)`** returns the transition that a `transition` prop gives one key: a top-level config or name, the key's own map entry, or the default of a mixed map. The Motion primitives, `useGesture`, `useGestureLayer` and the svg adapter all read a map through it, and a custom animated component can too. Documented in the transition utilities page.
+
 ## [0.0.17] - 2026-10-03
 
 ### Fixed

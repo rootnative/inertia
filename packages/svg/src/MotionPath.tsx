@@ -6,9 +6,9 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated'
 import {
-  isTopLevelTransition,
   resolveTransition,
   stableSig,
+  transitionForKey,
   TRANSPARENT,
   useShouldReduceMotion,
   type TransitionConfig,
@@ -35,12 +35,7 @@ function pickTransition(
   per: PathTransition | undefined,
   key: keyof PathPerPropertyTransition,
 ): TransitionConfig | undefined {
-  if (!per) return undefined
-  // Structural check, not `'type' in per`: `SpringTransition.type` is
-  // optional, so `{ tension: 300 }` is a valid top-level config with no
-  // `type` key and must not be read as a per-property map.
-  if (isTopLevelTransition(per)) return per
-  return (per as PathPerPropertyTransition)[key]
+  return transitionForKey(per, key) as TransitionConfig | undefined
 }
 
 export interface MotionPathProps extends Omit<

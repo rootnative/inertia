@@ -123,6 +123,35 @@ describe('MotionPath', () => {
     )
   })
 
+  it('gives a prop with no entry the config keys of a mixed map', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+
+    renderWithMotion(
+      <MotionPath
+        d="M 0 0 L 10 10"
+        fill="#000"
+        animate={{ d: 'M 5 5 L 20 20', fill: '#fff' }}
+        transition={{
+          type: 'timing',
+          duration: 260,
+          fill: { type: 'spring', tension: 200 },
+        }}
+      />,
+    )
+
+    expect(withTiming).toHaveBeenCalledWith(
+      5,
+      expect.objectContaining({ duration: 260 }),
+      undefined,
+    )
+    expect(withSpring).toHaveBeenCalledWith(
+      '#fff',
+      expect.any(Object),
+      undefined,
+    )
+  })
+
   it('throws in dev when animate.d has a different command sequence', () => {
     // (__DEV__ is true under the Jest setup — see root jest.setup.js)
     expect(() =>

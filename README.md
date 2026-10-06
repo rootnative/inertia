@@ -100,7 +100,7 @@ See the [docs](https://rootnative.github.io/inertia/) for sequences, variants, g
 | `'decay'`            | `velocity`, `deceleration`, `clamp`       | `withDecay`                                  |
 | `'no-animation'`     | —                                         | direct assignment, no interpolation          |
 
-Any transition also accepts `delay` and `repeat` (a count, `'infinite'`, or `{ count, alternate }`), and per-property transitions take precedence over the top-level one.
+Any transition also accepts `delay` and `repeat` (a count, `'infinite'`, or `{ count, alternate }`). A per-property map may also carry config keys, which are the default for every key it does not name: `{ type: 'spring', tension: 120, opacity: { type: 'timing' } }` springs every key except `opacity`.
 
 Animatable properties cover opacity, transforms, size, border radius, shadows, and colors — see [Transitions](https://rootnative.github.io/inertia/docs/transitions) for the full list.
 

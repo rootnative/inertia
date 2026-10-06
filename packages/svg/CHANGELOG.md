@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Fixed
+
+- **The config keys of a transition map are its default.** On `MotionPath` and on every component that `createMotionSvgComponent` builds, `transition={{ type: 'timing', duration: 260, fill: { type: 'spring' } }}` gave `d` (or `r`, `cx`, …) the default spring, because a prop with no entry of its own got nothing. Now that prop uses the config keys of the map, as in core. The lookup is core's new `transitionForKey`.
+
 ## [0.0.17] - 2026-10-03
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.17` (an exiting `<Presence>` child now waits for every nested `Motion.*` exit). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.17 <0.1.0`.

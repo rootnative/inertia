@@ -55,6 +55,7 @@ import {
   resolveAnimatableValue,
   resolveTransition,
   stableSig,
+  transitionForKey,
   type CallbackFactory,
 } from '../transitions'
 import { ensureReanimatedInstalled } from './installCheck'
@@ -62,12 +63,10 @@ import {
   type AnimatableValue,
   type AnimateStyle,
   type AnimationCallbackInfo,
-  type GestureLayerTransitions,
   type GestureSubStates,
   type MotionComponent,
   type BoxShadowInput,
   type MotionProps,
-  type PerPropertyTransition,
   type Transition,
   type TransitionConfig,
   type VariantController,
@@ -409,7 +408,7 @@ function transitionFor<S>(
   // style key named `pressed` (none currently exist, but keep the lookup
   // honest).
   if (GESTURE_LAYER_NAME_SET.has(prop as string)) return undefined
-  return (transition as PerPropertyTransition<S>)[prop] as
+  return transitionForKey(transition, prop as string) as
     | TransitionConfig
     | undefined
 }
@@ -420,10 +419,7 @@ function gestureLayerTransitionFor<S>(
 ): TransitionConfig | undefined {
   if (!transition) return undefined
   if (typeof transition === 'string') return undefined
-  if (isTopLevelTransition(transition)) return transition
-  return (transition as GestureLayerTransitions)[layer] as
-    | TransitionConfig
-    | undefined
+  return transitionForKey(transition, layer) as TransitionConfig | undefined
 }
 
 /**
@@ -1248,7 +1244,10 @@ export function createMotionComponent<C extends ComponentType<any>>(
       const sharedLayout = useSharedLayout({
         layoutId,
         userRef: ref,
-        transition: isTopLevelTransition(transition) ? transition : undefined,
+        // No map has a `layout` key, so a map gives the FLIP its default.
+        transition: transitionForKey(transition, 'layout') as
+          | TransitionConfig
+          | undefined,
         shouldReduceMotion,
         userOnLayout,
         readStyles: readSharedStyles,

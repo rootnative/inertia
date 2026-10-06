@@ -25,6 +25,23 @@ A `transition` prop decides **how** an `animate` value reaches its target. The d
 />
 ```
 
+A per-property map can also carry config keys next to its entries. Those keys are the default for every key the map does not name, and for each gesture layer with no entry of its own:
+
+```tsx
+// Every key springs at 120 / 18, except opacity, which uses timing
+<Motion.View
+  animate={{ opacity: 1, translateY: 0, scale: 1 }}
+  transition={{
+    type: 'spring',
+    tension: 120,
+    friction: 18,
+    opacity: { type: 'timing', duration: 320 },
+  }}
+/>
+```
+
+An entry replaces the default whole. The two do not merge, so `opacity` above has no `tension`, and a `delay` in the default does not reach `opacity`.
+
 ## Named transitions
 
 Anywhere a config object is accepted — top-level, per-property, per gesture layer, the `layout` prop, and the value-layer hooks — a name registered on the nearest [`<MotionConfig transitions>`](./motion-config#named-transitions) is accepted too:

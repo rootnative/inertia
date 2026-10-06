@@ -12,7 +12,11 @@ export { DEFAULT_LAYOUT_DURATION, DEFAULT_TIMING_DURATION } from './constants'
 export { resolveAnimatableValue } from './resolveSequence'
 export { cubicBezier } from './cubicBezier'
 export { ensureWorkletEasing } from './easing'
-export { isTopLevelTransition, TRANSITION_CONFIG_KEYS } from './keys'
+export {
+  isTopLevelTransition,
+  TRANSITION_CONFIG_KEYS,
+  transitionForKey,
+} from './keys'
 export { buildReleaseAnimation } from './runtime'
 export { stableSig } from './sig'
 export { DEFAULT_SPRING, springToReanimated } from './spring'

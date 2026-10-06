@@ -44,6 +44,7 @@ export {
   ensureWorkletEasing,
   isTopLevelTransition,
   stableSig,
+  transitionForKey,
   type AnimationCallback,
   type CallbackFactory,
 } from './transitions'

@@ -5,10 +5,10 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated'
 import {
-  isTopLevelTransition,
   resolveNamedTransition,
   resolveTransition,
   stableSig,
+  transitionForKey,
   TRANSPARENT,
   useNamedTransitions,
   useShouldReduceMotion,
@@ -113,17 +113,7 @@ function pickTransition(
   key: string,
   registry: NamedTransitions,
 ): TransitionConfig | undefined {
-  if (!transition) return undefined
-  // Structural check, not `'type' in transition`: `SpringTransition.type` is
-  // optional, so `{ tension: 300 }` is a valid top-level config with no
-  // `type` key and must not be read as a per-property map.
-  if (typeof transition === 'string' || isTopLevelTransition(transition)) {
-    return resolveNamedTransition(transition as TransitionInput, registry)
-  }
-  return resolveNamedTransition(
-    (transition as SvgPerPropertyTransition<string>)[key],
-    registry,
-  )
+  return resolveNamedTransition(transitionForKey(transition, key), registry)
 }
 
 /**

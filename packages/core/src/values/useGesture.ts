@@ -6,7 +6,7 @@ import {
   useShouldReduceMotion,
 } from '../config'
 import { installFocusVisibility, isFocusVisible } from '../gestures'
-import { isTopLevelTransition, resolveTransition } from '../transitions'
+import { resolveTransition, transitionForKey } from '../transitions'
 import {
   type GestureLayerTransitions,
   type TransitionConfig,
@@ -241,8 +241,5 @@ function layerTransition(
   transition: TransitionConfig | GestureLayerTransitions | undefined,
 ): TransitionConfig | undefined {
   if (!transition) return undefined
-  if (isTopLevelTransition(transition)) return transition
-  return (transition as GestureLayerTransitions)[layer] as
-    | TransitionConfig
-    | undefined
+  return transitionForKey(transition, layer) as TransitionConfig | undefined
 }
