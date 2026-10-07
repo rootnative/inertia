@@ -6,9 +6,19 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
-## [0.0.18] - 2026-10-07
+## [0.0.18] - 2026-10-08
 
-**Lockstep version bump** alongside `@rootnative/inertia@0.0.18` (the config keys of a mixed transition map are now its default, and core exports `transitionForKey`). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.18 <0.1.0`. The `size-limit` cap and its dev dependencies are removed from this package.
+### Fixed
+
+- **The config keys of a transition map are its default.** The `transition` type of `MotionLinearGradient` accepted `{ type: 'timing', duration: 260, colors: { type: 'spring' } }`, and its doc said that the top-level keys apply to every property with no entry of its own. At run time, `start`, `end` and `locations` got the default spring instead, because a property with no entry got nothing. Now that property uses the config keys of the map, as in core. The lookup is core's new `transitionForKey`.
+
+### Changed
+
+- The `@rootnative/inertia` peer range moves to `>=0.0.18 <0.1.0`, in lockstep. This adapter now imports `transitionForKey`, which core exports from `0.0.18`.
+
+### Internal
+
+- The `size-limit` cap and its dev dependencies are removed from this package. No runtime change.
 
 ## [0.0.17] - 2026-10-03
 

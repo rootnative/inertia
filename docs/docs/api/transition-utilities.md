@@ -229,7 +229,7 @@ function useRadiusTransition(
 }
 ```
 
-This is the lookup the Motion primitives, the gesture hooks and the svg adapter use.
+This is the lookup the Motion primitives, the gesture hooks, and the svg and gradients adapters use.
 
 ## `isTopLevelTransition(value)`
 

@@ -144,6 +144,37 @@ describe('MotionLinearGradient', () => {
     expect(withSpring).toHaveBeenCalledWith(0.5, expect.any(Object), undefined)
   })
 
+  it('gives a property with no entry the config keys of a mixed map', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+
+    renderWithMotion(
+      <MotionLinearGradient
+        colors={['#000', '#000']}
+        animate={{
+          colors: ['#fff', '#fff'],
+          start: { x: 0.5, y: 0.5 },
+        }}
+        transition={{
+          type: 'timing',
+          duration: 260,
+          colors: { type: 'spring', tension: 200 },
+        }}
+      />,
+    )
+
+    expect(withTiming).toHaveBeenCalledWith(
+      0.5,
+      expect.objectContaining({ duration: 260 }),
+      undefined,
+    )
+    expect(withSpring).toHaveBeenCalledWith(
+      '#fff',
+      expect.any(Object),
+      undefined,
+    )
+  })
+
   it('initial overrides the seed values before animation', () => {
     const result = renderWithMotion(
       <MotionLinearGradient

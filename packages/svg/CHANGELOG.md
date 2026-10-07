@@ -6,7 +6,7 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
-## [0.0.18] - 2026-10-07
+## [0.0.18] - 2026-10-08
 
 ### Fixed
 

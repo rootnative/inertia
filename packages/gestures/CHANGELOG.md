@@ -6,7 +6,7 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
-## [0.0.18] - 2026-10-07
+## [0.0.18] - 2026-10-08
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.18` (the config keys of a mixed transition map are now its default, and core exports `transitionForKey`). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.18 <0.1.0`.
 

@@ -4,7 +4,7 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
-## [0.0.18] - 2026-10-07
+## [0.0.18] - 2026-10-08
 
 ### Fixed
 
@@ -14,7 +14,7 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ### Added
 
-- **`transitionForKey(transition, key)`** returns the transition that a `transition` prop gives one key: a top-level config or name, the key's own map entry, or the default of a mixed map. The Motion primitives, `useGesture`, `useGestureLayer` and the svg adapter all read a map through it, and a custom animated component can too. Documented in the transition utilities page.
+- **`transitionForKey(transition, key)`** returns the transition that a `transition` prop gives one key: a top-level config or name, the key's own map entry, or the default of a mixed map. The Motion primitives, `useGesture`, `useGestureLayer`, and the svg and gradients adapters all read a map through it, and a custom animated component can too. Documented in the transition utilities page and in `llms.txt`.
 
 ### Internal
 
