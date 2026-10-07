@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.18] - 2026-10-07
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.18` (the config keys of a mixed transition map are now its default, and core exports `transitionForKey`). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.18 <0.1.0`.
+
 ## [0.0.17] - 2026-10-03
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.17` (an exiting `<Presence>` child now waits for every nested `Motion.*` exit). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.17 <0.1.0`.
@@ -125,7 +129,8 @@ Initial alpha publish alongside `@rootnative/inertia@0.0.0-alpha.0`. Optional ad
 - `useDrag({ onRelease })` — release worklet returns per-axis Inertia transitions (snap-to-tick spring, decay with bounds, etc.). Velocity stays on the UI thread; no JS round-trip.
 - `useSwipe`, `usePan` hooks composable with any `Motion.*` primitive via `<GestureDetector>`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.17...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.18...HEAD
+[0.0.18]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.18
 [0.0.17]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.17
 [0.0.16]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.16
 [0.0.15]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.15

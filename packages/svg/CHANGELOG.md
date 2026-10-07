@@ -6,9 +6,15 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.18] - 2026-10-07
+
 ### Fixed
 
 - **The config keys of a transition map are its default.** On `MotionPath` and on every component that `createMotionSvgComponent` builds, `transition={{ type: 'timing', duration: 260, fill: { type: 'spring' } }}` gave `d` (or `r`, `cx`, …) the default spring, because a prop with no entry of its own got nothing. Now that prop uses the config keys of the map, as in core. The lookup is core's new `transitionForKey`.
+
+### Changed
+
+- The `@rootnative/inertia` peer range moves to `>=0.0.18 <0.1.0`, in lockstep. This adapter now imports `transitionForKey`, which core exports from `0.0.18`.
 
 ## [0.0.17] - 2026-10-03
 
@@ -121,7 +127,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionPath` over `react-native-svg`. Animatable: `d` (element-wise scalar interpolation on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.17...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.18...HEAD
+[0.0.18]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.18
 [0.0.17]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.17
 [0.0.16]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.16
 [0.0.15]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.15

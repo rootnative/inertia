@@ -4,13 +4,21 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.18] - 2026-10-07
+
 ### Fixed
 
 - **The config keys of a transition map are its default, and they no longer warn.** The README said that per-property transitions take precedence over the top-level one, and the type accepted `transition={{ type: 'spring', tension: 120, friction: 18, opacity: { type: 'timing', duration: 320 } }}`. At run time that form did two wrong things. The name resolver read `type: 'spring'` as a registered transition name, so every start logged `Unknown transition name "spring"`. And every key with no entry of its own got the library default spring, so `tension` and `friction` did nothing. Now the config keys of a map are the default for every style key, every gesture layer, the `disabled` layer of `useGestureLayer`, and the `layoutId` FLIP, when the map gives that key no entry. An entry replaces the default whole; the two do not merge. A map with no config key behaves as before.
 
+  Upgrade: a component that uses the mixed form now moves with the config keys of its map, where before it moved with the default spring. Check that motion after the upgrade.
+
 ### Added
 
 - **`transitionForKey(transition, key)`** returns the transition that a `transition` prop gives one key: a top-level config or name, the key's own map entry, or the default of a mixed map. The Motion primitives, `useGesture`, `useGestureLayer` and the svg adapter all read a map through it, and a custom animated component can too. Documented in the transition utilities page.
+
+### Internal
+
+- **CI no longer measures the bundle size.** `size-limit`, the `.size-limit.cjs` caps of `core` and `gradients`, the `size` scripts, and the CI and release steps that ran them are removed. The core README and the docs home page no longer give size numbers or say that CI checks them. No runtime change.
 
 ## [0.0.17] - 2026-10-03
 
@@ -500,7 +508,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.17...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.18...HEAD
+[0.0.18]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.18
 [0.0.17]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.17
 [0.0.16]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.16
 [0.0.15]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.15
