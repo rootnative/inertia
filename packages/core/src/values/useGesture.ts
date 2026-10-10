@@ -19,21 +19,24 @@ type LayerName = 'pressed' | 'focused' | 'focusVisible' | 'hovered'
  * Handler bag returned by `useGesture`, keyed for a `Pressable`.
  *
  * **Only use this on a surface that is genuinely interactive** — one with an
- * `onPress` and a role. Every value in it is a plain `() => void`; the names
+ * `onPress` and a role. Every value in it is a plain callback; the names
  * are what couples it to `Pressable`, not the behaviour. For a surface that
  * merely reacts to the pointer, take {@link UseGestureResult.pointerHandlers}
  * instead and read the warning there.
  *
  * Hover handlers use `Pressable`'s own `onHoverIn` / `onHoverOut` names (web
- * only — no-ops on native). `onFocus` consults `isFocusVisible()` before
- * raising the keyboard-only `focusVisible` layer; `focused` always raises.
+ * only — no-ops on native). `onFocus` raises `focused` always, and raises
+ * `focusVisible` when the focus shows a ring: on web, the browser's
+ * `:focus-visible` decides for the event's target, and the input modality
+ * decides when the call has no event. Spread the bag, or forward the event
+ * when you call `onFocus` yourself.
  */
 export interface UseGestureHandlers {
   onPressIn: () => void
   onPressOut: () => void
   onHoverIn: () => void
   onHoverOut: () => void
-  onFocus: () => void
+  onFocus: (event?: { target?: unknown }) => void
   onBlur: () => void
 }
 
@@ -59,7 +62,7 @@ export interface UseGestureHandlers {
 export interface UseGesturePointerHandlers {
   onPointerEnter: () => void
   onPointerLeave: () => void
-  onFocus: () => void
+  onFocus: (event?: { target?: unknown }) => void
   onBlur: () => void
 }
 
@@ -203,9 +206,9 @@ export function useGesture(
   const { handlers, pointerHandlers } = useMemo(() => {
     const onHoverIn = () => setLayer(hovered, 'hovered', 1)
     const onHoverOut = () => setLayer(hovered, 'hovered', 0)
-    const onFocus = () => {
+    const onFocus = (event?: { target?: unknown }) => {
       setLayer(focused, 'focused', 1)
-      if (isFocusVisible()) setLayer(focusVisible, 'focusVisible', 1)
+      if (isFocusVisible(event)) setLayer(focusVisible, 'focusVisible', 1)
     }
     const onBlur = () => {
       setLayer(focused, 'focused', 0)

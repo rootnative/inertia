@@ -10,7 +10,7 @@ jest.mock('../gestures', () => ({
 }))
 
 const { isFocusVisible } = jest.requireMock('../gestures') as {
-  isFocusVisible: jest.Mock<boolean, []>
+  isFocusVisible: jest.Mock<boolean, [unknown?]>
 }
 
 beforeEach(() => {
@@ -57,6 +57,13 @@ describe('useGesture', () => {
     result.current.handlers.onFocus()
     expect(result.current.focused.value).toBe(1)
     expect(result.current.focusVisible.value).toBe(0)
+  })
+
+  it('onFocus passes its event to isFocusVisible, so the browser decides', () => {
+    const { result } = renderHook(() => useGesture())
+    const event = { target: {} }
+    result.current.handlers.onFocus(event)
+    expect(isFocusVisible).toHaveBeenLastCalledWith(event)
   })
 
   it('onBlur lowers both focused and focusVisible', () => {

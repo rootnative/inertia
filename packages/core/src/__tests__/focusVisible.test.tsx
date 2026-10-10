@@ -17,7 +17,7 @@ jest.mock('../gestures', () => ({
 }))
 
 const { isFocusVisible } = jest.requireMock('../gestures') as {
-  isFocusVisible: jest.Mock<boolean, []>
+  isFocusVisible: jest.Mock<boolean, [unknown?]>
 }
 
 beforeEach(() => {
@@ -85,6 +85,23 @@ describe('gesture.focusVisible', () => {
     // doesn't contribute. Composed opacity is the focused target.
     const style = getStyle(result.toJSON() as never)
     expect(style.opacity).toBeCloseTo(0.7)
+  })
+
+  it('passes the focus event to isFocusVisible, so the browser decides', () => {
+    const onFocus = jest.fn()
+    renderWithMotion(
+      <Motion.View
+        testID="card"
+        onFocus={onFocus}
+        gesture={{ focusVisible: { opacity: 0.4 } }}
+      />,
+    )
+    const event = { target: {} }
+
+    fireEvent(screen.getByTestId('card'), 'focus', event)
+
+    expect(isFocusVisible).toHaveBeenLastCalledWith(event)
+    expect(onFocus).toHaveBeenCalledWith(event)
   })
 
   it('mounts onFocus when only focusVisible is declared (no focused)', () => {

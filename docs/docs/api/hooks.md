@@ -645,14 +645,14 @@ There is deliberately **no press pair** in `pointerHandlers`. A surface with pre
 
 Returns:
 
-| Field             | Type                        | Notes                                                                                                                            |
-| ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `pressed`         | `SharedValue<number>`       | 0↔1 progress for the pressed layer.                                                                                              |
-| `focused`         | `SharedValue<number>`       | 0↔1 progress for any focus modality.                                                                                             |
-| `focusVisible`    | `SharedValue<number>`       | 0↔1 progress for keyboard-only focus (W3C `:focus-visible` semantics).                                                           |
-| `hovered`         | `SharedValue<number>`       | 0↔1 progress for hover (web only — stays at 0 on native).                                                                        |
-| `handlers`        | `UseGestureHandlers`        | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on a `Pressable` that is a real control.             |
-| `pointerHandlers` | `UseGesturePointerHandlers` | `{ onPointerEnter, onPointerLeave, onFocus, onBlur }`. The same callbacks by reference, keyed for a plain `View`. No press pair. |
+| Field             | Type                        | Notes                                                                                                                                                                      |
+| ----------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pressed`         | `SharedValue<number>`       | 0↔1 progress for the pressed layer.                                                                                                                                        |
+| `focused`         | `SharedValue<number>`       | 0↔1 progress for any focus modality.                                                                                                                                       |
+| `focusVisible`    | `SharedValue<number>`       | 0↔1 progress for a focus that shows a ring (W3C `:focus-visible`; on web the browser decides, see [Gestures](../gestures.md#focusvisible-follows-the-browser-on-web)).     |
+| `hovered`         | `SharedValue<number>`       | 0↔1 progress for hover (web only — stays at 0 on native).                                                                                                                  |
+| `handlers`        | `UseGestureHandlers`        | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on a `Pressable` that is a real control. If you call `onFocus` yourself, pass the focus event. |
+| `pointerHandlers` | `UseGesturePointerHandlers` | `{ onPointerEnter, onPointerLeave, onFocus, onBlur }`. The same callbacks by reference, keyed for a plain `View`. No press pair.                                           |
 
 Transitions follow the same shape as the `gesture` prop's accompanying `transition`:
 
@@ -712,14 +712,14 @@ function SwitchHalo({ disabled }: { disabled?: boolean }) {
 
 ### States
 
-| Key            | Notes                                                                                                                                               |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rest`         | Base values, applied when no other layer is active. Missing keys default to `0` (numeric) / `'transparent'` (color).                                |
-| `hovered`      | Web-only hover. No-op on native.                                                                                                                    |
-| `focused`      | Any focus modality (mouse, touch, keyboard).                                                                                                        |
-| `focusVisible` | Keyboard-only focus (W3C `:focus-visible`). On native, behaves identically to `focused`.                                                            |
-| `pressed`      | Active touch / pointer-down.                                                                                                                        |
-| `disabled`     | Gated by `options.disabled`. Overrides every gesture layer when active; per-layer transitions don't apply (top-level transition or default spring). |
+| Key            | Notes                                                                                                                                                                                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rest`         | Base values, applied when no other layer is active. Missing keys default to `0` (numeric) / `'transparent'` (color).                                                                               |
+| `hovered`      | Web-only hover. No-op on native.                                                                                                                                                                   |
+| `focused`      | Any focus modality (mouse, touch, keyboard).                                                                                                                                                       |
+| `focusVisible` | A focus that shows a ring (W3C `:focus-visible`; on web the browser decides, see [Gestures](../gestures.md#focusvisible-follows-the-browser-on-web)). On native, behaves identically to `focused`. |
+| `pressed`      | Active touch / pointer-down.                                                                                                                                                                       |
+| `disabled`     | Gated by `options.disabled`. Overrides every gesture layer when active; per-layer transitions don't apply (top-level transition or default spring).                                                |
 
 Every state key is optional. Values inside each state are a flat map of style keys to either a number (numeric layer) or a string (color layer). The hook doesn't validate that string values are valid colors — passing `borderStyle: 'solid'` will crash inside the worklet. Keep string values to color strings.
 

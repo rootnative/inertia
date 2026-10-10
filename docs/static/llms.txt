@@ -170,7 +170,7 @@ transition={{
 }}
 ```
 
-`focusVisible` engages only on keyboard focus (W3C `:focus-visible`) so click-focus on web doesn't flash a ring; on native it tracks `focused`. `hovered` is a no-op on native.
+`focusVisible` engages only when the focus shows a ring (W3C `:focus-visible`): on web the focus handler asks the focused element whether it matches `:focus-visible`, so click-focus on a button doesn't flash a ring and the ring shows wherever the browser would draw its outline. An input-modality tracker is the fallback for a call with no event, a dispatched focus event, and a browser without the selector; a ⌘, Ctrl or Alt chord does not count as keyboard input. If you call a `useGesture` `onFocus` yourself, pass the event. In jsdom, `:focus-visible` matches every focused element, so `element.focus()` always shows the ring. On native it tracks `focused`. `hovered` is a no-op on native.
 
 ## Caveats
 

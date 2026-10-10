@@ -5,6 +5,32 @@ import { Platform } from 'react-native'
 // platform. We don't exercise the DOM-listener wiring here (no jsdom in the
 // test env); the internal `__resetFocusVisibilityForTests` hook stands in for
 // "the document fired a keydown / pointerdown."
+//
+// The focus targets are fakes, not jsdom elements, on purpose: jsdom matches
+// `:focus-visible` on every focused element, so it cannot tell the browser's
+// answer from the modality fallback.
+
+interface FakeTarget {
+  focused: boolean
+  visible: boolean | 'throws'
+}
+
+function focusEvent({ focused, visible }: FakeTarget) {
+  return {
+    target: {
+      matches(selector: string): boolean {
+        if (selector === ':focus') return focused
+        if (selector !== ':focus-visible') {
+          throw new Error(`unexpected selector ${selector}`)
+        }
+        if (visible === 'throws') {
+          throw new SyntaxError("':focus-visible' is not a valid selector")
+        }
+        return visible
+      },
+    },
+  }
+}
 
 beforeEach(() => {
   jest.resetModules()
@@ -21,6 +47,9 @@ describe('isFocusVisible — native', () => {
     // "pointer modality" still reports visible.
     __resetFocusVisibilityForTests('pointer')
     expect(isFocusVisible()).toBe(true)
+    expect(isFocusVisible(focusEvent({ focused: true, visible: false }))).toBe(
+      true,
+    )
   })
 })
 
@@ -96,6 +125,98 @@ describe('isFocusVisible — web modality tracking', () => {
       listeners.get('mousedown')!({})
       expect(isFocusVisible()).toBe(false)
       listeners.get('keydown')!({})
+      expect(isFocusVisible()).toBe(true)
+    } finally {
+      delete (globalThis as { document?: unknown }).document
+    }
+  })
+})
+
+describe('isFocusVisible — web, the browser decides for a focused target', () => {
+  beforeEach(() => {
+    Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true })
+  })
+
+  it('shows the ring that :focus-visible shows after pointer input', () => {
+    // Chromium after a click that focuses nothing: a script focus matches
+    // `:focus-visible`, and the tracker is in pointer modality.
+    const { isFocusVisible, __resetFocusVisibilityForTests } =
+      require('../focusVisibility') as typeof import('../focusVisibility')
+    __resetFocusVisibilityForTests('pointer')
+    expect(isFocusVisible(focusEvent({ focused: true, visible: true }))).toBe(
+      true,
+    )
+  })
+
+  it('hides the ring that :focus-visible hides in keyboard modality', () => {
+    const { isFocusVisible, __resetFocusVisibilityForTests } =
+      require('../focusVisibility') as typeof import('../focusVisibility')
+    __resetFocusVisibilityForTests('keyboard')
+    expect(isFocusVisible(focusEvent({ focused: true, visible: false }))).toBe(
+      false,
+    )
+  })
+
+  it('falls back to the modality when the target does not hold focus', () => {
+    // A dispatched focus event moves no focus, and the browser then answers
+    // `false` for every input.
+    const { isFocusVisible, __resetFocusVisibilityForTests } =
+      require('../focusVisibility') as typeof import('../focusVisibility')
+    const dispatched = focusEvent({ focused: false, visible: false })
+    __resetFocusVisibilityForTests('keyboard')
+    expect(isFocusVisible(dispatched)).toBe(true)
+    __resetFocusVisibilityForTests('pointer')
+    expect(isFocusVisible(dispatched)).toBe(false)
+  })
+
+  it('falls back to the modality when :focus-visible throws', () => {
+    const { isFocusVisible, __resetFocusVisibilityForTests } =
+      require('../focusVisibility') as typeof import('../focusVisibility')
+    const oldBrowser = focusEvent({ focused: true, visible: 'throws' })
+    __resetFocusVisibilityForTests('keyboard')
+    expect(isFocusVisible(oldBrowser)).toBe(true)
+    __resetFocusVisibilityForTests('pointer')
+    expect(isFocusVisible(oldBrowser)).toBe(false)
+  })
+
+  it('falls back to the modality when the event has no element target', () => {
+    const { isFocusVisible, __resetFocusVisibilityForTests } =
+      require('../focusVisibility') as typeof import('../focusVisibility')
+    __resetFocusVisibilityForTests('pointer')
+    for (const event of [undefined, null, {}, { target: 42 }, { target: {} }]) {
+      expect(isFocusVisible(event)).toBe(false)
+    }
+  })
+})
+
+describe('isFocusVisible — web, the modality fallback ignores a modifier chord', () => {
+  beforeEach(() => {
+    Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true })
+  })
+
+  it('stays in pointer modality on ⌘, Ctrl or Alt chords, and leaves on Shift', () => {
+    // The W3C polyfill skips a Meta, Control or Alt chord. Chromium agrees:
+    // after a click that focuses a control, a ⌘K handler's focus does not
+    // match `:focus-visible`, and after Shift alone it does.
+    const listeners = new Map<string, (event: unknown) => void>()
+    ;(globalThis as { document?: unknown }).document = {
+      addEventListener: (type: string, fn: (event: unknown) => void) => {
+        listeners.set(type, fn)
+      },
+    }
+    try {
+      const { installFocusVisibility, isFocusVisible } =
+        require('../focusVisibility') as typeof import('../focusVisibility')
+      installFocusVisibility()
+      const keydown = listeners.get('keydown')!
+
+      listeners.get('mousedown')!({})
+      keydown({ key: 'k', metaKey: true })
+      keydown({ key: 'c', ctrlKey: true })
+      keydown({ key: 'Tab', altKey: true })
+      expect(isFocusVisible()).toBe(false)
+
+      keydown({ key: 'Shift', shiftKey: true })
       expect(isFocusVisible()).toBe(true)
     } finally {
       delete (globalThis as { document?: unknown }).document

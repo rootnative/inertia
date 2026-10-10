@@ -4,6 +4,18 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **`focusVisible` follows the browser's `:focus-visible` on web.** The layer read an input-modality tracker only: keyboard at the start and after a key press, pointer after a pointer press. Chromium differs in one case. After a click that focuses nothing, a focus that a script moves matches `:focus-visible`, and the browser draws its outline. The tracker was in pointer modality, so the layer stayed off. An app that removes the browser outline and draws its own ring then showed no focus indicator at all. Now the focus handler asks the focused element whether it matches `:focus-visible`, in the `gesture` prop, in `useGesture`, and so in `useGestureLayer`. The tracker is the fallback for a call with no event, for a focus event that a script dispatches (it moves no focus), and for a browser that does not support the selector.
+
+  Upgrade: on web, a text input with `gesture={{ focusVisible }}` now shows the layer on a click too, because the browser draws its outline there. If you call a `useGesture` `onFocus` yourself, pass the focus event, or the call uses the fallback. In jsdom, `:focus-visible` matches every focused element, so a test that calls `element.focus()` now always sees the layer; `fireEvent.focus` still uses the fallback.
+
+- **A ⌘, Ctrl or Alt chord no longer counts as keyboard input in the fallback.** The tracker took every key press as keyboard input, so ⌘S in a form, then a script focus, showed a focus ring for a mouse user. The W3C polyfill and Chromium both skip such a chord; Shift alone still counts.
+
+### Changed
+
+- **`UseGestureHandlers.onFocus` and `UseGesturePointerHandlers.onFocus` take an optional event.** The type is `(event?: { target?: unknown }) => void`. A spread bag and a call with no argument both still compile.
+
 ## [0.0.18] - 2026-10-08
 
 ### Fixed

@@ -2165,13 +2165,15 @@ function useGestureHandlers(
     }
     // Mount onFocus/onBlur if either focus sub-state is declared. The two flags
     // are independent: `focused` always tracks focus; `focusVisible` only
-    // engages when the most recent input was keyboard (W3C `:focus-visible`
-    // semantics). On native the modality is always `'keyboard'`, so the two
-    // flags move together.
+    // engages when the focus shows a ring (W3C `:focus-visible` semantics,
+    // decided by the browser for the event's target on web). On native the
+    // modality is always `'keyboard'`, so the two flags move together.
     if (gesture.focused || gesture.focusVisible) {
-      handlers.onFocus = compose(rest.onFocus, () => {
+      handlers.onFocus = compose(rest.onFocus, (event) => {
         if (gesture.focused) setFocused(true)
-        if (gesture.focusVisible && isFocusVisible()) setFocusVisible(true)
+        if (gesture.focusVisible && isFocusVisible(event)) {
+          setFocusVisible(true)
+        }
       })
       handlers.onBlur = compose(rest.onBlur, () => {
         if (gesture.focused) setFocused(false)
