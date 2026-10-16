@@ -30,9 +30,11 @@ import { type TransitionInput } from '../types'
  * source). `useAnimation` is JS-thread-driven only.
  *
  * **Loops.** Repeat is part of `TransitionConfig` and flows through
- * untouched — `useAnimation(1, { type: 'timing', duration: 1800, repeat: {
- * count: 'infinite', alternate: false } })` produces an indeterminate-style
- * progress driver.
+ * untouched, but a loop that starts on mount does not move here. The value
+ * starts at `target`, and Reanimated runs each turn of a loop from the value
+ * at its start, so `useAnimation(1, loop)` runs from 1 to 1. For a loop from
+ * 0, use `useMotionValue(0)` and start the loop with `useAnimator` in an
+ * effect.
  *
  * @example
  * ```ts
@@ -49,12 +51,16 @@ import { type TransitionInput } from '../types'
  *   duration: 150,
  * })
  *
- * // Indeterminate progress slider (loops forever, snaps back).
- * const slide = useAnimation(1, {
- *   type: 'timing',
- *   duration: 1800,
- *   repeat: { count: 'infinite', alternate: false },
- * })
+ * // Indeterminate progress slider (loops forever, snaps back): start at 0.
+ * const slide = useMotionValue(0)
+ * const animate = useAnimator()
+ * useEffect(() => {
+ *   animate(slide, 1, {
+ *     type: 'timing',
+ *     duration: 1800,
+ *     repeat: { count: 'infinite', alternate: false },
+ *   })
+ * }, [animate, slide])
  * ```
  */
 export function useAnimation(

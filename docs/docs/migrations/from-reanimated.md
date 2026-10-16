@@ -358,18 +358,24 @@ The three `withRepeat` flags collapse into one shape. See [sequences and repeat]
 
 ### Indeterminate progress (a loop on a standalone shared value)
 
-When the loop has to drive a shared value the rest of your component reads — an indeterminate `LinearProgress` slide, a `CircularProgress` rotation, an idle spinner whose rotation feeds multiple animated styles — there's no Motion primitive to attach `animate` to. [`useAnimation`](../api/hooks#useanimationtarget-transition) carries the same repeat config to a standalone `SharedValue<number>`:
+When the loop has to drive a shared value the rest of your component reads — an indeterminate `LinearProgress` slide, a `CircularProgress` rotation, an idle spinner whose rotation feeds multiple animated styles — there's no Motion primitive to attach `animate` to. [`useAnimator`](../api/hooks#useanimator) carries the same repeat config to a standalone `SharedValue<number>` from [`useMotionValue`](../api/hooks#usemotionvalueinitial). Start the value at 0: Reanimated runs each turn of a loop from the value at its start, so a loop that starts at its target does not move. For that reason `useAnimation(1, loop)` does not work here.
 
 ```tsx
-import { useAnimation } from '@rootnative/inertia'
+import { useAnimator, useMotionValue } from '@rootnative/inertia'
+import { useEffect } from 'react'
 import Animated, { useAnimatedStyle } from 'react-native-reanimated'
 
 export function Spinner() {
-  const rotation = useAnimation(1, {
-    type: 'timing',
-    duration: 1400,
-    repeat: { count: 'infinite', alternate: false },
-  })
+  const rotation = useMotionValue(0)
+  const animate = useAnimator()
+
+  useEffect(() => {
+    animate(rotation, 1, {
+      type: 'timing',
+      duration: 1400,
+      repeat: { count: 'infinite', alternate: false },
+    })
+  }, [animate, rotation])
 
   const style = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value * 360}deg` }],

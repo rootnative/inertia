@@ -438,12 +438,24 @@ const floated = useAnimation(hasValue ? 1 : 0, {
   duration: 150,
 })
 
+```
+
+A loop that starts on mount does not move with `useAnimation`. The value starts at `target`, and Reanimated runs each turn of a loop from the value at its start, so `useAnimation(1, loop)` runs from 1 to 1. Start the loop from a `useMotionValue(0)` with [`useAnimator`](#useanimator) in an effect:
+
+```tsx
+import { useAnimator, useMotionValue } from '@rootnative/inertia'
+import { useEffect } from 'react'
+
 // Indeterminate progress slider — loops forever, snaps back each cycle.
-const slide = useAnimation(1, {
-  type: 'timing',
-  duration: 1800,
-  repeat: { count: 'infinite', alternate: false },
-})
+const slide = useMotionValue(0)
+const animate = useAnimator()
+useEffect(() => {
+  animate(slide, 1, {
+    type: 'timing',
+    duration: 1800,
+    repeat: { count: 'infinite', alternate: false },
+  })
+}, [animate, slide])
 ```
 
 | Signature                                                                       | Returns               |

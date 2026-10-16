@@ -12,6 +12,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 - **A ⌘, Ctrl or Alt chord no longer counts as keyboard input in the fallback.** The tracker took every key press as keyboard input, so ⌘S in a form, then a script focus, showed a focus ring for a mouse user. The W3C polyfill and Chromium both skip such a chord; Shift alone still counts.
 
+- **The docs no longer show a loop that does not move.** The `useAnimation` JSDoc, the hooks reference and the Spinner in the Reanimated migration guide used `useAnimation(1, { …, repeat: { count: 'infinite', alternate: false } })`. `useAnimation` starts its value at `target`, and Reanimated runs each turn of a loop from the value at its start, so each turn ran from 1 to 1 and nothing moved. All three now start a `useMotionValue(0)` with `useAnimator` in an effect, and say why. No runtime change.
+
 ### Changed
 
 - **`UseGestureHandlers.onFocus` and `UseGesturePointerHandlers.onFocus` take an optional event.** The type is `(event?: { target?: unknown }) => void`. A spread bag and a call with no argument both still compile.
