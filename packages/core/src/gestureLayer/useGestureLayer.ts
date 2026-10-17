@@ -191,7 +191,9 @@ export function useGestureLayer(
     useNamedTransitions(),
   )
   const gesture = useGesture(transition)
-  const disabledProgress = useSharedValue(0)
+  // Seed from the mount value. A seed of 0 makes a control that mounts
+  // disabled paint its rest layer first, then spring into the disabled layer.
+  const disabledProgress = useSharedValue(isDisabled ? 1 : 0)
 
   const transitionSig = stableSig(transition)
   useEffect(() => {

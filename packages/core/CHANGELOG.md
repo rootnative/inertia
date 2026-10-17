@@ -12,6 +12,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 - **A ⌘, Ctrl or Alt chord no longer counts as keyboard input in the fallback.** The tracker took every key press as keyboard input, so ⌘S in a form, then a script focus, showed a focus ring for a mouse user. The W3C polyfill and Chromium both skip such a chord; Shift alone still counts.
 
+- **A control that mounts disabled no longer springs into its `disabled` layer.** `useGestureLayer` started the `disabled` progress at 0 and then started a spring to 1 in its mount effect. A control that mounted with `disabled: true` painted its `rest` layer on the first frame, then moved to the `disabled` layer. The progress now starts at 1 when the control mounts disabled, so the first frame shows the `disabled` layer. A later change of `disabled` still animates with the configured transition.
+
 - **The docs no longer show a loop that does not move.** The `useAnimation` JSDoc, the hooks reference and the Spinner in the Reanimated migration guide used `useAnimation(1, { …, repeat: { count: 'infinite', alternate: false } })`. `useAnimation` starts its value at `target`, and Reanimated runs each turn of a loop from the value at its start, so each turn ran from 1 to 1 and nothing moved. All three now start a `useMotionValue(0)` with `useAnimator` in an effect, and say why. No runtime change.
 
 ### Changed

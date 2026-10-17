@@ -228,6 +228,21 @@ describe('useGestureLayer — disabled flag', () => {
     expect(flat(result.current.style).opacity).toBeCloseTo(0.38)
   })
 
+  it('a control that mounts disabled paints the disabled layer on its first frame', () => {
+    const states = {
+      rest: { opacity: 1 },
+      disabled: { opacity: 0.38 },
+    }
+    // No rerender: the style is the one the first render computed, before
+    // the mount effect writes the progress.
+    const { result } = renderHook(() =>
+      useGestureLayer(states, { disabled: true }),
+    )
+
+    expect(result.current.states.disabled.value).toBe(1)
+    expect(flat(result.current.style).opacity).toBeCloseTo(0.38)
+  })
+
   it('disabled overrides active gesture layers', () => {
     const states = {
       rest: { opacity: 0 },
