@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.19] - 2026-10-17
+
 ### Fixed
 
 - **`focusVisible` follows the browser's `:focus-visible` on web.** The layer read an input-modality tracker only: keyboard at the start and after a key press, pointer after a pointer press. Chromium differs in one case. After a click that focuses nothing, a focus that a script moves matches `:focus-visible`, and the browser draws its outline. The tracker was in pointer modality, so the layer stayed off. An app that removes the browser outline and draws its own ring then showed no focus indicator at all. Now the focus handler asks the focused element whether it matches `:focus-visible`, in the `gesture` prop, in `useGesture`, and so in `useGestureLayer`. The tracker is the fallback for a call with no event, for a focus event that a script dispatches (it moves no focus), and for a browser that does not support the selector.
@@ -524,7 +526,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.18...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.19...HEAD
+[0.0.19]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.19
 [0.0.18]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.18
 [0.0.17]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.17
 [0.0.16]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.16
