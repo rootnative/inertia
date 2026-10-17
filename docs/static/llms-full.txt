@@ -3629,7 +3629,6 @@ const floated = useAnimation(hasValue ? 1 : 0, {
   type: 'timing',
   duration: 150,
 })
-
 ```
 
 A loop that starts on mount does not move with `useAnimation`. The value starts at `target`, and Reanimated runs each turn of a loop from the value at its start, so `useAnimation(1, loop)` runs from 1 to 1. Start the loop from a `useMotionValue(0)` with [`useAnimator`](#useanimator) in an effect:
