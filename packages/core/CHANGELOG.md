@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **The docs name the Reanimated patch that stops a blank entrance.** On Reanimated 4.5.0 to 4.5.2, a `Motion` view can show its `initial` value after its animation ends: native keeps a settled value for 2 s only, and React holds the first-render value. When the JS thread does not read the settled value in that window (a stall of more than 1 s, a paused app, a native dialog), the next React commit writes the `initial` value back, so an entrance from `opacity: 0` goes blank with no error. Reanimated 4.5.3 keeps the value until React has it ([software-mansion/react-native-reanimated#9987](https://github.com/software-mansion/react-native-reanimated/pull/9987)). The installation page, the README and `llms.txt` now say to install 4.5.3 or later in a native build, and that Expo Go 57 runs 4.5.1 and keeps the defect. No runtime change: the peer range `>=4.5.0 <4.6.0` already admits 4.5.5.
+
 ## [0.0.19] - 2026-10-17
 
 ### Fixed

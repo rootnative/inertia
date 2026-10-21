@@ -89,6 +89,7 @@ Plus, on any transition: `delay`, `repeat`. A per-property map may also carry co
 
 - **`Motion.Pressable` does not support function-form `style`.** RN's `Pressable` accepts `style={({ pressed }) => ...}` and re-runs it per state change; Inertia inherits Reanimated's `createAnimatedComponent` wrapper, which silently drops that form (no error, no warning). Drive press/focus/hover styling through `gesture` instead, or compute conditional styles once in render. See [primitives/pressable](https://rootnative.github.io/inertia/docs/primitives/pressable#style-must-be-a-value-not-a-function).
 - **`initial` is read once on mount.** Mutating `initial` after first render does nothing — change the component `key`, remount via `<Presence>`, or drive the value through a controller. Pass `initial={false}` to skip the initial-mount animation entirely.
+- **Reanimated 4.5.0 to 4.5.2 can show a view at its `initial` value after its animation ends.** Native keeps a settled value for 2 s only. When the JS thread does not read it in that window (a stall of more than 1 s, a paused app, a native dialog), the next React commit writes the `initial` value back, so an entrance from `opacity: 0` goes blank with no error. Install Reanimated 4.5.3 or later in a development build or a store build ([software-mansion/react-native-reanimated#9987](https://github.com/software-mansion/react-native-reanimated/pull/9987)); Expo Go 57 runs 4.5.1 and keeps the defect. See [installation](https://rootnative.github.io/inertia/installation#prerequisites).
 
 ## Animatable properties
 

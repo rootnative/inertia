@@ -14,7 +14,7 @@ Enable the Reanimated Babel plugin per its install guide.
 
 Platforms: iOS and Android are supported. Web (react-native-web 0.21, through Expo) is supported; for web, run `npx expo install react-dom react-native-web`. macOS, Windows, and Electron are not tested. Expo does not supply an Electron target.
 
-Runtime: Expo SDK 57 (React Native 0.86.x, React 19.2.3), `react-native-reanimated` `>=4.5.0 <4.6.0`, `react-native-worklets` `>=0.10.0 <0.11.0`.
+Runtime: Expo SDK 57 (React Native 0.86.x, React 19.2.3), `react-native-reanimated` `>=4.5.0 <4.6.0`, `react-native-worklets` `>=0.10.0 <0.11.0`. Install Reanimated 4.5.3 or later in a native build: 4.5.0 to 4.5.2 can write the `initial` value back after a JS stall of more than 1 s, so an entrance from `opacity: 0` goes blank (software-mansion/react-native-reanimated#9987). Expo Go 57 runs 4.5.1 and keeps the defect.
 
 Web differences: `gesture.hovered` operates on web only. `layoutId` reads `getBoundingClientRect()` on web. A static web export needs the entrance guard from `@rootnative/inertia/static-export`. Details: https://rootnative.github.io/inertia/installation#platforms
 
