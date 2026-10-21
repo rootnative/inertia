@@ -14,6 +14,30 @@ describe('useAnimation', () => {
     expect(result.current.value).toBe(0.5)
   })
 
+  it('seeds the shared value with `from` and animates to the target', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    const seeds: number[] = []
+    renderHook(() => {
+      const value = useAnimation(1, { type: 'timing' }, { from: 0 })
+      seeds.push(value.value)
+      return value
+    })
+    expect(seeds[0]).toBe(0)
+    expect(withTiming).toHaveBeenCalledTimes(1)
+    expect(withTiming.mock.calls[0]![0]).toBe(1)
+  })
+
+  it('reads `from` once, on mount', () => {
+    const { result, rerender } = renderHook(
+      ({ from }: { from: number }) => useAnimation(1, undefined, { from }),
+      { initialProps: { from: 0 } },
+    )
+    const value = result.current
+    rerender({ from: 0.5 })
+    expect(result.current).toBe(value)
+    expect(result.current.value).toBe(1)
+  })
+
   it('writes the target through withSpring by default', () => {
     const withSpring = jest.spyOn(Reanimated, 'withSpring')
     renderHook(() => useAnimation(1))

@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Added
+
+- **`useAnimation` takes a start value.** `useAnimation(target, transition, { from })` seeds the value at `from` instead of `target`, so the first run animates `from → target`, like `initial` on a `Motion.*` primitive. A loop needs it: Reanimated runs each turn of a loop from the value at its start, so `useAnimation(1, loop)` ran from 1 to 1, and the 0.0.19 docs routed around that with `useMotionValue(0)` and `useAnimator` in an effect. Now `useAnimation(1, loop, { from: 0 })` is the whole spinner. `from` is read once, on mount. The `UseAnimationOptions` type is exported. The hooks reference and the Reanimated migration guide use the new form; `useAnimator` stays the answer for a loop that starts from an event.
+
 ### Fixed
 
 - **`translateX`, `translateY`, `scaleX` and `scaleY` no longer depend on the React Native style type.** `AnimateStyle` kept a key only when the style type of the component also had it. The strict types of React Native 0.88 (`types_generated`) drop the four deprecated top-level transform keys, so `animate={{ translateY: 24 }}` failed to compile on an Expo SDK 58 app with "'translateY' does not exist in type", on every `initial`, `animate`, `exit` and `transition` object that used one of the four. The runtime drove them on every React Native. The four now sit next to `scale`, `rotate`, `rotateX` and `rotateY`, which never came from the style type. A type test pins them against a style type with no transform shortcut. No change on React Native 0.86.

@@ -91,6 +91,7 @@ export type {
   ShadowConfig,
   ShadowStyle,
   TransformKey,
+  UseAnimationOptions,
   UseColorCascadeOptions,
   UseColorTransitionOptions,
   UseGestureHandlers,

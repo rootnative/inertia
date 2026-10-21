@@ -12,6 +12,15 @@ import {
 import { resolveTransition, stableSig } from '../transitions'
 import { type TransitionInput } from '../types'
 
+export interface UseAnimationOptions {
+  /**
+   * The value to start from on mount. The first run then animates
+   * `from → target`, and a loop runs from `from` each turn. Read once, on
+   * mount; a later change does nothing. Defaults to `target`.
+   */
+  from?: number
+}
+
 /**
  * Drive a `SharedValue<number>` toward `target` with **any** transition shape
  * — spring, timing, decay, or no-animation — or a `TransitionName` registered
@@ -29,12 +38,15 @@ import { type TransitionInput } from '../types'
  * also supports a `SharedValue<number>` as the target (UI-thread reactive
  * source). `useAnimation` is JS-thread-driven only.
  *
+ * **Start value.** The value starts at `target`, so the first run moves
+ * nothing. Pass `{ from }` to start somewhere else: the first run animates
+ * `from → target`, like `initial` on a `Motion.*` primitive. `from` is read
+ * once, on mount.
+ *
  * **Loops.** Repeat is part of `TransitionConfig` and flows through
- * untouched, but a loop that starts on mount does not move here. The value
- * starts at `target`, and Reanimated runs each turn of a loop from the value
- * at its start, so `useAnimation(1, loop)` runs from 1 to 1. For a loop from
- * 0, use `useMotionValue(0)` and start the loop with `useAnimator` in an
- * effect.
+ * untouched. Reanimated runs each turn of a loop from the value at its
+ * start, so a loop needs `from`: `useAnimation(1, loop)` runs from 1 to 1,
+ * and `useAnimation(1, loop, { from: 0 })` runs from 0 to 1 each turn.
  *
  * @example
  * ```ts
@@ -52,22 +64,23 @@ import { type TransitionInput } from '../types'
  * })
  *
  * // Indeterminate progress slider (loops forever, snaps back): start at 0.
- * const slide = useMotionValue(0)
- * const animate = useAnimator()
- * useEffect(() => {
- *   animate(slide, 1, {
+ * const slide = useAnimation(
+ *   1,
+ *   {
  *     type: 'timing',
  *     duration: 1800,
  *     repeat: { count: 'infinite', alternate: false },
- *   })
- * }, [animate, slide])
+ *   },
+ *   { from: 0 },
+ * )
  * ```
  */
 export function useAnimation(
   target: number,
   transition?: TransitionInput,
+  options?: UseAnimationOptions,
 ): SharedValue<number> {
-  const output = useSharedValue<number>(target)
+  const output = useSharedValue<number>(options?.from ?? target)
   const shouldReduceMotion = useShouldReduceMotion()
   const resolved = resolveNamedTransition(transition, useNamedTransitions())
   const cfgSig = stableSig(resolved)

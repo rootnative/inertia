@@ -439,27 +439,28 @@ const floated = useAnimation(hasValue ? 1 : 0, {
 })
 ```
 
-A loop that starts on mount does not move with `useAnimation`. The value starts at `target`, and Reanimated runs each turn of a loop from the value at its start, so `useAnimation(1, loop)` runs from 1 to 1. Start the loop from a `useMotionValue(0)` with [`useAnimator`](#useanimator) in an effect:
+The value starts at `target`, so the first run moves nothing. Pass `{ from }` as the third argument to start somewhere else: the first run animates `from → target`, like `initial` on a `Motion.*` primitive. A loop needs it, because Reanimated runs each turn of a loop from the value at its start: `useAnimation(1, loop)` runs from 1 to 1, and with `{ from: 0 }` it runs from 0 to 1 each turn.
 
 ```tsx
-import { useAnimator, useMotionValue } from '@rootnative/inertia'
-import { useEffect } from 'react'
+import { useAnimation } from '@rootnative/inertia'
 
 // Indeterminate progress slider — loops forever, snaps back each cycle.
-const slide = useMotionValue(0)
-const animate = useAnimator()
-useEffect(() => {
-  animate(slide, 1, {
+const slide = useAnimation(
+  1,
+  {
     type: 'timing',
     duration: 1800,
     repeat: { count: 'infinite', alternate: false },
-  })
-}, [animate, slide])
+  },
+  { from: 0 },
+)
 ```
 
-| Signature                                                                       | Returns               |
-| ------------------------------------------------------------------------------- | --------------------- |
-| `useAnimation(target: number, transition?: TransitionConfig \| TransitionName)` | `SharedValue<number>` |
+`from` is read once, on mount. To start a loop from an event instead of on mount, use [`useAnimator`](#useanimator) on a `useMotionValue(0)`.
+
+| Signature                                                                                           | Returns               |
+| --------------------------------------------------------------------------------------------------- | --------------------- |
+| `useAnimation(target: number, transition?: TransitionConfig \| TransitionName, options?: { from })` | `SharedValue<number>` |
 
 The hook re-runs the animation whenever `target` changes or the transition's structural signature changes. A fresh literal each render (`{ type: 'timing', duration: 200 }` rebuilt on every call) doesn't re-fire — only structural changes do. Reduced motion (`<MotionConfig reducedMotion>`) collapses the transition to `'no-animation'` and snaps the value.
 

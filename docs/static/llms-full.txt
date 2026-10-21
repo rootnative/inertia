@@ -3083,24 +3083,22 @@ The three `withRepeat` flags collapse into one shape. See [sequences and repeat]
 
 ### Indeterminate progress (a loop on a standalone shared value)
 
-When the loop has to drive a shared value the rest of your component reads — an indeterminate `LinearProgress` slide, a `CircularProgress` rotation, an idle spinner whose rotation feeds multiple animated styles — there's no Motion primitive to attach `animate` to. [`useAnimator`](../api/hooks#useanimator) carries the same repeat config to a standalone `SharedValue<number>` from [`useMotionValue`](../api/hooks#usemotionvalueinitial). Start the value at 0: Reanimated runs each turn of a loop from the value at its start, so a loop that starts at its target does not move. For that reason `useAnimation(1, loop)` does not work here.
+When the loop has to drive a shared value the rest of your component reads — an indeterminate `LinearProgress` slide, a `CircularProgress` rotation, an idle spinner whose rotation feeds multiple animated styles — there's no Motion primitive to attach `animate` to. [`useAnimation`](../api/hooks#useanimationtarget-transition) carries the same repeat config to a standalone `SharedValue<number>`. Start the value at 0 with `{ from: 0 }`: Reanimated runs each turn of a loop from the value at its start, so a loop that starts at its target does not move.
 
 ```tsx
-import { useAnimator, useMotionValue } from '@rootnative/inertia'
-import { useEffect } from 'react'
+import { useAnimation } from '@rootnative/inertia'
 import Animated, { useAnimatedStyle } from 'react-native-reanimated'
 
 export function Spinner() {
-  const rotation = useMotionValue(0)
-  const animate = useAnimator()
-
-  useEffect(() => {
-    animate(rotation, 1, {
+  const rotation = useAnimation(
+    1,
+    {
       type: 'timing',
       duration: 1400,
       repeat: { count: 'infinite', alternate: false },
-    })
-  }, [animate, rotation])
+    },
+    { from: 0 },
+  )
 
   const style = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value * 360}deg` }],
@@ -3110,7 +3108,7 @@ export function Spinner() {
 }
 ```
 
-The same SV could feed a second `useAnimatedStyle` block (e.g. a trailing dot whose opacity tracks `rotation.value`), which is the win over `Motion.View animate={{ rotate: 360 }}`: one driver, many consumers. When the component unmounts the SV is collected and the animation stops — no `cancelAnimation` boilerplate.
+The same SV could feed a second `useAnimatedStyle` block (e.g. a trailing dot whose opacity tracks `rotation.value`), which is the win over `Motion.View animate={{ rotate: 360 }}`: one driver, many consumers. When the component unmounts the hook cancels the animation — no `cancelAnimation` boilerplate. To start the loop from an event instead of on mount, use [`useAnimator`](../api/hooks#useanimator) on a [`useMotionValue(0)`](../api/hooks#usemotionvalueinitial).
 
 ## Custom easing
 
@@ -3633,27 +3631,28 @@ const floated = useAnimation(hasValue ? 1 : 0, {
 })
 ```
 
-A loop that starts on mount does not move with `useAnimation`. The value starts at `target`, and Reanimated runs each turn of a loop from the value at its start, so `useAnimation(1, loop)` runs from 1 to 1. Start the loop from a `useMotionValue(0)` with [`useAnimator`](#useanimator) in an effect:
+The value starts at `target`, so the first run moves nothing. Pass `{ from }` as the third argument to start somewhere else: the first run animates `from → target`, like `initial` on a `Motion.*` primitive. A loop needs it, because Reanimated runs each turn of a loop from the value at its start: `useAnimation(1, loop)` runs from 1 to 1, and with `{ from: 0 }` it runs from 0 to 1 each turn.
 
 ```tsx
-import { useAnimator, useMotionValue } from '@rootnative/inertia'
-import { useEffect } from 'react'
+import { useAnimation } from '@rootnative/inertia'
 
 // Indeterminate progress slider — loops forever, snaps back each cycle.
-const slide = useMotionValue(0)
-const animate = useAnimator()
-useEffect(() => {
-  animate(slide, 1, {
+const slide = useAnimation(
+  1,
+  {
     type: 'timing',
     duration: 1800,
     repeat: { count: 'infinite', alternate: false },
-  })
-}, [animate, slide])
+  },
+  { from: 0 },
+)
 ```
 
-| Signature                                                                       | Returns               |
-| ------------------------------------------------------------------------------- | --------------------- |
-| `useAnimation(target: number, transition?: TransitionConfig \| TransitionName)` | `SharedValue<number>` |
+`from` is read once, on mount. To start a loop from an event instead of on mount, use [`useAnimator`](#useanimator) on a `useMotionValue(0)`.
+
+| Signature                                                                                           | Returns               |
+| --------------------------------------------------------------------------------------------------- | --------------------- |
+| `useAnimation(target: number, transition?: TransitionConfig \| TransitionName, options?: { from })` | `SharedValue<number>` |
 
 The hook re-runs the animation whenever `target` changes or the transition's structural signature changes. A fresh literal each render (`{ type: 'timing', duration: 200 }` rebuilt on every call) doesn't re-fire — only structural changes do. Reduced motion (`<MotionConfig reducedMotion>`) collapses the transition to `'no-animation'` and snaps the value.
 
@@ -4801,4 +4800,4 @@ The key unions that [`useInterpolatedStyle`](./hooks.md#useinterpolatedstyleprog
 - [MotionConfig](../motion-config.md#typed-names-optional): `TransitionName`, `RegisteredTransitions`.
 - [createMotionComponent](./create-motion-component.md): `MotionComponent`.
 - [Transition utilities](./transition-utilities.md): `AnimatableValue`, `AnimationCallback`, `CallbackFactory`.
-- [Hooks](./hooks.md): `GestureLayerTransitions`, `Animator`, `UseTransformOptions`, `UseInterpolatedStyleOptions`, `InterpolatedStyle`, `InterpolatedStyleMap`, `UseColorTransitionOptions`, `UseColorCascadeOptions`, `ColorCascadeLayer`, `ColorStyleKey`, `ColorStyle`, `ShadowConfig`, `ShadowStyle`, `BoxShadowLayer`, `TranslateStyle`, `UseGestureHandlers`, `UseGesturePointerHandlers`, `SharedValue`.
+- [Hooks](./hooks.md): `GestureLayerTransitions`, `Animator`, `UseAnimationOptions`, `UseTransformOptions`, `UseInterpolatedStyleOptions`, `InterpolatedStyle`, `InterpolatedStyleMap`, `UseColorTransitionOptions`, `UseColorCascadeOptions`, `ColorCascadeLayer`, `ColorStyleKey`, `ColorStyle`, `ShadowConfig`, `ShadowStyle`, `BoxShadowLayer`, `TranslateStyle`, `UseGestureHandlers`, `UseGesturePointerHandlers`, `SharedValue`.
