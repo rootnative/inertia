@@ -30,7 +30,7 @@
  */
 
 import type { ComponentProps } from 'react'
-import type { Image, Text, View } from 'react-native'
+import type { Image, StyleProp, Text, View, ViewStyle } from 'react-native'
 import type { AnimateStyle } from '../types'
 
 type ViewAnimate = AnimateStyle<ComponentProps<typeof View>>
@@ -128,6 +128,30 @@ const _viewRejectsTintColor: ViewAnimate = { tintColor: '#0a84ff' }
 // @ts-expect-error fontSize is TextStyle-only and must stay rejected on Image
 const _imageRejectsFontSize: ImageAnimate = { fontSize: 20 }
 
+// ─── Transform shortcuts do not depend on the style type ────────────────────
+//
+// The strict types of React Native 0.88 (`types_generated`) drop the four
+// deprecated top-level keys `translateX`, `translateY`, `scaleX` and `scaleY`
+// from `TransformsStyle`; only the legacy types keep them. The runtime drives
+// the four as transform keys on every React Native, so `AnimateStyle` must
+// accept them from a style type that does not name them. The dev pin here is
+// 0.86, whose `ViewStyle` still has them, so this component stands in for the
+// strict surface: a style with no transform shortcut at all.
+
+type StrictStyleComponent = {
+  style?: StyleProp<{ opacity?: number; transform?: ViewStyle['transform'] }>
+}
+type StrictAnimate = AnimateStyle<StrictStyleComponent>
+
+const _strictTransforms: StrictAnimate = {
+  translateX: 10,
+  translateY: [0, 10],
+  scaleX: { to: 1.2, type: 'timing', duration: 200 },
+  scaleY: 0.8,
+  scale: 1,
+  rotate: 90,
+}
+
 // Silence "declared but never read" — these exist purely as type assertions.
 export type _AnimatableKeyAssertions = [
   typeof _corners,
@@ -138,6 +162,7 @@ export type _AnimatableKeyAssertions = [
   typeof _flex,
   typeof _stack,
   typeof _gaps,
+  typeof _strictTransforms,
   typeof _textMetrics,
   typeof _newKeySequence,
   typeof _newKeyStep,

@@ -176,9 +176,11 @@ export type Transition<S> =
 /**
  * Transform shorthands that Inertia exposes on `animate` but that don't
  * appear on RN's typed ViewStyle as top-level keys. RN keeps `scale`,
- * `rotate`, `rotateX`, and `rotateY` inside the `transform` array; only
- * `scaleX`/`scaleY` and `translateX`/`translateY` are surfaced as
- * (deprecated) top-level shortcuts. Inertia's runtime treats these as
+ * `rotate`, `rotateX`, and `rotateY` inside the `transform` array. The
+ * legacy types surface `scaleX`/`scaleY` and `translateX`/`translateY` as
+ * deprecated top-level shortcuts; the strict types of React Native 0.88
+ * (`types_generated`) do not, so the four are declared here too and never
+ * depend on the style type. Inertia's runtime treats these as
  * transform-group keys (see `TRANSFORM_KEYS` in `createMotionComponent`),
  * so they're documented as first-class animatables in `CLAUDE.md` and must
  * be reachable from `animate` without dropping into the `transform: [...]`
@@ -186,7 +188,11 @@ export type Transition<S> =
  * `'deg'` before handing the transform to Reanimated.
  */
 type AnimatableTransformExtras = {
+  translateX?: AnimatableValue<number>
+  translateY?: AnimatableValue<number>
   scale?: AnimatableValue<number>
+  scaleX?: AnimatableValue<number>
+  scaleY?: AnimatableValue<number>
   rotate?: AnimatableValue<number>
   rotateX?: AnimatableValue<number>
   rotateY?: AnimatableValue<number>
