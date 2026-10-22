@@ -26,11 +26,11 @@ Then enable the [Reanimated Babel plugin](https://docs.swmansion.com/react-nativ
 
 Each release line supports one Expo SDK band. Install the line that matches the SDK of the app.
 
-| Expo SDK | `@rootnative/inertia` and the adapters |
-| --- | --- |
-| 58 | `0.0.20` and later |
-| 57 | `0.0.11` to `0.0.19` (`npm install @rootnative/inertia@0.0.19`) |
-| 54 | `0.0.10` and earlier, with a lockfile that already resolved |
+| Expo SDK | `@rootnative/inertia` and the adapters                          |
+| -------- | --------------------------------------------------------------- |
+| 58       | `0.0.20` and later                                              |
+| 57       | `0.0.11` to `0.0.19` (`npm install @rootnative/inertia@0.0.19`) |
+| 54       | `0.0.10` and earlier, with a lockfile that already resolved     |
 
 ## Quick start
 
