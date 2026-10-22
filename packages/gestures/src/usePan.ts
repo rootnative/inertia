@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Gesture, type PanGesture } from 'react-native-gesture-handler'
+import { Gesture, type LegacyPanGesture } from 'react-native-gesture-handler'
 import {
   useSharedValue,
   withDecay,
@@ -33,7 +33,7 @@ export interface PanOptions {
 
 export interface UsePanResult {
   /** Pan gesture to pass to a `<GestureDetector>`. */
-  gesture: PanGesture
+  gesture: LegacyPanGesture
   /**
    * Stable animated `transform` style. This owns the whole `transform` key —
    * a second transform style in the same array replaces it rather than merging

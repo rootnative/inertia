@@ -279,7 +279,7 @@ It exists because the obvious choice used to be wrong in a way nothing pointed a
 
 The symptom was transition-dependent, which is what made it hard to place: `withTiming` snaps to its target when the duration elapses regardless, so the colour still arrived and everything looked fine. `withSpring` — the default — decides it has settled by comparing against `NaN`, so it never settled, the colour never appeared, and the frame loop never stopped.
 
-**Reanimated 4.5 fixed the colour table**, and that is the floor of Inertia's supported peer band (`>=4.5.0 <4.6.0`), so the keyword now animates like any other name. `TRANSPARENT` stays exported for two reasons: it is `'rgba(0, 0, 0, 0)'` — the same colour, spelled unambiguously — and it remains the safe seed for code that may also run against an older Reanimated.
+**Reanimated 4.5 fixed the colour table**, and every Reanimated in Inertia's supported peer band (`>=4.7.0 <4.8.0`) has that fix, so the keyword now animates like any other name. `TRANSPARENT` stays exported for two reasons: it is `'rgba(0, 0, 0, 0)'` — the same colour, spelled unambiguously — and it remains the safe seed for code that may also run against an older Reanimated.
 
 :::note
 Only values passed to `withSpring` / `withTiming` are affected. `interpolateColor` parses `'transparent'` correctly, so a component that interpolates colours itself — [`useShadow`](./hooks.md#useshadow-from-to-progress-), [`useColorTransition`](./hooks.md#usecolortransitionprogress-from-to-options), the `gesture` cascade — can use the keyword freely.

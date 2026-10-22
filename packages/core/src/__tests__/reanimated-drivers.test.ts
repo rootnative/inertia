@@ -34,16 +34,56 @@ import { TRANSPARENT } from '../internal/color'
 // Inertia source needs; the real drivers touch more of the surface.
 jest.mock('react-native-worklets', () => {
   const cache = new Map()
+  // Worklets 0.13 (the SDK 58 band). `makeMutable` runs at module load and
+  // needs `createSynchronizable` and `createShareable`; a plain cell that the
+  // guest decorator reads through `getSync` / `setAsync` is enough, because
+  // nothing here crosses a thread.
+  const cell = (initial: unknown) => {
+    let value = initial
+    const set = (next: unknown) => {
+      value = typeof next === 'function' ? next(value) : next
+    }
+    return {
+      getDirty: () => value,
+      getBlocking: () => value,
+      setDirty: set,
+      setBlocking: set,
+      lock: () => {},
+      unlock: () => {},
+    }
+  }
   return {
     __esModule: true,
     isWorkletFunction: () => false,
     createSerializable: (value: unknown) => value,
+    makeShareable: (value: unknown) => value,
     serializableMappingCache: {
       set: (key: unknown, value: unknown) => cache.set(key, value),
       get: (key: unknown) => cache.get(key),
     },
+    createSynchronizable: cell,
+    createShareable: (
+      _runtimeId: unknown,
+      initial: unknown,
+      options?: { guestDecorator?: (guest: unknown) => unknown },
+    ) => {
+      let store = initial
+      const guest = {
+        getSync: () => store,
+        setAsync: (next: unknown) => {
+          store = next
+        },
+      }
+      return options?.guestDecorator ? options.guestDecorator(guest) : guest
+    },
+    UIRuntimeId: 2,
     runOnUI: (fn: unknown) => fn,
     runOnJS: (fn: unknown) => fn,
+    runOnUISync: (fn: (...args: unknown[]) => unknown, ...args: unknown[]) =>
+      fn(...args),
+    scheduleOnUI: (fn: () => void) => fn(),
+    scheduleOnRN: (fn: (...args: unknown[]) => unknown, ...args: unknown[]) =>
+      fn(...args),
     RuntimeKind: { ReactNative: 1, UI: 2, Worker: 3 },
   }
 })
@@ -178,7 +218,7 @@ describe('Reanimated drivers — colour sources', () => {
   // animates. This test pins the fix rather than the bug: a Reanimated that
   // regresses it fails here instead of in a consumer's app. Inertia's own
   // `TRANSPARENT` seed is belt-and-braces for the supported peer band
-  // (`>=4.5.0 <4.6.0`), not load-bearing, and could be retired deliberately.
+  // (`>=4.7.0 <4.8.0`), not load-bearing, and could be retired deliberately.
   it("animates away from the CSS keyword 'transparent'", () => {
     const result = run(withSpring('#ff0000', SPRING), 'transparent')
 

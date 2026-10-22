@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { StyleSheet, Text, type View } from 'react-native'
+import { StyleSheet, Text, type ViewInstance } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { Motion, useInView, useInterpolatedStyle } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
@@ -24,7 +24,7 @@ const CARDS = Array.from({ length: 12 }, (_, i) => i + 1)
  *    thread off one measurement, so there is no per-frame JS work to see.
  */
 function Card({ index }: { index: number }) {
-  const ref = useRef<View>(null)
+  const ref = useRef<ViewInstance>(null)
   // The last card tracks visibility both ways so the exit is visible too.
   const once = index !== CARDS.length
   const inView = useInView(ref, { amount: 0.4, once, margin: -40 })

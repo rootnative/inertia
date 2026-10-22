@@ -75,6 +75,6 @@ jobs:
     with:
       package: "@rootnative/inertia"
       tarball-artifact: candidate-inertia
-      # Enforced. The ranges were narrowed to the SDK 57 band, which is the
+      # Enforced. The ranges were narrowed to the SDK 58 band, which is the
       # widest set that admits no combination npm would reject.
       enforce-range: true

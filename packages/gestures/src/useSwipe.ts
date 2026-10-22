@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { Gesture, type PanGesture } from 'react-native-gesture-handler'
+import { Gesture, type LegacyPanGesture } from 'react-native-gesture-handler'
 import {
   runOnJS,
   useSharedValue,
@@ -106,7 +106,7 @@ export interface SwipeOptions {
 
 export interface UseSwipeResult {
   /** Pan gesture to pass to a `<GestureDetector>`. */
-  gesture: PanGesture
+  gesture: LegacyPanGesture
   /**
    * Animated style fragment exposing live translation while the gesture is
    * active. After release it snaps back to `{ 0, 0 }` via `releaseTransition`

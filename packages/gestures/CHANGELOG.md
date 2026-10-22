@@ -6,6 +6,11 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Changed
+
+- **The supported band is Expo SDK 58.** The peer ranges are `react >=19.3.0 <20.0.0`, `react-native >=0.88.0 <0.89.0`, `react-native-reanimated >=4.7.0 <4.8.0` and `react-native-gesture-handler >=3.3.0 <4.0.0`. SDK 57 stays on `0.0.19`. See the `@rootnative/inertia` entry for the reason.
+- **`usePan`, `useDrag` and `useSwipe` type their `gesture` as `LegacyPanGesture`.** Gesture Handler 3 gives the name `PanGesture` to the result of its new `usePanGesture` hook, and the name `LegacyPanGesture` to the result of `Gesture.Pan()`, which the three hooks still build. The runtime object is the same, and `GestureDetector` accepts it. The move to the hook API is a separate change.
+
 ## [0.0.19] - 2026-10-17
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.19` (`focusVisible` follows the browser `:focus-visible` on web, and a control that mounts disabled starts at its `useGestureLayer` `disabled` layer). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.19 <0.1.0`.

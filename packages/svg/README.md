@@ -18,7 +18,7 @@ pnpm add @rootnative/inertia-svg react-native-svg
 
 `react-native-svg` works in bare React Native projects as well as Expo.
 
-**Peer dependencies:** `@rootnative/inertia` (workspace or installed), `react >=19.2.3`, `react-native >=0.83.0 <0.87.0`, `react-native-reanimated >=4.5.0 <4.6.0`, `react-native-svg >=15.15.0 <16.0.0`.
+**Peer dependencies:** `@rootnative/inertia` (workspace or installed), `react >=19.3.0`, `react-native >=0.88.0 <0.89.0`, `react-native-reanimated >=4.7.0 <4.8.0`, `react-native-svg >=15.16.0 <16.0.0`.
 
 ## Usage
 

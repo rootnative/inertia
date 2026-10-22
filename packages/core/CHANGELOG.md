@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Changed
+
+- **The supported band is Expo SDK 58.** The peer ranges are `react >=19.3.0 <20.0.0`, `react-native >=0.88.0 <0.89.0`, `react-native-reanimated >=4.7.0 <4.8.0` and `react-native-worklets >=0.13.0 <0.14.0`. The dev pins, the example app and the docs moved with them. **SDK 57 stays on `0.0.19`**: one range cannot admit both bands, because React 19.2.3 does not pair with React Native 0.88 and worklets 0.10 does not pair with Reanimated 4.7, so a range that admits both also admits pairs that cannot install. Install `@rootnative/inertia@0.0.19` on SDK 57. The README, the installation page and `llms.txt` carry the table of SDK against version. `MotionImage` and the `Motion` namespace now carry an explicit type annotation: React Native 0.88 declares `Image` through a module it does not re-export by name, so the inferred type could not be written in the `.d.ts`. The public types are unchanged.
+
 ### Added
 
 - **`useAnimation` takes a start value.** `useAnimation(target, transition, { from })` seeds the value at `from` instead of `target`, so the first run animates `from → target`, like `initial` on a `Motion.*` primitive. A loop needs it: Reanimated runs each turn of a loop from the value at its start, so `useAnimation(1, loop)` ran from 1 to 1, and the 0.0.19 docs routed around that with `useMotionValue(0)` and `useAnimator` in an effect. Now `useAnimation(1, loop, { from: 0 })` is the whole spinner. `from` is read once, on mount. The `UseAnimationOptions` type is exported. The hooks reference and the Reanimated migration guide use the new form; `useAnimator` stays the answer for a loop that starts from an event.

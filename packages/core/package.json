@@ -142,10 +142,10 @@
   },
   "peerDependencies": {
     "@testing-library/react-native": ">=13.0.0",
-    "react": ">=19.2.3 <20.0.0",
-    "react-native": ">=0.83.0 <0.87.0",
-    "react-native-reanimated": ">=4.5.0 <4.6.0",
-    "react-native-worklets": ">=0.10.0 <0.11.0"
+    "react": ">=19.3.0 <20.0.0",
+    "react-native": ">=0.88.0 <0.89.0",
+    "react-native-reanimated": ">=4.7.0 <4.8.0",
+    "react-native-worklets": ">=0.13.0 <0.14.0"
   },
   "peerDependenciesMeta": {
     "@testing-library/react-native": {
@@ -153,17 +153,17 @@
     }
   },
   "devDependencies": {
-    "@react-native/babel-preset": "^0.86.3",
-    "@react-native/jest-preset": "^0.86.3",
+    "@react-native/babel-preset": "^0.88.0",
+    "@react-native/jest-preset": "^0.88.0",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.14",
-    "@types/react": "^19.2.0",
+    "@types/react": "^19.3.0",
     "jest": "^29.7.0",
-    "react": "19.2.3",
-    "react-native": "0.86.3",
-    "react-native-reanimated": "4.5.1",
-    "react-native-worklets": "0.10.1",
-    "react-test-renderer": "19.2.3",
+    "react": "19.3.0",
+    "react-native": "0.88.0",
+    "react-native-reanimated": "4.7.1",
+    "react-native-worklets": "0.13.0",
+    "react-test-renderer": "19.3.0",
     "tsup": "^8.3.5",
     "typescript": "^5.7.3"
   },

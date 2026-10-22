@@ -89,15 +89,23 @@ Inertia is a thin wrapper around `react-native-reanimated`. The Reanimated insta
 
 ## Prerequisites
 
-- Expo SDK `57` (React Native `0.86.x`, React `19.2.3`)
-- `react-native-reanimated` `>=4.5.0 <4.6.0`
-- `react-native-worklets` `>=0.10.0 <0.11.0` — the worklet runtime Reanimated 4 is built on. It is a **peer** of both Reanimated and Inertia, so Yarn and pnpm will not install it for you.
+- Expo SDK `58` (React Native `0.88.x`, React `19.3.0`)
+- `react-native-reanimated` `>=4.7.0 <4.8.0`
+- `react-native-worklets` `>=0.13.0 <0.14.0` — the worklet runtime Reanimated 4 is built on. It is a **peer** of both Reanimated and Inertia, so Yarn and pnpm will not install it for you.
 
-Install Reanimated **4.5.3 or later** in a development build or a store build. Reanimated 4.5.0 to 4.5.2 can show a view at its `initial` value after its animation ends: native keeps a settled value for 2 s only, and React holds the first-render value. When the JS thread does not read the settled value in that window (a stall of more than 1 s, a paused app, a native dialog), the next React commit writes the `initial` value back, so an entrance from `opacity: 0` goes blank with no error. Reanimated 4.5.3 keeps the value until React has it ([software-mansion/react-native-reanimated#9987](https://github.com/software-mansion/react-native-reanimated/pull/9987)). The fix is native, so it needs a new build, not an over-the-air update. Expo SDK 57 pins `4.5.1`: add `react-native-reanimated` to `expo.install.exclude` in `package.json`, or `expo install --check` moves it back. Expo Go 57 runs 4.5.1 and cannot change, so a project in Expo Go keeps the defect.
+Each release line supports one Expo SDK band. Install the line that matches the SDK of the app.
 
-Inertia targets **one SDK band, not a floor**, so `SDK 57+` is not correct: the peer ranges stop below React Native 0.87 and below Reanimated 4.6, which the next SDK will carry.
+| Expo SDK | `@rootnative/inertia` and the adapters |
+| --- | --- |
+| 58 | `0.0.20` and later |
+| 57 | `0.0.11` to `0.0.19` (`npm install @rootnative/inertia@0.0.19`) |
+| 54 | `0.0.10` and earlier, with a lockfile that already resolved |
 
-The upper bounds are deliberate. Reanimated and `react-native-worklets` are version-locked to each other, and each pair works with one React Native band — Reanimated 4.5 needs worklets `0.10.x` and React Native 0.83–0.86. A wider range would let a package manager pair a new Reanimated with an old worklets, a combination that cannot install at all. Supporting a second SDK needs a second release line, not a wider range.
+On SDK 57 with `0.0.19`, install Reanimated **4.5.3 or later** in a development build or a store build. Reanimated 4.5.0 to 4.5.2 can show a view at its `initial` value after its animation ends: native keeps a settled value for 2 s only, and React holds the first-render value. When the JS thread does not read the settled value in that window (a stall of more than 1 s, a paused app, a native dialog), the next React commit writes the `initial` value back, so an entrance from `opacity: 0` goes blank with no error. Reanimated 4.5.3 keeps the value until React has it ([software-mansion/react-native-reanimated#9987](https://github.com/software-mansion/react-native-reanimated/pull/9987)). The fix is native, so it needs a new build, not an over-the-air update. Expo SDK 57 pins `4.5.1`: add `react-native-reanimated` to `expo.install.exclude` in `package.json`, or `expo install --check` moves it back. Expo Go 57 runs 4.5.1 and cannot change, so a project in Expo Go keeps the defect. The SDK 58 band starts at Reanimated 4.7, which has the fix.
+
+Inertia targets **one SDK band, not a floor**, so `SDK 58+` is not correct: the peer ranges stop below React Native 0.89 and below Reanimated 4.8, which the next SDK will carry.
+
+The upper bounds are deliberate. Reanimated and `react-native-worklets` are version-locked to each other, and each pair works with one React Native band — Reanimated 4.7 needs worklets `0.13.x` and React Native 0.86–0.88. A wider range would let a package manager pair a new Reanimated with an old worklets, a combination that cannot install at all. Supporting a second SDK needs a second release line, not a wider range.
 
 ## Platforms
 
@@ -3746,10 +3754,10 @@ Drive a 0↔1 shared value from whether an element is on screen. This is the mis
 ```tsx
 import { useInView, useInterpolatedStyle, Motion } from '@rootnative/inertia'
 import { useRef } from 'react'
-import type { View } from 'react-native'
+import type { ViewInstance } from 'react-native'
 
 function RevealCard() {
-  const ref = useRef<View>(null)
+  const ref = useRef<ViewInstance>(null)
   const inView = useInView(ref)
   const style = useInterpolatedStyle(inView, {
     opacity: [0, 1],
@@ -4488,7 +4496,7 @@ It exists because the obvious choice used to be wrong in a way nothing pointed a
 
 The symptom was transition-dependent, which is what made it hard to place: `withTiming` snaps to its target when the duration elapses regardless, so the colour still arrived and everything looked fine. `withSpring` — the default — decides it has settled by comparing against `NaN`, so it never settled, the colour never appeared, and the frame loop never stopped.
 
-**Reanimated 4.5 fixed the colour table**, and that is the floor of Inertia's supported peer band (`>=4.5.0 <4.6.0`), so the keyword now animates like any other name. `TRANSPARENT` stays exported for two reasons: it is `'rgba(0, 0, 0, 0)'` — the same colour, spelled unambiguously — and it remains the safe seed for code that may also run against an older Reanimated.
+**Reanimated 4.5 fixed the colour table**, and every Reanimated in Inertia's supported peer band (`>=4.7.0 <4.8.0`) has that fix, so the keyword now animates like any other name. `TRANSPARENT` stays exported for two reasons: it is `'rgba(0, 0, 0, 0)'` — the same colour, spelled unambiguously — and it remains the safe seed for code that may also run against an older Reanimated.
 
 :::note
 Only values passed to `withSpring` / `withTiming` are affected. `interpolateColor` parses `'transparent'` correctly, so a component that interpolates colours itself — [`useShadow`](./hooks.md#useshadow-from-to-progress-), [`useColorTransition`](./hooks.md#usecolortransitionprogress-from-to-options), the `gesture` cascade — can use the keyword freely.

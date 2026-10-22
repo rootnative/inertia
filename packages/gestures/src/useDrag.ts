@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Gesture, type PanGesture } from 'react-native-gesture-handler'
+import { Gesture, type LegacyPanGesture } from 'react-native-gesture-handler'
 import {
   runOnJS,
   useSharedValue,
@@ -16,7 +16,7 @@ import type { DragConstraints, DragOptions } from './types'
 
 export interface UseDragResult {
   /** Pan gesture to pass to a `<GestureDetector>`. */
-  gesture: PanGesture
+  gesture: LegacyPanGesture
   /**
    * Animated style fragment for the dragged Motion primitive's `style` prop.
    * Stable across renders.

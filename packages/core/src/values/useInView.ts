@@ -59,7 +59,7 @@ type MeasurableNode = { measureInWindow?: unknown }
  * see this".
  *
  * ```tsx
- * const ref = useRef<View>(null)
+ * const ref = useRef<ViewInstance>(null)
  * const inView = useInView(ref)
  * const style = useInterpolatedStyle(inView, {
  *   opacity: [0, 1],

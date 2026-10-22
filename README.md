@@ -4,7 +4,7 @@
 
 [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![pnpm 10](https://img.shields.io/badge/pnpm-10.x-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
-[![Expo SDK 57](https://img.shields.io/badge/expo-57-000020?logo=expo&logoColor=white)](https://expo.dev/)
+[![Expo SDK 58](https://img.shields.io/badge/expo-58-000020?logo=expo&logoColor=white)](https://expo.dev/)
 [![Reanimated 4](https://img.shields.io/badge/reanimated-4.x-B57EDC)](https://docs.swmansion.com/react-native-reanimated/)
 [![Turborepo](https://img.shields.io/badge/monorepo-turbo-EF4444)](https://turbo.build/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -151,9 +151,19 @@ Inertia ships [llms.txt](https://llmstxt.org/) documentation for AI coding agent
 
 - Node.js `>=20`
 - pnpm `10.x`
-- React `19.2.3`, React Native `0.86.x`, Expo SDK `57`
-- `react-native-reanimated >=4.5.0 <4.6.0` (peer)
+- React `19.3.0`, React Native `0.88.x`, Expo SDK `58`
+- `react-native-reanimated >=4.7.0 <4.8.0` (peer)
 - Platforms: iOS, Android, and web (react-native-web `0.21`). macOS, Windows, and Electron are not tested.
+
+### Expo SDK compatibility
+
+Each release line supports one Expo SDK band. Install the line that matches the SDK of the app.
+
+| Expo SDK | `@rootnative/inertia` and the adapters |
+| --- | --- |
+| 58 | `0.0.20` and later |
+| 57 | `0.0.11` to `0.0.19` (`npm install @rootnative/inertia@0.0.19`) |
+| 54 | `0.0.10` and earlier, with a lockfile that already resolved |
 
 ### Setup
 
@@ -206,8 +216,8 @@ Tests live in `src/__tests__/` per package. The Reanimated mock resolves animati
 
 | Layer           | Technology                                              |
 | --------------- | ------------------------------------------------------- |
-| Runtime         | React 19.2, React Native 0.86, Expo SDK 57              |
-| Animation       | `react-native-reanimated` `>=4.5.0 <4.6.0` (peer)       |
+| Runtime         | React 19.3, React Native 0.88, Expo SDK 58              |
+| Animation       | `react-native-reanimated` `>=4.7.0 <4.8.0` (peer)       |
 | Language        | TypeScript 5 (strict mode)                              |
 | Build           | tsup (package bundling), Turborepo (task orchestration) |
 | Package Manager | pnpm 10 (workspace protocol)                            |

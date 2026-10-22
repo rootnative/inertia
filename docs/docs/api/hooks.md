@@ -554,10 +554,10 @@ Drive a 0↔1 shared value from whether an element is on screen. This is the mis
 ```tsx
 import { useInView, useInterpolatedStyle, Motion } from '@rootnative/inertia'
 import { useRef } from 'react'
-import type { View } from 'react-native'
+import type { ViewInstance } from 'react-native'
 
 function RevealCard() {
-  const ref = useRef<View>(null)
+  const ref = useRef<ViewInstance>(null)
   const inView = useInView(ref)
   const style = useInterpolatedStyle(inView, {
     opacity: [0, 1],
