@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.20] - 2026-10-23
+
 ### Changed
 
 - **The supported band is Expo SDK 58.** The peer ranges are `react >=19.3.0 <20.0.0`, `react-native >=0.88.0 <0.89.0`, `react-native-reanimated >=4.7.0 <4.8.0` and `react-native-worklets >=0.13.0 <0.14.0`. The dev pins, the example app and the docs moved with them. **SDK 57 stays on `0.0.19`**: one range cannot admit both bands, because React 19.2.3 does not pair with React Native 0.88 and worklets 0.10 does not pair with Reanimated 4.7, so a range that admits both also admits pairs that cannot install. Install `@rootnative/inertia@0.0.19` on SDK 57. The README, the installation page and `llms.txt` carry the table of SDK against version. `MotionImage` and the `Motion` namespace now carry an explicit type annotation: React Native 0.88 declares `Image` through a module it does not re-export by name, so the inferred type could not be written in the `.d.ts`. The public types are unchanged.
@@ -539,7 +541,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.19...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.20...HEAD
+[0.0.20]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.20
 [0.0.19]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.19
 [0.0.18]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.18
 [0.0.17]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.17
