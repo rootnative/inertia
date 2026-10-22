@@ -1,5 +1,9 @@
 import { useCallback, useMemo } from 'react'
-import { Gesture, type LegacyPanGesture } from 'react-native-gesture-handler'
+import {
+  usePanGesture,
+  type PanGesture,
+  type PanGestureConfig,
+} from 'react-native-gesture-handler'
 import {
   runOnJS,
   useSharedValue,
@@ -106,7 +110,7 @@ export interface SwipeOptions {
 
 export interface UseSwipeResult {
   /** Pan gesture to pass to a `<GestureDetector>`. */
-  gesture: LegacyPanGesture
+  gesture: PanGesture
   /**
    * Animated style fragment exposing live translation while the gesture is
    * active. After release it snaps back to `{ 0, 0 }` via `releaseTransition`
@@ -230,18 +234,18 @@ export function useSwipe(options: SwipeOptions = {}): UseSwipeResult {
   const fireSwipe = useLatestCallback(onSwipe)
   const fireSwipeEnd = useLatestCallback(onSwipeEnd)
 
-  const gesture = useMemo(() => {
-    const pan = Gesture.Pan()
-      .onStart(() => {
+  const config = useMemo<PanGestureConfig>(
+    () => ({
+      onActivate: () => {
         'worklet'
         isActive.value = true
-      })
-      .onUpdate((e) => {
+      },
+      onUpdate: (e) => {
         'worklet'
         swipeX.value = e.translationX
         swipeY.value = e.translationY
-      })
-      .onEnd((e) => {
+      },
+      onDeactivate: (e) => {
         'worklet'
         isActive.value = false
         const direction = pickDirection(
@@ -322,29 +326,32 @@ export function useSwipe(options: SwipeOptions = {}): UseSwipeResult {
             settleY,
           ) as unknown as number
         }
-      })
-      .onFinalize(() => {
+      },
+      onFinalize: () => {
         'worklet'
         isActive.value = false
-      })
-    return pan
-  }, [
-    distanceThreshold,
-    velocityThreshold,
-    allowLeft,
-    allowRight,
-    allowUp,
-    allowDown,
-    snapBack,
-    hasSwipe,
-    hasSwipeEnd,
-    fireSwipe,
-    fireSwipeEnd,
-    onCommit,
-    swipeX,
-    swipeY,
-    isActive,
-  ])
+      },
+    }),
+    [
+      distanceThreshold,
+      velocityThreshold,
+      allowLeft,
+      allowRight,
+      allowUp,
+      allowDown,
+      snapBack,
+      hasSwipe,
+      hasSwipeEnd,
+      fireSwipe,
+      fireSwipeEnd,
+      onCommit,
+      swipeX,
+      swipeY,
+      isActive,
+    ],
+  )
+
+  const gesture = usePanGesture(config)
 
   const animatedStyle = useTranslateStyle(swipeX, swipeY)
 

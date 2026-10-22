@@ -1,5 +1,9 @@
 import { useMemo } from 'react'
-import { Gesture, type LegacyPanGesture } from 'react-native-gesture-handler'
+import {
+  usePanGesture,
+  type PanGesture,
+  type PanGestureConfig,
+} from 'react-native-gesture-handler'
 import {
   runOnJS,
   useSharedValue,
@@ -16,7 +20,7 @@ import type { DragConstraints, DragOptions } from './types'
 
 export interface UseDragResult {
   /** Pan gesture to pass to a `<GestureDetector>`. */
-  gesture: LegacyPanGesture
+  gesture: PanGesture
   /**
    * Animated style fragment for the dragged Motion primitive's `style` prop.
    * Stable across renders.
@@ -91,16 +95,16 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
   const fireDragStart = useLatestCallback(onDragStart)
   const fireDragEnd = useLatestCallback(onDragEnd)
 
-  const gesture = useMemo(() => {
-    const pan = Gesture.Pan()
-      .onStart(() => {
+  const config = useMemo<PanGestureConfig>(
+    () => ({
+      onActivate: () => {
         'worklet'
         startX.value = dragX.value
         startY.value = dragY.value
         isDragging.value = true
         if (hasDragStart) runOnJS(fireDragStart)()
-      })
-      .onUpdate((e) => {
+      },
+      onUpdate: (e) => {
         'worklet'
         if (lockX) {
           dragX.value = applyBounds(
@@ -118,8 +122,8 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
             elasticCoef,
           )
         }
-      })
-      .onEnd((e) => {
+      },
+      onDeactivate: (e) => {
         'worklet'
         isDragging.value = false
         const x = dragX.value
@@ -151,27 +155,30 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
         if (hasDragEnd) {
           runOnJS(fireDragEnd)({ x, y, velocity: { x: vx, y: vy } })
         }
-      })
-    return pan
-  }, [
-    lockX,
-    lockY,
-    left,
-    right,
-    top,
-    bottom,
-    elasticCoef,
-    hasDragStart,
-    hasDragEnd,
-    fireDragStart,
-    fireDragEnd,
-    onRelease,
-    dragX,
-    dragY,
-    startX,
-    startY,
-    isDragging,
-  ])
+      },
+    }),
+    [
+      lockX,
+      lockY,
+      left,
+      right,
+      top,
+      bottom,
+      elasticCoef,
+      hasDragStart,
+      hasDragEnd,
+      fireDragStart,
+      fireDragEnd,
+      onRelease,
+      dragX,
+      dragY,
+      startX,
+      startY,
+      isDragging,
+    ],
+  )
+
+  const gesture = usePanGesture(config)
 
   const animatedStyle = useTranslateStyle(dragX, dragY)
 

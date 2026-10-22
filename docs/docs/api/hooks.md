@@ -856,15 +856,17 @@ Worklet-safe single-step animation builder. Mirrors a subset of [`resolveTransit
 
 ```ts
 import { buildReleaseAnimation } from '@rootnative/inertia'
-import { Gesture } from 'react-native-gesture-handler'
+import { usePanGesture } from 'react-native-gesture-handler'
 
-const pan = Gesture.Pan().onEnd((e) => {
-  'worklet'
-  // Spring to a snap target with the release velocity preserved.
-  position.value = buildReleaseAnimation(
-    { type: 'spring', velocity: e.velocityX, friction: 26, tension: 170 },
-    snapTarget,
-  ) as number
+const pan = usePanGesture({
+  onDeactivate: (e) => {
+    'worklet'
+    // Spring to a snap target with the release velocity preserved.
+    position.value = buildReleaseAnimation(
+      { type: 'spring', velocity: e.velocityX, friction: 26, tension: 170 },
+      snapTarget,
+    ) as number
+  },
 })
 ```
 
@@ -876,7 +878,7 @@ For decay transitions, the second argument is ignored — decay decelerates from
 | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `buildReleaseAnimation(transition: TransitionConfig, toValue: number, callback?: AnimationCallback)` | Reanimated animation value (assign to a `SharedValue<number>` directly). |
 
-Most consumers reach for `useDrag({ onRelease })` from `@rootnative/inertia-gestures` instead — it wraps this builder behind a per-axis return shape. Use `buildReleaseAnimation` directly when you're authoring a custom `Gesture.*().onEnd(...)` worklet outside the adapter hooks.
+Most consumers reach for `useDrag({ onRelease })` from `@rootnative/inertia-gestures` instead — it wraps this builder behind a per-axis return shape. Use `buildReleaseAnimation` directly when you're authoring a custom `onDeactivate` worklet for a Gesture Handler hook outside the adapter hooks.
 
 ## `useTranslateStyle(x, y)`
 

@@ -7,7 +7,7 @@ import { useSwipe } from '../useSwipe'
 type Handlers = Record<string, (e: unknown) => void>
 
 function getHandlers(gesture: unknown): Handlers {
-  return (gesture as { handlers: Handlers }).handlers
+  return (gesture as { config: Handlers }).config
 }
 
 // A release event that commits a right swipe (distance past the default 80).
@@ -41,9 +41,9 @@ describe('useSwipe', () => {
     const { result } = renderHook(() => useSwipe({ onSwipe }))
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
+    h.onActivate?.({})
     h.onUpdate?.({ translationX: -90, translationY: 0 })
-    h.onEnd?.({
+    h.onDeactivate?.({
       translationX: -90,
       translationY: 0,
       velocityX: 0,
@@ -60,9 +60,9 @@ describe('useSwipe', () => {
     )
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
+    h.onActivate?.({})
     h.onUpdate?.({ translationX: 30, translationY: 0 })
-    h.onEnd?.({
+    h.onDeactivate?.({
       translationX: 30,
       translationY: 0,
       velocityX: 1500,
@@ -80,8 +80,8 @@ describe('useSwipe', () => {
     const { result } = renderHook(() => useSwipe({ onSwipe }))
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.({
+    h.onActivate?.({})
+    h.onDeactivate?.({
       translationX: 20,
       translationY: 0,
       velocityX: 100,
@@ -98,8 +98,8 @@ describe('useSwipe', () => {
     )
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.({
+    h.onActivate?.({})
+    h.onDeactivate?.({
       translationX: 200,
       translationY: 0,
       velocityX: 2000,
@@ -114,8 +114,8 @@ describe('useSwipe', () => {
     const { result } = renderHook(() => useSwipe({ onSwipe }))
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.({
+    h.onActivate?.({})
+    h.onDeactivate?.({
       translationX: 30,
       translationY: 120,
       velocityX: 100,
@@ -129,7 +129,7 @@ describe('useSwipe', () => {
     const { result } = renderHook(() => useSwipe())
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
+    h.onActivate?.({})
     h.onUpdate?.({ translationX: 42, translationY: -7 })
 
     expect(result.current.swipeX.value).toBe(42)
@@ -147,8 +147,8 @@ describe('useSwipe — releaseTransition', () => {
     const { result } = renderHook(() => useSwipe())
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.(NO_COMMIT)
+    h.onActivate?.({})
+    h.onDeactivate?.(NO_COMMIT)
 
     expect(withSpring).toHaveBeenCalledTimes(2)
     // x axis carries velocityX, y axis carries velocityY.
@@ -169,8 +169,8 @@ describe('useSwipe — releaseTransition', () => {
     )
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.(NO_COMMIT)
+    h.onActivate?.({})
+    h.onDeactivate?.(NO_COMMIT)
 
     expect(withSpring).not.toHaveBeenCalled()
     expect(withTiming).toHaveBeenCalledTimes(2)
@@ -187,8 +187,8 @@ describe('useSwipe — releaseTransition', () => {
     )
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.(NO_COMMIT)
+    h.onActivate?.({})
+    h.onDeactivate?.(NO_COMMIT)
 
     expect(withSpring.mock.calls[0]![1]).toEqual(
       expect.objectContaining({ velocity: 7 }),
@@ -208,8 +208,8 @@ describe('useSwipe — releaseTransition', () => {
     )
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.(NO_COMMIT)
+    h.onActivate?.({})
+    h.onDeactivate?.(NO_COMMIT)
 
     expect(withTiming).toHaveBeenCalledTimes(2)
     expect(withTiming.mock.calls[0]![1]).toEqual(
@@ -232,8 +232,8 @@ describe('useSwipe — releaseTransition', () => {
     )
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.(NO_COMMIT)
+    h.onActivate?.({})
+    h.onDeactivate?.(NO_COMMIT)
 
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('releaseTransition'),
@@ -255,9 +255,9 @@ describe('useSwipe — commit exit (onCommit / onSwipeEnd)', () => {
     const { result } = renderHook(() => useSwipe({ onCommit }))
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
+    h.onActivate?.({})
     h.onUpdate?.({ translationX: 200, translationY: 10 })
-    h.onEnd?.(COMMIT_RIGHT)
+    h.onDeactivate?.(COMMIT_RIGHT)
 
     expect(onCommit).toHaveBeenCalledWith('right', {
       x: 200,
@@ -275,8 +275,8 @@ describe('useSwipe — commit exit (onCommit / onSwipeEnd)', () => {
     const { result } = renderHook(() => useSwipe({ onCommit }))
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.(NO_COMMIT)
+    h.onActivate?.({})
+    h.onDeactivate?.(NO_COMMIT)
 
     expect(onCommit).not.toHaveBeenCalled()
   })
@@ -287,8 +287,8 @@ describe('useSwipe — commit exit (onCommit / onSwipeEnd)', () => {
     const { result } = renderHook(() => useSwipe({ onCommit }))
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.(COMMIT_RIGHT)
+    h.onActivate?.({})
+    h.onDeactivate?.(COMMIT_RIGHT)
 
     expect(onCommit).toHaveBeenCalled()
     expect(withSpring).toHaveBeenCalledTimes(2)
@@ -309,8 +309,8 @@ describe('useSwipe — commit exit (onCommit / onSwipeEnd)', () => {
     )
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.(COMMIT_RIGHT)
+    h.onActivate?.({})
+    h.onDeactivate?.(COMMIT_RIGHT)
 
     // The settle callback rides the swipe axis (x for a right swipe).
     expect(onSwipeEnd).not.toHaveBeenCalled()
@@ -326,8 +326,8 @@ describe('useSwipe — commit exit (onCommit / onSwipeEnd)', () => {
     const { result } = renderHook(() => useSwipe({ onSwipeEnd }))
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.(COMMIT_RIGHT)
+    h.onActivate?.({})
+    h.onDeactivate?.(COMMIT_RIGHT)
 
     const settle = withSpring.mock.calls[0]![2] as (f?: boolean) => void
     settle(false)
@@ -340,8 +340,8 @@ describe('useSwipe — commit exit (onCommit / onSwipeEnd)', () => {
     const { result } = renderHook(() => useSwipe({ onSwipeEnd }))
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.(NO_COMMIT)
+    h.onActivate?.({})
+    h.onDeactivate?.(NO_COMMIT)
 
     // No settle callback is attached on a non-commit release.
     expect(withSpring.mock.calls[0]![2]).toBeUndefined()
@@ -357,8 +357,8 @@ describe('useSwipe — commit exit (onCommit / onSwipeEnd)', () => {
     )
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
-    h.onEnd?.(COMMIT_RIGHT)
+    h.onActivate?.({})
+    h.onDeactivate?.(COMMIT_RIGHT)
     expect(result.current.swipeX.value).toBe(480)
 
     result.current.reset()
@@ -378,8 +378,8 @@ describe('useSwipe — commit exit (onCommit / onSwipeEnd)', () => {
     expect(result.current.gesture).toBe(gesture)
 
     const h = getHandlers(gesture)
-    h.onStart?.({})
-    h.onEnd?.(COMMIT_RIGHT)
+    h.onActivate?.({})
+    h.onDeactivate?.(COMMIT_RIGHT)
     expect(first).not.toHaveBeenCalled()
     expect(latest).toHaveBeenCalledTimes(1)
     expect(latest.mock.calls[0]![0]).toBe('right')

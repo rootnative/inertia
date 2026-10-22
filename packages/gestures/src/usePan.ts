@@ -1,5 +1,9 @@
 import { useMemo } from 'react'
-import { Gesture, type LegacyPanGesture } from 'react-native-gesture-handler'
+import {
+  usePanGesture,
+  type PanGesture,
+  type PanGestureConfig,
+} from 'react-native-gesture-handler'
 import {
   useSharedValue,
   withDecay,
@@ -33,7 +37,7 @@ export interface PanOptions {
 
 export interface UsePanResult {
   /** Pan gesture to pass to a `<GestureDetector>`. */
-  gesture: LegacyPanGesture
+  gesture: PanGesture
   /**
    * Stable animated `transform` style. This owns the whole `transform` key —
    * a second transform style in the same array replaces it rather than merging
@@ -73,20 +77,20 @@ export function usePan(options: PanOptions = {}): UsePanResult {
   const bottom = constraints?.bottom
   const decel = deceleration
 
-  const gesture = useMemo(() => {
-    const pan = Gesture.Pan()
-      .onStart(() => {
+  const config = useMemo<PanGestureConfig>(
+    () => ({
+      onActivate: () => {
         'worklet'
         startX.value = panX.value
         startY.value = panY.value
         isPanning.value = true
-      })
-      .onUpdate((e) => {
+      },
+      onUpdate: (e) => {
         'worklet'
         panX.value = clamp(startX.value + e.translationX, left, right)
         panY.value = clamp(startY.value + e.translationY, top, bottom)
-      })
-      .onEnd((e) => {
+      },
+      onDeactivate: (e) => {
         'worklet'
         isPanning.value = false
         if (disableMomentum) return
@@ -94,25 +98,28 @@ export function usePan(options: PanOptions = {}): UsePanResult {
         const clampY = boundsTuple(top, bottom)
         panX.value = withDecay(decayConfig(e.velocityX, decel, clampX))
         panY.value = withDecay(decayConfig(e.velocityY, decel, clampY))
-      })
-      .onFinalize(() => {
+      },
+      onFinalize: () => {
         'worklet'
         isPanning.value = false
-      })
-    return pan
-  }, [
-    left,
-    right,
-    top,
-    bottom,
-    decel,
-    disableMomentum,
-    panX,
-    panY,
-    startX,
-    startY,
-    isPanning,
-  ])
+      },
+    }),
+    [
+      left,
+      right,
+      top,
+      bottom,
+      decel,
+      disableMomentum,
+      panX,
+      panY,
+      startX,
+      startY,
+      isPanning,
+    ],
+  )
+
+  const gesture = usePanGesture(config)
 
   const animatedStyle = useTranslateStyle(panX, panY)
 

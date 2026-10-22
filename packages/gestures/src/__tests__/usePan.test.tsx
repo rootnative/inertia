@@ -5,7 +5,7 @@ import { usePan } from '../usePan'
 type Handlers = Record<string, (e: unknown) => void>
 
 function getHandlers(gesture: unknown): Handlers {
-  return (gesture as { handlers: Handlers }).handlers
+  return (gesture as { config: Handlers }).config
 }
 
 describe('usePan', () => {
@@ -26,13 +26,13 @@ describe('usePan', () => {
     const { result } = renderHook(() => usePan({ disableMomentum: true }))
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
+    h.onActivate?.({})
     h.onUpdate?.({ translationX: 50, translationY: 30 })
-    h.onEnd?.({ velocityX: 0, velocityY: 0 })
+    h.onDeactivate?.({ velocityX: 0, velocityY: 0 })
     expect(result.current.panX.value).toBe(50)
     expect(result.current.panY.value).toBe(30)
 
-    h.onStart?.({})
+    h.onActivate?.({})
     h.onUpdate?.({ translationX: -10, translationY: 5 })
     expect(result.current.panX.value).toBe(40)
     expect(result.current.panY.value).toBe(35)
@@ -47,7 +47,7 @@ describe('usePan', () => {
     )
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
+    h.onActivate?.({})
     h.onUpdate?.({ translationX: 200, translationY: -200 })
     expect(result.current.panX.value).toBe(50)
     expect(result.current.panY.value).toBe(-50)
@@ -57,10 +57,10 @@ describe('usePan', () => {
     const { result } = renderHook(() => usePan({ disableMomentum: true }))
     const h = getHandlers(result.current.gesture)
 
-    h.onStart?.({})
+    h.onActivate?.({})
     expect(result.current.isPanning.value).toBe(true)
 
-    h.onEnd?.({ velocityX: 0, velocityY: 0 })
+    h.onDeactivate?.({ velocityX: 0, velocityY: 0 })
     expect(result.current.isPanning.value).toBe(false)
   })
 
@@ -73,9 +73,9 @@ describe('usePan', () => {
     )
     const h = getHandlers(result.current.gesture)
     expect(() => {
-      h.onStart?.({})
+      h.onActivate?.({})
       h.onUpdate?.({ translationX: 80, translationY: 0 })
-      h.onEnd?.({ velocityX: 1200, velocityY: 0 })
+      h.onDeactivate?.({ velocityX: 1200, velocityY: 0 })
     }).not.toThrow()
   })
 
@@ -85,9 +85,9 @@ describe('usePan', () => {
       usePan({ deceleration: 0.995, constraints: { left: -100, right: 100 } }),
     )
     const h = getHandlers(result.current.gesture)
-    h.onStart?.({})
+    h.onActivate?.({})
     h.onUpdate?.({ translationX: 80, translationY: 0 })
-    h.onEnd?.({ velocityX: 1200, velocityY: -300 })
+    h.onDeactivate?.({ velocityX: 1200, velocityY: -300 })
     expect(withDecay).toHaveBeenCalledTimes(2)
     expect(withDecay.mock.calls[0]![0]).toEqual({
       velocity: 1200,
@@ -105,8 +105,8 @@ describe('usePan', () => {
     const withDecay = jest.spyOn(Reanimated, 'withDecay')
     const { result } = renderHook(() => usePan({ constraints: { top: 0 } }))
     const h = getHandlers(result.current.gesture)
-    h.onStart?.({})
-    h.onEnd?.({ velocityX: 0, velocityY: 500 })
+    h.onActivate?.({})
+    h.onDeactivate?.({ velocityX: 0, velocityY: 500 })
     expect(withDecay.mock.calls[1]![0]).toEqual({
       velocity: 500,
       clamp: [0, Number.POSITIVE_INFINITY],
@@ -117,8 +117,8 @@ describe('usePan', () => {
     const withDecay = jest.spyOn(Reanimated, 'withDecay')
     const { result } = renderHook(() => usePan({ disableMomentum: true }))
     const h = getHandlers(result.current.gesture)
-    h.onStart?.({})
-    h.onEnd?.({ velocityX: 1200, velocityY: 0 })
+    h.onActivate?.({})
+    h.onDeactivate?.({ velocityX: 1200, velocityY: 0 })
     expect(withDecay).not.toHaveBeenCalled()
     expect(result.current.isPanning.value).toBe(false)
   })

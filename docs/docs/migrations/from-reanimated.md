@@ -305,7 +305,7 @@ What collapsed:
 
 ## Drag / pan / swipe
 
-These are covered by the [`@rootnative/inertia-gestures`](../gestures-adapter) adapter (PanGestureHandler under the hood). The hooks return ready-made shared values you wire into the same props — no `setNativeProps`, no manual `withDecay` after release.
+These are covered by the [`@rootnative/inertia-gestures`](../gestures-adapter) adapter (`usePanGesture` under the hood). The hooks return ready-made shared values you wire into the same props — no `setNativeProps`, no manual `withDecay` after release.
 
 ```tsx
 import { useDrag } from '@rootnative/inertia-gestures'

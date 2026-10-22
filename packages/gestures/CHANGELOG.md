@@ -9,7 +9,7 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 ### Changed
 
 - **The supported band is Expo SDK 58.** The peer ranges are `react >=19.3.0 <20.0.0`, `react-native >=0.88.0 <0.89.0`, `react-native-reanimated >=4.7.0 <4.8.0` and `react-native-gesture-handler >=3.3.0 <4.0.0`. SDK 57 stays on `0.0.19`. See the `@rootnative/inertia` entry for the reason.
-- **`usePan`, `useDrag` and `useSwipe` type their `gesture` as `LegacyPanGesture`.** Gesture Handler 3 gives the name `PanGesture` to the result of its new `usePanGesture` hook, and the name `LegacyPanGesture` to the result of `Gesture.Pan()`, which the three hooks still build. The runtime object is the same, and `GestureDetector` accepts it. The move to the hook API is a separate change.
+- **`useDrag`, `useSwipe` and `usePan` build their gesture with the Gesture Handler 3 hook API.** Each hook calls `usePanGesture` on a memoized config instead of the `Gesture.Pan()` builder, which Gesture Handler 3 marks as deprecated. The returned `gesture` is the `PanGesture` of that hook; pass it to `<GestureDetector>` as before. The lifecycle callbacks moved to the new names (`onActivate`, `onUpdate`, `onDeactivate`, `onFinalize`) with no change in when they fire. **Breaking for one case:** the legacy composition helpers (`Gesture.Simultaneous`, `Gesture.Race`, `Gesture.Exclusive`) do not accept a hook gesture. Compose with the Gesture Handler 3 composition hooks instead.
 
 ## [0.0.19] - 2026-10-17
 

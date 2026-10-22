@@ -1,33 +1,28 @@
 // Minimal mock of react-native-gesture-handler. The library ships its own
-// jest setup that touches native modules; for hook-shape unit tests we just
-// need `Gesture.Pan()` to return a chainable builder so `.onStart()` / `.onUpdate()`
-// / `.onEnd()` calls don't throw, plus the resulting object reaches the
-// assertions intact.
+// jest setup that touches native modules; for hook-shape unit tests we need
+// `usePanGesture` to hand back its config so the callbacks reach the
+// assertions intact, and a `GestureDetector` that renders its child.
 jest.mock('react-native-gesture-handler', () => {
-  const chain = () => {
-    const builder = {
-      __isPan: true,
-      handlers: {},
-    }
-    const methods = ['onBegin', 'onStart', 'onUpdate', 'onEnd', 'onFinalize']
-    for (const m of methods) {
-      builder[m] = (fn) => {
-        builder.handlers[m] = fn
-        return builder
-      }
-    }
-    builder.minDistance = () => builder
-    builder.activeOffsetX = () => builder
-    builder.activeOffsetY = () => builder
-    builder.failOffsetX = () => builder
-    builder.failOffsetY = () => builder
-    return builder
-  }
+  const { useMemo } = require('react')
   return {
     __esModule: true,
-    Gesture: {
-      Pan: chain,
-    },
+    // The real hook memoizes the gesture on the config identity, which the
+    // identity tests of the adapter hooks rely on.
+    usePanGesture: (config) =>
+      useMemo(
+        () => ({
+          type: 'pan',
+          handlerTag: 1,
+          config,
+          detectorCallbacks: {},
+          gestureRelations: {
+            simultaneousHandlers: [],
+            waitFor: [],
+            blocksHandlers: [],
+          },
+        }),
+        [config],
+      ),
     GestureDetector: ({ children }) => children,
   }
 })

@@ -16,18 +16,18 @@ describe('useDrag', () => {
     const { result } = renderHook(() => useDrag())
     const handlers = (
       result.current.gesture as unknown as {
-        handlers: Record<string, (e: unknown) => void>
+        config: Record<string, (e: unknown) => void>
       }
-    ).handlers
+    ).config
 
-    handlers.onStart?.({})
+    handlers.onActivate?.({})
     expect(result.current.isDragging.value).toBe(true)
 
     handlers.onUpdate?.({ translationX: 30, translationY: -15 })
     expect(result.current.dragX.value).toBe(30)
     expect(result.current.dragY.value).toBe(-15)
 
-    handlers.onEnd?.({ velocityX: 0, velocityY: 0 })
+    handlers.onDeactivate?.({ velocityX: 0, velocityY: 0 })
     expect(result.current.isDragging.value).toBe(false)
   })
 
@@ -35,11 +35,11 @@ describe('useDrag', () => {
     const { result } = renderHook(() => useDrag({ axis: 'x' }))
     const handlers = (
       result.current.gesture as unknown as {
-        handlers: Record<string, (e: unknown) => void>
+        config: Record<string, (e: unknown) => void>
       }
-    ).handlers
+    ).config
 
-    handlers.onStart?.({})
+    handlers.onActivate?.({})
     handlers.onUpdate?.({ translationX: 50, translationY: 200 })
 
     expect(result.current.dragX.value).toBe(50)
@@ -52,11 +52,11 @@ describe('useDrag', () => {
     )
     const handlers = (
       result.current.gesture as unknown as {
-        handlers: Record<string, (e: unknown) => void>
+        config: Record<string, (e: unknown) => void>
       }
-    ).handlers
+    ).config
 
-    handlers.onStart?.({})
+    handlers.onActivate?.({})
     handlers.onUpdate?.({ translationX: 100, translationY: 0 })
     expect(result.current.dragX.value).toBe(20)
 
@@ -70,11 +70,11 @@ describe('useDrag', () => {
     )
     const handlers = (
       result.current.gesture as unknown as {
-        handlers: Record<string, (e: unknown) => void>
+        config: Record<string, (e: unknown) => void>
       }
-    ).handlers
+    ).config
 
-    handlers.onStart?.({})
+    handlers.onActivate?.({})
     handlers.onUpdate?.({ translationX: 200, translationY: 0 })
     // Overshoot of 100 past the right bound, scaled by 0.5 → 100 + 50 = 150.
     expect(result.current.dragX.value).toBe(150)
@@ -85,13 +85,13 @@ describe('useDrag', () => {
     const { result } = renderHook(() => useDrag({ onDragEnd }))
     const handlers = (
       result.current.gesture as unknown as {
-        handlers: Record<string, (e: unknown) => void>
+        config: Record<string, (e: unknown) => void>
       }
-    ).handlers
+    ).config
 
-    handlers.onStart?.({})
+    handlers.onActivate?.({})
     handlers.onUpdate?.({ translationX: 12, translationY: 34 })
-    handlers.onEnd?.({ velocityX: 800, velocityY: -200 })
+    handlers.onDeactivate?.({ velocityX: 800, velocityY: -200 })
 
     expect(onDragEnd).toHaveBeenCalledWith({
       x: 12,
@@ -105,13 +105,13 @@ describe('useDrag', () => {
     const { result } = renderHook(() => useDrag({ onRelease }))
     const handlers = (
       result.current.gesture as unknown as {
-        handlers: Record<string, (e: unknown) => void>
+        config: Record<string, (e: unknown) => void>
       }
-    ).handlers
+    ).config
 
-    handlers.onStart?.({})
+    handlers.onActivate?.({})
     handlers.onUpdate?.({ translationX: 70, translationY: -10 })
-    handlers.onEnd?.({ velocityX: 1500, velocityY: 200 })
+    handlers.onDeactivate?.({ velocityX: 1500, velocityY: 200 })
 
     expect(onRelease).toHaveBeenCalledWith({
       x: 70,
@@ -126,12 +126,12 @@ describe('useDrag', () => {
     const { result } = renderHook(() => useDrag({ onRelease, onDragEnd }))
     const handlers = (
       result.current.gesture as unknown as {
-        handlers: Record<string, (e: unknown) => void>
+        config: Record<string, (e: unknown) => void>
       }
-    ).handlers
+    ).config
 
-    handlers.onStart?.({})
-    handlers.onEnd?.({ velocityX: 100, velocityY: 100 })
+    handlers.onActivate?.({})
+    handlers.onDeactivate?.({ velocityX: 100, velocityY: 100 })
 
     expect(onRelease).toHaveBeenCalledTimes(1)
     expect(onDragEnd).toHaveBeenCalledTimes(1)
@@ -147,13 +147,13 @@ describe('useDrag', () => {
     const { result } = renderHook(() => useDrag({ axis: 'x', onRelease }))
     const handlers = (
       result.current.gesture as unknown as {
-        handlers: Record<string, (e: unknown) => void>
+        config: Record<string, (e: unknown) => void>
       }
-    ).handlers
+    ).config
 
-    handlers.onStart?.({})
+    handlers.onActivate?.({})
     handlers.onUpdate?.({ translationX: 50, translationY: 0 })
-    handlers.onEnd?.({ velocityX: 0, velocityY: 0 })
+    handlers.onDeactivate?.({ velocityX: 0, velocityY: 0 })
 
     expect(onRelease).toHaveBeenCalled()
     // y SV stays untouched (locked out by axis: 'x').
@@ -166,13 +166,13 @@ describe('useDrag', () => {
     const { result } = renderHook(() => useDrag({ onRelease }))
     const handlers = (
       result.current.gesture as unknown as {
-        handlers: Record<string, (e: unknown) => void>
+        config: Record<string, (e: unknown) => void>
       }
-    ).handlers
+    ).config
 
-    handlers.onStart?.({})
+    handlers.onActivate?.({})
     handlers.onUpdate?.({ translationX: 25, translationY: 25 })
-    handlers.onEnd?.({ velocityX: 0, velocityY: 0 })
+    handlers.onDeactivate?.({ velocityX: 0, velocityY: 0 })
 
     // SVs sit at the release position — no withSpring/withDecay assignment.
     expect(result.current.dragX.value).toBe(25)
@@ -184,10 +184,10 @@ describe('useDrag', () => {
     const { result } = renderHook(() => useDrag({ onDragStart }))
     const handlers = (
       result.current.gesture as unknown as {
-        handlers: Record<string, (e: unknown) => void>
+        config: Record<string, (e: unknown) => void>
       }
-    ).handlers
-    handlers.onStart?.({})
+    ).config
+    handlers.onActivate?.({})
     expect(onDragStart).toHaveBeenCalledTimes(1)
     expect(result.current.isDragging.value).toBe(true)
   })
@@ -200,12 +200,12 @@ describe('useDrag', () => {
     const { result } = renderHook(() => useDrag({ onRelease }))
     const handlers = (
       result.current.gesture as unknown as {
-        handlers: Record<string, (e: unknown) => void>
+        config: Record<string, (e: unknown) => void>
       }
-    ).handlers
-    handlers.onStart?.({})
+    ).config
+    handlers.onActivate?.({})
     handlers.onUpdate?.({ translationX: 40, translationY: 10 })
-    handlers.onEnd?.({ velocityX: 900, velocityY: 0 })
+    handlers.onDeactivate?.({ velocityX: 900, velocityY: 0 })
     expect(withDecay).toHaveBeenCalledTimes(1)
     expect(withDecay.mock.calls[0]![0]).toEqual(
       expect.objectContaining({ velocity: 900 }),
@@ -226,10 +226,10 @@ describe('useDrag', () => {
     expect(result.current.gesture).toBe(gesture)
 
     const handlers = (
-      gesture as unknown as { handlers: Record<string, (e: unknown) => void> }
-    ).handlers
-    handlers.onStart?.({})
-    handlers.onEnd?.({ velocityX: 0, velocityY: 0 })
+      gesture as unknown as { config: Record<string, (e: unknown) => void> }
+    ).config
+    handlers.onActivate?.({})
+    handlers.onDeactivate?.({ velocityX: 0, velocityY: 0 })
     expect(first).not.toHaveBeenCalled()
     expect(latest).toHaveBeenCalledTimes(1)
   })
