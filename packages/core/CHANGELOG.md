@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **`useSpring` and `useInView` no longer cause a Reanimated warning on native.** Reanimated 4.7 logs "Dependencies should only be used on the web and are always ignored on native" in development when a `useAnimatedReaction` call passes a dependency list. Both hooks passed one, so an app printed the warning once and found no offending code in its own source. The two calls now pass no list, and Reanimated builds the list from the worklet closures on native and on the web. A `useSpring` that swaps its shared-value target still re-registers its reaction. No change in a production build.
+
 ## [0.0.20] - 2026-10-23
 
 ### Changed

@@ -233,7 +233,6 @@ export function useInView(
       if (next === null || next === previous) return
       runOnJS(report)(next)
     },
-    [trackScroll, amount, margin, offset, length, measuredViewport],
   )
 
   // ─── Web: IntersectionObserver, which needs no scroll container ───────────

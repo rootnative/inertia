@@ -1,6 +1,6 @@
 import { useRef, type ReactElement } from 'react'
 import { act, render } from '@testing-library/react-native'
-import { type SharedValue } from 'react-native-reanimated'
+import * as Reanimated from 'react-native-reanimated'
 import { Motion } from '../motion'
 import { __setSharedLayoutMeasurer, type MeasuredRect } from '../layout'
 import { useScrollContext, type ScrollContextValue } from '../scroll'
@@ -17,7 +17,7 @@ let elementNode: unknown = null
 
 /** Handles the test reaches in to drive the hook. */
 interface Probe {
-  progress?: SharedValue<number>
+  progress?: Reanimated.SharedValue<number>
   scroll?: ScrollContextValue | null
 }
 
@@ -192,6 +192,22 @@ describe('useInView inside a Motion scroll container', () => {
 
     await scrollTo(probe, mounted, 600)
     expect(probe.progress?.value).toBe(1)
+  })
+})
+
+describe('useInView reaction', () => {
+  it('passes no dependency list', async () => {
+    // Reanimated 4.7 warns in development when a list reaches the native
+    // hook, and builds its own list from the worklet closures.
+    const reaction = jest.spyOn(Reanimated, 'useAnimatedReaction')
+    const probe: Probe = {}
+    const mounted = renderInScroller(probe)
+    await settle(mounted)
+
+    expect(reaction).toHaveBeenCalled()
+    for (const call of reaction.mock.calls) expect(call).toHaveLength(2)
+
+    reaction.mockRestore()
   })
 })
 

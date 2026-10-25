@@ -85,12 +85,11 @@ export function useSpring(
   // number we never declare a source so the reaction is inert (returns
   // `null`, never fires `react`).
   //
-  // `source` is in the dependency list on purpose. An explicit list replaces
-  // Reanimated's closure-derived one, so a caller that swaps which shared
-  // value drives the spring would otherwise keep the reaction wired to the
-  // old one — the same stale-closure class `useColorCascade` fixed in 0.0.4.
-  // A plain-number target maps to `null`, so a changing number does not
-  // re-register the inert reaction.
+  // No dependency list: Reanimated 4.7 ignores one on native and warns in
+  // development. Reanimated builds the list from the closures of the two
+  // worklets, so a caller that swaps which shared value drives the spring
+  // re-registers the reaction through `source`. A plain-number target maps
+  // to `null`, so a changing number does not re-register the inert reaction.
   const source = isSharedTarget ? target : null
   useAnimatedReaction(
     () => {
@@ -103,7 +102,6 @@ export function useSpring(
       if (next === null || next === prev) return
       output.value = shouldReduceMotion ? next : withSpring(next, reanimConfig)
     },
-    [source, reanimConfig, shouldReduceMotion],
   )
 
   // Stop the in-flight spring when the owning component unmounts so its
