@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.21] - 2026-10-26
+
 ### Fixed
 
 - **`useSpring` and `useInView` no longer cause a Reanimated warning on native.** Reanimated 4.7 logs "Dependencies should only be used on the web and are always ignored on native" in development when a `useAnimatedReaction` call passes a dependency list. Both hooks passed one, so an app printed the warning once and found no offending code in its own source. The two calls now pass no list, and Reanimated builds the list from the worklet closures on native and on the web. A `useSpring` that swaps its shared-value target still re-registers its reaction. No change in a production build.
@@ -545,7 +547,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.20...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.21...HEAD
+[0.0.21]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.21
 [0.0.20]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.20
 [0.0.19]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.19
 [0.0.18]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.18
