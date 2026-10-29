@@ -2059,9 +2059,31 @@ So a component that animates on its own, such as a spinner or a skeleton, can go
 
 A custom component that calls `usePresence()` and then `safeToRemove()` removes the child at once. It does not wait for the `Motion.*` exits, so call it only after the whole exit has finished.
 
+## A child with no `Motion.*` leaves at once
+
+A departing child with no `Motion.*` and no `usePresence()` consumer has nothing to animate and nothing to wait for. `Presence` removes it the moment it departs, with no exit animation. So a loading placeholder in a plain `View` can swap for its content under one `<Presence>`:
+
+```tsx
+<Presence>
+  {loading ? (
+    <View key="loading">
+      <Spinner />
+    </View>
+  ) : (
+    <Motion.View
+      key="content"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    />
+  )}
+</Presence>
+```
+
+The content fades in, and the placeholder is gone on the same frame. Give the placeholder a `Motion.View` with an `exit` when it must fade out.
+
 ## What can be a child?
 
-Any component that consumes `usePresence()` and calls `safeToRemove()` when its exit completes. Every `Motion.*` primitive does this. Plain `View` / `Text` will linger in the snapshot once removed because nothing tells `Presence` they're done — pick a Motion primitive instead.
+Any element. A child animates its exit through a `Motion.*` primitive, or through a component that consumes `usePresence()` and calls `safeToRemove()` when its exit completes. A child with neither is removed at once.
 
 ## Accessing presence state
 
@@ -4047,6 +4069,8 @@ function CustomExitable() {
   // presence?.safeToRemove() — call once exit completes
 }
 ```
+
+A call to `usePresence()` also tells `<Presence>` that the child has a consumer. The child then stays mounted after it departs until `safeToRemove()` runs, or until every `Motion.*` under it has finished its exit. A departing child with no consumer and no `Motion.*` is removed at once. A component that reads `isPresent` only, and never calls `safeToRemove()`, does not hold a child that has a `Motion.*` inside it.
 
 See [Presence](../presence) for the higher-level prop-driven usage.
 
