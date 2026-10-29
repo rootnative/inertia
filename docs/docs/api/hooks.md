@@ -848,6 +848,8 @@ function CustomExitable() {
 }
 ```
 
+A call to `usePresence()` also tells `<Presence>` that the child has a consumer. The child then stays mounted after it departs until `safeToRemove()` runs, or until every `Motion.*` under it has finished its exit. A departing child with no consumer and no `Motion.*` is removed at once. A component that reads `isPresent` only, and never calls `safeToRemove()`, does not hold a child that has a `Motion.*` inside it.
+
 See [Presence](../presence) for the higher-level prop-driven usage.
 
 ## `buildReleaseAnimation(transition, toValue, callback?)`

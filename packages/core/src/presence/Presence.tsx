@@ -29,10 +29,10 @@ interface RenderEntry {
  * animation completes; descendants consume the per-child `<PresenceContext>`
  * to coordinate.
  *
- * Children must be `<Motion.*>` primitives (or any component that consumes
- * `usePresence()` and calls `safeToRemove`). Plain elements without that
- * contract will linger in the snapshot once removed; document that and pick
- * the right primitive.
+ * A child animates its exit through a `<Motion.*>` primitive (or any
+ * component that consumes `usePresence()` and calls `safeToRemove`). A child
+ * with neither has nothing to wait for and is removed the moment it departs,
+ * with no exit animation.
  *
  * Children also need explicit `key`s so removal is detectable across
  * renders. Without a key, React falls back to positional identity and
@@ -41,7 +41,8 @@ interface RenderEntry {
  * An exiting child is removed when every `Motion.*` under it has finished its
  * exit. A `Motion.*` with no `exit` is finished at once, so it cannot cut the
  * exit of an ancestor. A custom `usePresence()` consumer that calls
- * `safeToRemove` still removes the child at once.
+ * `safeToRemove` still removes the child at once, and its presence alone
+ * keeps a departing child mounted until it does.
  */
 export function Presence({ children }: { children: ReactNode }) {
   const incoming = useMemo(() => {
@@ -232,6 +233,9 @@ function PresenceItem({
   // Released state per registered `Motion.*`. Refs, not state: a release must
   // not re-render the subtree that is animating out.
   const releasedRef = useRef(new Map<string, boolean>())
+  // `usePresence()` consumers. They never block a removal, but a child that
+  // has one waits for `safeToRemove` instead of leaving at once.
+  const observersRef = useRef(new Set<string>())
   const exitingRef = useRef(!isPresent)
   const itemKeyRef = useRef(itemKey)
   const onRemoveRef = useRef(onRemove)
@@ -239,6 +243,12 @@ function PresenceItem({
   // A layout effect, because the `Motion.*` effects that release are passive
   // and run after it in the same commit. A child that returns mid-exit starts
   // the next exit with every release cleared.
+  //
+  // A departing child with no `Motion.*` and no `usePresence()` consumer has
+  // nothing that can call `safeToRemove`, so it is removed here. Both sets
+  // are complete at this point: each participant registers in a passive
+  // effect of the commit that mounted it, and React flushes those effects
+  // before the render that marks the child as departing.
   useLayoutEffect(() => {
     exitingRef.current = !isPresent
     itemKeyRef.current = itemKey
@@ -247,6 +257,11 @@ function PresenceItem({
       for (const id of releasedRef.current.keys()) {
         releasedRef.current.set(id, false)
       }
+    } else if (
+      releasedRef.current.size === 0 &&
+      observersRef.current.size === 0
+    ) {
+      onRemove(itemKey)
     }
   }, [isPresent, itemKey, onRemove])
 
@@ -270,6 +285,12 @@ function PresenceItem({
         if (!exitingRef.current || !releasedRef.current.has(id)) return
         releasedRef.current.set(id, true)
         removeIfAllReleased()
+      },
+      observe: (id) => {
+        observersRef.current.add(id)
+        return () => {
+          observersRef.current.delete(id)
+        }
       },
     }
   }, [])

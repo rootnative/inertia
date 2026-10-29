@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **`<Presence>` removes a departing child that holds no `Motion.*`.** `<Presence>` removed an exiting child when every `Motion.*` registered under it had released. A child with no `Motion.*` registered nothing, so nothing released, and the child stayed in the tree for good: a loading placeholder in a plain `View` stayed on screen beside the content that replaced it, with no warning. Such a child is now removed the moment it departs, with no exit animation. A child that holds a `Motion.*` still waits for its exit. A component that calls `usePresence()` now marks its child as one that waits, so a custom consumer with no `Motion.*` inside still gets to call `safeToRemove()` after its own exit. A `usePresence()` call never blocks the `Motion.*` exits. The Presence page states the rule.
+
 ## [0.0.21] - 2026-10-26
 
 ### Fixed
