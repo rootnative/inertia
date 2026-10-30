@@ -1,9 +1,16 @@
 import { StyleSheet, Text, View } from 'react-native'
 import Animated, { useAnimatedStyle } from 'react-native-reanimated'
-import { Motion, useScroll, useTransform } from '@rootnative/inertia'
+import {
+  Motion,
+  useHideOnScroll,
+  useInterpolatedStyle,
+  useScroll,
+  useTransform,
+} from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 const ROWS = Array.from({ length: 30 }, (_, i) => i + 1)
+const FOOTER_HEIGHT = 56
 
 /**
  * `useScroll` tracks a `Motion.ScrollView`'s offset as shared values on the
@@ -35,11 +42,17 @@ export function UseScrollScreen({ onBack }: { onBack: () => void }) {
   const barLabelStyle = useAnimatedStyle(() => ({
     color: barTextColor.value,
   }))
+  // `useHideOnScroll` follows the direction of the scroll: the footer exits
+  // by its own height on a scroll down and returns on the first scroll up.
+  const footerHidden = useHideOnScroll(scrollY, { distance: FOOTER_HEIGHT })
+  const footerStyle = useInterpolatedStyle(footerHidden, {
+    translateY: [0, FOOTER_HEIGHT],
+  })
 
   return (
     <ScreenShell
       title="useScroll + useTransform"
-      description="Scroll offset tracked on the UI thread, interpolated onto opacity, translateY, and two colors. Scroll the list and watch the header collapse."
+      description="Scroll offset tracked on the UI thread, interpolated onto opacity, translateY, and two colors. Scroll the list and watch the header collapse. The footer hides on a scroll down and returns on a scroll up."
       onBack={onBack}
       fill
     >
@@ -69,6 +82,9 @@ export function UseScrollScreen({ onBack }: { onBack: () => void }) {
             </View>
           ))}
         </Motion.ScrollView>
+        <Animated.View style={[styles.footer, footerStyle]}>
+          <Text style={styles.footerLabel}>Hides on scroll</Text>
+        </Animated.View>
       </View>
     </ScreenShell>
   )
@@ -124,5 +140,20 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 16,
     color: '#111827',
+  },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: FOOTER_HEIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4f46e5',
+  },
+  footerLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 })

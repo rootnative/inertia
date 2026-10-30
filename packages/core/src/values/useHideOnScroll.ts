@@ -1,0 +1,78 @@
+import {
+  useAnimatedReaction,
+  useSharedValue,
+  type SharedValue,
+} from 'react-native-reanimated'
+
+export interface UseHideOnScrollOptions {
+  /**
+   * The scroll distance, in points, that moves the progress from 0 to 1.
+   * Usually the height of the element that hides, so the element moves with
+   * the content, one point for one point.
+   */
+  distance: number
+}
+
+/**
+ * Drive a 0↔1 progress from the direction of a scroll: it rises while the
+ * content scrolls down and falls while the content scrolls up, one point of
+ * scroll for one point of `distance`. A bar that translates by its own height
+ * from this value exits as the user reads on and returns the moment they
+ * scroll back, which is the hide-on-scroll pattern of a bottom bar or a
+ * floating button.
+ *
+ * ```tsx
+ * const { scrollY, onScroll } = useScroll()
+ * const hidden = useHideOnScroll(scrollY, { distance: 80 })
+ * const barStyle = useInterpolatedStyle(hidden, { translateY: [0, 80] })
+ *
+ * return (
+ *   <>
+ *     <Motion.ScrollView onScroll={onScroll} scrollEventThrottle={16}>
+ *       …
+ *     </Motion.ScrollView>
+ *     <Animated.View style={[styles.bar, barStyle]} />
+ *   </>
+ * )
+ * ```
+ *
+ * The progress is 0 whenever the offset is at or above the top, so the
+ * element is in place at the top of the content and after an overscroll
+ * bounce. The value accumulates and clamps: a long scroll down holds it at
+ * 1, and the first scroll up starts to bring it back. It runs on the UI
+ * thread, through a reaction on the offset, so it is safe to read from any
+ * worklet. It does not snap to 0 or 1 when the scroll stops.
+ */
+export function useHideOnScroll(
+  offset: SharedValue<number>,
+  options: UseHideOnScrollOptions,
+): SharedValue<number> {
+  const { distance } = options
+  const progress = useSharedValue(0)
+  // The previous offset is kept here, not taken from the reaction's second
+  // argument: the Jest mock of `useAnimatedReaction` runs the reaction once
+  // per render with no previous value, and the own value makes the hook
+  // observable in a test the same way it runs on a device.
+  const previous = useSharedValue(offset.value)
+
+  // No dependency list: Reanimated 4.7 warns on native when one is passed,
+  // and builds the list from the worklet closure on every platform.
+  useAnimatedReaction(
+    () => offset.value,
+    (current) => {
+      'worklet'
+      const delta = current - previous.value
+      previous.value = current
+      if (current <= 0) {
+        progress.value = 0
+        return
+      }
+      progress.value = Math.min(
+        1,
+        Math.max(0, progress.value + delta / distance),
+      )
+    },
+  )
+
+  return progress
+}

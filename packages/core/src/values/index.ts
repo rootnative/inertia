@@ -19,6 +19,7 @@ export {
   type UseGesturePointerHandlers,
   type UseGestureResult,
 } from './useGesture'
+export { useHideOnScroll, type UseHideOnScrollOptions } from './useHideOnScroll'
 export { useInView, type UseInViewOptions } from './useInView'
 export {
   useInterpolatedStyle,

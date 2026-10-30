@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Added
+
+- **`useHideOnScroll(offset, { distance })`.** A 0↔1 shared value from the direction of a scroll: it rises while the content scrolls down and falls while it scrolls up, one point of scroll for one point of `distance`. Set `distance` to the height of the element that hides and translate the element by it, and the element exits as the user reads on and returns the moment they scroll back: the hide-on-scroll pattern of a bottom app bar or a floating button. The value is 0 at or above the top of the content, so an overscroll bounce leaves the element in place. It accumulates and clamps, runs on the UI thread through a reaction on the offset, and does not snap when the scroll stops. The `UseHideOnScrollOptions` type is exported. `useScroll` is the usual source of the offset; any `SharedValue<number>` works.
+
 ## [0.0.22] - 2026-10-29
 
 ### Fixed

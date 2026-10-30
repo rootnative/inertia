@@ -7,7 +7,7 @@ description: The escape-hatch surface, for imperative control beyond what the pr
 
 The escape-hatch surface — drop here when you need imperative control beyond what the props expose.
 
-The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useInterpolatedStyle`, `useScroll`, `useInView`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition` / `useInterpolatedStyle`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
+The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useInterpolatedStyle`, `useScroll`, `useHideOnScroll`, `useInView`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition` / `useInterpolatedStyle`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
 
 :::note Unmount cleanup
 `useMotionValue`, `useSpring`, `useBooleanSpring`, and `useAnimation` cancel any in-flight animation on unmount, so a still-settling or `repeat: 'infinite'` animation stops ticking its worklet once its owning component is gone — you don't need a manual `cancelAnimation` teardown effect for that case. To cancel _mid-life_ (while the component stays mounted), import `cancelAnimation` from the [`/reanimated`](./reanimated-interop) interop subpath and call it yourself. The `Motion.*` primitives get the same unmount cleanup for their internal shared values.
@@ -546,6 +546,46 @@ Returns:
 | `onScroll` | `(event: NativeSyntheticEvent<NativeScrollEvent>) => void` | Pass to the scrollable's `onScroll` prop. Worklet-backed; safe to forward to any Reanimated-animated scrollable. |
 
 Set `scrollEventThrottle={16}` on a `Motion.ScrollView` for steady 60 Hz updates; without it, Android can dispatch less frequently than iOS. [`Motion.FlatList`](../primitives/flat-list) needs no such prop — it defaults the throttle to 1. Reach for `Motion.FlatList` when the list is long enough that mounting every row costs more than the animation does.
+
+## `useHideOnScroll(offset, { distance })`
+
+Drive a 0↔1 shared value from the direction of a scroll. The value rises while the content scrolls down and falls while it scrolls up, one point of scroll for one point of `distance`. A bar that translates by its own height from this value exits as the user reads on, and returns the moment they scroll back: the hide-on-scroll pattern of a bottom app bar or a floating button.
+
+```tsx
+import {
+  useHideOnScroll,
+  useInterpolatedStyle,
+  useScroll,
+  Motion,
+} from '@rootnative/inertia'
+import { Animated } from '@rootnative/inertia/reanimated'
+
+const BAR_HEIGHT = 80
+
+function Screen() {
+  const { scrollY, onScroll } = useScroll()
+  const hidden = useHideOnScroll(scrollY, { distance: BAR_HEIGHT })
+  const barStyle = useInterpolatedStyle(hidden, { translateY: [0, BAR_HEIGHT] })
+
+  return (
+    <>
+      <Motion.ScrollView onScroll={onScroll} scrollEventThrottle={16}>
+        {/* …content… */}
+      </Motion.ScrollView>
+      <Animated.View style={[styles.bar, barStyle]} />
+    </>
+  )
+}
+```
+
+Set `distance` to the height of the element that hides, so the element moves with the content.
+
+The rules of the value:
+
+- It is 0 whenever the offset is at or above the top, so the element is in place at the top of the content and after an overscroll bounce.
+- It accumulates and clamps. A long scroll down holds it at 1, and the first scroll up starts to bring it back, from anywhere in the content.
+- It runs on the UI thread, through a reaction on the offset, so it is safe to read from any worklet.
+- It does not snap to 0 or 1 when the scroll stops. An element can rest half hidden after a short scroll.
 
 ## `useInView(ref, options?)`
 

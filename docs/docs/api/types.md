@@ -196,6 +196,10 @@ The props of `<Stagger>`: `interval`, `delay?`, `from?: 'first' | 'last'`, `enab
 
 The value that [`useScroll`](./hooks.md#usescroll) returns: `scrollX` and `scrollY` as `SharedValue<number>`, and `onScroll`, which you pass to the `onScroll` prop of `Motion.ScrollView` or `Motion.FlatList`.
 
+### `UseHideOnScrollOptions`
+
+The second argument of [`useHideOnScroll`](./hooks.md#usehideonscrolloffset--distance-): `distance`, the scroll distance in points that moves the progress from 0 to 1.
+
 ### `UseInViewOptions`
 
 The second argument of [`useInView`](./hooks.md#useinviewref-options): `amount`, `once`, `margin`, and `transition`.
