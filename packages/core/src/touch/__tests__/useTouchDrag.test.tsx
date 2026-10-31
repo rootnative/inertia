@@ -1,5 +1,6 @@
 import { renderHook } from '@testing-library/react-native'
 import { PanResponder } from 'react-native'
+import * as Reanimated from 'react-native-reanimated'
 import { useTouchDrag } from '../useTouchDrag'
 
 // Capture the responder config that `useTouchDrag` passes to
@@ -110,6 +111,55 @@ describe('useTouchDrag', () => {
     cfg.onPanResponderMove?.({}, gesture(200, 0))
     // Overshoot of 100 past the right bound, scaled by 0.5 → 100 + 50 = 150.
     expect(result.current.dragX.value).toBe(150)
+    spy.mockRestore()
+  })
+
+  it('springs an overshoot back to the bound with the release velocity', () => {
+    const { spy, config } = captureConfig()
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const { result } = renderHook(() =>
+      useTouchDrag({
+        axis: 'x',
+        constraints: { left: -100, right: 100 },
+        elastic: 0.5,
+      }),
+    )
+    const cfg = config()
+
+    cfg.onPanResponderGrant?.({}, gesture())
+    cfg.onPanResponderMove?.({}, gesture(-200, 0))
+    expect(result.current.dragX.value).toBe(-150)
+    cfg.onPanResponderRelease?.({}, gesture(-200, 0, -0.7, 0))
+
+    expect(withSpring).toHaveBeenCalledTimes(1)
+    expect(withSpring.mock.calls[0]![0]).toBe(-100)
+    expect(withSpring.mock.calls[0]![1]).toEqual(
+      expect.objectContaining({ velocity: -700 }),
+    )
+    expect(result.current.dragX.value).toBe(-100)
+    spy.mockRestore()
+  })
+
+  it('springs back only the axes that onRelease leaves out', () => {
+    const { spy, config } = captureConfig()
+    const onRelease = jest.fn(() => ({
+      x: { type: 'no-animation' as const, to: 30 },
+    }))
+    const { result } = renderHook(() =>
+      useTouchDrag({
+        constraints: { right: 100, bottom: 50 },
+        elastic: 0.5,
+        onRelease,
+      }),
+    )
+    const cfg = config()
+
+    cfg.onPanResponderGrant?.({}, gesture())
+    cfg.onPanResponderMove?.({}, gesture(200, 200))
+    cfg.onPanResponderRelease?.({}, gesture(200, 200, 0, 0))
+
+    expect(result.current.dragX.value).toBe(30)
+    expect(result.current.dragY.value).toBe(50)
     spy.mockRestore()
   })
 

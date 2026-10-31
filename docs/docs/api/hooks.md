@@ -993,14 +993,14 @@ function Slider({ ticks }: { ticks: number[] }) {
 }
 ```
 
-| Option        | Type                                           | Default  | Notes                                                                                    |
-| ------------- | ---------------------------------------------- | -------- | ---------------------------------------------------------------------------------------- |
-| `axis`        | `'x' \| 'y' \| 'both'`                         | `'both'` | Lock the gesture to one axis.                                                            |
-| `constraints` | `{ left?, right?, top?, bottom? }`             | none     | Bounds in px from the resting position. Each side independently optional.                |
-| `elastic`     | `number` (0–1)                                 | `0`      | Rubber-band coefficient past `constraints`. `0` hard-clamps.                             |
-| `onDragStart` | `() => void`                                   | none     | Fires on JS thread when drag begins.                                                     |
-| `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends. Velocity normalized to px/sec.                        |
-| `onRelease`   | `(info) => ReleaseResult \| void`              | none     | JS-thread release transition. Same shape as the gesture-handler `useDrag`'s `onRelease`. |
+| Option        | Type                                           | Default  | Notes                                                                                                           |
+| ------------- | ---------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `axis`        | `'x' \| 'y' \| 'both'`                         | `'both'` | Lock the gesture to one axis.                                                                                   |
+| `constraints` | `{ left?, right?, top?, bottom? }`             | none     | Bounds in px from the resting position. Each side independently optional.                                       |
+| `elastic`     | `number` (0–1)                                 | `0`      | Rubber-band coefficient past `constraints`. `0` hard-clamps. An overshoot springs back to the bound on release. |
+| `onDragStart` | `() => void`                                   | none     | Fires on JS thread when drag begins.                                                                            |
+| `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends. Velocity normalized to px/sec.                                               |
+| `onRelease`   | `(info) => ReleaseResult \| void`              | none     | JS-thread release transition. Same shape as the gesture-handler `useDrag`'s `onRelease`.                        |
 
 Returns `{ panHandlers, animatedStyle, dragX, dragY, isDragging }`.
 

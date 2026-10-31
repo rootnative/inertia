@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Fixed
+
+- **`useDrag` springs an `elastic` overshoot back inside its `constraints` on release.** With `elastic` above 0, a drag past a bound stretched the element past it, and the element stayed there after release until the next drag. The docs promised a Framer Motion feel, and that feel includes the return. Now an axis that lands past `constraints` and gets no transition from `onRelease` springs back to the nearest bound, with the default spring and the release velocity. A transition that `onRelease` returns for an axis still replaces the spring back on that axis, and an axis that lands inside the bounds stays where it landed, as before. `useTouchDrag` in `@rootnative/inertia` gets the same fix.
+
 ## [0.0.23] - 2026-10-31
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.23` (the `useHideOnScroll` hook, a 0↔1 shared value from the direction of a scroll). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.23 <0.1.0`.

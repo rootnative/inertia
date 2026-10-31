@@ -234,3 +234,92 @@ describe('useDrag', () => {
     expect(latest).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('useDrag — elastic snap-back', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  function getHandlers(gesture: unknown) {
+    return (gesture as { config: Record<string, (e: unknown) => void> }).config
+  }
+
+  it('springs an overshoot back to the bound with the release velocity', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const { result } = renderHook(() =>
+      useDrag({
+        axis: 'x',
+        constraints: { left: -100, right: 100 },
+        elastic: 0.5,
+      }),
+    )
+    const handlers = getHandlers(result.current.gesture)
+
+    handlers.onActivate?.({})
+    handlers.onUpdate?.({ translationX: 200, translationY: 0 })
+    expect(result.current.dragX.value).toBe(150)
+    handlers.onDeactivate?.({ velocityX: 700, velocityY: 0 })
+
+    expect(withSpring).toHaveBeenCalledTimes(1)
+    expect(withSpring.mock.calls[0]![0]).toBe(100)
+    expect(withSpring.mock.calls[0]![1]).toEqual(
+      expect.objectContaining({ velocity: 700 }),
+    )
+    expect(result.current.dragX.value).toBe(100)
+  })
+
+  it('springs both axes back to their lower bounds', () => {
+    const { result } = renderHook(() =>
+      useDrag({ constraints: { left: -100, top: -60 }, elastic: 0.5 }),
+    )
+    const handlers = getHandlers(result.current.gesture)
+
+    handlers.onActivate?.({})
+    handlers.onUpdate?.({ translationX: -200, translationY: -200 })
+    expect(result.current.dragX.value).toBe(-150)
+    expect(result.current.dragY.value).toBe(-130)
+    handlers.onDeactivate?.({ velocityX: 0, velocityY: 0 })
+
+    expect(result.current.dragX.value).toBe(-100)
+    expect(result.current.dragY.value).toBe(-60)
+  })
+
+  it('leaves a release inside the constraints where it landed', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const { result } = renderHook(() =>
+      useDrag({ constraints: { left: -100, right: 100 }, elastic: 0.4 }),
+    )
+    const handlers = getHandlers(result.current.gesture)
+
+    handlers.onActivate?.({})
+    handlers.onUpdate?.({ translationX: 50, translationY: 0 })
+    handlers.onDeactivate?.({ velocityX: 300, velocityY: 0 })
+
+    expect(withSpring).not.toHaveBeenCalled()
+    expect(result.current.dragX.value).toBe(50)
+  })
+
+  it('springs back only the axes that onRelease leaves out', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const onRelease = jest.fn(() => ({
+      y: { type: 'no-animation' as const, to: 10 },
+    }))
+    const { result } = renderHook(() =>
+      useDrag({
+        constraints: { right: 100, bottom: 50 },
+        elastic: 0.5,
+        onRelease,
+      }),
+    )
+    const handlers = getHandlers(result.current.gesture)
+
+    handlers.onActivate?.({})
+    handlers.onUpdate?.({ translationX: 200, translationY: 200 })
+    handlers.onDeactivate?.({ velocityX: 0, velocityY: 0 })
+
+    // y takes the transition from onRelease, past its bound or not.
+    expect(result.current.dragY.value).toBe(10)
+    expect(withSpring).toHaveBeenCalledTimes(1)
+    expect(result.current.dragX.value).toBe(100)
+  })
+})

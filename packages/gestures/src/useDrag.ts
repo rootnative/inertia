@@ -130,6 +130,8 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
         const y = dragY.value
         const vx = e.velocityX
         const vy = e.velocityY
+        let releasedX = false
+        let releasedY = false
         if (onRelease) {
           const result = onRelease({ x, y, velocity: { x: vx, y: vy } })
           if (result) {
@@ -142,6 +144,7 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
                 result.x,
                 toX,
               ) as unknown as number
+              releasedX = true
             }
             if (result.y && lockY) {
               const toY = 'to' in result.y ? result.y.to : y
@@ -149,7 +152,29 @@ export function useDrag(options: DragOptions = {}): UseDragResult {
                 result.y,
                 toY,
               ) as unknown as number
+              releasedY = true
             }
+          }
+        }
+        // An elastic overshoot that gets no release transition springs back
+        // to the nearest bound with the release velocity. Without this it
+        // stays stretched past `constraints` until the next drag.
+        if (lockX && !releasedX) {
+          const restX = applyBounds(x, left, right, 0)
+          if (restX !== x) {
+            dragX.value = buildReleaseAnimation(
+              { type: 'spring', velocity: vx },
+              restX,
+            ) as unknown as number
+          }
+        }
+        if (lockY && !releasedY) {
+          const restY = applyBounds(y, top, bottom, 0)
+          if (restY !== y) {
+            dragY.value = buildReleaseAnimation(
+              { type: 'spring', velocity: vy },
+              restY,
+            ) as unknown as number
           }
         }
         if (hasDragEnd) {

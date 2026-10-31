@@ -74,7 +74,9 @@ export interface UseTouchDragOptions {
   }
   /**
    * Rubber-band coefficient applied to overshoot past `constraints`. `0`
-   * (default) hard-clamps; `0.2`-`0.4` is a typical Framer-Motion feel.
+   * (default) hard-clamps; `0.2`-`0.4` is a typical Framer-Motion feel. On
+   * release, an overshoot springs back to the nearest bound with the release
+   * velocity, unless `onRelease` returns a transition for that axis.
    */
   elastic?: number
   /**
@@ -91,7 +93,9 @@ export interface UseTouchDragOptions {
   /**
    * Optional release-animation callback. Return per-axis release transitions
    * to animate the SVs to a settled position via Inertia's transition
-   * resolver — spring snap-to-tick, decay with bounds, timing settle.
+   * resolver — spring snap-to-tick, decay with bounds, timing settle. Omit
+   * an axis (or return nothing) to leave that SV where it landed, or, after
+   * an `elastic` overshoot, to spring it back inside `constraints`.
    *
    * Unlike the gesture-handler version, this callback runs on the **JS
    * thread** (PanResponder is JS-only). The returned transitions still drive
@@ -192,6 +196,8 @@ export function useTouchDrag(
       const vx = g.vx * 1000
       const vy = g.vy * 1000
       const { onRelease, onDragEnd } = callbacksRef.current
+      let releasedX = false
+      let releasedY = false
       if (onRelease) {
         const result = onRelease({ x, y, velocity: { x: vx, y: vy } })
         if (result) {
@@ -201,6 +207,7 @@ export function useTouchDrag(
               result.x,
               toX,
             ) as unknown as number
+            releasedX = true
           }
           if (result.y && lockY) {
             const toY = 'to' in result.y ? result.y.to : y
@@ -208,7 +215,29 @@ export function useTouchDrag(
               result.y,
               toY,
             ) as unknown as number
+            releasedY = true
           }
+        }
+      }
+      // An elastic overshoot that gets no release transition springs back to
+      // the nearest bound with the release velocity. Without this it stays
+      // stretched past `constraints` until the next drag.
+      if (lockX && !releasedX) {
+        const restX = applyBounds(x, left, right, 0)
+        if (restX !== x) {
+          dragX.value = buildReleaseAnimation(
+            { type: 'spring', velocity: vx },
+            restX,
+          ) as unknown as number
+        }
+      }
+      if (lockY && !releasedY) {
+        const restY = applyBounds(y, top, bottom, 0)
+        if (restY !== y) {
+          dragY.value = buildReleaseAnimation(
+            { type: 'spring', velocity: vy },
+            restY,
+          ) as unknown as number
         }
       }
       if (onDragEnd) onDragEnd({ x, y, velocity: { x: vx, y: vy } })

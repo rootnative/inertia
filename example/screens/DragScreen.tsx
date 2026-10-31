@@ -56,7 +56,8 @@ const HINTS: Record<Mode, string> = {
   free: 'Two-axis drag, no bounds.',
   'x-only': 'Drag horizontally — y is ignored.',
   clamped: 'Hard clamp to ±100 px on x, ±60 px on y.',
-  'rubber-band': '±100/±60 px with elastic 0.4 — overshoot is dampened.',
+  'rubber-band':
+    '±100/±60 px with elastic 0.4 — overshoot is dampened and springs back on release.',
 }
 
 function DragBox({ mode }: { mode: Mode }) {

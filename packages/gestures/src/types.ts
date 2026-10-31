@@ -48,7 +48,9 @@ export type ReleaseTransition =
 
 /**
  * Per-axis release transitions returned by `onRelease`. Omit an axis to leave
- * its SV where it landed (no release animation on that axis).
+ * its SV where it landed (no release animation on that axis). An omitted axis
+ * that landed past `constraints` (an `elastic` overshoot) springs back to the
+ * nearest bound.
  *
  * `useSwipe`'s `onCommit` returns the same shape with one difference in the
  * omit semantics: an omitted axis snaps back to zero (the hook's resting
@@ -89,7 +91,9 @@ export interface DragOptions {
   /**
    * Rubber-band coefficient applied to overshoot past `constraints`. `0`
    * (default) hard-clamps; `1` is fully elastic (no resistance). Typical
-   * Framer-Motion-style feel sits around `0.2`–`0.4`.
+   * Framer-Motion-style feel sits around `0.2`–`0.4`. On release, an
+   * overshoot springs back to the nearest bound with the release velocity,
+   * unless `onRelease` returns a transition for that axis.
    */
   elastic?: number
   /**
@@ -105,7 +109,8 @@ export interface DragOptions {
    * UI-thread callback fired on release. Return per-axis release transitions
    * to animate the SVs to a settled position via Inertia's transition
    * resolver — spring snap-to-tick, decay with bounds, timing settle, etc.
-   * Omit an axis (or return nothing) to leave that SV where it landed.
+   * Omit an axis (or return nothing) to leave that SV where it landed, or,
+   * after an `elastic` overshoot, to spring it back inside `constraints`.
    *
    * This callback runs as a worklet so the release velocity stays on the UI
    * thread. Author it with the `'worklet'` directive at the top of the body.

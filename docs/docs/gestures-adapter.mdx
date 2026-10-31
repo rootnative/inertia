@@ -41,20 +41,20 @@ function DraggableBox() {
 }
 ```
 
-| Option        | Type                                           | Default  | Notes                                                                                               |
-| ------------- | ---------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
-| `axis`        | `'x' \| 'y' \| 'both'`                         | `'both'` | Lock the gesture to one axis.                                                                       |
-| `constraints` | `{ left?, right?, top?, bottom? }`             | none     | Bounds in px from the resting position. Each side independently optional.                           |
-| `elastic`     | `number` (0–1)                                 | `0`      | Rubber-band coefficient past `constraints`. `0` hard-clamps; `0.4` is a typical Framer-Motion feel. |
-| `onDragStart` | `() => void`                                   | none     | Fires on JS thread when drag begins.                                                                |
-| `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends.                                                                  |
-| `onRelease`   | `(info) => ReleaseResult \| void` (worklet)    | none     | UI-thread release transition — see below.                                                           |
+| Option        | Type                                           | Default  | Notes                                                                                                                                                  |
+| ------------- | ---------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `axis`        | `'x' \| 'y' \| 'both'`                         | `'both'` | Lock the gesture to one axis.                                                                                                                          |
+| `constraints` | `{ left?, right?, top?, bottom? }`             | none     | Bounds in px from the resting position. Each side independently optional.                                                                              |
+| `elastic`     | `number` (0–1)                                 | `0`      | Rubber-band coefficient past `constraints`. `0` hard-clamps; `0.4` is a typical Framer-Motion feel. An overshoot springs back to the bound on release. |
+| `onDragStart` | `() => void`                                   | none     | Fires on JS thread when drag begins.                                                                                                                   |
+| `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends.                                                                                                                     |
+| `onRelease`   | `(info) => ReleaseResult \| void` (worklet)    | none     | UI-thread release transition — see below.                                                                                                              |
 
 Returns `{ gesture, animatedStyle, dragX, dragY, isDragging }`. The shared values are exposed for power use cases (deriving secondary effects from drag position).
 
 ### Release transitions (`onRelease`)
 
-By default `useDrag` leaves the shared values exactly where the finger lifted. Pass `onRelease` to animate them to a settled position via Inertia's transition vocabulary — spring snap-to-tick, decay with bounds, timing settle. The callback runs as a **worklet** so the release velocity stays on the UI thread (no JS round-trip):
+By default `useDrag` leaves the shared values where the finger lifted. The one exception is an `elastic` overshoot: an axis that lifted past `constraints` springs back to the nearest bound with the default spring and the release velocity. Pass `onRelease` to animate them to a settled position via Inertia's transition vocabulary — spring snap-to-tick, decay with bounds, timing settle. The callback runs as a **worklet** so the release velocity stays on the UI thread (no JS round-trip):
 
 ```tsx
 const drag = useDrag({
@@ -71,7 +71,7 @@ const drag = useDrag({
 })
 ```
 
-Return per-axis release transitions in a `ReleaseResult` shape — omit an axis (or return nothing) to leave that SV where it landed. The transition shapes mirror the core `transition` prop:
+Return per-axis release transitions in a `ReleaseResult` shape — omit an axis (or return nothing) to leave that SV where it landed, or, after an `elastic` overshoot, to spring it back inside `constraints`. A transition you return for an axis replaces the spring back on that axis. The transition shapes mirror the core `transition` prop:
 
 ```ts
 type ReleaseTransition =
