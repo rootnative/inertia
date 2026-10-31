@@ -6,9 +6,15 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.23] - 2026-10-31
+
 ### Fixed
 
 - **A `fill` or `stroke` of `"none"` no longer aborts the app on native.** Reanimated runs every `fill` and `stroke` in `animatedProps` through its color processor on the UI thread, and that processor throws on the SVG `none` keyword. A `MotionCircle` with a static `fill="none"`, the documented progress-ring shape, engaged `fill` from that static prop and sent `none` on every frame. The first frame threw on the UI thread and the app exited with `SIGABRT`: no red box, nothing in the Metro log. `MotionPath` sent the same value from a `fill` or `stroke` seed of `none`. A static `none` with no `initial` and no `animate` for that key now stays a static prop and never enters `animatedProps`. A `none` in a seed or in an `animate` target maps to `TRANSPARENT`, which paints the same nothing. Jest did not catch it because the Reanimated mock does not process colors. Affects every release on Reanimated 4.5 and later (`0.0.11` onward).
+
+### Changed
+
+- The `@rootnative/inertia` peer range moves to `>=0.0.23 <0.1.0`, in lockstep.
 
 ## [0.0.22] - 2026-10-29
 
@@ -149,7 +155,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionPath` over `react-native-svg`. Animatable: `d` (element-wise scalar interpolation on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, `strokeDashoffset`. Source and target paths must share the same command sequence after implicit-repeat expansion; remount with `key` to switch shape.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.22...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.23...HEAD
+[0.0.23]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.23
 [0.0.22]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.22
 [0.0.21]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.21
 [0.0.20]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.20

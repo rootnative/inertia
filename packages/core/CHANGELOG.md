@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.23] - 2026-10-31
+
 ### Added
 
 - **`useHideOnScroll(offset, { distance })`.** A 0↔1 shared value from the direction of a scroll: it rises while the content scrolls down and falls while it scrolls up, one point of scroll for one point of `distance`. Set `distance` to the height of the element that hides and translate the element by it, and the element exits as the user reads on and returns the moment they scroll back: the hide-on-scroll pattern of a bottom app bar or a floating button. The value is 0 at or above the top of the content, so an overscroll bounce leaves the element in place. It accumulates and clamps, runs on the UI thread through a reaction on the offset, and does not snap when the scroll stops. The `UseHideOnScrollOptions` type is exported. `useScroll` is the usual source of the offset; any `SharedValue<number>` works.
@@ -557,7 +559,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.22...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.23...HEAD
+[0.0.23]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.23
 [0.0.22]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.22
 [0.0.21]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.21
 [0.0.20]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.20
