@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react-native'
-import { MotionConfig } from '@rootnative/inertia'
+import { MotionConfig, TRANSPARENT } from '@rootnative/inertia'
 import { renderWithMotion } from '@rootnative/inertia/testing'
 import * as Reanimated from 'react-native-reanimated'
 import { Ellipse } from 'react-native-svg'
@@ -55,6 +55,43 @@ describe('createMotionSvgComponent', () => {
       strokeDashoffset: number
     }
     expect(animated.strokeDashoffset).toBe(70)
+  })
+
+  it('keeps a static fill="none" out of animatedProps', () => {
+    const result = renderWithMotion(
+      <MotionCircle
+        cx={50}
+        cy={50}
+        r={45}
+        fill="none"
+        stroke="#0ea5e9"
+        strokeDashoffset={283}
+        animate={{ strokeDashoffset: 70 }}
+      />,
+    )
+    const props = getProps(result)
+    expect(props.fill).toBe('none')
+    expect(props.animatedProps).not.toHaveProperty('fill')
+  })
+
+  it('maps "none" in a seed and in a target to TRANSPARENT', () => {
+    const result = renderWithMotion(
+      <MotionCircle
+        cx={50}
+        cy={50}
+        r={45}
+        fill="none"
+        stroke="#0ea5e9"
+        animate={{ fill: '#ff0000', stroke: 'none' }}
+        transition={{ type: 'timing', duration: 100 }}
+      />,
+    )
+    const animated = getProps(result).animatedProps as {
+      fill: string
+      stroke: string
+    }
+    expect(animated.fill).toBe('#ff0000')
+    expect(animated.stroke).toBe(TRANSPARENT)
   })
 
   it('animates fill and stroke as colors', () => {

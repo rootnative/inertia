@@ -28,7 +28,9 @@ export function SequenceScreen({ onBack }: { onBack: () => void }) {
           opacity: [0.4, { to: 1, type: 'timing', duration: 200 }, 0.4],
         }}
         transition={{
-          translateX: { type: 'spring', tension: 200, friction: 14 },
+          type: 'spring',
+          tension: 200,
+          friction: 14,
           repeat: { count: 2, alternate: false },
         }}
         onAnimationEnd={({ key, phase, step, iteration }) => {

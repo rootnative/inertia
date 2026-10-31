@@ -1,3 +1,4 @@
+import { TRANSPARENT } from '@rootnative/inertia'
 import { renderWithMotion } from '@rootnative/inertia/testing'
 import * as Reanimated from 'react-native-reanimated'
 import { MotionPath } from '../MotionPath'
@@ -48,6 +49,31 @@ describe('MotionPath', () => {
     )
     const animated = getPathProps(result).animatedProps as { d: string }
     expect(animated.d).toBe('M 5 5L 20 20Z')
+  })
+
+  it('seeds a static fill="none" as TRANSPARENT in animatedProps', () => {
+    const result = renderWithMotion(
+      <MotionPath d="M 0 0 L 10 10 Z" fill="none" stroke="#0ea5e9" />,
+    )
+    const animated = getPathProps(result).animatedProps as {
+      fill: string
+      stroke: string
+    }
+    expect(animated.fill).toBe(TRANSPARENT)
+    expect(animated.stroke).toBe('#0ea5e9')
+  })
+
+  it('maps a "none" target to TRANSPARENT', () => {
+    const result = renderWithMotion(
+      <MotionPath
+        d="M 0 0 L 10 10 Z"
+        stroke="#0ea5e9"
+        animate={{ stroke: 'none' }}
+        transition={{ type: 'timing', duration: 100 }}
+      />,
+    )
+    const animated = getPathProps(result).animatedProps as { stroke: string }
+    expect(animated.stroke).toBe(TRANSPARENT)
   })
 
   it('animates fill and stroke as colors', () => {

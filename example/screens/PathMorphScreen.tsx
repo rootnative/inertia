@@ -43,7 +43,7 @@ export function PathMorphScreen({ onBack }: { onBack: () => void }) {
   return (
     <ScreenShell
       title="Path morphing"
-      description="MotionPath animates the d attribute element-wise via withSpring. Source and target paths must share the same command sequence — see CLAUDE.md for the structural-compatibility rule. Lives in @rootnative/inertia-svg."
+      description="MotionPath animates the d attribute element-wise via withSpring. Source and target paths must share the same command sequence — see the Structural compatibility section of the svg docs. Lives in @rootnative/inertia-svg."
       onBack={onBack}
     >
       <Text style={styles.caption}>Shape: {shape.name}</Text>

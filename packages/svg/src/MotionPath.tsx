@@ -13,6 +13,7 @@ import {
   useShouldReduceMotion,
   type TransitionConfig,
 } from '@rootnative/inertia'
+import { animatableColor } from './svgColor'
 import {
   diffTemplate,
   flattenParams,
@@ -186,9 +187,11 @@ export function MotionPath(props: MotionPathProps) {
   // Reanimated recognizes them as colors from frame 1 — which is exactly why
   // the fallback is `TRANSPARENT` and not the `'transparent'` keyword, the one
   // color name Reanimated's `isColor` rejects.
-  const fillSv = useSharedValue<string>(seedSource?.fill ?? fill ?? TRANSPARENT)
+  const fillSv = useSharedValue<string>(
+    animatableColor(seedSource?.fill ?? fill ?? TRANSPARENT),
+  )
   const strokeSv = useSharedValue<string>(
-    seedSource?.stroke ?? stroke ?? TRANSPARENT,
+    animatableColor(seedSource?.stroke ?? stroke ?? TRANSPARENT),
   )
   const strokeWidthSv = useSharedValue<number>(
     seedSource?.strokeWidth ?? strokeWidth ?? 1,
@@ -248,14 +251,20 @@ export function MotionPath(props: MotionPathProps) {
   useEffect(() => {
     if (animateFill === undefined) return
     const cfg = reduce ? NO_ANIMATION : pickTransition(transition, 'fill')
-    fillSv.value = resolveTransition(cfg, animateFill) as string
+    fillSv.value = resolveTransition(
+      cfg,
+      animatableColor(animateFill),
+    ) as string
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animateFill, reduce, transitionSig])
 
   useEffect(() => {
     if (animateStroke === undefined) return
     const cfg = reduce ? NO_ANIMATION : pickTransition(transition, 'stroke')
-    strokeSv.value = resolveTransition(cfg, animateStroke) as string
+    strokeSv.value = resolveTransition(
+      cfg,
+      animatableColor(animateStroke),
+    ) as string
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animateStroke, reduce, transitionSig])
 

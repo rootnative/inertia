@@ -16,6 +16,7 @@ import {
   type TransitionConfig,
   type TransitionInput,
 } from '@rootnative/inertia'
+import { SVG_NONE, animatableColor } from './svgColor'
 
 const NO_ANIMATION: TransitionConfig = { type: 'no-animation' }
 
@@ -213,11 +214,14 @@ export function createMotionSvgComponent<
           statics[k] !== undefined
         if (engaged[k]) engagedNumeric.push(k)
       }
+      // A static `none` with nothing to animate stays a static prop: a
+      // color engaged by it alone would send `none` through `animatedProps`,
+      // and Reanimated's color processor throws on it (see `svgColor.ts`).
       for (const k of colorKeys) {
         engaged[k] =
           seed?.[k] !== undefined ||
           anim?.[k] !== undefined ||
-          statics[k] !== undefined
+          (statics[k] !== undefined && statics[k] !== SVG_NONE)
         if (engaged[k]) engagedColor.push(k)
       }
       for (const k of arrayKeys) {
@@ -261,7 +265,7 @@ export function createMotionSvgComponent<
       // be animated away from — under `withSpring` the animation never settles.
       // eslint-disable-next-line react-hooks/rules-of-hooks
       colorSvs[k] = useSharedValue<string>(
-        (seed?.[k] ?? statics[k] ?? TRANSPARENT) as string,
+        animatableColor((seed?.[k] ?? statics[k] ?? TRANSPARENT) as string),
       )
     }
     const arraySvs: Record<string, SharedValue<number>[]> = {}
@@ -334,7 +338,10 @@ export function createMotionSvgComponent<
         const cfg = reduce
           ? NO_ANIMATION
           : pickTransition(transition, k, registry)
-        colorSvs[k]!.value = resolveTransition(cfg, target) as string
+        colorSvs[k]!.value = resolveTransition(
+          cfg,
+          animatableColor(target),
+        ) as string
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [target, reduce, transitionSig])
     }
