@@ -14,9 +14,11 @@ export interface UseHideOnScrollOptions {
   distance: number
   /**
    * The largest offset that the content can rest at: the content length
-   * minus the viewport length. Movement past it is an overscroll, and does
-   * not count. An offset from `useScroll` carries its end already, so pass
-   * this only for an offset from somewhere else.
+   * plus the end inset, minus the viewport length. Movement past it is an
+   * overscroll, and does not count. An offset from `useScroll` carries its
+   * end already. Pass this for an offset from somewhere else, or to replace
+   * that end: on iOS it leaves out the safe-area inset that
+   * `contentInsetAdjustmentBehavior="automatic"` adds.
    */
   maxOffset?: SharedValue<number>
 }
@@ -48,8 +50,12 @@ export interface UseHideOnScrollOptions {
  * element is in place at the top of the content and after an overscroll
  * bounce there. Movement past the end of the content does not count, so the
  * iOS bounce at the end leaves a hidden element hidden. `useScroll` records
- * the end for its own offsets; `maxOffset` gives it for any other offset. The
- * value accumulates and clamps: a long scroll down holds it at 1, and the
+ * the end for its own offsets; `maxOffset` gives it for any other offset. On
+ * iOS, the recorded end leaves out the safe-area inset that
+ * `contentInsetAdjustmentBehavior="automatic"` adds, so the last stretch of
+ * the content does not count. Pad the content with `contentContainerStyle`
+ * instead, or pass `maxOffset`, which replaces the recorded end. The value
+ * accumulates and clamps: a long scroll down holds it at 1, and the
  * first scroll up starts to bring it back. It runs on the UI thread, through
  * a reaction on the offset, so it is safe to read from any worklet. It does
  * not snap to 0 or 1 when the scroll stops.

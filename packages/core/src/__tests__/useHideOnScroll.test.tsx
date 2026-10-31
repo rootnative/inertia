@@ -64,14 +64,20 @@ interface ScrollProbeState {
 
 function ScrollProbe({
   probe,
+  maxOffset,
   tick,
 }: {
   probe: ScrollProbeState
+  maxOffset?: number
   tick: number
 }): null {
   const { scrollY, onScroll } = useScroll()
+  const end = useMotionValue(maxOffset ?? 0)
   probe.onScroll = onScroll as unknown as (event: unknown) => void
-  probe.progress = useHideOnScroll(scrollY, { distance: 80 })
+  probe.progress = useHideOnScroll(scrollY, {
+    distance: 80,
+    maxOffset: maxOffset === undefined ? undefined : end,
+  })
   void tick
   return null
 }
@@ -86,17 +92,20 @@ function scrollEvent(y: number) {
   }
 }
 
-function mountScroll() {
+function mountScroll(maxOffset?: number) {
   const probe: ScrollProbeState = {}
   let tick = 0
-  const result = render(<ScrollProbe probe={probe} tick={tick} />)
+  const element = () => (
+    <ScrollProbe probe={probe} maxOffset={maxOffset} tick={tick} />
+  )
+  const result = render(element())
   const scrollTo = (y: number) => {
     act(() => {
       probe.onScroll!(scrollEvent(y))
     })
     act(() => {
       tick += 1
-      result.rerender(<ScrollProbe probe={probe} tick={tick} />)
+      result.rerender(element())
     })
   }
   return { probe, scrollTo }
@@ -162,6 +171,16 @@ describe('useHideOnScroll', () => {
     scrollTo(400)
     expect(probe.progress!.value).toBe(1)
     scrollTo(360)
+    expect(probe.progress!.value).toBeCloseTo(0.5)
+  })
+
+  it('lets maxOffset replace the end that useScroll records', () => {
+    // An iOS automatic inset of 34 is not in the event, so the recorded end
+    // is 400 while the content can rest at 434.
+    const { probe, scrollTo } = mountScroll(434)
+    scrollTo(434)
+    expect(probe.progress!.value).toBe(1)
+    scrollTo(394)
     expect(probe.progress!.value).toBeCloseTo(0.5)
   })
 
