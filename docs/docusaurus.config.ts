@@ -29,6 +29,24 @@ const config: Config = {
   },
 
   headTags: [
+    // The meta follows the OS colour scheme, not the navbar toggle: a static
+    // site cannot rewrite it per viewer choice.
+    {
+      tagName: 'meta',
+      attributes: {
+        name: 'theme-color',
+        content: '#ffffff',
+        media: '(prefers-color-scheme: light)',
+      },
+    },
+    {
+      tagName: 'meta',
+      attributes: {
+        name: 'theme-color',
+        content: '#0a0a0a',
+        media: '(prefers-color-scheme: dark)',
+      },
+    },
     {
       tagName: 'link',
       attributes: {

@@ -52,7 +52,9 @@
   --inertia-accent-2: #ec4899;
 }
 
-[data-theme='dark'] {
+/* `html[...]`, not `[...]`: Infima sets its dark background under
+   `html[data-theme='dark']`, and a lower specificity never wins. */
+html[data-theme='dark'] {
   --ifm-color-primary: #fafafa;
   --ifm-color-primary-dark: #f5f5f5;
   --ifm-color-primary-darker: #ededed;
