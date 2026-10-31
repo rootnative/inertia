@@ -3,6 +3,7 @@ import {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
+import { scrollEndOf } from '../internal/scrollEnd'
 
 export interface UseHideOnScrollOptions {
   /**
@@ -11,6 +12,13 @@ export interface UseHideOnScrollOptions {
    * the content, one point for one point.
    */
   distance: number
+  /**
+   * The largest offset that the content can rest at: the content length
+   * minus the viewport length. Movement past it is an overscroll, and does
+   * not count. An offset from `useScroll` carries its end already, so pass
+   * this only for an offset from somewhere else.
+   */
+  maxOffset?: SharedValue<number>
 }
 
 /**
@@ -38,16 +46,20 @@ export interface UseHideOnScrollOptions {
  *
  * The progress is 0 whenever the offset is at or above the top, so the
  * element is in place at the top of the content and after an overscroll
- * bounce. The value accumulates and clamps: a long scroll down holds it at
- * 1, and the first scroll up starts to bring it back. It runs on the UI
- * thread, through a reaction on the offset, so it is safe to read from any
- * worklet. It does not snap to 0 or 1 when the scroll stops.
+ * bounce there. Movement past the end of the content does not count, so the
+ * iOS bounce at the end leaves a hidden element hidden. `useScroll` records
+ * the end for its own offsets; `maxOffset` gives it for any other offset. The
+ * value accumulates and clamps: a long scroll down holds it at 1, and the
+ * first scroll up starts to bring it back. It runs on the UI thread, through
+ * a reaction on the offset, so it is safe to read from any worklet. It does
+ * not snap to 0 or 1 when the scroll stops.
  */
 export function useHideOnScroll(
   offset: SharedValue<number>,
   options: UseHideOnScrollOptions,
 ): SharedValue<number> {
-  const { distance } = options
+  const { distance, maxOffset } = options
+  const end = maxOffset ?? scrollEndOf(offset)
   const progress = useSharedValue(0)
   // The previous offset is kept here, not taken from the reaction's second
   // argument: the Jest mock of `useAnimatedReaction` runs the reaction once
@@ -59,8 +71,11 @@ export function useHideOnScroll(
   // and builds the list from the worklet closure on every platform.
   useAnimatedReaction(
     () => offset.value,
-    (current) => {
+    (offsetValue) => {
       'worklet'
+      // An iOS fling that reaches the end bounces past it and back. The
+      // bounce back is not a scroll up, so the offset stops at the end.
+      const current = end ? Math.min(offsetValue, end.value) : offsetValue
       const delta = current - previous.value
       previous.value = current
       if (current <= 0) {

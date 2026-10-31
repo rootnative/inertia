@@ -198,7 +198,7 @@ The value that [`useScroll`](./hooks.md#usescroll) returns: `scrollX` and `scrol
 
 ### `UseHideOnScrollOptions`
 
-The second argument of [`useHideOnScroll`](./hooks.md#usehideonscrolloffset--distance-): `distance`, the scroll distance in points that moves the progress from 0 to 1.
+The second argument of [`useHideOnScroll`](./hooks.md#usehideonscrolloffset--distance-): `distance`, the scroll distance in points that moves the progress from 0 to 1, and the optional `maxOffset`, a shared value with the largest offset that the content can rest at. An offset from `useScroll` carries its end already, so `maxOffset` is for an offset from somewhere else.
 
 ### `UseInViewOptions`
 

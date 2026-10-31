@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **`useHideOnScroll` keeps a hidden element hidden after the iOS bounce at the end of the content.** On iOS, a fling that reaches the end moves the offset past the end and back. The hook counted the move back as a scroll up, so a hidden bottom bar came back by the length of the bounce: in part for a tall bar, fully for a short one. A slow scroll that stopped at the end did not bounce, so the bar stayed hidden there. Movement past the end now does not count, the same as an overscroll at the top. `useScroll` records the end of the content (the content length plus the end inset, minus the viewport length) for each offset it returns, and `useHideOnScroll` reads it, so no call site changes. For an offset from somewhere else, the new `maxOffset` option takes the end as a shared value.
+
 ## [0.0.23] - 2026-10-31
 
 ### Added

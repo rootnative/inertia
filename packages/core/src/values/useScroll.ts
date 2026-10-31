@@ -4,6 +4,7 @@ import {
   type SharedValue,
 } from 'react-native-reanimated'
 import { type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
+import { registerScrollEnd } from '../internal/scrollEnd'
 
 export interface UseScrollResult {
   /** Horizontal scroll offset in points. */
@@ -58,10 +59,32 @@ export interface UseScrollResult {
 export function useScroll(): UseScrollResult {
   const scrollX = useSharedValue(0)
   const scrollY = useSharedValue(0)
+  // The largest offset that the content can rest at, per axis. It is unknown
+  // until the first scroll event, so nothing clamps before it.
+  const scrollEndX = useSharedValue(Infinity)
+  const scrollEndY = useSharedValue(Infinity)
+  registerScrollEnd(scrollX, scrollEndX)
+  registerScrollEnd(scrollY, scrollEndY)
 
   const handler = useAnimatedScrollHandler({
     onScroll: (event) => {
       'worklet'
+      // The ends are written before the offsets, because a reaction on an
+      // offset reads them. A test event can carry the offset alone.
+      if (event.contentSize && event.layoutMeasurement) {
+        const insetRight = event.contentInset?.right ?? 0
+        const insetBottom = event.contentInset?.bottom ?? 0
+        scrollEndX.value = Math.max(
+          0,
+          event.contentSize.width + insetRight - event.layoutMeasurement.width,
+        )
+        scrollEndY.value = Math.max(
+          0,
+          event.contentSize.height +
+            insetBottom -
+            event.layoutMeasurement.height,
+        )
+      }
       scrollX.value = event.contentOffset.x
       scrollY.value = event.contentOffset.y
     },

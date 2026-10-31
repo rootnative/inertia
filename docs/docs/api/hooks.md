@@ -582,7 +582,8 @@ Set `distance` to the height of the element that hides, so the element moves wit
 
 The rules of the value:
 
-- It is 0 whenever the offset is at or above the top, so the element is in place at the top of the content and after an overscroll bounce.
+- It is 0 whenever the offset is at or above the top, so the element is in place at the top of the content and after an overscroll bounce there.
+- Movement past the end of the content does not count. On iOS, a fling that reaches the end bounces past it and back. The bounce back is not a scroll up, so a hidden element stays hidden. `useScroll` records the end of the content for its own offsets. For an offset from somewhere else, pass the largest offset that the content can rest at as `maxOffset`, a shared value.
 - It accumulates and clamps. A long scroll down holds it at 1, and the first scroll up starts to bring it back, from anywhere in the content.
 - It runs on the UI thread, through a reaction on the offset, so it is safe to read from any worklet.
 - It does not snap to 0 or 1 when the scroll stops. An element can rest half hidden after a short scroll.
