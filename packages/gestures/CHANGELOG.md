@@ -6,9 +6,15 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.24] - 2026-10-31
+
 ### Fixed
 
 - **`useDrag` springs an `elastic` overshoot back inside its `constraints` on release.** With `elastic` above 0, a drag past a bound stretched the element past it, and the element stayed there after release until the next drag. The docs promised a Framer Motion feel, and that feel includes the return. Now an axis that lands past `constraints` and gets no transition from `onRelease` springs back to the nearest bound, with the default spring and the release velocity. A transition that `onRelease` returns for an axis still replaces the spring back on that axis, and an axis that lands inside the bounds stays where it landed, as before. `useTouchDrag` in `@rootnative/inertia` gets the same fix.
+
+### Changed
+
+- The `@rootnative/inertia` peer range moves to `>=0.0.24 <0.1.0`, in lockstep.
 
 ## [0.0.23] - 2026-10-31
 
@@ -156,7 +162,8 @@ Initial alpha publish alongside `@rootnative/inertia@0.0.0-alpha.0`. Optional ad
 - `useDrag({ onRelease })` — release worklet returns per-axis Inertia transitions (snap-to-tick spring, decay with bounds, etc.). Velocity stays on the UI thread; no JS round-trip.
 - `useSwipe`, `usePan` hooks composable with any `Motion.*` primitive via `<GestureDetector>`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.23...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.24...HEAD
+[0.0.24]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.24
 [0.0.23]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.23
 [0.0.22]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.22
 [0.0.21]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.21

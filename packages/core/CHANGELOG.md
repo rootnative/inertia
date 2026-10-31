@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.24] - 2026-10-31
+
 ### Fixed
 
 - **`useHideOnScroll` keeps a hidden element hidden after the iOS bounce at the end of the content.** On iOS, a fling that reaches the end moves the offset past the end and back. The hook counted the move back as a scroll up, so a hidden bottom bar came back by the length of the bounce: in part for a tall bar, fully for a short one. A slow scroll that stopped at the end did not bounce, so the bar stayed hidden there. Movement past the end now does not count, the same as an overscroll at the top. `useScroll` records the end of the content (the content length plus the end inset, minus the viewport length) for each offset it returns, and `useHideOnScroll` reads it, so no call site changes. For an offset from somewhere else, the new `maxOffset` option takes the end as a shared value. One limit stays on iOS: the scroll event leaves out the safe-area inset that `contentInsetAdjustmentBehavior="automatic"` adds, so with that setting the recorded end is short by that inset, and the last stretch of the content does not count. Pad the content with `contentContainerStyle` instead, or pass `maxOffset`, which replaces the recorded end.
@@ -564,7 +566,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.23...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.24...HEAD
+[0.0.24]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.24
 [0.0.23]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.23
 [0.0.22]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.22
 [0.0.21]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.21
