@@ -94,10 +94,10 @@ export interface SharedLayoutBindings {
  *   3. On unmount, measure the node one last time and hand that rect to
  *      `releaseLayout` so the next mount with the same id can consume it.
  *      The last layout rect is the fallback when the node cannot be measured.
- *   4. On the first layout commit, consume any pending source rect and
- *      drive the FLIP shared values: snap them to the (delta, scale) that
- *      visually places the new element at the source position, then
- *      animate back to identity. `withSequence(snap, animate)` keeps the
+ *   4. On mount, claim any pending source rect. On the first layout commit,
+ *      drive the FLIP shared values from it: snap them to the (delta,
+ *      scale) that visually places the new element at the source position,
+ *      then animate back to identity. `withSequence(snap, animate)` keeps the
  *      animation starting from the snapped delta rather than from zero.
  *   5. Carry the source's style values for the keys the rect can't express
  *      (colors, `opacity`, `borderRadius`) by parking them in a snapshot and
@@ -115,7 +115,7 @@ export interface SharedLayoutBindings {
  * than played wrongly. See `measureWindow.ts` for why there is no third,
  * asynchronous option.
  *
- * The source is re-measured at *consume* time when it is still mounted (the
+ * The source is re-measured at the first layout when it is still mounted (the
  * usual case — a stack navigator keeps the previous screen alive underneath).
  * That is what stops a scrolled list from offsetting every transition by its
  * scroll distance: `onLayout` never fires for an ancestor's scroll, so the
@@ -169,10 +169,11 @@ export function useSharedLayout(options: {
   // next mount with the same id.
   const lastRectRef = useRef<SharedRect | null>(null)
 
-  // First-layout latch — only the first measurement after a fresh mount
-  // can consume a source rect. Subsequent layouts (resizes, prop changes)
-  // refresh the registry but never re-trigger a FLIP from an old source.
-  const consumedRef = useRef(false)
+  // The source this element claimed when it mounted, held until the first
+  // layout starts the FLIP from it. Later layouts (resizes, prop changes)
+  // find it empty, so they refresh the registry but never re-trigger a FLIP
+  // from an old source.
+  const claimedRef = useRef<SharedLayoutSource | undefined>(undefined)
 
   // The host node, captured off the composite ref so this element can be
   // measured in window coordinates — both for its own registry entry and when
@@ -241,14 +242,8 @@ export function useSharedLayout(options: {
 
       const { x, y, width, height } = event.nativeEvent.layout
 
-      // First-layout-only: read the registry BEFORE writing our own rect
-      // so a previously-released source rect can be consumed cleanly
-      // without being overwritten by the current rect first.
-      let source: SharedLayoutSource | undefined
-      if (!consumedRef.current) {
-        consumedRef.current = true
-        source = consumeLayout(layoutId)
-      }
+      const source = claimedRef.current
+      claimedRef.current = undefined
 
       // Window coordinates when the host can supply them synchronously,
       // otherwise the parent-relative rect this event carries. See
@@ -270,10 +265,14 @@ export function useSharedLayout(options: {
     [layoutId, userOnLayout, remeasure, snapshotStyles, startTransition],
   )
 
-  // Reset the first-layout latch when the id changes — a new id is logically
-  // a new shared-element identity and should be allowed to consume a source.
-  useEffect(() => {
-    consumedRef.current = false
+  // Claim the source when the element mounts or its id changes, not on its
+  // first layout. In one commit React runs the unmount cleanup of the source
+  // (which releases its rect) before the layout effects of the new element,
+  // so a swap in one render always finds a fresh rect. The first `onLayout`
+  // can arrive more than the TTL after that commit on a slow device; a claim
+  // that waited for it found the rect expired, and no FLIP ran.
+  useLayoutEffect(() => {
+    claimedRef.current = layoutId ? consumeLayout(layoutId) : undefined
   }, [layoutId])
 
   // On unmount, hand a final rect — and a final snapshot of the carried style

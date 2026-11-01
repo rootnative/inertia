@@ -100,10 +100,11 @@ interface Entry {
 const REGISTRY = new Map<string, Entry>()
 
 /**
- * How long (ms) a *released* rect remains consumable. Sized to comfortably
- * cover a typical screen transition (slide animation, gesture-driven
- * dismiss) without leaving stale entries lying around if no incoming
- * mount picks them up.
+ * How long (ms) a *released* rect remains consumable. A mount in the same
+ * commit as the release claims the rect at once, so the TTL counts only for
+ * a mount in a later commit. Sized to comfortably cover a typical screen
+ * transition (slide animation, gesture-driven dismiss) without leaving stale
+ * entries lying around if no incoming mount picks them up.
  *
  * A *mounted* owner's entry never expires. `onLayout` fires only when the
  * rect changes, so a list card that laid out once and then sat still for a

@@ -8,6 +8,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 - **The Reanimated mock in `@rootnative/inertia/jest-setup` exports `processColor`.** It returns the same processed number as the `processColor` of React Native. `MotionLinearGradient` in `@rootnative/inertia-gradients` calls it on Android, so a test that renders the gradient on the Android path needs it.
 
+### Fixed
+
+- **A `layoutId` swap in one render animates on a slow device.** When one render replaced an element with another of the same `layoutId`, such as a grid card that a detail header replaces, the new element took the source rect on its first layout. On a slow Android phone that layout arrived more than a second after the render, the released rect had expired, and the new element appeared at its final place with no FLIP. The reverse swap, which renders faster, still animated. The new element now takes the source rect when it mounts. React releases the rect of the unmounted source before it runs the effects of the new element in the same render, so the rect is always fresh, however late the first layout arrives. The FLIP still starts at the first layout, from the measured target rect. A rect that a source released in an earlier render still expires after about a second.
+
 ## [0.0.24] - 2026-10-31
 
 ### Fixed

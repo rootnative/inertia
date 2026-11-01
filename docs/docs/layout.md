@@ -116,7 +116,7 @@ Rules worth knowing:
   ```
 
 - **One mount per id.** Two `Motion.*` primitives with the same `layoutId` mounted simultaneously is undefined behavior. The most-recent layout commit wins as the source for the next consumer.
-- **TTL.** A source that is still mounted stays valid for as long as it is mounted: a list card that laid out once and then sat still for a minute is as good a source as one that laid out a frame ago, because it can be re-measured. A rect that a source recorded on unmount is consumable for ~1 second. If the new mount lands later (a slow navigation, a paused transition), no FLIP runs and the element just appears at its natural position — graceful degradation.
+- **TTL.** A source that is still mounted stays valid for as long as it is mounted: a list card that laid out once and then sat still for a minute is as good a source as one that laid out a frame ago, because it can be re-measured. A rect that a source recorded on unmount is consumable for ~1 second. A new mount in the same render as the unmount, such as a grid card that a detail header replaces, takes the rect when it mounts, before its first layout, so a slow device does not cancel the FLIP. If the new mount lands later (a slow navigation, a paused transition), no FLIP runs and the element just appears at its natural position — graceful degradation.
 - **In tests.** The Jest host mock's `measureInWindow` never invokes its callback, so a test suite always sees the parent-relative path. That's intentional: it keeps `layoutId` behavior in tests stable and independent of measurement.
 
 ### Why not `sharedTransitionTag`?

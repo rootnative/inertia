@@ -610,6 +610,119 @@ describe('layoutId — the rect released on unmount', () => {
   })
 })
 
+// On a slow device the first `onLayout` of the target can arrive more than
+// the TTL after the commit that released the source. The target claims the
+// rect when it mounts, so that delay does not cancel the FLIP.
+describe('layoutId — the target claims the source when it mounts', () => {
+  const detailStyle = { width: 200, height: 150 }
+  let now = 0
+
+  beforeEach(() => {
+    now = 1000
+    __setSharedLayoutClock(() => now)
+  })
+
+  // The keys make React unmount the tile and mount the detail, as two
+  // different subtrees do in an app, instead of updating one element.
+  function Swap({ detail }: { detail: boolean }) {
+    return detail ? (
+      <Motion.View
+        key="detail"
+        testID="detail"
+        layoutId="card"
+        style={detailStyle}
+      />
+    ) : (
+      <Motion.View key="tile" testID="tile" layoutId="card" style={boxStyle} />
+    )
+  }
+
+  it('FLIPs when the first layout arrives after the TTL', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    releaseLayout('hero', par(0, 0, 50, 50))
+
+    const view = render(
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
+    )
+    now += SHARED_LAYOUT_TTL_MS + 500
+    fireLayout(view.getByTestId('el') as never, {
+      x: 100,
+      y: 100,
+      width: 100,
+      height: 100,
+    })
+
+    expect(withSpring).toHaveBeenCalledTimes(4)
+  })
+
+  it('FLIPs a swap in one render, however late the first layout arrives', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const view = render(<Swap detail={false} />)
+    fireLayout(view.getByTestId('tile') as never, {
+      x: 0,
+      y: 0,
+      width: 50,
+      height: 50,
+    })
+
+    view.rerender(<Swap detail />)
+    now += SHARED_LAYOUT_TTL_MS + 500
+    fireLayout(view.getByTestId('detail') as never, {
+      x: 0,
+      y: 100,
+      width: 200,
+      height: 150,
+    })
+
+    expect(withSpring).toHaveBeenCalledTimes(4)
+  })
+
+  it('runs no FLIP from a rect that expired before the mount', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    releaseLayout('hero', par(0, 0, 50, 50))
+    now += SHARED_LAYOUT_TTL_MS + 1
+
+    const view = render(
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 100,
+      y: 100,
+      width: 100,
+      height: 100,
+    })
+
+    expect(withSpring).not.toHaveBeenCalled()
+  })
+
+  it('claims again when the id changes', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    const view = render(
+      <Motion.View testID="el" layoutId="first" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 0,
+      y: 0,
+      width: 50,
+      height: 50,
+    })
+    expect(withSpring).not.toHaveBeenCalled()
+
+    releaseLayout('second', par(200, 200, 50, 50))
+    view.rerender(
+      <Motion.View testID="el" layoutId="second" style={boxStyle} />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 0,
+      y: 0,
+      width: 60,
+      height: 60,
+    })
+
+    expect(withSpring).toHaveBeenCalledTimes(4)
+  })
+})
+
 describe('layoutId — style carry', () => {
   const SOURCE: SharedStyleSnapshot = {
     backgroundColor: 'red',

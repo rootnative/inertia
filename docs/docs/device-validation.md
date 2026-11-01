@@ -80,7 +80,7 @@ Screen: **Shared element transition (layoutId)**. This item has the most subtle 
 - [ ] iOS (Fabric): still glued to the tile. **If it lands short by the container's padding, window measurement isn't happening and the parent-relative fallback is in play** — that is the finding, and it means `measureInWindow` did not resolve synchronously on this platform/version.
 - [ ] Android (Fabric): same.
 
-**Scroll drift.** The consume-time re-measure exists because `onLayout` never fires for an _ancestor's_ scroll. Scroll the grid so a card is far from where it first laid out, then tap it.
+**Scroll drift.** The re-measure at the target's first layout exists because `onLayout` never fires for an _ancestor's_ scroll. Scroll the grid so a card is far from where it first laid out, then tap it.
 
 - [ ] Transition originates at the card's **current** on-screen position, not its original one.
 
