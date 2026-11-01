@@ -245,12 +245,12 @@ For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-c
 
 ## Scope: touch + mouse only
 
-All three hooks layer on `react-native-gesture-handler`, which surfaces touch and mouse events but **not keyboard**. For controls that need keyboard a11y in addition to drag — a Slider with arrow-key increment / decrement, a scrollbar with `PageUp` / `PageDown`, a range input — reach for [`useTouchDrag`](./api/hooks#usetouchdragoptions) from `@rootnative/inertia/touch` instead. It's a PanResponder-backed counterpart to `useDrag` that lives in core (no `react-native-gesture-handler` peer required) and composes cleanly with `onKeyDown` on the wrapping `Pressable`.
+All three hooks layer on `react-native-gesture-handler`, which surfaces touch and mouse events but **not keyboard**. For controls that need keyboard a11y in addition to drag — a Slider with arrow-key increment / decrement, a scrollbar with `PageUp` / `PageDown`, a range input — reach for [`useTouchDrag`](./api/hooks#usetouchdragoptions) from `@rootnative/inertia/touch` instead. It's a PanResponder-backed counterpart to `useDrag` that lives in core (no `react-native-gesture-handler` peer required) and composes with `onKeyDown` on the wrapping `View`. `onKeyDown` fires on web; for iOS and Android, see the [keyboard note](./api/hooks#usetouchdragoptions).
 
 The full ladder:
 
 1. `Motion.View` + `gesture` prop — pure state-overlay UX (hover, focus, press).
-2. `useTouchDrag` from `@rootnative/inertia/touch` — pointer + keyboard drag, no extra peer dep.
+2. `useTouchDrag` from `@rootnative/inertia/touch` — pointer drag that composes with key events, no extra peer dep.
 3. `useDrag` / `useSwipe` / `usePan` from this package — pointer-only, gesture-handler-backed. Best for projects already using gesture-handler; the UI-thread release path is more precise than PanResponder's JS-thread velocity.
 4. Raw `PanResponder` + `useAnimation` — drop here when the gesture lifecycle itself needs customizing (multi-touch composition, custom capture predicates beyond axis lock).
 

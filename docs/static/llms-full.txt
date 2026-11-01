@@ -1611,12 +1611,12 @@ For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-c
 
 ## Scope: touch + mouse only
 
-All three hooks layer on `react-native-gesture-handler`, which surfaces touch and mouse events but **not keyboard**. For controls that need keyboard a11y in addition to drag — a Slider with arrow-key increment / decrement, a scrollbar with `PageUp` / `PageDown`, a range input — reach for [`useTouchDrag`](./api/hooks#usetouchdragoptions) from `@rootnative/inertia/touch` instead. It's a PanResponder-backed counterpart to `useDrag` that lives in core (no `react-native-gesture-handler` peer required) and composes cleanly with `onKeyDown` on the wrapping `Pressable`.
+All three hooks layer on `react-native-gesture-handler`, which surfaces touch and mouse events but **not keyboard**. For controls that need keyboard a11y in addition to drag — a Slider with arrow-key increment / decrement, a scrollbar with `PageUp` / `PageDown`, a range input — reach for [`useTouchDrag`](./api/hooks#usetouchdragoptions) from `@rootnative/inertia/touch` instead. It's a PanResponder-backed counterpart to `useDrag` that lives in core (no `react-native-gesture-handler` peer required) and composes with `onKeyDown` on the wrapping `View`. `onKeyDown` fires on web; for iOS and Android, see the [keyboard note](./api/hooks#usetouchdragoptions).
 
 The full ladder:
 
 1. `Motion.View` + `gesture` prop — pure state-overlay UX (hover, focus, press).
-2. `useTouchDrag` from `@rootnative/inertia/touch` — pointer + keyboard drag, no extra peer dep.
+2. `useTouchDrag` from `@rootnative/inertia/touch` — pointer drag that composes with key events, no extra peer dep.
 3. `useDrag` / `useSwipe` / `usePan` from this package — pointer-only, gesture-handler-backed. Best for projects already using gesture-handler; the UI-thread release path is more precise than PanResponder's JS-thread velocity.
 4. Raw `PanResponder` + `useAnimation` — drop here when the gesture lifecycle itself needs customizing (multi-touch composition, custom capture predicates beyond axis lock).
 
@@ -4188,12 +4188,12 @@ applyBounds(50, undefined, 100, 0) // 50
 
 ## `useTouchDrag(options?)`
 
-PanResponder-backed drag hook. The keyboard-a11y and zero-extra-peer-dep counterpart to `useDrag` from `@rootnative/inertia-gestures` — both share the same `onRelease` shape, but `useTouchDrag` lives in core (`@rootnative/inertia/touch`) and returns `panHandlers` to spread on a `Pressable` / `View` instead of a `gesture` object for `<GestureDetector>`.
+PanResponder-backed drag hook. The zero-extra-peer-dep counterpart to `useDrag` from `@rootnative/inertia-gestures` — both share the same `onRelease` shape, but `useTouchDrag` lives in core (`@rootnative/inertia/touch`) and returns `panHandlers` to spread on a `View` instead of a `gesture` object for `<GestureDetector>`. Do not spread them on a `Pressable`: it spreads its own responder handlers after yours, and they replace the pan handlers, so the drag does not move.
 
 ```tsx
 import { Motion } from '@rootnative/inertia'
 import { useTouchDrag } from '@rootnative/inertia/touch'
-import { Pressable } from 'react-native'
+import { View } from 'react-native'
 
 function Slider({ ticks }: { ticks: number[] }) {
   const drag = useTouchDrag({
@@ -4206,13 +4206,14 @@ function Slider({ ticks }: { ticks: number[] }) {
   })
 
   return (
-    <Pressable
+    <View
       accessibilityRole="adjustable"
-      onKeyDown={handleKey} // arrow keys compose alongside the drag
+      focusable
+      onKeyDown={handleKey} // arrow keys, where the platform sends key events
       {...drag.panHandlers}
     >
       <Motion.View style={[styles.thumb, drag.animatedStyle]} />
-    </Pressable>
+    </View>
   )
 }
 ```
@@ -4228,7 +4229,9 @@ function Slider({ ticks }: { ticks: number[] }) {
 
 Returns `{ panHandlers, animatedStyle, dragX, dragY, isDragging }`.
 
-**When to pick `useTouchDrag` over `useDrag` from `@rootnative/inertia-gestures`:** you need keyboard a11y on the dragged element (arrow keys, `PageUp` / `PageDown`), OR you don't want to take `react-native-gesture-handler` as a peer dep. **When to skip it:** you're already using `react-native-gesture-handler` elsewhere — the gesture-handler `useDrag`'s release velocity is UI-thread and slightly more precise; consistency across the app trumps a small per-call win.
+**When to pick `useTouchDrag` over `useDrag` from `@rootnative/inertia-gestures`:** you want key steps on the dragged element (arrow keys, `PageUp` / `PageDown`; see **Keyboard** below for the platforms), OR you don't want to take `react-native-gesture-handler` as a peer dep. **When to skip it:** you're already using `react-native-gesture-handler` elsewhere — the gesture-handler `useDrag`'s release velocity is UI-thread and slightly more precise; consistency across the app trumps a small per-call win.
+
+**Keyboard.** `useTouchDrag` composes with `onKeyDown`, but the key events come from the platform. `onKeyDown` fires on web. On Android, React Native sends key events only when the app turns on the `enableKeyEvents` feature flag in its native code, and Expo Go leaves it off. iOS sends no key events. For a screen reader on iOS and Android, give the element `accessibilityActions` with `increment` and `decrement`, and step the value in `onAccessibilityAction`.
 
 ---
 

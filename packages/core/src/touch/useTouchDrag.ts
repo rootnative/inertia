@@ -110,13 +110,17 @@ export interface UseTouchDragOptions {
  *
  *   1. No `react-native-gesture-handler` peer dep required — PanResponder is
  *      built into React Native, so this lives in core.
- *   2. Returns `panHandlers` to spread on a `View` / `Pressable` instead of
- *      a `gesture` to plug into `<GestureDetector>`.
+ *   2. Returns `panHandlers` to spread on a `View` instead of a `gesture` to
+ *      plug into `<GestureDetector>`. Not on a `Pressable`: it spreads its
+ *      own responder handlers after yours, and they replace the pan handlers.
  *
  * Use this when:
- *   - You need keyboard a11y alongside drag (a slider with arrow-key step,
+ *   - You want key steps alongside drag (a slider with arrow-key step,
  *     a scrollbar with `PageUp` / `PageDown`). PanResponder composes
  *     cleanly with `onKeyDown`; gesture-handler doesn't surface keyboard.
+ *     `onKeyDown` fires on web. On Android it fires only when the app turns
+ *     on React Native's `enableKeyEvents` feature flag; iOS sends no key
+ *     events.
  *   - You don't want to take `react-native-gesture-handler` as a dependency
  *     (smaller bundle, simpler install).
  *

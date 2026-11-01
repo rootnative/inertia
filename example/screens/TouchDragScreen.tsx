@@ -13,8 +13,10 @@ const TICKS = Array.from({ length: STEPS }, (_, i) => i * SPACING)
 /**
  * PanResponder-backed drag demo. Mirrors the gesture-handler `SliderScreen`
  * but uses `useTouchDrag` from `@rootnative/inertia/touch` — no
- * `react-native-gesture-handler` peer required, and keyboard a11y composes
- * cleanly via `onKeyDown` on the wrapping `View`.
+ * `react-native-gesture-handler` peer required, and `onKeyDown` on the
+ * wrapping `View` adds arrow-key steps where the platform sends key events:
+ * on web, and on Android only with React Native's `enableKeyEvents` feature
+ * flag, which Expo Go leaves off.
  *
  * Release picks the nearest tick and springs in with the release velocity,
  * via Inertia's transition resolver.
@@ -63,7 +65,7 @@ export function TouchDragScreen({ onBack }: { onBack: () => void }) {
   return (
     <ScreenShell
       title="Touch drag — useTouchDrag"
-      description="PanResponder-backed drag. No gesture-handler dependency. Drag the thumb or tab + arrow keys for keyboard a11y."
+      description="PanResponder-backed drag. No gesture-handler dependency. Drag the thumb. On web, press Tab and then the arrow keys."
       onBack={onBack}
       fill
     >
@@ -95,16 +97,17 @@ export function TouchDragScreen({ onBack }: { onBack: () => void }) {
           </View>
         </View>
         <Text style={styles.hint}>
-          Drag or use arrow keys. Release snaps to the nearest tick using the
-          release velocity for natural overshoot.
+          Drag the thumb, or on web use the arrow keys. Release snaps to the
+          nearest tick using the release velocity for natural overshoot.
         </Text>
       </View>
     </ScreenShell>
   )
 }
 
-// ViewProps.onKeyDown is web-only (RN-Web augmentation). RN's upstream types
-// omit it; declare locally so this file compiles cleanly.
+// React Native's TypeScript types omit ViewProps.onKeyDown. It fires on web,
+// and on Android only with the enableKeyEvents feature flag. Declare it
+// locally so this file compiles.
 declare module 'react-native' {
   interface ViewProps {
     onKeyDown?: (event: { nativeEvent: { key?: string } }) => void

@@ -12,6 +12,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 - **A `layoutId` swap in one render animates on a slow device.** When one render replaced an element with another of the same `layoutId`, such as a grid card that a detail header replaces, the new element took the source rect on its first layout. On a slow Android phone that layout arrived more than a second after the render, the released rect had expired, and the new element appeared at its final place with no FLIP. The reverse swap, which renders faster, still animated. The new element now takes the source rect when it mounts. React releases the rect of the unmounted source before it runs the effects of the new element in the same render, so the rect is always fresh, however late the first layout arrives. The FLIP still starts at the first layout, from the measured target rect. A rect that a source released in an earlier render still expires after about a second.
 
+### Documentation
+
+- **The `useTouchDrag` docs say where arrow keys work, and the example spreads `panHandlers` on a `View`.** The docs said that `onKeyDown` gives the drag keyboard steps. `onKeyDown` fires on web. On Android, React Native sends key events only when the app turns on its `enableKeyEvents` feature flag, and iOS sends none. The hooks page now says so, and names `accessibilityActions` for screen readers. Its example spread `panHandlers` on a `Pressable`, which spreads its own responder handlers after the caller's, so they replaced the pan handlers and the drag did not move. The example now uses a `View`, and the JSDoc of `useTouchDrag` gives the same rule.
+
 ## [0.0.24] - 2026-10-31
 
 ### Fixed

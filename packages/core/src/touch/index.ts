@@ -1,7 +1,8 @@
 /**
  * PanResponder-backed drag hook. Lives in core because `PanResponder` is
  * built into React Native — no extra peer dependency. Use this when you
- * need keyboard a11y alongside drag, or when you don't want to take
+ * want key steps alongside drag (where the platform sends key events; see
+ * `useTouchDrag`), or when you don't want to take
  * `react-native-gesture-handler` as a dependency.
  *
  * For pointer-only drag in a project that already uses gesture-handler,
