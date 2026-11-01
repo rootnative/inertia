@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.25] - 2026-11-02
+
 ### Added
 
 - **The Reanimated mock in `@rootnative/inertia/jest-setup` exports `processColor`.** It returns the same processed number as the `processColor` of React Native. `MotionLinearGradient` in `@rootnative/inertia-gradients` calls it on Android, so a test that renders the gradient on the Android path needs it.
@@ -578,7 +580,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.24...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.25...HEAD
+[0.0.25]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.25
 [0.0.24]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.24
 [0.0.23]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.23
 [0.0.22]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.22

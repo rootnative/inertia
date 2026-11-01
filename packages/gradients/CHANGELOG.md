@@ -6,6 +6,8 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.25] - 2026-11-02
+
 ### Fixed
 
 - **`MotionLinearGradient` animates on Android.** On Android the gradient did not follow the animation: it kept the old colors, showed one color from the middle of the transition, and jumped to the target when the animation settled. On Android, `expo-linear-gradient` puts its native view inside a plain `View`, and the animated values went to that outer view, which ignores them. On Android, `MotionLinearGradient` now renders the native view itself and animates it on the UI thread. The animated values also had the wrong form for the native view: the colors went as strings, and the points went as `start` / `end` objects, but the native view reads processed colors and `startPoint` / `endPoint` arrays. Because of that, `start` and `end` did not animate on iOS either: the direction changed only when the animation settled. The native view now gets the native form on both platforms. Web does not change.
@@ -13,6 +15,7 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 ### Changed
 
 - **`expo` is a peer dependency, `>=58.0.0 <59.0.0`.** The Android fix gets the native view with `requireNativeView` from `expo`. `expo-linear-gradient` already needs `expo`, so an app that has `expo-linear-gradient` has `expo` too.
+- The `@rootnative/inertia` peer range moves to `>=0.0.25 <0.1.0`, in lockstep.
 
 ## [0.0.24] - 2026-10-31
 
@@ -158,7 +161,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionLinearGradient` over `expo-linear-gradient`. Accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.24...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.25...HEAD
+[0.0.25]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.25
 [0.0.24]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.24
 [0.0.23]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.23
 [0.0.22]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.22
