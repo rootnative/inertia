@@ -77,24 +77,29 @@ export function TouchDragScreen({ onBack }: { onBack: () => void }) {
             ))}
           </View>
           {/*
-            The drag target is a `View`, NOT a `Pressable`, and that is
-            load-bearing on web. react-native-web's Pressable renders
-            `<View {...rest} {...pressEventHandlers} />` — its own
-            PressResponder handlers are spread AFTER the caller's, so every
-            responder prop in `panHandlers` is overwritten and the drag is
-            silently dead. `onKeyDown` survived (Pressable forwards it), but
-            it sat on the same node, so the keyboard path was dead too.
-            A plain View wires the responder system directly.
+            The drag target is a `Motion.View`, NOT a `Pressable`, and that is
+            load-bearing. A Pressable renders
+            `<View {...rest} {...pressEventHandlers} />` — its own responder
+            handlers are spread AFTER the caller's, so every responder prop in
+            `panHandlers` is overwritten and the drag is silently dead.
+            `onKeyDown` survived (Pressable forwards it), but it sat on the
+            same node, so the keyboard path was dead too. A view wires the
+            responder system directly.
+
+            The drag target also carries `animatedStyle`, so it moves with the
+            thumb. When only an inner view moved, the touch area and the
+            focus highlight stayed at the start of the track: the empty start
+            started a drag, and Tab drew the highlight there.
           */}
-          <View
+          <Motion.View
             accessibilityRole="adjustable"
             focusable
             onKeyDown={handleKey}
             {...drag.panHandlers}
-            style={styles.thumbHit}
+            style={[styles.thumbHit, drag.animatedStyle]}
           >
-            <Motion.View style={[styles.thumb, drag.animatedStyle]} />
-          </View>
+            <View style={styles.thumb} />
+          </Motion.View>
         </View>
         <Text style={styles.hint}>
           Drag the thumb, or on web use the arrow keys. Release snaps to the
