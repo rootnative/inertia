@@ -6,6 +6,14 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Fixed
+
+- **`MotionLinearGradient` animates on Android.** On Android the gradient did not follow the animation: it kept the old colors, showed one color from the middle of the transition, and jumped to the target when the animation settled. On Android, `expo-linear-gradient` puts its native view inside a plain `View`, and the animated values went to that outer view, which ignores them. On Android, `MotionLinearGradient` now renders the native view itself and animates it on the UI thread. The animated values also had the wrong form for the native view: the colors went as strings, and the points went as `start` / `end` objects, but the native view reads processed colors and `startPoint` / `endPoint` arrays. Because of that, `start` and `end` did not animate on iOS either: the direction changed only when the animation settled. The native view now gets the native form on both platforms. Web does not change.
+
+### Changed
+
+- **`expo` is a peer dependency, `>=58.0.0 <59.0.0`.** The Android fix gets the native view with `requireNativeView` from `expo`. `expo-linear-gradient` already needs `expo`, so an app that has `expo-linear-gradient` has `expo` too.
+
 ## [0.0.24] - 2026-10-31
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.24` (`useHideOnScroll` ignores the iOS bounce past the end of the content, and `useTouchDrag` springs an `elastic` overshoot back inside its `constraints`). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.24 <0.1.0`.

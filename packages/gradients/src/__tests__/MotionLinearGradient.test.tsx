@@ -89,6 +89,24 @@ describe('MotionLinearGradient', () => {
     expect(animated.end).toEqual({ x: 0.75, y: 0.5 })
   })
 
+  it('sends the native point props that a UI-thread update writes', () => {
+    // A UI-thread update skips the expo-linear-gradient wrapper, so only the
+    // native names `startPoint` / `endPoint` reach the view.
+    const result = renderWithMotion(
+      <MotionLinearGradient
+        colors={['#000', '#fff']}
+        animate={{ start: { x: 0.25, y: 0.5 }, end: { x: 0.75, y: 0.5 } }}
+      />,
+    )
+
+    const animated = getGradientProps(result).animatedProps as {
+      startPoint?: unknown
+      endPoint?: unknown
+    }
+    expect(animated.startPoint).toEqual([0.25, 0.5])
+    expect(animated.endPoint).toEqual([0.75, 0.5])
+  })
+
   it('animates locations element-wise when present', () => {
     const result = renderWithMotion(
       <MotionLinearGradient

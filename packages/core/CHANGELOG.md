@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Added
+
+- **The Reanimated mock in `@rootnative/inertia/jest-setup` exports `processColor`.** It returns the same processed number as the `processColor` of React Native. `MotionLinearGradient` in `@rootnative/inertia-gradients` calls it on Android, so a test that renders the gradient on the Android path needs it.
+
 ## [0.0.24] - 2026-10-31
 
 ### Fixed

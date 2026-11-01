@@ -179,6 +179,9 @@ jest.mock('react-native-reanimated', () => {
       value >= 1 ? output[output.length - 1] : output[0],
     interpolateColor: (value, _input, output) =>
       value >= 1 ? output[output.length - 1] : output[0],
+    // Same contract as Reanimated's worklet: a color in, the platform's
+    // processed number out (signed on Android).
+    processColor: (color) => require('react-native').processColor(color),
     Extrapolation: { CLAMP: 'clamp', IDENTITY: 'identity', EXTEND: 'extend' },
     // Layout-animation builder stub. The real builder is chainable and records
     // spring / timing config; tests assert against the recorded fields. Each

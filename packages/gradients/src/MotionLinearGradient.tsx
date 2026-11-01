@@ -1,6 +1,14 @@
 import { useEffect, useRef } from 'react'
 import { LinearGradient, type LinearGradientProps } from 'expo-linear-gradient'
+import {
+  Platform,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native'
 import Animated, {
+  processColor,
   useAnimatedProps,
   useSharedValue,
   type SharedValue,
@@ -12,6 +20,7 @@ import {
   useShouldReduceMotion,
   type TransitionConfig,
 } from '@rootnative/inertia'
+import { nativeGradientView } from './nativeGradientView'
 import type {
   GradientPoint,
   LinearGradientAnimate,
@@ -20,6 +29,56 @@ import type {
 } from './types'
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient)
+
+type NativePoint = [number, number]
+
+type NativeLinearGradientProps = {
+  colors: number[]
+  startPoint: NativePoint
+  endPoint: NativePoint
+  locations?: readonly number[]
+  borderRadii: ViewStyle['borderRadius'][]
+  dither?: boolean
+  style?: StyleProp<ViewStyle>
+}
+
+// Where the native view is available (Android), this component renders it
+// itself and animates it directly, in place of the expo-linear-gradient
+// wrapper.
+const NativeGradientView = nativeGradientView<NativeLinearGradientProps>()
+const AnimatedNativeLinearGradient = NativeGradientView
+  ? Animated.createAnimatedComponent(NativeGradientView)
+  : null
+const ANIMATES_NATIVE_VIEW = AnimatedNativeLinearGradient !== null
+// The UI thread writes props straight to the native view, which reads
+// `startPoint` / `endPoint`. The expo-linear-gradient wrapper reads `start` /
+// `end`, and it renders again when an animation settles, because Reanimated
+// then hands the values back to React. So on iOS the worklet sends both
+// pairs. Web has no native view and keeps `start` / `end` only.
+const SENDS_NATIVE_POINTS = Platform.OS !== 'web'
+
+/**
+ * Per-corner radii in the order `Path.addRoundRect` takes them, read from the
+ * container style the same way the expo-linear-gradient Android wrapper does.
+ */
+function borderRadiiOf(style: StyleProp<ViewStyle>) {
+  const flat = StyleSheet.flatten(style) ?? {}
+  const radius = flat.borderRadius ?? 0
+  const topLeft = flat.borderTopLeftRadius ?? radius
+  const topRight = flat.borderTopRightRadius ?? radius
+  const bottomRight = flat.borderBottomRightRadius ?? radius
+  const bottomLeft = flat.borderBottomLeftRadius ?? radius
+  return [
+    topLeft,
+    topLeft,
+    topRight,
+    topRight,
+    bottomRight,
+    bottomRight,
+    bottomLeft,
+    bottomLeft,
+  ]
+}
 
 const NO_ANIMATION: TransitionConfig = { type: 'no-animation' }
 const DEFAULT_START: GradientPoint = { x: 0, y: 0 }
@@ -232,17 +291,29 @@ export function MotionLinearGradient(props: MotionLinearGradientProps) {
 
   const animatedProps = useAnimatedProps(() => {
     'worklet'
-    const colorsOut = new Array<string>(colorSvs.length)
-    for (let i = 0; i < colorSvs.length; i++) colorsOut[i] = colorSvs[i]!.value
+    // The native Android view reads processed colors only. On iOS the native
+    // view converts the strings itself, and on a React render the
+    // expo-linear-gradient wrapper processes them.
+    const colorsOut = new Array<string | number>(colorSvs.length)
+    for (let i = 0; i < colorSvs.length; i++) {
+      const color = colorSvs[i]!.value
+      colorsOut[i] = ANIMATES_NATIVE_VIEW ? processColor(color) : color
+    }
     const out: {
-      colors: string[]
-      start: GradientPoint
-      end: GradientPoint
+      colors: (string | number)[]
+      start?: GradientPoint
+      end?: GradientPoint
+      startPoint?: NativePoint
+      endPoint?: NativePoint
       locations?: number[]
-    } = {
-      colors: colorsOut,
-      start: { x: startX.value, y: startY.value },
-      end: { x: endX.value, y: endY.value },
+    } = { colors: colorsOut }
+    if (SENDS_NATIVE_POINTS) {
+      out.startPoint = [startX.value, startY.value]
+      out.endPoint = [endX.value, endY.value]
+    }
+    if (!ANIMATES_NATIVE_VIEW) {
+      out.start = { x: startX.value, y: startY.value }
+      out.end = { x: endX.value, y: endY.value }
     }
     if (hasLocations) {
       const locsOut = new Array<number>(locationSvs.length)
@@ -252,6 +323,25 @@ export function MotionLinearGradient(props: MotionLinearGradientProps) {
     }
     return out
   })
+
+  if (AnimatedNativeLinearGradient) {
+    const { style, children, dither, ...viewProps } = rest
+    return (
+      <View {...viewProps} style={style}>
+        <AnimatedNativeLinearGradient
+          animatedProps={animatedProps as never}
+          colors={colors.map((color) => processColor(color))}
+          startPoint={[start.x, start.y]}
+          endPoint={[end.x, end.y]}
+          locations={locations}
+          borderRadii={borderRadiiOf(style)}
+          dither={dither}
+          style={StyleSheet.absoluteFill}
+        />
+        {children}
+      </View>
+    )
+  }
 
   return (
     <AnimatedLinearGradient
