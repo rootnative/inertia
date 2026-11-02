@@ -267,7 +267,7 @@ describe('Motion.* — layoutId integration', () => {
       expect(leg?.(0.5)).toBe(0.25)
     }
     expect(withDelay).toHaveBeenCalledTimes(4)
-    expect(withDelay.mock.calls[0][0]).toBe(100)
+    expect(withDelay.mock.calls[0]?.[0]).toBe(100)
   })
 
   it('a spring FLIP passes delay to the second leg', () => {
@@ -290,7 +290,7 @@ describe('Motion.* — layoutId integration', () => {
     })
 
     expect(withDelay).toHaveBeenCalledTimes(4)
-    expect(withDelay.mock.calls[0][0]).toBe(80)
+    expect(withDelay.mock.calls[0]?.[0]).toBe(80)
   })
 
   it('a FLIP with no delay does not call withDelay', () => {
