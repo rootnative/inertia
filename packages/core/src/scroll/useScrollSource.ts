@@ -2,6 +2,7 @@ import {
   useCallback,
   useMemo,
   useRef,
+  useState,
   type MutableRefObject,
   type Ref,
 } from 'react'
@@ -45,6 +46,8 @@ export function useScrollSource(
   const offset = useScrollViewOffset(animatedRef)
   const length = useSharedValue(0)
   const nodeRef = useRef<unknown>(null)
+  const lastSize = useRef<{ width: number; height: number } | null>(null)
+  const [resizeListeners] = useState(() => new Set<() => void>())
 
   const setRef = useCallback(
     (node: unknown) => {
@@ -66,6 +69,14 @@ export function useScrollSource(
     (event: LayoutChangeEvent) => {
       const { width, height } = event.nativeEvent.layout
       length.value = horizontal ? width : height
+      // Both axes count: a change of the cross axis alone also reflows the
+      // content. A move with the same size does not, because the content moves
+      // with the container.
+      const last = lastSize.current
+      if (!last || last.width !== width || last.height !== height) {
+        lastSize.current = { width, height }
+        resizeListeners.forEach((listener) => listener())
+      }
       userOnLayout?.(event)
     },
     // `length` is identity-stable per hook instance.
@@ -75,9 +86,19 @@ export function useScrollSource(
 
   const getNode = useCallback(() => nodeRef.current, [])
 
+  const subscribeResize = useCallback(
+    (listener: () => void) => {
+      resizeListeners.add(listener)
+      return () => {
+        resizeListeners.delete(listener)
+      }
+    },
+    [resizeListeners],
+  )
+
   const value = useMemo(
-    () => ({ offset, length, horizontal, getNode }),
-    [offset, length, horizontal, getNode],
+    () => ({ offset, length, horizontal, getNode, subscribeResize }),
+    [offset, length, horizontal, getNode, subscribeResize],
   )
 
   return { value, setRef, onLayout }

@@ -92,7 +92,8 @@ type MeasurableNode = { measureInWindow?: unknown }
  *
  * ## What it does not do
  *
- * The element is measured on mount and again when the container resizes. It is
+ * The element is measured on mount and again when the container's width or
+ * height changes, which a rotate, a split view or a fold does. It is
  * **not** re-measured when content above it changes height, so a list that
  * grows above an element can leave that element's trigger point stale. Remount
  * it (change its `key`) if the layout above it moves.
@@ -179,7 +180,8 @@ export function useInView(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ref, scroll, horizontal])
 
-  // ─── Native: measure once, then track the scroll offset on the UI thread ──
+  // ─── Native: measure on mount and on each container resize, then track the
+  // scroll offset on the UI thread ──────────────────────────────────────────
   useEffect(() => {
     if (isWeb || !scroll) return
 
@@ -188,22 +190,33 @@ export function useInView(
     // frames, then stop — a hook that polls forever is worse than one that
     // gives up.
     let frame: ReturnType<typeof requestAnimationFrame> | undefined
-    let attempts = 0
-    const attempt = () => {
-      if (measure()) return
-      if (++attempts >= MEASURE_ATTEMPTS) {
-        // Nothing was measurable, so no scroll arithmetic is possible. Reveal
-        // rather than leave the element stuck at 0 forever.
-        report(true)
-        return
+    const measureSoon = () => {
+      if (frame !== undefined) cancelAnimationFrame(frame)
+      let attempts = 0
+      const attempt = () => {
+        frame = undefined
+        if (measure()) return
+        if (++attempts < MEASURE_ATTEMPTS) {
+          frame = requestAnimationFrame(attempt)
+          return
+        }
+        // Nothing was ever measurable, so no scroll arithmetic is possible.
+        // Reveal rather than leave the element stuck at 0 forever. A failed
+        // re-measure after a resize keeps the last good measurement instead.
+        if (!measured.value) report(true)
       }
       frame = requestAnimationFrame(attempt)
     }
-    frame = requestAnimationFrame(attempt)
+
+    measureSoon()
+    const unsubscribe = scroll.subscribeResize(measureSoon)
 
     return () => {
+      unsubscribe()
       if (frame !== undefined) cancelAnimationFrame(frame)
     }
+    // `measured` is identity-stable per hook instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isWeb, scroll, measure, report])
 
   const trackScroll = !isWeb && scroll !== null

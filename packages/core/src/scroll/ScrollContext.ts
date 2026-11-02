@@ -5,9 +5,9 @@ import { type SharedValue } from 'react-native-reanimated'
  * What a scroll container publishes so a descendant can tell whether it is on
  * screen.
  *
- * Both members are shared values because the consumer — `useInView` — does its
- * arithmetic in a worklet. A scroll position that arrived as React state would
- * cost a render per frame and land a frame late.
+ * The offset and the length are shared values because the consumer —
+ * `useInView` — does its arithmetic in a worklet. A scroll position that
+ * arrived as React state would cost a render per frame and land a frame late.
  */
 export interface ScrollContextValue {
   /**
@@ -30,6 +30,14 @@ export interface ScrollContextValue {
    * descendant.
    */
   getNode: () => unknown
+  /**
+   * Calls `listener` on the JS thread after each layout that changes the
+   * container's width or height, and returns a function that stops it. A
+   * rotate, a split view or a fold reflows the content, so a descendant that
+   * measured its own position must measure it again. A listener rather than a
+   * value in context, so a resize does not re-render every descendant.
+   */
+  subscribeResize: (listener: () => void) => () => void
 }
 
 /**

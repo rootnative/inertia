@@ -1,5 +1,6 @@
 import { useRef, type ReactElement } from 'react'
-import { act, render } from '@testing-library/react-native'
+import { ScrollView } from 'react-native'
+import { act, fireEvent, render } from '@testing-library/react-native'
 import * as Reanimated from 'react-native-reanimated'
 import { Motion } from '../motion'
 import { __setSharedLayoutMeasurer, type MeasuredRect } from '../layout'
@@ -7,13 +8,16 @@ import { useScrollContext, type ScrollContextValue } from '../scroll'
 import { useInView, type UseInViewOptions } from '../values/useInView'
 import { __resetWarnOnceForTests } from '../internal/warnOnce'
 
-const CONTAINER = { x: 0, y: 0, width: 320, height: 500 }
+const CONTAINER: MeasuredRect = { x: 0, y: 0, width: 320, height: 500 }
+let containerRect: MeasuredRect = CONTAINER
 
 /** Where the element sits in window coordinates while the container is at 0. */
 let elementRect: MeasuredRect = { x: 0, y: 600, width: 320, height: 100 }
 
 let containerNode: unknown = null
 let elementNode: unknown = null
+/** How many times the measurer has answered for the element. */
+let elementMeasures = 0
 
 /** Handles the test reaches in to drive the hook. */
 interface Probe {
@@ -98,14 +102,33 @@ async function scrollTo(
   await settle(mounted)
 }
 
+/** Send the container a layout event, as a rotate or a split view does. */
+async function layoutContainer(
+  mounted: Mounted,
+  rect: MeasuredRect,
+): Promise<void> {
+  containerRect = rect
+  await act(async () => {
+    fireEvent(mounted.result.UNSAFE_getByType(ScrollView), 'layout', {
+      nativeEvent: { layout: rect },
+    })
+  })
+  await settle(mounted)
+}
+
 beforeEach(() => {
   containerNode = null
   elementNode = null
+  containerRect = CONTAINER
   elementRect = { x: 0, y: 600, width: 320, height: 100 }
+  elementMeasures = 0
   __resetWarnOnceForTests()
   __setSharedLayoutMeasurer((node) => {
-    if (node !== null && node === containerNode) return CONTAINER
-    if (node !== null && node === elementNode) return elementRect
+    if (node !== null && node === containerNode) return containerRect
+    if (node !== null && node === elementNode) {
+      elementMeasures += 1
+      return elementRect
+    }
     return undefined
   })
 })
@@ -192,6 +215,68 @@ describe('useInView inside a Motion scroll container', () => {
 
     await scrollTo(probe, mounted, 600)
     expect(probe.progress?.value).toBe(1)
+  })
+})
+
+describe('useInView after the container resizes', () => {
+  it('measures the element again, so a rotate that moves it into view reveals it', async () => {
+    const probe: Probe = {}
+    const mounted = renderInScroller(probe)
+    await settle(mounted)
+    await layoutContainer(mounted, CONTAINER)
+    // The element starts 100 points below the 500-point container.
+    expect(probe.progress?.value).toBe(0)
+
+    // The container is shorter now, and the content reflows so the element
+    // starts inside it.
+    elementRect = { x: 0, y: 200, width: 700, height: 60 }
+    await layoutContainer(mounted, { x: 0, y: 0, width: 700, height: 300 })
+
+    expect(probe.progress?.value).toBe(1)
+  })
+
+  it('measures again when only the width changes', async () => {
+    const probe: Probe = {}
+    const mounted = renderInScroller(probe)
+    await settle(mounted)
+    await layoutContainer(mounted, CONTAINER)
+
+    // A wider row wraps less text, so the element moves up although the
+    // container keeps its height.
+    elementRect = { x: 0, y: 450, width: 640, height: 100 }
+    await layoutContainer(mounted, { ...CONTAINER, width: 640 })
+
+    expect(probe.progress?.value).toBe(1)
+  })
+
+  it('does not measure again for a layout of the same size', async () => {
+    const probe: Probe = {}
+    const mounted = renderInScroller(probe)
+    await settle(mounted)
+    await layoutContainer(mounted, CONTAINER)
+    const measures = elementMeasures
+
+    // The container moved in the window, which moves the element with it.
+    await layoutContainer(mounted, { ...CONTAINER, y: 40 })
+
+    expect(elementMeasures).toBe(measures)
+  })
+
+  it('keeps the last measurement when the element cannot be measured again', async () => {
+    const probe: Probe = {}
+    const mounted = renderInScroller(probe)
+    await settle(mounted)
+    await layoutContainer(mounted, CONTAINER)
+
+    // The reveal fallback is for an element that was never measured. One
+    // that was keeps its last answer.
+    __setSharedLayoutMeasurer((node) =>
+      node !== null && node === containerNode ? containerRect : undefined,
+    )
+    await layoutContainer(mounted, { x: 0, y: 0, width: 700, height: 300 })
+    for (let i = 0; i < 6; i++) await settle(mounted)
+
+    expect(probe.progress?.value).toBe(0)
   })
 })
 
