@@ -7,7 +7,7 @@ description: The escape-hatch surface, for imperative control beyond what the pr
 
 The escape-hatch surface — drop here when you need imperative control beyond what the props expose.
 
-The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useInterpolatedStyle`, `useScroll`, `useHideOnScroll`, `useInView`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition` / `useInterpolatedStyle`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
+The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useInterpolatedStyle`, `useScroll`, `useHideOnScroll`, `useInView`, `useValueChange`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition` / `useInterpolatedStyle`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
 
 :::note Unmount cleanup
 `useMotionValue`, `useSpring`, `useBooleanSpring`, and `useAnimation` cancel any in-flight animation on unmount, so a still-settling or `repeat: 'infinite'` animation stops ticking its worklet once its owning component is gone — you don't need a manual `cancelAnimation` teardown effect for that case. To cancel _mid-life_ (while the component stays mounted), import `cancelAnimation` from the [`/reanimated`](./reanimated-interop) interop subpath and call it yourself. The `Motion.*` primitives get the same unmount cleanup for their internal shared values.
@@ -588,6 +588,43 @@ The rules of the value:
 - It accumulates and clamps. A long scroll down holds it at 1, and the first scroll up starts to bring it back, from anywhere in the content.
 - It runs on the UI thread, through a reaction on the offset, so it is safe to read from any worklet.
 - It does not snap to 0 or 1 when the scroll stops. An element can rest half hidden after a short scroll.
+
+## `useValueChange(value, onChange)`
+
+Call a JS-thread function when a shared value changes. The reaction runs on the UI thread and schedules `onChange(current, previous)` on the JS thread, once per change. It does not run for the initial value.
+
+This is the bridge from the value layer back to React state: the index that a scroll offset selects, the page that a pager position crosses, the step that a drag passes. Derive the value on the UI thread first, so the JS thread hears one call per step and not one per frame.
+
+```tsx
+import { Motion, useScroll, useValueChange } from '@rootnative/inertia'
+import { useDerivedValue } from '@rootnative/inertia/reanimated'
+
+const PAGE_WIDTH = 320
+
+function Pager({ onPageChange }: { onPageChange: (page: number) => void }) {
+  const { scrollX, onScroll } = useScroll()
+  const page = useDerivedValue(() => Math.round(scrollX.value / PAGE_WIDTH))
+  useValueChange(page, onPageChange)
+
+  return (
+    <Motion.ScrollView
+      horizontal
+      pagingEnabled
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+    >
+      {/* …pages… */}
+    </Motion.ScrollView>
+  )
+}
+```
+
+The rules:
+
+- `value` is a `SharedValue<T>` or a `DerivedValue<T>`. A change is a `!==` comparison of the new value with the last one, so derive a number, a string or a boolean. A new object on every frame is a change on every frame.
+- The callback can change on every render, as an inline arrow does. The hook always calls the latest one, and a new callback does not rebuild the UI-thread reaction.
+- The call lands on the JS thread after the frame that changed the value. A change in the same frame as a render is delivered after that render commits.
+- Use it for state, not for style. A style that follows a value belongs in `useAnimatedStyle` or `useInterpolatedStyle`, on the UI thread.
 
 ## `useInView(ref, options?)`
 

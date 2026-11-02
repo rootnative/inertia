@@ -45,4 +45,5 @@ export {
   type UseShadowOptions,
 } from './useShadow'
 export { useTranslateStyle, type TranslateStyle } from './useTranslateStyle'
+export { useValueChange } from './useValueChange'
 export { useVariants } from './useVariants'

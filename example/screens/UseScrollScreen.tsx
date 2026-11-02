@@ -1,16 +1,23 @@
+import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import Animated, { useAnimatedStyle } from 'react-native-reanimated'
+import Animated, {
+  useAnimatedStyle,
+  useDerivedValue,
+} from 'react-native-reanimated'
 import {
   Motion,
   useHideOnScroll,
   useInterpolatedStyle,
   useScroll,
   useTransform,
+  useValueChange,
 } from '@rootnative/inertia'
 import { ScreenShell } from './ScreenShell'
 
 const ROWS = Array.from({ length: 30 }, (_, i) => i + 1)
 const FOOTER_HEIGHT = 56
+/** The height of one row plus the gap of the list. */
+const ROW_PITCH = 56
 
 /**
  * `useScroll` tracks a `Motion.ScrollView`'s offset as shared values on the
@@ -48,11 +55,18 @@ export function UseScrollScreen({ onBack }: { onBack: () => void }) {
   const footerStyle = useInterpolatedStyle(footerHidden, {
     translateY: [0, FOOTER_HEIGHT],
   })
+  // `useValueChange` brings a value back to React state. The row index is
+  // derived on the UI thread, so the JS thread hears one call per row.
+  const topRow = useDerivedValue(() =>
+    Math.max(0, Math.round(scrollY.value / ROW_PITCH)),
+  )
+  const [row, setRow] = useState(0)
+  useValueChange(topRow, setRow)
 
   return (
     <ScreenShell
       title="useScroll + useTransform"
-      description="Scroll offset tracked on the UI thread, interpolated onto opacity, translateY, and two colors. Scroll the list and watch the header collapse. The footer hides on a scroll down and returns on a scroll up."
+      description="Scroll offset tracked on the UI thread, interpolated onto opacity, translateY, and two colors. Scroll the list and watch the header collapse. The footer hides on a scroll down and returns on a scroll up, and useValueChange sets the top row into React state."
       onBack={onBack}
       fill
     >
@@ -83,7 +97,9 @@ export function UseScrollScreen({ onBack }: { onBack: () => void }) {
           ))}
         </Motion.ScrollView>
         <Animated.View style={[styles.footer, footerStyle]}>
-          <Text style={styles.footerLabel}>Hides on scroll</Text>
+          <Text style={styles.footerLabel}>
+            Hides on scroll · top row {row + 1}
+          </Text>
         </Animated.View>
       </View>
     </ScreenShell>

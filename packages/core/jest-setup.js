@@ -12,6 +12,9 @@
 jest.mock('react-native-worklets', () => ({
   __esModule: true,
   isWorkletFunction: () => false,
+  // There is one thread under Jest, so a call scheduled on the JS thread
+  // runs at once. `useValueChange` reaches its callback through it.
+  scheduleOnRN: (fn, ...args) => fn(...args),
 }))
 
 // Override RN's Text mock — the default mockComponent crashes on arrow function

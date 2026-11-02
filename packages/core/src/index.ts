@@ -64,6 +64,7 @@ export {
   useColorTransition,
   useGesture,
   useHideOnScroll,
+  useValueChange,
   useInterpolatedStyle,
   useMotionValue,
   useScroll,
