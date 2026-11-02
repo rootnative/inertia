@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -19,11 +19,21 @@ export function ScreenShell({
   children: ReactNode
 }) {
   const insets = useSafeAreaInsets()
+  // The side insets are 0 in portrait. In landscape the notch or the Dynamic
+  // Island takes one side, and the header and the demo must clear it.
+  const sideInsets = useMemo(
+    () => ({ paddingLeft: insets.left, paddingRight: insets.right }),
+    [insets.left, insets.right],
+  )
+  const headerInset = useMemo(
+    () => ({ paddingTop: insets.top + 12 }),
+    [insets.top],
+  )
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, sideInsets]}>
       <StatusBar style="auto" />
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.header, headerInset]}>
         <Pressable onPress={onBack} hitSlop={12}>
           <Text style={styles.backLabel}>← Back</Text>
         </Pressable>

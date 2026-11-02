@@ -1,4 +1,4 @@
-import { type ComponentType } from 'react'
+import { useMemo, type ComponentType } from 'react'
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import {
@@ -433,9 +433,21 @@ function readInitialState(): InitialState | undefined {
 
 const SCREEN_OPTIONS = { headerShown: false } as const
 
+const CONTENT_GUTTER = 12
+
 function HomeScreen() {
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
+  // The side insets keep the cards clear of the notch or the Dynamic Island in
+  // landscape. They are 0 in portrait.
+  const contentInsets = useMemo(
+    () => ({
+      paddingTop: insets.top + 16,
+      paddingLeft: insets.left + CONTENT_GUTTER,
+      paddingRight: insets.right + CONTENT_GUTTER,
+    }),
+    [insets.top, insets.left, insets.right],
+  )
   // `navigate`'s overloads distribute over the param list, so a union of route
   // names satisfies none of them. Dispatching the action takes a plain string
   // and keeps the call site cast-free.
@@ -445,7 +457,7 @@ function HomeScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+      contentContainerStyle={[styles.content, contentInsets]}
     >
       <StatusBar style="auto" />
       <Motion.View
@@ -569,7 +581,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   content: {
-    paddingHorizontal: 12,
     paddingBottom: 40,
     gap: 28,
   },
