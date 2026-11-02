@@ -6,9 +6,15 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.26] - 2026-11-03
+
 ### Documentation
 
 - **`useDrag` and `usePan` say what a change of `constraints` does.** A new value applies from the next gesture. An element at rest outside the new bounds stays there, and it jumps at the first move of the next gesture. The docs say to write `dragX` / `dragY` (or `panX` / `panY`) when you change the bounds, for example after a rotate changes the width of a measured track.
+
+### Changed
+
+- The `@rootnative/inertia` peer range moves to `>=0.0.26 <0.1.0`, in lockstep.
 
 ## [0.0.25] - 2026-11-02
 
@@ -170,7 +176,8 @@ Initial alpha publish alongside `@rootnative/inertia@0.0.0-alpha.0`. Optional ad
 - `useDrag({ onRelease })` — release worklet returns per-axis Inertia transitions (snap-to-tick spring, decay with bounds, etc.). Velocity stays on the UI thread; no JS round-trip.
 - `useSwipe`, `usePan` hooks composable with any `Motion.*` primitive via `<GestureDetector>`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.25...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.26...HEAD
+[0.0.26]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.26
 [0.0.25]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.25
 [0.0.24]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.24
 [0.0.23]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.23

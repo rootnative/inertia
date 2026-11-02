@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.26] - 2026-11-03
+
 ### Added
 
 - **`useValueChange(value, onChange)`.** Calls a JS-thread function when a shared value or a derived value changes, once per change, with the new and the previous value. The reaction runs on the UI thread and schedules the callback with `scheduleOnRN` from `react-native-worklets`. It is the bridge from the value layer back to React state: derive an index, a page or a step on the UI thread, and set state from it. The Jest mock of `react-native-worklets` in `@rootnative/inertia/jest-setup` now exports `scheduleOnRN`, which runs the function at once.
@@ -11,7 +13,7 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 ### Fixed
 
 - **`useInView` measures the element again when its scroll container resizes.** The docs said so, but on native the hook measured the element on mount only. After a rotate, a split view or a fold, the content reflows and the element moves, so an element not yet seen could stay hidden while it was on the screen, or show too early. `Motion.ScrollView` and `Motion.FlatList` now tell the hook when their width or height changes, and the hook measures the element on the next frame. A change of the width alone counts, because it reflows the content too. If the new measurement fails, the hook keeps the last one. On web, `IntersectionObserver` already followed each layout change.
-- **`useHideOnScroll` reads no shared value during render.** It seeded its previous offset with `offset.value` while React rendered the component, which the Reanimated strict mode reports as a warning on every mount. The first run of its reaction now seeds the previous offset. The progress is the same from the first scroll on.
+- **`useHideOnScroll` reads no shared value during render.** It seeded its previous offset with `offset.value` while React rendered the component, which the Reanimated strict mode reports as a warning on each render after the first. The first run of its reaction now seeds the previous offset. The progress is the same from the first scroll on.
 - **A `layoutId` FLIP reads the `easing` and the `delay` of its transition.** A timing transition on the incoming element set the duration of the FLIP, but the FLIP ran on the default curve of Reanimated, and a `delay` had no effect. Nothing warned, so one config gave two curves: the `layout` prop read the easing, and the FLIP did not. Now the FLIP passes `easing` to `withTiming`, with the same worklet check as the `transition` prop, and a `delay` on a timing or a spring transition holds the element at the source rect before it moves. `repeat` does not apply to a FLIP.
 
 ### Documentation
@@ -595,7 +597,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.25...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.26...HEAD
+[0.0.26]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.26
 [0.0.25]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.25
 [0.0.24]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.24
 [0.0.23]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.23
