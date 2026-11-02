@@ -70,8 +70,11 @@ export function useHideOnScroll(
   // The previous offset is kept here, not taken from the reaction's second
   // argument: the Jest mock of `useAnimatedReaction` runs the reaction once
   // per render with no previous value, and the own value makes the hook
-  // observable in a test the same way it runs on a device.
-  const previous = useSharedValue(offset.value)
+  // observable in a test the same way it runs on a device. The first run of
+  // the reaction seeds it: a read of `offset.value` during render would warn
+  // under the Reanimated strict mode.
+  const previous = useSharedValue(0)
+  const primed = useSharedValue(false)
 
   // No dependency list: Reanimated 4.7 warns on native when one is passed,
   // and builds the list from the worklet closure on every platform.
@@ -82,6 +85,11 @@ export function useHideOnScroll(
       // An iOS fling that reaches the end bounces past it and back. The
       // bounce back is not a scroll up, so the offset stops at the end.
       const current = end ? Math.min(offsetValue, end.value) : offsetValue
+      if (!primed.value) {
+        primed.value = true
+        previous.value = current
+        return
+      }
       const delta = current - previous.value
       previous.value = current
       if (current <= 0) {
