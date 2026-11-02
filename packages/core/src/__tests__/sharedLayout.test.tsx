@@ -231,6 +231,90 @@ describe('Motion.* — layoutId integration', () => {
     expect(withSpring).toHaveBeenCalledTimes(4)
   })
 
+  it('a timing FLIP passes easing and delay to the second leg', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    const withDelay = jest.spyOn(Reanimated, 'withDelay')
+    const easing = (t: number) => {
+      'worklet'
+      return t * t
+    }
+    registerLayout('hero', par(0, 0, 50, 50))
+
+    const view = render(
+      <Motion.View
+        testID="el"
+        layoutId="hero"
+        style={boxStyle}
+        transition={{ type: 'timing', duration: 420, easing, delay: 100 }}
+      />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 100,
+      y: 100,
+      width: 100,
+      height: 100,
+    })
+
+    // The second leg of each of the four FLIP sequences.
+    const legs = withTiming.mock.calls.filter(
+      (call) => (call[1] as { duration?: number })?.duration === 420,
+    )
+    expect(legs).toHaveLength(4)
+    // Jest runs no Babel worklet plugin, so `ensureWorkletEasing` wraps the
+    // function. The wrapper calls through, so assert on the curve.
+    for (const call of legs) {
+      const leg = (call[1] as { easing?: (t: number) => number }).easing
+      expect(leg?.(0.5)).toBe(0.25)
+    }
+    expect(withDelay).toHaveBeenCalledTimes(4)
+    expect(withDelay.mock.calls[0][0]).toBe(100)
+  })
+
+  it('a spring FLIP passes delay to the second leg', () => {
+    const withDelay = jest.spyOn(Reanimated, 'withDelay')
+    registerLayout('hero', par(0, 0, 50, 50))
+
+    const view = render(
+      <Motion.View
+        testID="el"
+        layoutId="hero"
+        style={boxStyle}
+        transition={{ type: 'spring', delay: 80 }}
+      />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 100,
+      y: 100,
+      width: 100,
+      height: 100,
+    })
+
+    expect(withDelay).toHaveBeenCalledTimes(4)
+    expect(withDelay.mock.calls[0][0]).toBe(80)
+  })
+
+  it('a FLIP with no delay does not call withDelay', () => {
+    const withDelay = jest.spyOn(Reanimated, 'withDelay')
+    registerLayout('hero', par(0, 0, 50, 50))
+
+    const view = render(
+      <Motion.View
+        testID="el"
+        layoutId="hero"
+        style={boxStyle}
+        transition={{ type: 'timing', duration: 300 }}
+      />,
+    )
+    fireLayout(view.getByTestId('el') as never, {
+      x: 100,
+      y: 100,
+      width: 100,
+      height: 100,
+    })
+
+    expect(withDelay).not.toHaveBeenCalled()
+  })
+
   it('reduced motion skips the FLIP animation', () => {
     jest.spyOn(Reanimated, 'useReducedMotion').mockReturnValue(true)
     const withSpring = jest.spyOn(Reanimated, 'withSpring')

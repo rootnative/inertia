@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **A `layoutId` FLIP reads the `easing` and the `delay` of its transition.** A timing transition on the incoming element set the duration of the FLIP, but the FLIP ran on the default curve of Reanimated, and a `delay` had no effect. Nothing warned, so one config gave two curves: the `layout` prop read the easing, and the FLIP did not. Now the FLIP passes `easing` to `withTiming`, with the same worklet check as the `transition` prop, and a `delay` on a timing or a spring transition holds the element at the source rect before it moves. `repeat` does not apply to a FLIP.
+
 ## [0.0.25] - 2026-11-02
 
 ### Added
