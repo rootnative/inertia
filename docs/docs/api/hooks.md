@@ -668,6 +668,16 @@ The offset is read off the container's animated ref, not from its `onScroll` pro
 
 - **Outside a scroll container on native the value is `1` from the start**, and the hook warns once in development. An element on a fixed screen really is visible, so the animation behaves exactly as it did before the hook existed. It is not a substitute for a scroll container.
 - **The element is measured on mount and when the container's width or height changes (a rotate, a split view, a fold), not continuously.** Content that changes height _above_ an element leaves that element's trigger point stale. Remount it (change its `key`) if the layout above it moves.
+- **The element is measured where it is drawn, with its transforms.** An entrance that starts the element 24 points lower (`translateY: [24, 0]` on the element that holds the ref) moves the trigger 24 points later, and a `scale` below `1` moves it a little more. For a small entrance this does not matter. To trigger on the layout box, put the ref on a plain wrapper and animate a child. On web, `IntersectionObserver` also uses the drawn box, so both platforms agree.
+
+  ```tsx
+  return (
+    <View ref={ref}>
+      <Motion.View style={style} />
+    </View>
+  )
+  ```
+
 - **An element longer than the container** can never satisfy a high `amount` literally, so the requirement caps at the container's own length: `amount: 1` there means "fills the container", not "never".
 
 ## `useGesture(transition?)`

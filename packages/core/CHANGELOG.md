@@ -17,6 +17,7 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 ### Documentation
 
 - **`useTouchDrag` says what a change of `constraints` does.** A new value applies from the next gesture. An element at rest outside the new bounds stays there, and it jumps at the first move of the next gesture. The docs say to write `dragX` / `dragY` when you change the bounds, for example after a rotate changes the width of a measured track.
+- **`useInView` says that it measures the element where it is drawn, with its transforms.** An entrance that starts the element 24 points lower on the element that holds the ref moves the trigger 24 points later. The hooks page shows how to trigger on the layout box: put the ref on a plain wrapper and animate a child. On web, `IntersectionObserver` also uses the drawn box, so both platforms agree.
 
 ## [0.0.25] - 2026-11-02
 

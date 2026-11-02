@@ -98,6 +98,12 @@ type MeasurableNode = { measureInWindow?: unknown }
  * grows above an element can leave that element's trigger point stale. Remount
  * it (change its `key`) if the layout above it moves.
  *
+ * The element is measured where it is drawn, with its transforms. An entrance
+ * that starts it 24 points lower (`translateY: [24, 0]` on the element that
+ * holds the ref) moves the trigger 24 points later. To trigger on the layout
+ * box, put the ref on a plain wrapper and animate a child. On web,
+ * `IntersectionObserver` also uses the drawn box, so both platforms agree.
+ *
  * @param ref A ref on the element to watch. On web it must land on a host
  *   component, which is what `Motion.*` and RN's own primitives give you.
  */
