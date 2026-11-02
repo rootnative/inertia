@@ -1043,6 +1043,8 @@ function Slider({ ticks }: { ticks: number[] }) {
 
 Returns `{ panHandlers, animatedStyle, dragX, dragY, isDragging }`.
 
+**When the bounds change.** A new `constraints` value applies from the next drag. An element at rest outside the new bounds stays there, and it jumps at the first move of the next drag. To move it at once, write `dragX` / `dragY` when you change the bounds. For example, after a rotate changes the width of a slider track, set the thumb to the same fraction of the new track.
+
 **When to pick `useTouchDrag` over `useDrag` from `@rootnative/inertia-gestures`:** you want key steps on the dragged element (arrow keys, `PageUp` / `PageDown`; see **Keyboard** below for the platforms), OR you don't want to take `react-native-gesture-handler` as a peer dep. **When to skip it:** you're already using `react-native-gesture-handler` elsewhere — the gesture-handler `useDrag`'s release velocity is UI-thread and slightly more precise; consistency across the app trumps a small per-call win.
 
 **Keyboard.** `useTouchDrag` composes with `onKeyDown`, but the key events come from the platform. `onKeyDown` fires on web. On Android, React Native sends key events only when the app turns on the `enableKeyEvents` feature flag in its native code, and Expo Go leaves it off. iOS sends no key events. For a screen reader on iOS and Android, give the element `accessibilityActions` with `increment` and `decrement`, and step the value in `onAccessibilityAction`.

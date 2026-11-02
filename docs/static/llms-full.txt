@@ -1418,6 +1418,8 @@ function DraggableBox() {
 
 Returns `{ gesture, animatedStyle, dragX, dragY, isDragging }`. The shared values are exposed for power use cases (deriving secondary effects from drag position).
 
+**When the bounds change.** A new `constraints` value applies from the next drag. An element at rest outside the new bounds stays there, and it jumps at the first move of the next drag. To move it at once, write `dragX` / `dragY` when you change the bounds. For example, after a rotate changes the width of a slider track, set the thumb to the same fraction of the new track.
+
 ### Release transitions (`onRelease`)
 
 By default `useDrag` leaves the shared values where the finger lifted. The one exception is an `elastic` overshoot: an axis that lifted past `constraints` springs back to the nearest bound with the default spring and the release velocity. Pass `onRelease` to animate them to a settled position via Inertia's transition vocabulary — spring snap-to-tick, decay with bounds, timing settle. The callback runs as a **worklet** so the release velocity stays on the UI thread (no JS round-trip):
@@ -1600,6 +1602,8 @@ return (
 | `disableMomentum` | `boolean`                          | `false`            | Hard stop on release (drag-like).                                             |
 
 For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-clamps because it composes with `withDecay`'s `clamp` parameter, which doesn't have an overshoot mode.
+
+**When the bounds change.** A new `constraints` value applies from the next pan. An element at rest outside the new bounds stays there, and it jumps at the first move of the next pan. To move it at once, write `panX` / `panY` when you change the bounds.
 
 ## When to pick which
 
@@ -4265,6 +4269,8 @@ function Slider({ ticks }: { ticks: number[] }) {
 | `onRelease`   | `(info) => ReleaseResult \| void`              | none     | JS-thread release transition. Same shape as the gesture-handler `useDrag`'s `onRelease`.                        |
 
 Returns `{ panHandlers, animatedStyle, dragX, dragY, isDragging }`.
+
+**When the bounds change.** A new `constraints` value applies from the next drag. An element at rest outside the new bounds stays there, and it jumps at the first move of the next drag. To move it at once, write `dragX` / `dragY` when you change the bounds. For example, after a rotate changes the width of a slider track, set the thumb to the same fraction of the new track.
 
 **When to pick `useTouchDrag` over `useDrag` from `@rootnative/inertia-gestures`:** you want key steps on the dragged element (arrow keys, `PageUp` / `PageDown`; see **Keyboard** below for the platforms), OR you don't want to take `react-native-gesture-handler` as a peer dep. **When to skip it:** you're already using `react-native-gesture-handler` elsewhere — the gesture-handler `useDrag`'s release velocity is UI-thread and slightly more precise; consistency across the app trumps a small per-call win.
 

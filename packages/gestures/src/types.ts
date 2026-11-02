@@ -86,6 +86,11 @@ export interface DragOptions {
   /**
    * Travel bounds. Out-of-bounds values clamp to the limit unless `elastic`
    * is non-zero, in which case overshoot is dampened (rubber-band feel).
+   *
+   * A new value applies from the next drag. An element at rest outside the
+   * new bounds stays there, and jumps at the first move of the next drag. To
+   * move it at once, write `dragX` / `dragY` when you change the bounds, for
+   * example after a rotate changes the width of a measured track.
    */
   constraints?: DragConstraints
   /**

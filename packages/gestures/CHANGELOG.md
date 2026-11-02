@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+### Documentation
+
+- **`useDrag` and `usePan` say what a change of `constraints` does.** A new value applies from the next gesture. An element at rest outside the new bounds stays there, and it jumps at the first move of the next gesture. The docs say to write `dragX` / `dragY` (or `panX` / `panY`) when you change the bounds, for example after a rotate changes the width of a measured track.
+
 ## [0.0.25] - 2026-11-02
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.25` (a `layoutId` swap in one render animates on a slow device). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.25 <0.1.0`.

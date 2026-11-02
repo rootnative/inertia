@@ -52,6 +52,8 @@ function DraggableBox() {
 
 Returns `{ gesture, animatedStyle, dragX, dragY, isDragging }`. The shared values are exposed for power use cases (deriving secondary effects from drag position).
 
+**When the bounds change.** A new `constraints` value applies from the next drag. An element at rest outside the new bounds stays there, and it jumps at the first move of the next drag. To move it at once, write `dragX` / `dragY` when you change the bounds. For example, after a rotate changes the width of a slider track, set the thumb to the same fraction of the new track.
+
 ### Release transitions (`onRelease`)
 
 By default `useDrag` leaves the shared values where the finger lifted. The one exception is an `elastic` overshoot: an axis that lifted past `constraints` springs back to the nearest bound with the default spring and the release velocity. Pass `onRelease` to animate them to a settled position via Inertia's transition vocabulary — spring snap-to-tick, decay with bounds, timing settle. The callback runs as a **worklet** so the release velocity stays on the UI thread (no JS round-trip):
@@ -234,6 +236,8 @@ return (
 | `disableMomentum` | `boolean`                          | `false`            | Hard stop on release (drag-like).                                             |
 
 For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-clamps because it composes with `withDecay`'s `clamp` parameter, which doesn't have an overshoot mode.
+
+**When the bounds change.** A new `constraints` value applies from the next pan. An element at rest outside the new bounds stays there, and it jumps at the first move of the next pan. To move it at once, write `panX` / `panY` when you change the bounds.
 
 ## When to pick which
 

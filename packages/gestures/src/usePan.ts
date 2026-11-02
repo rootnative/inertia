@@ -19,6 +19,11 @@ export interface PanOptions {
    * (Reanimated's `withDecay` `clamp` param). Decay-style overshoot is not
    * supported here — for rubber-banded bounds, prefer `useDrag` with
    * `elastic`.
+   *
+   * A new value applies from the next pan. An element at rest outside the new
+   * bounds stays there, and jumps at the first move of the next pan. To move
+   * it at once, write `panX` / `panY` when you change the bounds, for example
+   * after a rotate changes the size of the measured area.
    */
   constraints?: DragConstraints
   /**

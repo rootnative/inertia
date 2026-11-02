@@ -14,6 +14,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 - **`useHideOnScroll` reads no shared value during render.** It seeded its previous offset with `offset.value` while React rendered the component, which the Reanimated strict mode reports as a warning on every mount. The first run of its reaction now seeds the previous offset. The progress is the same from the first scroll on.
 - **A `layoutId` FLIP reads the `easing` and the `delay` of its transition.** A timing transition on the incoming element set the duration of the FLIP, but the FLIP ran on the default curve of Reanimated, and a `delay` had no effect. Nothing warned, so one config gave two curves: the `layout` prop read the easing, and the FLIP did not. Now the FLIP passes `easing` to `withTiming`, with the same worklet check as the `transition` prop, and a `delay` on a timing or a spring transition holds the element at the source rect before it moves. `repeat` does not apply to a FLIP.
 
+### Documentation
+
+- **`useTouchDrag` says what a change of `constraints` does.** A new value applies from the next gesture. An element at rest outside the new bounds stays there, and it jumps at the first move of the next gesture. The docs say to write `dragX` / `dragY` when you change the bounds, for example after a rotate changes the width of a measured track.
+
 ## [0.0.25] - 2026-11-02
 
 ### Added
