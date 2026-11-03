@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **`useSpring` reads a shared value target during the first render only.** It read `target.value` on each render, but only the first render used it, as the seed of the output. The Reanimated strict mode reports a read during each render after the first as a warning, so a component that passed a shared value, for example a scroll progress, printed the warning on each of its renders. On native each read was also a synchronous call to the UI thread. Now the hook reads the target once, on mount. The first frame still starts at the target, and the spring does not change.
+
 ## [0.0.26] - 2026-11-03
 
 ### Added

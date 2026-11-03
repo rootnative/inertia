@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   cancelAnimation,
   useAnimatedReaction,
@@ -63,7 +63,14 @@ export function useSpring(
   )
 
   const isSharedTarget = isSharedValue(target)
-  const initial = isSharedTarget ? target.value : (target as number)
+  // The seed is read on the first render only: nothing uses it after mount.
+  // The Reanimated strict mode warns on a read during each later render, and
+  // on native each read is a synchronous call to the UI thread. It allows a
+  // read on the first render, and that read starts the first frame at the
+  // target, which a seed set by the reaction would not.
+  const [initial] = useState(() =>
+    isSharedTarget ? target.value : (target as number),
+  )
   const output = useSharedValue<number>(initial)
 
   // Plain-number path. The reaction below is a no-op when `target` is a

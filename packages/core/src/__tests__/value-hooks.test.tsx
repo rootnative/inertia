@@ -129,6 +129,37 @@ describe('useSpring', () => {
     expect(reaction).toHaveBeenCalled()
     expect(reaction.mock.calls.at(-1)).toHaveLength(2)
   })
+
+  it('reads a SharedValue target during the first render only', () => {
+    // Reanimated strict mode warns on a read during each render after the
+    // first. The static mock runs the reaction during render, so the spy
+    // keeps the reads of the reaction out of the count: on a device they run
+    // on the UI thread.
+    let inReaction = false
+    let renderReads = 0
+    const target = {
+      get value() {
+        if (!inReaction) renderReads++
+        return 30
+      },
+    } as Reanimated.SharedValue<number>
+    jest
+      .spyOn(Reanimated, 'useAnimatedReaction')
+      .mockImplementation((prepare, react) => {
+        inReaction = true
+        const next = prepare()
+        inReaction = false
+        react(next, null)
+      })
+    const probe: Probe<{ value: number }> = {}
+    const { rerender } = render(
+      <HookProbe use={() => useSpring(target)} probe={probe} />,
+    )
+    rerender(<HookProbe use={() => useSpring(target)} probe={probe} />)
+    rerender(<HookProbe use={() => useSpring(target)} probe={probe} />)
+    expect(renderReads).toBe(1)
+    expect(probe.current!.value).toBe(30)
+  })
 })
 
 describe('useBooleanSpring', () => {
