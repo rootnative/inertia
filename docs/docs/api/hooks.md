@@ -539,11 +539,24 @@ function StickyHeader() {
 
 Returns:
 
-| Field      | Type                                                       | Notes                                                                                                            |
-| ---------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `scrollX`  | `SharedValue<number>`                                      | Horizontal scroll offset in points.                                                                              |
-| `scrollY`  | `SharedValue<number>`                                      | Vertical scroll offset in points.                                                                                |
-| `onScroll` | `(event: NativeSyntheticEvent<NativeScrollEvent>) => void` | Pass to the scrollable's `onScroll` prop. Worklet-backed; safe to forward to any Reanimated-animated scrollable. |
+| Field        | Type                                                       | Notes                                                                                                                          |
+| ------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `scrollX`    | `SharedValue<number>`                                      | Horizontal scroll offset in points.                                                                                            |
+| `scrollY`    | `SharedValue<number>`                                      | Vertical scroll offset in points.                                                                                              |
+| `maxScrollX` | `SharedValue<number>`                                      | The largest horizontal offset that the content can rest at. `Infinity` until the first scroll event. Read it, do not write it. |
+| `maxScrollY` | `SharedValue<number>`                                      | The largest vertical offset that the content can rest at. `Infinity` until the first scroll event. Read it, do not write it.   |
+| `onScroll`   | `(event: NativeSyntheticEvent<NativeScrollEvent>) => void` | Pass to the scrollable's `onScroll` prop. Worklet-backed; safe to forward to any Reanimated-animated scrollable.               |
+
+`maxScrollX` and `maxScrollY` give the end of the content: the content length plus the end inset, minus the viewport length. An offset past the end is an overscroll. On iOS, a fling that reaches the end bounces past it and back, and the bounce back looks like a scroll up. Clamp the offset to the end to ignore the bounce:
+
+```tsx
+const { scrollY, maxScrollY, onScroll } = useScroll()
+const restingY = useDerivedValue(() =>
+  Math.min(scrollY.value, maxScrollY.value),
+)
+```
+
+Each scroll event updates the end, so a change of the content size shows at the next scroll event. On iOS, the end leaves out the safe-area inset that `contentInsetAdjustmentBehavior="automatic"` adds, because the scroll event does not carry it. Keep the default `'never'` and add the inset as padding in `contentContainerStyle`.
 
 Set `scrollEventThrottle={16}` on a `Motion.ScrollView` for steady 60 Hz updates; without it, Android can dispatch less frequently than iOS. [`Motion.FlatList`](../primitives/flat-list) needs no such prop — it defaults the throttle to 1. Reach for `Motion.FlatList` when the list is long enough that mounting every row costs more than the animation does.
 

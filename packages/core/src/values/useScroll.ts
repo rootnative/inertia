@@ -12,6 +12,18 @@ export interface UseScrollResult {
   /** Vertical scroll offset in points. */
   scrollY: SharedValue<number>
   /**
+   * The largest horizontal offset that the content can rest at, in points:
+   * the content width plus the right inset, minus the viewport width. It is
+   * `Infinity` until the first scroll event. Read it, do not write it.
+   */
+  maxScrollX: SharedValue<number>
+  /**
+   * The largest vertical offset that the content can rest at, in points:
+   * the content height plus the bottom inset, minus the viewport height. It
+   * is `Infinity` until the first scroll event. Read it, do not write it.
+   */
+  maxScrollY: SharedValue<number>
+  /**
    * Handler to pass to the `onScroll` prop of `Motion.ScrollView` or
    * `Motion.FlatList` (or any other Reanimated animated scroller). The handler
    * is opaque to JS — it runs as a worklet — but the type narrows to the same
@@ -48,6 +60,22 @@ export interface UseScrollResult {
  * read from any worklet (`useAnimatedStyle`, `useDerivedValue`,
  * `useTransform`) without a JS-thread bounce.
  *
+ * `maxScrollX` / `maxScrollY` give the end of the content. An offset past it
+ * is an overscroll, as in the iOS bounce at the end of a list, so clamp the
+ * offset to it to read the bounce back as a rest and not as a scroll up:
+ *
+ * ```tsx
+ * const { scrollY, maxScrollY, onScroll } = useScroll()
+ * const restingY = useDerivedValue(() =>
+ *   Math.min(scrollY.value, maxScrollY.value),
+ * )
+ * ```
+ *
+ * Each scroll event updates the end, so a change of the content size shows
+ * at the next scroll event. On iOS, the end leaves out the safe-area inset
+ * that `contentInsetAdjustmentBehavior="automatic"` adds: the event does not
+ * carry it.
+ *
  * Remember to set `scrollEventThrottle={16}` on a `Motion.ScrollView` for 60Hz
  * updates — RN's default is to dispatch on every event, which on iOS still
  * means one per frame, but Android benefits from the explicit cap.
@@ -59,12 +87,12 @@ export interface UseScrollResult {
 export function useScroll(): UseScrollResult {
   const scrollX = useSharedValue(0)
   const scrollY = useSharedValue(0)
-  // The largest offset that the content can rest at, per axis. It is unknown
-  // until the first scroll event, so nothing clamps before it.
-  const scrollEndX = useSharedValue(Infinity)
-  const scrollEndY = useSharedValue(Infinity)
-  registerScrollEnd(scrollX, scrollEndX)
-  registerScrollEnd(scrollY, scrollEndY)
+  // The end is unknown until the first scroll event, so nothing clamps
+  // before it.
+  const maxScrollX = useSharedValue(Infinity)
+  const maxScrollY = useSharedValue(Infinity)
+  registerScrollEnd(scrollX, maxScrollX)
+  registerScrollEnd(scrollY, maxScrollY)
 
   const handler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -74,11 +102,11 @@ export function useScroll(): UseScrollResult {
       if (event.contentSize && event.layoutMeasurement) {
         const insetRight = event.contentInset?.right ?? 0
         const insetBottom = event.contentInset?.bottom ?? 0
-        scrollEndX.value = Math.max(
+        maxScrollX.value = Math.max(
           0,
           event.contentSize.width + insetRight - event.layoutMeasurement.width,
         )
-        scrollEndY.value = Math.max(
+        maxScrollY.value = Math.max(
           0,
           event.contentSize.height +
             insetBottom -
@@ -99,6 +127,8 @@ export function useScroll(): UseScrollResult {
   return {
     scrollX,
     scrollY,
+    maxScrollX,
+    maxScrollY,
     onScroll: handler as unknown as (
       event: NativeSyntheticEvent<NativeScrollEvent>,
     ) => void,

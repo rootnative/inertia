@@ -194,7 +194,7 @@ The props of `<Stagger>`: `interval`, `delay?`, `from?: 'first' | 'last'`, `enab
 
 ### `UseScrollResult`
 
-The value that [`useScroll`](./hooks.md#usescroll) returns: `scrollX` and `scrollY` as `SharedValue<number>`, and `onScroll`, which you pass to the `onScroll` prop of `Motion.ScrollView` or `Motion.FlatList`.
+The value that [`useScroll`](./hooks.md#usescroll) returns: the offsets `scrollX` and `scrollY`, the end of the content `maxScrollX` and `maxScrollY`, each as `SharedValue<number>`, and `onScroll`, which you pass to the `onScroll` prop of `Motion.ScrollView` or `Motion.FlatList`.
 
 ### `UseHideOnScrollOptions`
 

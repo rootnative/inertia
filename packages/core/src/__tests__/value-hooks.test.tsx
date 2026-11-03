@@ -522,4 +522,52 @@ describe('useScroll', () => {
     expect(scrollX.value).toBe(24)
     expect(scrollY.value).toBe(480)
   })
+
+  it('returns an unknown end until the first scroll event', () => {
+    const probe: Probe<ReturnType<typeof useScroll>> = {}
+    render(<HookProbe use={() => useScroll()} probe={probe} />)
+    expect(probe.current!.maxScrollX.value).toBe(Infinity)
+    expect(probe.current!.maxScrollY.value).toBe(Infinity)
+  })
+
+  it('returns the end of the content, with the end insets', () => {
+    const probe: Probe<ReturnType<typeof useScroll>> = {}
+    render(<HookProbe use={() => useScroll()} probe={probe} />)
+    const { maxScrollX, maxScrollY, onScroll } = probe.current!
+    ;(onScroll as unknown as (e: unknown) => void)({
+      contentOffset: { x: 0, y: 120 },
+      contentSize: { width: 900, height: 1000 },
+      layoutMeasurement: { width: 360, height: 600 },
+      contentInset: { top: 0, left: 0, bottom: 20, right: 12 },
+    })
+    expect(maxScrollX.value).toBe(552)
+    expect(maxScrollY.value).toBe(420)
+  })
+
+  it('returns an end of 0 for content shorter than the viewport', () => {
+    const probe: Probe<ReturnType<typeof useScroll>> = {}
+    render(<HookProbe use={() => useScroll()} probe={probe} />)
+    const { maxScrollX, maxScrollY, onScroll } = probe.current!
+    ;(onScroll as unknown as (e: unknown) => void)({
+      contentOffset: { x: 0, y: 0 },
+      contentSize: { width: 360, height: 300 },
+      layoutMeasurement: { width: 360, height: 600 },
+    })
+    expect(maxScrollX.value).toBe(0)
+    expect(maxScrollY.value).toBe(0)
+  })
+
+  it('keeps the end when an event carries the offset only', () => {
+    const probe: Probe<ReturnType<typeof useScroll>> = {}
+    render(<HookProbe use={() => useScroll()} probe={probe} />)
+    const { maxScrollY, onScroll } = probe.current!
+    const scroll = onScroll as unknown as (e: unknown) => void
+    scroll({
+      contentOffset: { x: 0, y: 0 },
+      contentSize: { width: 360, height: 1000 },
+      layoutMeasurement: { width: 360, height: 600 },
+    })
+    scroll({ contentOffset: { x: 0, y: 200 } })
+    expect(maxScrollY.value).toBe(400)
+  })
 })

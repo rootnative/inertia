@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Added
+
+- **`useScroll` returns the end of the content as `maxScrollX` and `maxScrollY`.** Each one is the largest offset that the content can rest at: the content length plus the end inset, minus the viewport length. It is `Infinity` until the first scroll event. The hook computed the end already for `useHideOnScroll`, but did not return it, so a consumer that had to tell the iOS bounce at the end from a scroll up wrote its own scroll handler. Now clamp the offset to the end in a derived value.
+
 ### Fixed
 
 - **`useSpring` reads a shared value target during the first render only.** It read `target.value` on each render, but only the first render used it, as the seed of the output. The Reanimated strict mode reports a read during each render after the first as a warning, so a component that passed a shared value, for example a scroll progress, printed the warning on each of its renders. On native each read was also a synchronous call to the UI thread. Now the hook reads the target once, on mount. The first frame still starts at the target, and the spring does not change.
