@@ -4,6 +4,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.27] - 2026-11-05
+
 ### Added
 
 - **`useScroll` returns the end of the content as `maxScrollX` and `maxScrollY`.** Each one is the largest offset that the content can rest at: the content length plus the end inset, minus the viewport length. It is `Infinity` until the first scroll event. The hook computed the end already for `useHideOnScroll`, but did not return it, so a consumer that had to tell the iOS bounce at the end from a scroll up wrote its own scroll handler. Now clamp the offset to the end in a derived value.
@@ -605,7 +607,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.26...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.27...HEAD
+[0.0.27]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.27
 [0.0.26]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.26
 [0.0.25]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.25
 [0.0.24]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.24
