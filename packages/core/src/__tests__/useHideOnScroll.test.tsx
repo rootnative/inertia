@@ -184,6 +184,48 @@ describe('useHideOnScroll', () => {
     expect(probe.progress!.value).toBeCloseTo(0.5)
   })
 
+  it('starts again from a new offset source', () => {
+    // Two lists, as the tabs of a screen have, and a bar that follows the
+    // active one. The second list rests lower than the first, so a hook that
+    // keeps its previous offset reads the switch as a long scroll down.
+    const probe: Probe = {}
+    const sources: Reanimated.SharedValue<number>[] = []
+    let active = 0
+    let tick = 0
+    function SwapProbe({ tick: t }: { tick: number }): null {
+      const first = useMotionValue(0)
+      const second = useMotionValue(300)
+      sources[0] = first
+      sources[1] = second
+      probe.offset = active === 0 ? first : second
+      probe.progress = useHideOnScroll(probe.offset, { distance: 80 })
+      void t
+      return null
+    }
+    const result = render(<SwapProbe tick={tick} />)
+    const rerender = () => {
+      act(() => {
+        tick += 1
+        result.rerender(<SwapProbe tick={tick} />)
+      })
+    }
+    act(() => {
+      sources[0].value = 100
+    })
+    rerender()
+    expect(probe.progress!.value).toBe(1)
+
+    active = 1
+    rerender()
+    expect(probe.progress!.value).toBe(0)
+
+    act(() => {
+      sources[1].value = 340
+    })
+    rerender()
+    expect(probe.progress!.value).toBeCloseTo(0.5)
+  })
+
   it('passes no dependency list to its reaction', () => {
     const spy = jest.spyOn(Reanimated, 'useAnimatedReaction')
     mount()

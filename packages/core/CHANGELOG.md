@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **`useHideOnScroll` starts again when its offset source changes.** A new `offset` or `maxOffset` rebuilt the reaction, but the hook kept the previous offset and the progress of the old source. So a bar that follows the active list of a tab screen read the switch as one long scroll: a second list that rested lower hid the bar, and one that rested higher did nothing until the user scrolled past the old position. Now the progress returns to 0 on a new source, and the next movement counts from the position of the new offset. The check runs inside the reaction, on the UI thread, so nothing is written during render.
+
 ## [0.0.27] - 2026-11-05
 
 ### Added

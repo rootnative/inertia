@@ -1,9 +1,12 @@
+import { useMemo } from 'react'
 import {
   useAnimatedReaction,
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated'
 import { scrollEndOf } from '../internal/scrollEnd'
+
+let nextGeneration = 0
 
 export interface UseHideOnScrollOptions {
   /**
@@ -58,7 +61,10 @@ export interface UseHideOnScrollOptions {
  * accumulates and clamps: a long scroll down holds it at 1, and the
  * first scroll up starts to bring it back. It runs on the UI thread, through
  * a reaction on the offset, so it is safe to read from any worklet. It does
- * not snap to 0 or 1 when the scroll stops.
+ * not snap to 0 or 1 when the scroll stops. A new `offset` or `maxOffset`
+ * starts it again: the progress returns to 0, and the next movement counts
+ * from the position of the new offset, so an element that follows the
+ * active list of a tab screen shows on each change of tab.
  */
 export function useHideOnScroll(
   offset: SharedValue<number>,
@@ -74,7 +80,12 @@ export function useHideOnScroll(
   // the reaction seeds it: a read of `offset.value` during render would warn
   // under the Reanimated strict mode.
   const previous = useSharedValue(0)
-  const primed = useSharedValue(false)
+  // A new source gets a new number. The reaction closes over it, so the
+  // rebuilt reaction sees the change on its first run and starts again
+  // there, on the UI thread: a write from render or an effect would warn, or
+  // run after the reaction moved the progress from the old position.
+  const generation = useMemo(() => nextGeneration++, [offset, end])
+  const seen = useSharedValue(-1)
 
   // No dependency list: Reanimated 4.7 warns on native when one is passed,
   // and builds the list from the worklet closure on every platform.
@@ -85,9 +96,10 @@ export function useHideOnScroll(
       // An iOS fling that reaches the end bounces past it and back. The
       // bounce back is not a scroll up, so the offset stops at the end.
       const current = end ? Math.min(offsetValue, end.value) : offsetValue
-      if (!primed.value) {
-        primed.value = true
+      if (seen.value !== generation) {
+        seen.value = generation
         previous.value = current
+        progress.value = 0
         return
       }
       const delta = current - previous.value

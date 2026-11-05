@@ -3828,6 +3828,7 @@ The rules of the value:
 - It accumulates and clamps. A long scroll down holds it at 1, and the first scroll up starts to bring it back, from anywhere in the content.
 - It runs on the UI thread, through a reaction on the offset, so it is safe to read from any worklet.
 - It does not snap to 0 or 1 when the scroll stops. An element can rest half hidden after a short scroll.
+- A new `offset` or `maxOffset` starts it again. The value returns to 0, and the next movement counts from the position of the new offset. A bar that follows the active list of a tab screen shows on each change of tab, and the rest of the switch does not read as a scroll.
 
 ## `useValueChange(value, onChange)`
 
