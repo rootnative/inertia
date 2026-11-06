@@ -210,7 +210,7 @@ describe('useHideOnScroll', () => {
       })
     }
     act(() => {
-      sources[0].value = 100
+      sources[0]!.value = 100
     })
     rerender()
     expect(probe.progress!.value).toBe(1)
@@ -220,7 +220,7 @@ describe('useHideOnScroll', () => {
     expect(probe.progress!.value).toBe(0)
 
     act(() => {
-      sources[1].value = 340
+      sources[1]!.value = 340
     })
     rerender()
     expect(probe.progress!.value).toBeCloseTo(0.5)
