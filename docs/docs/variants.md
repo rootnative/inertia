@@ -5,7 +5,7 @@ description: Named animation states — define them once, then drive transitions
 
 # Variants
 
-Named animation states. Define them once, then drive transitions by passing a key — no extra hook required for the common case.
+A variant is a named animation state. Define the states once, then pass a key to move between them. The common case needs no hook.
 
 ## Declarative
 
@@ -29,11 +29,11 @@ export function Sheet({ isOpen }: { isOpen: boolean }) {
 }
 ```
 
-Variant keys autocomplete on `animate` (and a typo is a compile error) with no annotation required — the map's keys are inferred at the JSX call site. `as const` is optional; add it only if you also want the variant _values_ readonly.
+The variant keys autocomplete on `animate`, and a typo is a compile error. You need no type annotation: TypeScript infers the keys of the map at the JSX call site. `as const` is optional. Add it only when you also want the variant _values_ readonly.
 
 ## Programmatic — `useVariants`
 
-For chaining, async transitions, or driving variants from non-React code (event handlers, gesture callbacks, network responses), build a controller with `useVariants` and pass it through the `controller` prop:
+Use a controller when you chain states, await a transition, or set a variant from code outside React (an event handler, a gesture callback, a network response). Build the controller with `useVariants` and pass it through the `controller` prop:
 
 ```tsx
 import { Motion, useVariants } from '@rootnative/inertia'
@@ -65,13 +65,13 @@ export function SaveButton() {
 }
 ```
 
-`useVariants(variants, initial?)` returns a `{ current, transitionTo }` controller. `current` is the active key; `transitionTo(next)` re-applies the matching variant on every Motion primitive the controller is attached to. (The controller also carries an internal `subscribe` used by the primitives themselves — not part of the public contract.)
+`useVariants(variants, initial?)` returns a `{ current, transitionTo }` controller. `current` is the active key. `transitionTo(next)` applies the matching variant on every Motion primitive that holds the controller. The controller also carries an internal `subscribe` for the primitives. `subscribe` is not part of the public contract.
 
-When both `controller` and `animate` are set on the same primitive, the controller wins. Don't mix them — the typed contract is "either drive imperatively or declaratively, not both".
+When a primitive has both `controller` and `animate`, the controller wins. Don't mix them. The typed contract is: drive a primitive from a controller, or from `animate`, not both.
 
 ## Variant transitions
 
-`transition` resolves from the Motion primitive, not from each variant. A single transition on the wrapping primitive applies to every variant target:
+`transition` comes from the Motion primitive, not from each variant. One transition on the primitive applies to every variant target:
 
 ```tsx
 <Motion.View
@@ -84,4 +84,4 @@ When both `controller` and `animate` are set on the same primitive, the controll
 />
 ```
 
-Per-variant transitions (a different transition per variant target) aren't supported; switch the wrapping primitive's `transition` based on the active key if you need that.
+A different transition per variant target isn't supported. If you need that, switch the `transition` of the primitive on the active key.

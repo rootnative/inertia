@@ -5,7 +5,7 @@ description: Animatable Pressable — gesture.pressed hooks into onPressIn and o
 
 # Motion.Pressable
 
-Animatable `Pressable`. The `gesture.pressed` sub-state hooks directly into Pressable's `onPressIn` / `onPressOut`, picking up touch slop and accessibility semantics from React Native for free.
+Animatable `Pressable`. The `gesture.pressed` sub-state connects directly to the `onPressIn` and `onPressOut` of Pressable, so it gets the touch slop and the accessibility behavior of React Native at no cost.
 
 ```tsx
 import { Motion } from '@rootnative/inertia'
@@ -33,7 +33,7 @@ import { MotionPressable } from '@rootnative/inertia/pressable'
 
 ## `style` must be a value, not a function
 
-This is the **#1 footgun** for users coming from RN's `Pressable`. RN's `Pressable` accepts a function-form `style={(state) => ...}` that re-runs on every press to derive styles from the press/focus/hover state. Reanimated's `createAnimatedComponent` wrapper doesn't invoke it — the function would be silently dropped — so `Motion.Pressable` (and every other `Motion.*` primitive) **throws in dev** when `style` is a function, rather than ship the footgun.
+This is the **most common trap** when you come from the `Pressable` of React Native. That `Pressable` accepts a function form, `style={(state) => ...}`, which runs on every press to derive styles from the press, focus, and hover state. The `createAnimatedComponent` wrapper of Reanimated doesn't call it, so the function would be dropped with no message. So `Motion.Pressable`, and every other `Motion.*` primitive, **throws in dev** when `style` is a function.
 
 ```tsx
 // ❌ Throws in dev. Drive press-state through `gesture` instead.
@@ -51,11 +51,11 @@ This is the **#1 footgun** for users coming from RN's `Pressable`. RN's `Pressab
 />
 ```
 
-The throw happens behind `__DEV__`, so production builds don't pay the check — the styles would still be dropped silently there, which is why catching it in dev is load-bearing. This applies to `style` only. Plain values, arrays, and `StyleSheet.create` outputs all work as expected. If you genuinely need conditional styles that aren't animatable through `gesture`, compute them once in render and pass the resulting style array.
+The throw is behind `__DEV__`, so a production build doesn't pay for the check. A production build would still drop the styles with no message, and that is why the check in dev matters. This applies to `style` only. A plain value, an array, and the output of `StyleSheet.create` all work. If you need a conditional style that `gesture` can't animate, compute it once in render and pass the resulting style array.
 
 ## Notes
 
-- `gesture` is the only path. There is no separate "Moti-style" pressable variant; this is intentional.
-- `gesture.focused` works for any focusable Pressable (e.g. with `accessible` / TV / web keyboard focus). Native ignores it gracefully when the platform doesn't fire focus events.
+- `gesture` is the only path. There is no separate pressable variant in the style of Moti. That is intentional.
+- `gesture.focused` works for any focusable Pressable (for example, with `accessible`, on TV, or with keyboard focus on web). When the platform sends no focus events, native ignores it with no error.
 
-See the full [gestures](../gestures) page for sub-state priority and the prop's typing.
+See the full [gestures](../gestures) page for the sub-state priority and the type of the prop.

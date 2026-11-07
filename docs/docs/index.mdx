@@ -8,28 +8,28 @@ description: Declarative animation primitives for React Native, built on react-n
 import PackageManagerTabs from '@site/src/components/PackageManagerTabs'
 import RunnableExample from '@site/src/components/RunnableExample'
 
-Inertia (`@rootnative/inertia`) is a thin, ergonomic wrapper around `react-native-reanimated`. Animations are expressed as props on a component — no shared values, no worklets, no `useAnimatedStyle` boilerplate. The vocabulary takes cues from **Framer Motion** (web) and **react-spring** (cross-platform).
+Inertia (`@rootnative/inertia`) is a thin wrapper around `react-native-reanimated`. You write an animation as props on a component: no shared values, no worklets, no `useAnimatedStyle` boilerplate. The vocabulary takes ideas from **Framer Motion** (web) and **react-spring** (cross-platform).
 
 Inertia supports iOS, Android, and web (react-native-web). macOS, Windows, and Electron are not tested. See [Platforms](./installation#platforms).
 
-> **Status:** `0.0.27`. The full surface is implemented and exercised by the example app — primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, the layout and shared-element features, and the value-layer hooks. Pre-`1.0.0`, minor breaking changes may still land; each one is called out in the [changelog](https://github.com/rootnative/inertia/blob/main/packages/core/CHANGELOG.md).
+> **Status:** `0.0.27`. The example app covers the full surface: primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, layout, shared elements, and the value-layer hooks. Before `1.0.0`, a minor release can still change the API. The [changelog](https://github.com/rootnative/inertia/blob/main/packages/core/CHANGELOG.md) names each breaking change.
 
 ## What you get
 
-- **DX-first.** Animations are props on a component, not imperative shared values, worklets, and `useAnimatedStyle` boilerplate.
-- **Per-primitive style inference.** `Motion.View` accepts `ViewStyle` keys, `Motion.Text` accepts `TextStyle`, `Motion.Image` accepts `ImageStyle`. No shared union fallback that lets wrong props slip through.
-- **react-spring vocabulary.** Spring config uses `tension`, `friction`, `mass`, `velocity`. Reanimated's raw `stiffness` / `damping` never appear in the public surface.
-- **One `gesture` prop on every primitive.** `pressed`, `focused`, `focusVisible` (W3C `:focus-visible`), `hovered` (web) sub-states; no `whileTap` / `whilePress` soup, no separate "pressable" variant.
-- **Per-primitive tree-shaking.** Subpath imports (`@rootnative/inertia/view`, `/text`, `/image`, `/pressable`, `/scroll-view`) so apps that animate one element don't ship the whole library.
-- **Stable worklets.** The factory hashes resolved animate / transition objects and memoizes the generated worklet + `useAnimatedStyle` — re-renders with unchanged values produce zero new UI-thread closures.
+- **DX-first.** Animations are props on a component, not shared values, worklets, and `useAnimatedStyle` boilerplate.
+- **Per-primitive style inference.** `Motion.View` accepts `ViewStyle` keys, `Motion.Text` accepts `TextStyle` keys, and `Motion.Image` accepts `ImageStyle` keys. There is no shared union fallback, so a wrong prop is a type error.
+- **react-spring vocabulary.** A spring config uses `tension`, `friction`, `mass`, and `velocity`. Reanimated's raw `stiffness` and `damping` never appear in the public surface.
+- **One `gesture` prop on every primitive.** The sub-states are `pressed`, `focused`, `focusVisible` (W3C `:focus-visible`), and `hovered` (web). There is no `whileTap` or `whilePress` family, and no separate "pressable" variant.
+- **Per-primitive tree-shaking.** Subpath imports (`@rootnative/inertia/view`, `/text`, `/image`, `/pressable`, `/scroll-view`) let an app that animates one element skip the rest of the library.
+- **Stable worklets.** The factory hashes the resolved `animate` and `transition` objects and memoizes the generated worklet and `useAnimatedStyle`. A re-render with the same values makes no new UI-thread closure.
 
 ## Install
 
-Pick your package manager — Yarn is the default. The selection syncs across every install snippet in the docs.
+Pick your package manager. Yarn is the default, and your choice applies to every install snippet in the docs.
 
 <PackageManagerTabs packages="@rootnative/inertia react-native-reanimated react-native-worklets" />
 
-Then enable the `react-native-worklets/plugin` Babel plugin per the Reanimated [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation) — see [Installation](./installation) for a full `babel.config.js`.
+Then enable the `react-native-worklets/plugin` Babel plugin as the Reanimated [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation) shows. [Installation](./installation) has a full `babel.config.js`.
 
 ## A first animation
 
@@ -50,7 +50,7 @@ export function FadeIn() {
 }
 ```
 
-For tree-shaking when only one primitive is used:
+To ship only one primitive, import it from its subpath:
 
 ```ts
 import { MotionView } from '@rootnative/inertia/view'
@@ -58,25 +58,25 @@ import { MotionView } from '@rootnative/inertia/view'
 
 ## Runnable example
 
-The full example app is embedded below — every primitive, every gesture, the same code that ships under `example/` in the repo. Tap a screen and interact:
+The full example app runs below. It holds every primitive and every gesture, with the same code that ships under `example/` in the repo. Tap a screen to try it:
 
 <RunnableExample height={680} />
 
-Each docs page deep-links into the relevant screen of this same app, so you can try the API as you read.
+Each docs page links to the matching screen of this same app, so you can try the API as you read.
 
 ## Where to next
 
-- [Installation](./installation) — install + Reanimated Babel plugin.
-- [Primitives](./primitives/index.md) — `Motion.View` / `Text` / `Image` / `Pressable` / `ScrollView` / `FlatList`.
-- [Transitions](./transitions) — `spring` (default) / `timing` / `decay` / `no-animation`.
-- [Sequences & repeat](./sequences) — keyframe arrays and the unified `repeat` shape.
-- [Variants](./variants) — named animation states + `useVariants` controller.
-- [Gestures](./gestures) — `pressed` / `focused` / `focusVisible` / `hovered` sub-states.
-- [Gestures adapter](./gestures-adapter) — drag / pan / swipe via `react-native-gesture-handler` (optional package).
-- [Gradients](./gradients) — animatable `MotionLinearGradient` via `expo-linear-gradient` (optional package).
-- [SVG](./svg) — animatable `MotionPath` via `react-native-svg` (optional package).
-- [Presence](./presence) — mount / unmount transitions.
-- [Layout](./layout) — auto-layout transitions on position + size changes.
-- [MotionConfig](./motion-config) — reduce-motion gate.
-- [Hooks](./api/hooks) and [createMotionComponent](./api/create-motion-component) — escape hatches.
-- [AI agents & llms.txt](./ai) — machine-readable API references for coding agents, hosted here and shipped in every npm package.
+- [Installation](./installation): install the peers and the Reanimated Babel plugin.
+- [Primitives](./primitives/index.md): `Motion.View`, `Motion.Text`, `Motion.Image`, `Motion.Pressable`, `Motion.ScrollView`, and `Motion.FlatList`.
+- [Transitions](./transitions): `spring` (default), `timing`, `decay`, and `no-animation`.
+- [Sequences & repeat](./sequences): keyframe arrays and the one `repeat` shape.
+- [Variants](./variants): named animation states and the `useVariants` controller.
+- [Gestures](./gestures): the `pressed`, `focused`, `focusVisible`, and `hovered` sub-states.
+- [Gestures adapter](./gestures-adapter): drag, pan, and swipe with `react-native-gesture-handler` (optional package).
+- [Gradients](./gradients): the animatable `MotionLinearGradient` on `expo-linear-gradient` (optional package).
+- [SVG](./svg): the animatable `MotionPath` on `react-native-svg` (optional package).
+- [Presence](./presence): mount and unmount transitions.
+- [Layout](./layout): animate a change of position or size.
+- [MotionConfig](./motion-config): the reduce-motion gate and named transitions.
+- [Hooks](./api/hooks) and [createMotionComponent](./api/create-motion-component): the escape hatches.
+- [AI agents & llms.txt](./ai): machine-readable API references for coding agents, hosted here and shipped in every npm package.

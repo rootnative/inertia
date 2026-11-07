@@ -5,9 +5,9 @@ description: '@rootnative/inertia/reanimated re-exports the Reanimated render-la
 
 # Reanimated interop
 
-`@rootnative/inertia/reanimated` re-exports the Reanimated **render-layer** primitives, so a component built on Inertia's value layer can keep `@rootnative/inertia` as its only animation import.
+`@rootnative/inertia/reanimated` re-exports the **render-layer** primitives of Reanimated. So a component on the value layer of Inertia can keep `@rootnative/inertia` as its only animation import.
 
-Inertia's contract is that consumers shouldn't need to import from `react-native-reanimated` to get 90% of use cases done. The `Motion.*` primitives cover the declarative side; the value-layer hooks (`useGesture`, `useAnimation`, `useScroll`, …) cover custom state. What's left is the component that owns its **own** `useAnimatedStyle` worklet over Inertia-driven shared values — a component library styling a `Pressable` from `useGesture` progress values, for example. This subpath serves exactly that case.
+The contract of Inertia is that you don't need to import from `react-native-reanimated` for 90% of the use cases. The `Motion.*` primitives cover the declarative side. The value-layer hooks (`useGesture`, `useAnimation`, `useScroll`, …) cover custom state. What is left is the component that owns its **own** `useAnimatedStyle` worklet over shared values that Inertia drives, for example a component library that styles a `Pressable` from the progress values of `useGesture`. This subpath serves that case.
 
 ```tsx
 import { useGesture } from '@rootnative/inertia'
@@ -50,24 +50,24 @@ Everything is a **pure re-export** from `react-native-reanimated`, under its ori
 | `cancelAnimation`                                                  | Stop a running animation on a shared value                                                |
 | `SharedValue` / `DerivedValue` / `AnimatedStyle` / `AnimatedProps` | Types                                                                                     |
 
-`SharedValue` is also exported from the root entry (`import type { SharedValue } from '@rootnative/inertia'`) — every value-layer hook returns one, so the type is part of Inertia's own surface. Reach for the root export when you only need the type; this subpath when you need the runtime primitives too.
+The root entry also exports `SharedValue` (`import type { SharedValue } from '@rootnative/inertia'`). Every value-layer hook returns one, so the type is part of the own surface of Inertia. Use the root export when you only need the type. Use this subpath when you also need the runtime primitives.
 
 :::note You rarely need `Animated.View` as a host
-`Animated` is here for `createAnimatedComponent` on a **third-party** component and for the occasional bespoke need. You do **not** need `Animated.View` (or `Animated.Text`, …) just to render an animated-style fragment from `useColorTransition` / `useShadow` / `useInterpolatedStyle` / `useColorCascade` — a prop-less `Motion.View` is already a [zero-cost plain host](../primitives#plain-host-zero-cost-pass-through) for exactly that, with no extra Reanimated import. Reach for `Animated.*` only when you own a hand-rolled `useAnimatedStyle` / `useAnimatedProps` worklet (the case at the top of this page).
+`Animated` is here for `createAnimatedComponent` on a **third-party** component, and for a rare custom need. You do **not** need `Animated.View` (or `Animated.Text`, …) to render an animated-style fragment from `useColorTransition`, `useShadow`, `useInterpolatedStyle`, or `useColorCascade`. A `Motion.View` with no props is already a [zero-cost plain host](../primitives#plain-host-zero-cost-pass-through) for that, with no extra Reanimated import. Use `Animated.*` only when you own a hand-written `useAnimatedStyle` or `useAnimatedProps` worklet (the case at the top of this page).
 :::
 
 ## Why the names don't change
 
-Re-exporting under the original names is a hard constraint, not a style choice. The Reanimated Babel plugin auto-workletizes the callback you pass to `useAnimatedStyle` / `useAnimatedProps` / `useDerivedValue` by **callee name** — it doesn't care which module the name was imported from, but a renamed wrapper (`useStyle`, say) would silently stop workletizing your callback and break on native. The re-exports keep both the name and the original function reference, so worklet behavior is identical from either import path. (A test pins every export to reference-identity with the Reanimated original.)
+The re-export under the original names is a hard constraint, not a style choice. The Reanimated Babel plugin turns the callback that you pass to `useAnimatedStyle`, `useAnimatedProps`, or `useDerivedValue` into a worklet by **callee name**. The plugin doesn't care which module exports the name. A renamed wrapper (`useStyle`, for example) would stop the workletization of your callback with no warning, and your app would break on native. The re-exports keep both the name and the original function reference, so the worklet behavior is identical from either import path. A test pins every export to reference identity with the Reanimated original.
 
-For the same reason, your project still needs `react-native-reanimated` installed and its Babel plugin configured — this subpath changes where your imports point, not what runs underneath.
+For the same reason, your project still needs `react-native-reanimated` installed and its Babel plugin configured. This subpath changes where your imports point, not what runs below.
 
-## What's deliberately _not_ here
+## What is _not_ here, on purpose
 
-The animation factories (`withTiming`, `withSpring`, `withDecay`, `withSequence`) are not re-exported. Starting animations is Inertia's own vocabulary:
+The animation factories (`withTiming`, `withSpring`, `withDecay`, `withSequence`) are not re-exported. To start an animation, use the vocabulary of Inertia:
 
-- declaratively — the `animate` prop, [`useAnimation` / `useSpring` / `useBooleanSpring`](./hooks.md);
-- imperatively from the JS thread — [`resolveTransition`](./transition-utilities.md#resolvetransitionconfig-tovalue-callback);
-- from inside a gesture worklet — [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue-callback).
+- declaratively: the `animate` prop, or [`useAnimation`, `useSpring`, and `useBooleanSpring`](./hooks.md);
+- imperatively from the JS thread: [`resolveTransition`](./transition-utilities.md#resolvetransitionconfig-tovalue-callback);
+- from inside a gesture worklet: [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue-callback).
 
-All of those accept the standard `TransitionConfig` shape (named transitions included), which is the point: if this subpath re-exported `withTiming`, custom components would grow ad-hoc `{ duration, easing }` configs that bypass reduced-motion gating and the named-transition registry. If you find yourself wanting a `with*` factory, reach for the resolver that matches your thread instead.
+All of those accept the standard `TransitionConfig` shape, including named transitions. That is the point. If this subpath re-exported `withTiming`, custom components would grow ad-hoc `{ duration, easing }` configs that skip the reduced-motion gate and the named-transition registry. When you want a `with*` factory, use the resolver that matches your thread instead.

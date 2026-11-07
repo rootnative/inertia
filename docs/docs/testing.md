@@ -5,11 +5,11 @@ description: A Reanimated Jest mock and the renderWithMotion helper, so existing
 
 # Testing
 
-Inertia ships a Reanimated Jest mock and a `renderWithMotion` helper so existing test suites don't need to learn how the mock is wired before they can assert on animated UI.
+Inertia ships a Reanimated Jest mock and a `renderWithMotion` helper, so an existing test suite can assert on animated UI without knowledge of how the mock is wired.
 
-:::tip Asserting post-animation styles? Use `renderWithMotion`.
+:::tip Do you assert post-animation styles? Use `renderWithMotion`.
 
-Plain `render(...)` returns `initial` styles only — the mock doesn't flush effects synchronously. If your tests appear to "see" pre-animation state and you've been writing comments like _"don't assert post-interaction styles, the mock is static-render"_, that's the wrong workaround. Swap `render` for `renderWithMotion` and the rendered tree settles on the `animate` target.
+Plain `render(...)` returns the `initial` styles only, because the mock doesn't flush effects synchronously. If your tests see the pre-animation state, and you write comments like _"don't assert post-interaction styles, the mock is static-render"_, that's the wrong workaround. Swap `render` for `renderWithMotion`, and the rendered tree settles on the `animate` target.
 
 ```ts
 import { renderWithMotion } from '@rootnative/inertia/testing'
@@ -19,21 +19,21 @@ const { getByTestId } = renderWithMotion(<Card />)
 // not the initial seed.
 ```
 
-For prop changes after mount (a `useState` toggling `animate`, a controller transition), pair with `flushMotion(result, nextUi)` — see [below](#flushmotionresult-nextui).
+For a prop change after mount (a `useState` that toggles `animate`, a controller transition), pair it with `flushMotion(result, nextUi)`. See [below](#flushmotionresult-nextui).
 
 :::
 
 ## Setup
 
-Inertia ships a Jest preset that wires everything up — the Reanimated mock, the `react-native-worklets` stub, the `Easing.bezier()` factory shape, and the `transformIgnorePatterns` widening needed to let Jest transform `@rootnative/inertia*`'s published ESM bundles.
+Inertia ships a Jest preset that sets up everything: the Reanimated mock, the `react-native-worklets` stub, the `Easing.bezier()` factory shape, and the wider `transformIgnorePatterns` that let Jest transform the published ESM bundles of `@rootnative/inertia*`.
 
-Install `@react-native/jest-preset` first. React Native 0.86 moved its Jest preset into that package and declares it as an **optional** peer, which means no package manager installs it for you:
+Install `@react-native/jest-preset` first. React Native 0.86 moved its Jest preset into that package and declares it as an **optional** peer, so no package manager installs it for you:
 
 ```bash
 npm install --save-dev @react-native/jest-preset
 ```
 
-Then point Jest at Inertia's preset with one line:
+Then point Jest at the Inertia preset with one line:
 
 ```js
 // jest.config.js
@@ -42,7 +42,7 @@ module.exports = {
 }
 ```
 
-The preset internally extends `@react-native/jest-preset`, so you don't need to reference both. If you already have setup files or `transformIgnorePatterns` of your own, extend the preset:
+The preset extends `@react-native/jest-preset` internally, so you don't need to reference both. If you already have your own setup files or `transformIgnorePatterns`, extend the preset:
 
 ```js
 const inertia = require('@rootnative/inertia/jest-preset')
@@ -56,7 +56,7 @@ module.exports = {
 }
 ```
 
-If you can't use the preset (e.g. you have a custom transform pipeline that conflicts), add the setup file directly. Note the preset name: `preset: 'react-native'` was the pre-0.86 spelling and now throws, because that path is a shim that only re-exports the package above.
+If you can't use the preset (for example, a custom transform pipeline conflicts with it), add the setup file directly. Check the preset name: `preset: 'react-native'` was the spelling before 0.86, and it now throws, because that path is a shim that only re-exports the package above.
 
 ```js
 module.exports = {
@@ -68,13 +68,13 @@ module.exports = {
 }
 ```
 
-The mock is **static-render**: animations don't actually run, but `useSharedValue` is `useRef`-backed so values written by an effect persist across re-renders. Combined with `renderWithMotion`, that's enough to assert post-animation styles in unit tests.
+The mock is **static-render**: animations don't run. But `useSharedValue` is backed by `useRef`, so a value that an effect writes persists across re-renders. Together with `renderWithMotion`, that's enough to assert post-animation styles in a unit test.
 
 ## `renderWithMotion`
 
-Use it as a drop-in for `@testing-library/react-native`'s `render`. It returns the same render result, with the rendered tree already flushed to the `animate` target.
+Use it in place of the `render` of `@testing-library/react-native`. It returns the same render result, with the rendered tree already flushed to the `animate` target.
 
-`@rootnative/inertia/testing` is the only entry point that needs `@testing-library/react-native`. It is an optional peer of `@rootnative/inertia`, version 13 or later. Install it in your devDependencies before you import this entry point.
+`@rootnative/inertia/testing` is the only entry point that needs `@testing-library/react-native`. That package is an optional peer of `@rootnative/inertia`, version 13 or later. Install it in your devDependencies before you import this entry point.
 
 ```ts
 import { renderWithMotion } from '@rootnative/inertia/testing'
@@ -93,11 +93,11 @@ it('fades in to opacity: 1', () => {
 })
 ```
 
-Without the helper, plain `render(...)` returns the `initial` styles — that's the static-render trade-off the mock makes. Inertia tests its own primitives this way too; see `packages/core/src/__tests__/testing-helper.test.tsx`.
+Without the helper, plain `render(...)` returns the `initial` styles. That's the static-render trade-off of the mock. Inertia tests its own primitives this way too. See `packages/core/src/__tests__/testing-helper.test.tsx`.
 
 ## `flushMotion(result, nextUi)`
 
-For tests that change props between flushes (a `useState` toggling `animate`, a controller transition), `rerender` once with the new element and then call `flushMotion` to apply the second pass:
+For a test that changes props between flushes (a `useState` that toggles `animate`, a controller transition), call `rerender` once with the new element, and then call `flushMotion` to apply the second pass:
 
 ```ts
 const result = renderWithMotion(
@@ -112,27 +112,27 @@ flushMotion(result, next)
 expect(getStyle(result).opacity).toBe(0.9)
 ```
 
-`flushMotion` clones the element internally to defeat React's element-reference bail-out, so passing the same element twice in a row works.
+`flushMotion` clones the element internally, so React doesn't skip the render for the same element reference. So you can pass the same element twice in a row.
 
 ## What you can and can't assert
 
-The mock only resolves to **terminal targets** — it doesn't simulate frames. So you can:
+The mock resolves only to **terminal targets**. It doesn't simulate frames. So you can:
 
 - ✅ Assert post-animation styles (`renderWithMotion` flushes once)
-- ✅ Spy on `withSpring` / `withTiming` / `withDecay` to verify how Inertia compiles a transition (see `packages/core/src/__tests__/memoization.test.tsx` for the pattern)
-- ✅ Capture the settle callback from `withSpring` / `withTiming` to fire `onAnimationEnd` manually (see `onAnimationEnd.test.tsx`)
+- ✅ Spy on `withSpring`, `withTiming`, and `withDecay` to check how Inertia compiles a transition (see `packages/core/src/__tests__/memoization.test.tsx` for the pattern)
+- ✅ Capture the settle callback from `withSpring` or `withTiming` to fire `onAnimationEnd` by hand (see `onAnimationEnd.test.tsx`)
 
-You cannot:
+You can't:
 
-- ❌ Assert intermediate frames (`opacity` halfway from 0 to 1)
-- ❌ Make timing-based assertions — there is no timer to advance
-- ❌ Snapshot the gesture-driven UI (`gesture.pressed`) without firing the corresponding RN event first; the mock doesn't simulate input
+- ❌ Assert an intermediate frame (`opacity` halfway from 0 to 1)
+- ❌ Make a timing-based assertion, because there is no timer to advance
+- ❌ Snapshot the gesture-driven UI (`gesture.pressed`) without the matching React Native event first, because the mock doesn't simulate input
 
-For frame-level correctness, validate manually in the example app — there's a screen per primitive in [`example/screens/`](https://github.com/rootnative/inertia/tree/main/example/screens). Features whose behavior only appears on real hardware — dropped-frame parity, native `inset` shadow rendering, shared-element measurement, layout-key reflow cost — have a run procedure in [Device validation](./device-validation).
+For frame-level correctness, check by hand in the example app. There is a screen per primitive in [`example/screens/`](https://github.com/rootnative/inertia/tree/main/example/screens). Some behavior appears only on real hardware: dropped-frame parity, native `inset` shadow rendering, shared-element measurement, and the reflow cost of the layout keys. Those have a run procedure in [Device validation](./device-validation).
 
 ## Migrating existing tests
 
-If your test suite was previously asserting against raw `react-native-reanimated` shared values:
+If your test suite asserted against raw `react-native-reanimated` shared values before:
 
 ```diff
 - import { render } from '@testing-library/react-native'
@@ -142,4 +142,4 @@ If your test suite was previously asserting against raw `react-native-reanimated
 + const { getByTestId } = renderWithMotion(<Card />)
 ```
 
-For tests that previously called `act` + `jest.runAllTimers()` to push animations through, drop both — the mock skips the timer dance and `renderWithMotion` does the rendering shuffle for you.
+For a test that called `act` and `jest.runAllTimers()` to push an animation through, remove both. The mock needs no timers, and `renderWithMotion` does the extra render pass for you.

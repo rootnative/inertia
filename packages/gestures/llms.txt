@@ -10,9 +10,9 @@
 ---
 # Gestures adapter
 
-`@rootnative/inertia-gestures` adds drag / swipe / pan hooks built on `react-native-gesture-handler`. It is an **optional** sibling package — install it only if you need richer-than-`pressable` gestures. The core library has no required `gesture-handler` dependency.
+`@rootnative/inertia-gestures` adds drag, swipe, and pan hooks on `react-native-gesture-handler`. It's an **optional** sibling package. Install it only when you need more than the `pressable` states. The core library doesn't depend on `react-native-gesture-handler`.
 
-The hooks compose with any `Motion.*` primitive via a `<GestureDetector>` and a single `style` slot — they don't replace the `gesture` prop, they extend what's reachable beside it.
+The hooks compose with any `Motion.*` primitive through a `<GestureDetector>` and one `style` slot. They don't replace the `gesture` prop. They add what you can do next to it.
 
 ## Install
 
@@ -20,11 +20,11 @@ The hooks compose with any `Motion.*` primitive via a `<GestureDetector>` and a 
 yarn add @rootnative/inertia-gestures react-native-gesture-handler
 ```
 
-Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation) — it needs `<GestureHandlerRootView>` near the root of your app.
+Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation). It needs `<GestureHandlerRootView>` near the root of your app.
 
 ## `useDrag`
 
-Drag a Motion primitive on one or two axes, with optional bounds and rubber-band overshoot.
+Drag a Motion primitive on one or two axes, with optional bounds and an elastic overshoot.
 
 ```tsx
 import { GestureDetector } from 'react-native-gesture-handler'
@@ -54,13 +54,13 @@ function DraggableBox() {
 | `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends.                                                                                                                     |
 | `onRelease`   | `(info) => ReleaseResult \| void` (worklet)    | none     | UI-thread release transition — see below.                                                                                                              |
 
-Returns `{ gesture, animatedStyle, dragX, dragY, isDragging }`. The shared values are exposed for power use cases (deriving secondary effects from drag position).
+The hook returns `{ gesture, animatedStyle, dragX, dragY, isDragging }`. The shared values are public for advanced cases, such as a secondary effect that derives from the drag position.
 
-**When the bounds change.** A new `constraints` value applies from the next drag. An element at rest outside the new bounds stays there, and it jumps at the first move of the next drag. To move it at once, write `dragX` / `dragY` when you change the bounds. For example, after a rotate changes the width of a slider track, set the thumb to the same fraction of the new track.
+**When the bounds change.** A new `constraints` value applies from the next drag. An element at rest outside the new bounds stays there, and it jumps at the first move of the next drag. To move it at once, write `dragX` or `dragY` when you change the bounds. For example, after a rotate changes the width of a slider track, set the thumb to the same fraction of the new track.
 
 ### Release transitions (`onRelease`)
 
-By default `useDrag` leaves the shared values where the finger lifted. The one exception is an `elastic` overshoot: an axis that lifted past `constraints` springs back to the nearest bound with the default spring and the release velocity. Pass `onRelease` to animate them to a settled position via Inertia's transition vocabulary — spring snap-to-tick, decay with bounds, timing settle. The callback runs as a **worklet** so the release velocity stays on the UI thread (no JS round-trip):
+By default, `useDrag` leaves the shared values where the finger lifted. The one exception is an `elastic` overshoot: an axis that lifted past `constraints` springs back to the nearest bound with the default spring and the release velocity. Pass `onRelease` to animate the values to a settled position with the transition vocabulary of Inertia: a spring snap to a tick, a decay with bounds, a timing settle. The callback runs as a **worklet**, so the release velocity stays on the UI thread with no JS round trip:
 
 ```tsx
 const drag = useDrag({
@@ -77,7 +77,7 @@ const drag = useDrag({
 })
 ```
 
-Return per-axis release transitions in a `ReleaseResult` shape — omit an axis (or return nothing) to leave that SV where it landed, or, after an `elastic` overshoot, to spring it back inside `constraints`. A transition you return for an axis replaces the spring back on that axis. The transition shapes mirror the core `transition` prop:
+Return one release transition per axis in a `ReleaseResult` shape. Omit an axis, or return nothing, to leave that shared value where it landed, or, after an `elastic` overshoot, to spring it back inside `constraints`. A transition that you return for an axis replaces the spring back on that axis. The transition shapes mirror the core `transition` prop:
 
 ```ts
 type ReleaseTransition =
@@ -87,7 +87,7 @@ type ReleaseTransition =
   | (NoAnimationTransition & { to: number })
 ```
 
-Decay-on-release (for free-flick behaviour without snapping):
+A decay on release gives a free flick with no snap:
 
 ```tsx
 onRelease: (e) => {
@@ -98,13 +98,13 @@ onRelease: (e) => {
 }
 ```
 
-`onRelease` composes additively with `onDragEnd` — both fire on release. Use `onRelease` for the SV animation; use `onDragEnd` for JS-thread side effects (analytics, state updates).
+`onRelease` and `onDragEnd` both fire on release. Use `onRelease` for the shared-value animation. Use `onDragEnd` for JS-thread side effects (analytics, state updates).
 
-Internally this routes through `buildReleaseAnimation` exported from `@rootnative/inertia` — a worklet-safe builder that covers spring / timing / decay / no-animation single-step transitions. Reach for it directly if you're writing a custom `Gesture.Pan().onEnd(...)` worklet outside `useDrag`.
+Internally, the release goes through `buildReleaseAnimation`, which `@rootnative/inertia` exports. It's a worklet-safe builder for a single-step spring, timing, decay, or no-animation transition. Call it directly when you write a custom `Gesture.Pan().onEnd(...)` worklet outside `useDrag`.
 
 ## `useSwipe`
 
-Directional commit-or-snap-back gesture. Tracks live translation while the user drags; on release, fires `onSwipe` if either the distance or velocity threshold is met along an allowed axis. By default the position animates back to zero whether or not it commits — the right shape for swipe-to-delete, where the row returns and the consumer removes it. For a card deck, return a commit-exit transition from `onCommit` so the committed card continues off screen instead (see below).
+A directional gesture that commits or snaps back. The hook tracks the live translation while the user drags. On release, it fires `onSwipe` when the distance threshold or the velocity threshold is met along an allowed axis. By default, the position animates back to zero whether the swipe commits or not. That is the correct shape for swipe-to-delete: the row returns, and you remove it. For a card deck, return a commit-exit transition from `onCommit`, so that the committed card continues off screen instead (see below).
 
 ```tsx
 const swipe = useSwipe({
@@ -135,13 +135,13 @@ return (
 | `onCommit`          | `(direction, info) => ReleaseResult \| void` (worklet) | none           | UI-thread commit-exit transition — see below.                          |
 | `onSwipeEnd`        | `(direction, { finished }) => void`                    | none           | JS-thread callback when a committed swipe's release animation settles. |
 
-The dominant axis (whichever of \|tx\|, \|ty\| is larger at release) decides which direction is checked.
+The dominant axis decides which direction the hook checks. That is the axis where \|tx\| or \|ty\| is larger at release.
 
-Returns `{ gesture, animatedStyle, swipeX, swipeY, isActive, reset }`. `reset()` snaps both shared values back to zero with no animation — useful after a commit exit when the next card takes over the same mounted component (a keyed remount gets fresh values and doesn't need it).
+The hook returns `{ gesture, animatedStyle, swipeX, swipeY, isActive, reset }`. `reset()` snaps both shared values back to zero with no animation. Use it after a commit exit when the next card takes over the same mounted component. A keyed remount gets fresh values and doesn't need it.
 
 ### Snap-back transition (`releaseTransition`)
 
-The snap-back to zero defaults to the library default spring. Pass `releaseTransition` to use your own — inline, or as a `TransitionName` registered on the nearest [`<MotionConfig transitions={...}>`](./motion-config#named-transitions), which is how the reset joins a design-token motion system:
+The snap-back to zero uses the library default spring. Pass `releaseTransition` to use your own, inline or as a `TransitionName` from the nearest [`<MotionConfig transitions={...}>`](./motion-config#named-transitions). That is how the reset joins a design-token motion system:
 
 ```tsx
 const swipe = useSwipe({
@@ -151,13 +151,13 @@ const swipe = useSwipe({
 })
 ```
 
-The release velocity is passed into a spring automatically (unless the config sets `velocity` itself), so a flick that stops short of the threshold resets with the momentum it had instead of resetting as if the finger had been still.
+The hook passes the release velocity into a spring for you, unless the config sets `velocity` itself. So a flick that stops short of the threshold resets with the momentum it had, not as if the finger had been still.
 
-`SnapBackTransition` is spring / timing / no-animation — decay is excluded, because the snap-back always targets zero and decay has no target. A registered name that resolves to a decay config dev-warns and falls back to the default spring.
+`SnapBackTransition` is a spring, a timing, or a no-animation transition. A decay is excluded, because the snap-back always targets zero and a decay has no target. A registered name that resolves to a decay config warns in dev and falls back to the default spring.
 
 ### Commit exit (`onCommit` + `onSwipeEnd`)
 
-The snap-back is right for swipe-to-delete, but a card deck needs the opposite: a **committed** card must continue in the swipe direction and leave the screen. Return per-axis release transitions from `onCommit` to run instead of the snap-back, and advance the deck from `onSwipeEnd` when the exit settles:
+The snap-back is correct for swipe-to-delete. A card deck needs the opposite: a **committed** card must continue in the swipe direction and leave the screen. Return one release transition per axis from `onCommit` to run instead of the snap-back. Advance the deck from `onSwipeEnd` when the exit settles:
 
 ```tsx
 const swipe = useSwipe({
@@ -178,24 +178,24 @@ const swipe = useSwipe({
 })
 ```
 
-`onCommit` runs as a **worklet** on the UI thread (author it with the `'worklet'` directive), fires only when the gesture commits, and receives the same `info` shape as `useDrag`'s `onRelease` — final translation plus release velocity. The return shape is the same `ReleaseResult` too, with one difference: an omitted axis (or a `void` return) snaps back to zero as usual, because zero is this hook's resting state.
+`onCommit` runs as a **worklet** on the UI thread, so write it with the `'worklet'` directive. It fires only when the gesture commits. It receives the same `info` shape as the `onRelease` of `useDrag`: the final translation and the release velocity. The return shape is the same `ReleaseResult`, with one difference: an omitted axis, or a `void` return, snaps back to zero as usual, because zero is the resting state of this hook.
 
-`onSwipeEnd` fires on the JS thread when the committed swipe's release animation settles — the commit exit if one ran, the snap-back otherwise. That is the "card is gone, the next one takes over" moment that `onSwipe` (which fires at release) cannot give you. `finished` is `false` when the animation was interrupted, for example by a new gesture. It does not fire for a release that did not commit.
+`onSwipeEnd` fires on the JS thread when the release animation of the committed swipe settles: the commit exit if one ran, or the snap-back otherwise. That is the moment when the card is gone and the next one takes over. `onSwipe`, which fires at release, can't give you that moment. `finished` is `false` when a new gesture or something else interrupted the animation. `onSwipeEnd` doesn't fire for a release that didn't commit.
 
-Composition: `onSwipe` (JS side effects at release) → `onCommit` (UI-thread exit decision) → `onSwipeEnd` (JS side effects at settle). Use whichever subset the interaction needs.
+The order is: `onSwipe` (JS side effects at release), then `onCommit` (the exit decision on the UI thread), then `onSwipeEnd` (JS side effects at settle). Use the subset that the interaction needs.
 
 ### `animatedStyle` owns the whole `transform` key
 
-`animatedStyle` returns a complete `transform` array. In React Native `transform` is a **single** style key, so a second style carrying its own `transform` **replaces** this one rather than merging with it. Stacking a rotation beside it — the first thing almost every card deck does — silently drops the translation, and the card rotates without following the finger:
+`animatedStyle` returns a complete `transform` array. In React Native, `transform` is **one** style key, so a second style with its own `transform` **replaces** this one and doesn't merge with it. A rotation next to it, the first thing that almost every card deck adds, drops the translation with no warning. The card then rotates and doesn't follow the finger:
 
 ```tsx
 // Broken: tiltStyle's transform replaces the swipe translation.
 <Motion.View style={[swipe.animatedStyle, tiltStyle]} />
 ```
 
-Pairing `animatedStyle` with a static style is safe (`[styles.card, swipe.animatedStyle]` above) because a static style declares no `transform`. The conflict only appears when the second style is itself a transform.
+A static style next to `animatedStyle` is safe (`[styles.card, swipe.animatedStyle]` above), because a static style declares no `transform`. The conflict appears only when the second style is itself a transform.
 
-Build one style from `swipeX` instead of stacking two:
+Build one style from `swipeX` instead of two styles:
 
 ```tsx
 const cardStyle = useInterpolatedStyle(swipe.swipeX, {
@@ -210,13 +210,13 @@ return (
 )
 ```
 
-Nesting a second `Motion.View` also works — one view per transform source — when the transforms come from genuinely independent drivers.
+A nested second `Motion.View` also works, with one view per transform source, when the transforms come from independent drivers.
 
-The same applies to `useDrag` and `usePan`: each owns its `transform` key too.
+The same applies to `useDrag` and `usePan`: each one owns its `transform` key too.
 
 ## `usePan`
 
-Camera-style pan with momentum on release. Position **persists across separate gestures** — the next pan starts from the current offset, not zero — and on release the position continues gliding via Reanimated's `withDecay`.
+A camera-style pan with momentum on release. The position **persists across gestures**: the next pan starts from the current offset, not from zero. On release, the position continues to move with the `withDecay` of Reanimated.
 
 ```tsx
 const pan = usePan({
@@ -239,9 +239,9 @@ return (
 | `deceleration`    | `number`                           | Reanimated default | Higher = momentum dies faster. Roughly `0.99` (slow) to `0.999` (long glide). |
 | `disableMomentum` | `boolean`                          | `false`            | Hard stop on release (drag-like).                                             |
 
-For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-clamps because it composes with `withDecay`'s `clamp` parameter, which doesn't have an overshoot mode.
+For elastic constraints, use `useDrag({ elastic })`. `usePan` hard-clamps because it uses the `clamp` parameter of `withDecay`, which has no overshoot mode.
 
-**When the bounds change.** A new `constraints` value applies from the next pan. An element at rest outside the new bounds stays there, and it jumps at the first move of the next pan. To move it at once, write `panX` / `panY` when you change the bounds.
+**When the bounds change.** A new `constraints` value applies from the next pan. An element at rest outside the new bounds stays there, and it jumps at the first move of the next pan. To move it at once, write `panX` or `panY` when you change the bounds.
 
 ## When to pick which
 
@@ -253,19 +253,19 @@ For rubber-banded constraints, prefer `useDrag({ elastic })` — `usePan` hard-c
 
 ## Scope: touch + mouse only
 
-All three hooks layer on `react-native-gesture-handler`, which surfaces touch and mouse events but **not keyboard**. For controls that need keyboard a11y in addition to drag — a Slider with arrow-key increment / decrement, a scrollbar with `PageUp` / `PageDown`, a range input — reach for [`useTouchDrag`](./api/hooks#usetouchdragoptions) from `@rootnative/inertia/touch` instead. It's a PanResponder-backed counterpart to `useDrag` that lives in core (no `react-native-gesture-handler` peer required) and composes with `onKeyDown` on the wrapping `View`. `onKeyDown` fires on web; for iOS and Android, see the [keyboard note](./api/hooks#usetouchdragoptions).
+All three hooks use `react-native-gesture-handler`, which reports touch and mouse events but **not keyboard** events. Some controls need keyboard accessibility next to drag: a Slider with arrow-key steps, a scrollbar with `PageUp` and `PageDown`, a range input. For those, use [`useTouchDrag`](./api/hooks#usetouchdragoptions) from `@rootnative/inertia/touch` instead. It's the PanResponder counterpart of `useDrag`. It's part of core, needs no `react-native-gesture-handler` peer, and composes with `onKeyDown` on the wrapping `View`. `onKeyDown` fires on web. For iOS and Android, see the [keyboard note](./api/hooks#usetouchdragoptions).
 
 The full ladder:
 
-1. `Motion.View` + `gesture` prop — pure state-overlay UX (hover, focus, press).
-2. `useTouchDrag` from `@rootnative/inertia/touch` — pointer drag that composes with key events, no extra peer dep.
-3. `useDrag` / `useSwipe` / `usePan` from this package — pointer-only, gesture-handler-backed. Best for projects already using gesture-handler; the UI-thread release path is more precise than PanResponder's JS-thread velocity.
-4. Raw `PanResponder` + `useAnimation` — drop here when the gesture lifecycle itself needs customizing (multi-touch composition, custom capture predicates beyond axis lock).
+1. `Motion.View` with the `gesture` prop: state-overlay UX only (hover, focus, press).
+2. `useTouchDrag` from `@rootnative/inertia/touch`: a pointer drag that composes with key events, with no extra peer dependency.
+3. `useDrag`, `useSwipe`, and `usePan` from this package: pointer only, on gesture-handler. Best for a project that already uses gesture-handler. The UI-thread release path is more precise than the JS-thread velocity of PanResponder.
+4. Raw `PanResponder` with `useAnimation`: use this when the gesture lifecycle itself needs custom code (multi-touch composition, a custom capture predicate beyond the axis lock).
 
-Both `useTouchDrag` and the gesture-handler `useDrag` accept the same `onRelease` shape and route through `buildReleaseAnimation`, so swapping between them only touches the wiring, not the release animation config.
+`useTouchDrag` and the gesture-handler `useDrag` accept the same `onRelease` shape, and both go through `buildReleaseAnimation`. So a swap between them changes only the wiring, not the release animation config.
 
 ## Why a separate package?
 
-The core library's `gesture` prop covers `pressed` / `focused` / `focusVisible` / `hovered` — boolean state-overlay gestures with no continuous translation. Drag, swipe, and pan are **value-driven**: the gesture publishes a continuous position that the consumer composes into the view's style. They don't fit the boolean-state model, and they need `react-native-gesture-handler` (which we don't want as a required peer of core).
+The `gesture` prop of the core library covers `pressed`, `focused`, `focusVisible`, and `hovered`: boolean state-overlay gestures with no continuous translation. Drag, swipe, and pan are **value-driven**. The gesture publishes a continuous position, and you compose it into the style of the view. These gestures don't fit the boolean-state model, and they need `react-native-gesture-handler`, which we don't want as a required peer of core.
 
-Splitting them off keeps core's surface area minimal and lets the gesture-handler dependency stay opt-in. The hooks return primitives (`gesture`, `animatedStyle`, shared values) rather than wrapping Motion in a new component, so they layer cleanly on the existing `Motion.*` set.
+A separate package keeps the surface of core small and keeps the gesture-handler dependency opt-in. The hooks return primitives (`gesture`, `animatedStyle`, shared values) and don't wrap Motion in a new component, so they work with the existing `Motion.*` set.

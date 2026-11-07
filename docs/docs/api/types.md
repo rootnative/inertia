@@ -58,9 +58,9 @@ type CardProps = MotionComponentProps<typeof View> & { title: string }
 
 ### `AnimateStyle<C>`
 
-The value of `initial`, `animate`, `exit`, and each `gesture` sub-state. It contains only the style keys that Inertia animates and that the style prop of `C` has. Any other key is a compile error, for example `aspectRatio`, which Inertia does not animate, or `fontSize` on `Motion.View`, whose style has no `fontSize`. Each value can be a target, a step, or a sequence of steps (`AnimatableValue`). Two keys are different:
+The value of `initial`, `animate`, `exit`, and each `gesture` sub-state. It contains only the style keys that Inertia animates and that the style prop of `C` has. Any other key is a compile error, for example `aspectRatio`, which Inertia doesn't animate, or `fontSize` on `Motion.View`, whose style has no `fontSize`. Each value can be a target, a step, or a sequence of steps (`AnimatableValue`). Two keys are different:
 
-- `boxShadow` takes a `BoxShadowInput` and does not accept a sequence.
+- `boxShadow` takes a `BoxShadowInput` and doesn't accept a sequence.
 - `transform` takes the array that the style prop of `C` declares.
 
 See [Animatable properties](../primitives/index.md#animatable-properties) for the key list.
@@ -80,7 +80,7 @@ interface VariantController<K extends string = string> {
 }
 ```
 
-The interface has one more member, `subscribe`. It is internal. Do not call it.
+The interface has one more member, `subscribe`. It's internal. Don't call it.
 
 ### `GestureSubStates<C>`
 
@@ -206,7 +206,7 @@ The second argument of [`useInView`](./hooks.md#useinviewref-options): `amount`,
 
 ### `UseGestureResult`
 
-The value that [`useGesture`](./hooks.md#usegesturetransition) returns: the four 0↔1 progress values `pressed`, `focused`, `focusVisible`, and `hovered`, and two handler bags, `handlers` (`UseGestureHandlers`) and `pointerHandlers` (`UseGesturePointerHandlers`).
+The value that [`useGesture`](./hooks.md#usegesturetransition) returns: the four progress values (0 to 1) `pressed`, `focused`, `focusVisible`, and `hovered`, and two handler sets, `handlers` (`UseGestureHandlers`) and `pointerHandlers` (`UseGesturePointerHandlers`).
 
 ### `UseShadowOptions`
 

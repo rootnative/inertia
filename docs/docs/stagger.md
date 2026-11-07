@@ -5,7 +5,7 @@ description: Stagger gives each child a delay derived from its position, so a li
 
 # Stagger
 
-`<Stagger>` gives each of its children an animation delay derived from the child's position, so a list entrance cascades without every child computing `index * ms` itself. The parent owns the timing — the ordering data lives where the order is decided.
+`<Stagger>` gives each child an animation delay that comes from the position of the child. A list entrance then cascades, and no child computes `index * ms` itself. The parent owns the timing, because the parent decides the order.
 
 ```tsx
 import { Motion, Stagger } from '@rootnative/inertia'
@@ -28,7 +28,7 @@ export function GiftList({ revealed, gifts }: Props) {
 }
 ```
 
-Child `i` (in render order) receives a delay of `delay + i * interval` milliseconds, applied to the declarative animations of every `Motion.*` primitive in that child's subtree — the mount animation (`initial` → `animate`) and any later `animate` change. `<Stagger>` renders no host view of its own, only per-child context.
+Child `i` (in render order) gets a delay of `delay + i * interval` milliseconds. The delay applies to the declarative animations of every `Motion.*` primitive in the subtree of that child: the mount animation (`initial` to `animate`) and each later `animate` change. `<Stagger>` renders no host view of its own, only a context for each child.
 
 ## Props
 
@@ -41,26 +41,26 @@ Child `i` (in render order) receives a delay of `delay + i * interval` milliseco
 
 ## Why the parent owns the timing
 
-The per-child alternative — `transition={{ delay: index * 60 }}` on each child — has two structural problems this component removes:
+The alternative, `transition={{ delay: index * 60 }}` on each child, has two structural problems. This component removes both:
 
-- **The index is per-child state.** A list that filters, reverses, or reorders staggers from stale positions unless every child guards its own delay. `<Stagger>` re-derives every delay from the current render order on every render.
-- **The cascade can't be turned off in one place.** The common requirement is "cascade in, but snap out together". Pass `enabled={revealed}` and the hide direction animates with no delays, while the reveal cascades.
+- **The index is per-child state.** A list that filters, reverses, or reorders staggers from stale positions, unless every child guards its own delay. `<Stagger>` computes every delay again from the current render order on every render.
+- **You can't turn the cascade off in one place.** The common requirement is "cascade in, but snap out together". Pass `enabled={revealed}`. The hide direction then animates with no delays, while the reveal cascades.
 
 ## What the delay applies to
 
-The stagger delay wraps the child's **declarative animations** — everything driven through `animate`, including the initial mount. It composes with the child's own `transition.delay` (the two add). It deliberately does **not** apply to:
+The stagger delay wraps the **declarative animations** of the child: everything that `animate` drives, including the initial mount. It adds to the own `transition.delay` of the child. The delay does **not** apply to:
 
-- **`gesture` sub-states.** Press and focus feedback delayed by list position would read as lag, not choreography.
-- **`<Presence>` exits.** An exit delayed by position holds the unmount hostage to the cascade. Exits run on their own timing; use `enabled` if you want the hide direction to snap together.
-- **Reduced motion.** When `<MotionConfig reducedMotion>` gates a subtree, values snap immediately — a deferred snap is still motion choreography, which is what the user asked to turn off.
+- **`gesture` sub-states.** Press and focus feedback with a delay from the list position would look like lag, not like choreography.
+- **`<Presence>` exits.** An exit with a delay from the position would hold the unmount until the cascade ends. Exits run on their own timing. Use `enabled` if you want the hide direction to snap together.
+- **Reduced motion.** When `<MotionConfig reducedMotion>` gates a subtree, values snap at once. A delayed snap is still motion choreography, and that is what the user asked to turn off.
 
-## Details worth knowing
+## Details to know
 
-- **Positions come from render order after filtering.** `null`, `undefined`, and boolean children are dropped before positions are assigned, so a conditional child leaves no hole in the cascade.
-- **The delay reaches nested primitives.** Each child slot gets its own provider, so a `Motion.View` anywhere inside child `i`'s subtree inherits child `i`'s delay — a list row's inner animated pieces cascade with their row.
-- **A delay change alone re-triggers nothing.** The delay is read when an animation starts. Changing `interval` / `from` / `enabled` affects the next animation, not in-flight ones.
-- **Custom animated components can participate.** `useStaggerDelay()` returns the delay assigned to the current child slot (`0` outside a `<Stagger>`); add it to the delay of whatever you resolve through `resolveTransition` / `resolveAnimatableValue`.
+- **Positions come from the render order after filtering.** `<Stagger>` drops `null`, `undefined`, and boolean children before it assigns positions, so a conditional child leaves no hole in the cascade.
+- **The delay reaches nested primitives.** Each child slot gets its own provider, so a `Motion.View` anywhere inside the subtree of child `i` inherits the delay of child `i`. The inner animated parts of a list row cascade with their row.
+- **A delay change alone starts nothing.** Inertia reads the delay when an animation starts. A change of `interval`, `from`, or `enabled` affects the next animation, not an animation in flight.
+- **A custom animated component can take part.** `useStaggerDelay()` returns the delay of the current child slot (`0` outside a `<Stagger>`). Add it to the delay of whatever you resolve through `resolveTransition` or `resolveAnimatableValue`.
 
 ## Nesting
 
-Nested `<Stagger>`s don't sum — the nearest ancestor wins, exactly like any React context. Give an inner list its own `<Stagger>` and its children cascade relative to that list.
+Nested `<Stagger>` components don't add up. The nearest ancestor wins, the same as any React context. Give an inner list its own `<Stagger>`, and its children cascade relative to that list.

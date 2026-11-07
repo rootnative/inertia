@@ -8,7 +8,7 @@
 
 Animatable linear gradient primitive for [`@rootnative/inertia`](../core), built on [`expo-linear-gradient`](https://docs.expo.dev/versions/latest/sdk/linear-gradient/).
 
-`MotionLinearGradient` accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
+`MotionLinearGradient` accepts the same `initial`, `animate`, and `transition` shape as the core `Motion.*` primitives, with the animatable keys `colors`, `start`, `end`, and `locations`.
 
 ## Install
 
@@ -16,7 +16,7 @@ Animatable linear gradient primitive for [`@rootnative/inertia`](../core), built
 pnpm add @rootnative/inertia-gradients expo-linear-gradient
 ```
 
-`expo-linear-gradient` works in bare React Native projects as well as Expo, but it is an Expo Module. Bare projects need the Expo modules runtime installed. See [Installing Expo modules](https://docs.expo.dev/bare/installing-expo-modules/).
+`expo-linear-gradient` works in a bare React Native project and in Expo, but it's an Expo Module. A bare project needs the Expo modules runtime. See [Installing Expo modules](https://docs.expo.dev/bare/installing-expo-modules/).
 
 **Peer dependencies:** `@rootnative/inertia` (workspace or installed), `react >=19.3.0`, `react-native >=0.88.0 <0.89.0`, `react-native-reanimated >=4.7.0 <4.8.0`, `expo >=58.0.0 <59.0.0`, `expo-linear-gradient >=58.0.0 <59.0.0`.
 
@@ -38,7 +38,7 @@ export function Hero() {
 }
 ```
 
-The static `colors` prop sets the visual on first render and **locks the slot count** for the component's lifetime. To resize the gradient (e.g. swap a 2-stop for a 3-stop), remount via `key={...}`. The component throws in dev if `colors.length` changes between renders.
+The static `colors` prop sets the visual on the first render and **locks the slot count** for the lifetime of the component. To resize the gradient (for example, from 2 stops to 3 stops), remount it with `key={...}`. The component throws in dev if `colors.length` changes between renders.
 
 ## Animatable props
 
@@ -49,7 +49,7 @@ The static `colors` prop sets the visual on first render and **locks the slot co
 | `end`       | `{ x: number, y: number }` | Same shape as `start`.                                                                                                        |
 | `locations` | `readonly number[]`        | Optional stop positions. If supplied at mount, must remain supplied and same-length as `colors` for the component's lifetime. |
 
-Per-property transitions work just like the core primitives:
+Per-property transitions work the same as in the core primitives:
 
 ```tsx
 <MotionLinearGradient
@@ -69,7 +69,7 @@ Per-property transitions work just like the core primitives:
 
 ## `initial`
 
-Pass `initial` to override the mount-frame values (so the component starts somewhere other than the static props), or `initial={false}` to start at the `animate` target with no mount animation.
+Pass `initial` to override the values of the mount frame, so the component starts somewhere other than the static props. Pass `initial={false}` to start at the `animate` target with no mount animation.
 
 ```tsx
 <MotionLinearGradient
@@ -81,21 +81,21 @@ Pass `initial` to override the mount-frame values (so the component starts somew
 
 ## Reduced motion
 
-`MotionLinearGradient` participates in `<MotionConfig reducedMotion>` the same way the core primitives do — when the OS reduce-motion setting is on, transitions resolve as direct assignment instead of `withSpring` / `withTiming`.
+`MotionLinearGradient` follows `<MotionConfig reducedMotion>` the same as the core primitives. When the reduce-motion setting of the OS is on, a transition resolves as a direct assignment instead of `withSpring` or `withTiming`.
 
 ## What this primitive doesn't do
 
-- **Radial / conic gradients** — linear-only. Radial / conic are backlog, unscheduled.
-- **Slot-count resize** — the colors array length is locked at mount.
-- **Per-stop sequence keyframes** — `animate.colors` accepts a single target array, not nested arrays. For chained gradient transitions, drive the target through state.
+- **Radial or conic gradients.** The primitive is linear only. Radial and conic are in the backlog, not scheduled.
+- **A slot-count resize.** The length of the colors array is locked at mount.
+- **Sequence keyframes per stop.** `animate.colors` accepts one target array, not nested arrays. For chained gradient transitions, drive the target through state.
 
 ## Documentation
 
 - Full docs: [https://rootnative.github.io/inertia/docs/gradients](https://rootnative.github.io/inertia/docs/gradients)
 - Core library: [`@rootnative/inertia`](../core)
 
-AI agents: this package ships its own copy of the reference — read `node_modules/@rootnative/inertia-gradients/llms.txt` for the full API, no network needed.
+AI agents: this package ships its own copy of the reference. Read `node_modules/@rootnative/inertia-gradients/llms.txt` for the full API. You need no network.
 
 ## License
 
-[MIT](./LICENSE) © RootNative
+[MIT](./LICENSE) © Root Native

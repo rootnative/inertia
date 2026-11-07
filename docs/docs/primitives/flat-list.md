@@ -5,9 +5,9 @@ description: Animatable, virtualized FlatList — the primitive that lets one li
 
 # Motion.FlatList
 
-Animatable, **virtualized** `FlatList`. This is the primitive that lets one list both virtualize and animate: `useScroll`'s `onScroll` handler needs a Reanimated-animated scrollable, and before this the only animated scroller was [`Motion.ScrollView`](./scroll-view), which mounts every row. Long lists had to pick one.
+Animatable, **virtualized** `FlatList`. This primitive lets one list both virtualize and animate. The `onScroll` handler of `useScroll` needs a scrollable that Reanimated animates. Before this primitive, the only animated scroller was [`Motion.ScrollView`](./scroll-view), which mounts every row. A long list had to pick one.
 
-Like `Motion.ScrollView`, animations apply to the scroll **container** — the list frame, not the rows. Rows animate by using a `Motion.*` primitive inside `renderItem`, which is what makes scroll-driven row effects work:
+Like `Motion.ScrollView`, the animations apply to the scroll **container**: the list frame, not the rows. A row animates through a `Motion.*` primitive inside `renderItem`. That is what makes a scroll-driven row effect work:
 
 ```tsx
 import { StyleSheet } from 'react-native'
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
 })
 ```
 
-`data` and `renderItem` keep their inference: the item type flows from `data` into `renderItem`, and — independently — a `variants` map still narrows the string form of `animate`, so `animate="typo"` is a compile error here exactly as on every other primitive.
+`data` and `renderItem` keep their inference. The item type flows from `data` into `renderItem`. Independently, a `variants` map still narrows the string form of `animate`, so `animate="typo"` is a compile error here, the same as on every other primitive.
 
 ## Tree-shaken import
 
@@ -76,8 +76,8 @@ import { MotionFlatList } from '@rootnative/inertia/flat-list'
 
 ## Notes
 
-- Built on Reanimated's `Animated.FlatList`, not RN's `FlatList`. That wrapper supplies the `CellRendererComponent` injection behind per-row `itemLayoutAnimation`, and it defaults `scrollEventThrottle` to 1 — so a `useScroll` handler attached here reports every frame with no extra prop.
-- `animate` / `initial` / `gesture` animate the scroll container. Per-row entrance animations belong on a `Motion.*` row inside `renderItem`.
-- The [`layout` prop](../layout) animates the list frame. Per-row layout animation is Reanimated's own `itemLayoutAnimation`, which is forwarded through untouched — note it can fight the list's measurement passes, so measure before adopting it.
-- Reach for this over `Motion.ScrollView` whenever the row count is long or unbounded. `Motion.ScrollView` stays the right choice for a short, fixed set of children.
-- `FlashList` is not wrapped in core — it would add a peer dependency. Wrap it yourself with [createMotionComponent](../api/create-motion-component), and set `scrollEventThrottle={1}` explicitly, since that patch is Reanimated's and doesn't come along.
+- The primitive is built on the `Animated.FlatList` of Reanimated, not on the `FlatList` of React Native. That wrapper injects the `CellRendererComponent` behind the per-row `itemLayoutAnimation`, and its default `scrollEventThrottle` is 1. So a `useScroll` handler on this primitive reports every frame with no extra prop.
+- `animate`, `initial`, and `gesture` animate the scroll container. A per-row entrance animation belongs on a `Motion.*` row inside `renderItem`.
+- The [`layout` prop](../layout) animates the list frame. Per-row layout animation is the own `itemLayoutAnimation` of Reanimated, which the primitive forwards unchanged. It can conflict with the measurement passes of the list, so measure the result before you adopt it.
+- Use this primitive instead of `Motion.ScrollView` whenever the row count is long or unbounded. `Motion.ScrollView` stays the correct choice for a short, fixed set of children.
+- Core doesn't wrap `FlashList`, because that would add a peer dependency. Wrap it yourself with [createMotionComponent](../api/create-motion-component), and set `scrollEventThrottle={1}` explicitly, because that patch belongs to Reanimated and doesn't come with the wrap.

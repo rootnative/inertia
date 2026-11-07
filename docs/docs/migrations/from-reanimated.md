@@ -5,13 +5,13 @@ description: Maps the useSharedValue and useAnimatedStyle patterns we keep rewri
 
 # Migrating from raw Reanimated
 
-Inertia is a thin wrapper over `react-native-reanimated` — every animation it produces could have been written by hand with `useSharedValue` + `useAnimatedStyle`. The win is that the common patterns collapse into props. This page maps the patterns we keep rewriting in `@rootnative/ui` and other downstream consumers onto the Inertia equivalents.
+Inertia is a thin wrapper over `react-native-reanimated`. You could write every animation that it makes by hand with `useSharedValue` and `useAnimatedStyle`. The gain is that the common patterns collapse into props. This page maps the patterns that component libraries and apps write again and again onto the Inertia equivalents.
 
-If a pattern below isn't covered, the likely answer is "drop down to the hooks layer" — Inertia exposes `useMotionValue` / `useSpring` / `useTransform` / `useAnimation` / `useGesture` so you don't have to leave the package.
+If a pattern isn't on this page, the likely answer is "use the hooks layer". Inertia exports `useMotionValue`, `useSpring`, `useTransform`, `useAnimation`, and `useGesture`, so you don't have to leave the package.
 
 ## State-layer fills (Material Design 3)
 
-The bread-and-butter pattern: a `Pressable` with a coloured layer that fades in on hover, focus, and press. Roughly 13 components in `@rootnative/ui` share this exact shape.
+The most common pattern: a `Pressable` with a coloured layer that fades in on hover, focus, and press. In a component library, a dozen components can share this exact shape.
 
 ### Before — raw Reanimated
 
@@ -81,11 +81,11 @@ export function Button({ onPress, label }: Props) {
 
 Three shared values, one animated style, and six handler callbacks collapse into one `gesture` prop.
 
-### Layered blending preserves the cross-fade
+### Layered blending keeps the crossfade
 
-The chained-`interpolateColor` form above blends three independent layers so a release-while-still-hovered shows a real cross-fade. Inertia's `gesture` matches that semantically: each declared sub-state owns its own progress (0↔1) and the worklet composites layers in priority order (`hovered → focused → focusVisible → pressed`). When you release while still hovered, the press layer fades back to 0 independently — the hover layer stays at 1, so the value lands on the hover target rather than snapping back to base.
+The chained `interpolateColor` form above blends three independent layers, so a release while the pointer still hovers shows a real crossfade. The `gesture` prop of Inertia does the same. Each declared sub-state owns its own progress (0 to 1), and the worklet composites the layers in priority order (`hovered → focused → focusVisible → pressed`). When you release while the pointer still hovers, the press layer fades back to 0 on its own. The hover layer stays at 1, so the value lands on the hover target and doesn't snap back to the base.
 
-To configure per-layer fade timing (MD3 spec uses ~50 ms in, ~150 ms out), pass per-state entries on `transition`:
+To set the fade timing per layer (the MD3 spec uses about 50 ms in and about 150 ms out), pass an entry per state on `transition`:
 
 ```tsx
 transition={{
@@ -95,15 +95,15 @@ transition={{
 }}
 ```
 
-Without per-layer entries, layers inherit the top-level `transition` (or fall back to the library default spring).
+Without an entry per layer, the layers inherit the top-level `transition`, or fall back to the library default spring.
 
 ### `style` must be a value, not a function
 
-Every `Motion.*` primitive **throws in dev** when `style` is a function, rather than let Reanimated's `createAnimatedComponent` wrapper silently drop the function-form `style={({ pressed }) => ...}` that RN's `Pressable` accepts. Drive press/focus/hover styling through `gesture` (as above) or compute conditional styles once in render. See [primitives/pressable](../primitives/pressable#style-must-be-a-value-not-a-function) for the full caveat.
+Every `Motion.*` primitive **throws in dev** when `style` is a function. Otherwise the `createAnimatedComponent` wrapper of Reanimated would drop the function form `style={({ pressed }) => ...}`, which the `Pressable` of React Native accepts, with no message. Drive the press, focus, and hover styles through `gesture` (as above), or compute a conditional style once in render. See [primitives/pressable](../primitives/pressable#style-must-be-a-value-not-a-function) for the full caveat.
 
 ### When the gesture drives sibling overlays — `useGesture`
 
-The `gesture` prop animates the receiver's _own_ style. If you have a focus ring rendered as a sibling, an MD3 state-layer halo overlaid on the content, or a content tint that needs to live on a child View, the prop can't reach those siblings — but [`useGesture`](../api/hooks#usegesturetransition) can. It returns the same four 0↔1 progress shared values the prop is built on, plus a handler bag to spread on a `Pressable`. Feed the shared values into as many `useAnimatedStyle` blocks as you need.
+The `gesture` prop animates the _own_ style of the primitive. A focus ring as a sibling, an MD3 state-layer halo over the content, or a content tint on a child View are out of reach for the prop. [`useGesture`](../api/hooks#usegesturetransition) can reach them. It returns the same four progress shared values (0 to 1) that the prop is built on, plus a set of handlers to spread on a `Pressable`. Feed the shared values into as many `useAnimatedStyle` blocks as you need.
 
 ```tsx
 import { useGesture } from '@rootnative/inertia'
@@ -144,7 +144,7 @@ export function ButtonWithRing({ onPress, label }: Props) {
 }
 ```
 
-`useGesture` and the `gesture` prop share the same machinery, semantics, and reduced-motion gating — they're two surfaces over one engine. The rule of thumb: if your animation lives entirely on one component's style, use the prop; if it spans siblings, use the hook.
+`useGesture` and the `gesture` prop share the same machinery, the same rules, and the same reduced-motion gate. They are two surfaces over one engine. The rule: if your animation lives on the style of one component, use the prop. If it spans siblings, use the hook.
 
 ## Mount-on-appear (fade in, slide up)
 
@@ -181,7 +181,7 @@ return <Animated.View style={[styles.card, animatedStyle]} />
 />
 ```
 
-The Reanimated config translates 1:1 — `stiffness` → `tension`, `damping` → `friction`, `mass` → `mass`. See the [transition shapes](../transitions#porting-from-raw-reanimated-stiffness--damping) for the table.
+The Reanimated config translates 1:1: `stiffness` becomes `tension`, `damping` becomes `friction`, and `mass` stays `mass`. See the [transition shapes](../transitions#porting-from-raw-reanimated-stiffness--damping) for the table.
 
 ## Toggle progress (Switch / Checkbox / Radio)
 
@@ -227,9 +227,9 @@ const variants = {
 />
 ```
 
-One variant map, one prop swap on `animate`. `useEffect` and the manual `withSpring` call both go away.
+One variant map, one prop swap on `animate`. The `useEffect` and the manual `withSpring` call both go away.
 
-For programmatic chaining (`onChange` with async work, ripple animations), use `useVariants(variants)` instead and drive the controller from JS:
+For programmatic chaining (an `onChange` with async work, a ripple animation), use `useVariants(variants)` instead, and drive the controller from JS:
 
 ```tsx
 const controller = useVariants(variants)
@@ -240,7 +240,7 @@ controller.transitionTo(checked ? 'on' : 'off')
 
 ### When one progress drives multiple sibling views — `useAnimation`
 
-`variants` lives on one Motion primitive. A real Switch / Checkbox is three or four views (track, thumb, ripple halo) that all read the same progress. The native pattern with [`useAnimation`](../api/hooks#useanimationtarget-transition) — Inertia's general-purpose "drive a `SharedValue<number>` toward a target with any transition" hook — keeps the progress shared across as many `useAnimatedStyle` blocks as you need.
+`variants` lives on one Motion primitive. A real Switch or Checkbox is three or four views (a track, a thumb, a ripple halo) that all read the same progress. The pattern for that is [`useAnimation`](../api/hooks#useanimationtarget-transition), the general-purpose hook of Inertia that drives a `SharedValue<number>` toward a target with any transition. It shares the progress across as many `useAnimatedStyle` blocks as you need.
 
 ```tsx
 import { useAnimation, useGesture } from '@rootnative/inertia'
@@ -296,16 +296,16 @@ export function Switch({ value, onValueChange }: Props) {
 
 What collapsed:
 
-- `const progress = useSharedValue(value ? 1 : 0)` + a `useEffect` that calls `withSpring` — replaced by one `useAnimation(value ? 1 : 0, transition)`.
-- Three press/focus/hover `useSharedValue` calls + six `useCallback` handlers — replaced by one `useGesture(transition)` destructure plus `{...handlers}`.
-- Stiffness/damping rename → tension/friction rename (numerically identical; just designer-friendly names).
-- `isFocusVisible()` modality logic baked into the hook — no consumer wiring required.
+- `const progress = useSharedValue(value ? 1 : 0)` plus a `useEffect` that calls `withSpring`: replaced by one `useAnimation(value ? 1 : 0, transition)`.
+- Three `useSharedValue` calls for press, focus, and hover, plus six `useCallback` handlers: replaced by one `useGesture(transition)` destructure plus `{...handlers}`.
+- `stiffness` and `damping` become `tension` and `friction`. The numbers are identical. Only the names change.
+- The `isFocusVisible()` modality logic is inside the hook. You wire nothing.
 
-`useAnimation` also handles indeterminate progress (loops, sequences) — see [Looping / infinite animations](#looping--infinite-animations) below.
+`useAnimation` also handles indeterminate progress (loops, sequences). See [Looping / infinite animations](#looping--infinite-animations) below.
 
 ## Drag / pan / swipe
 
-These are covered by the [`@rootnative/inertia-gestures`](../gestures-adapter) adapter (`usePanGesture` under the hood). The hooks return ready-made shared values you wire into the same props — no `setNativeProps`, no manual `withDecay` after release.
+The [`@rootnative/inertia-gestures`](../gestures-adapter) adapter covers these, with `usePanGesture` inside. The hooks return ready shared values that you wire into the same props. You need no `setNativeProps` and no manual `withDecay` after release.
 
 ```tsx
 import { useDrag } from '@rootnative/inertia-gestures'
@@ -321,7 +321,7 @@ const { gesture, animatedStyle } = useDrag({
 </GestureDetector>
 ```
 
-If your gesture layer is already PanResponder-based and you don't want to add a peer dep, the existing code keeps working — Inertia doesn't replace `react-native-gesture-handler` flows in the core package.
+If your gesture layer already uses PanResponder, and you don't want a new peer dependency, the existing code keeps working. The core package doesn't replace `react-native-gesture-handler` flows.
 
 ## Looping / infinite animations
 
@@ -358,7 +358,7 @@ The three `withRepeat` flags collapse into one shape. See [sequences and repeat]
 
 ### Indeterminate progress (a loop on a standalone shared value)
 
-When the loop has to drive a shared value the rest of your component reads — an indeterminate `LinearProgress` slide, a `CircularProgress` rotation, an idle spinner whose rotation feeds multiple animated styles — there's no Motion primitive to attach `animate` to. [`useAnimation`](../api/hooks#useanimationtarget-transition) carries the same repeat config to a standalone `SharedValue<number>`. Start the value at 0 with `{ from: 0 }`: Reanimated runs each turn of a loop from the value at its start, so a loop that starts at its target does not move.
+Sometimes the loop has to drive a shared value that the rest of your component reads: an indeterminate `LinearProgress` slide, a `CircularProgress` rotation, an idle spinner whose rotation feeds several animated styles. Then there is no Motion primitive to hold `animate`. [`useAnimation`](../api/hooks#useanimationtarget-transition) carries the same repeat config to a standalone `SharedValue<number>`. Start the value at 0 with `{ from: 0 }`. Reanimated runs each turn of a loop from the value at its start, so a loop that starts at its target doesn't move.
 
 ```tsx
 import { useAnimation } from '@rootnative/inertia'
@@ -383,11 +383,11 @@ export function Spinner() {
 }
 ```
 
-The same SV could feed a second `useAnimatedStyle` block (e.g. a trailing dot whose opacity tracks `rotation.value`), which is the win over `Motion.View animate={{ rotate: 360 }}`: one driver, many consumers. When the component unmounts the hook cancels the animation — no `cancelAnimation` boilerplate. To start the loop from an event instead of on mount, use [`useAnimator`](../api/hooks#useanimator) on a [`useMotionValue(0)`](../api/hooks#usemotionvalueinitial).
+The same shared value can feed a second `useAnimatedStyle` block (for example, a trailing dot whose opacity follows `rotation.value`). That is the gain over `Motion.View animate={{ rotate: 360 }}`: one driver, many consumers. When the component unmounts, the hook cancels the animation, so you write no `cancelAnimation` code. To start the loop from an event instead of on mount, use [`useAnimator`](../api/hooks#useanimator) on a [`useMotionValue(0)`](../api/hooks#usemotionvalueinitial).
 
 ## Custom easing
 
-Reanimated 3.9+ validates that `easing` is a worklet inside nested-transition contexts (variants, sequences, per-property maps). A bare arrow function crashes there.
+Reanimated 3.9+ checks that `easing` is a worklet inside a nested-transition context (variants, sequences, per-property maps). A bare arrow function crashes there.
 
 ### Before
 
@@ -417,11 +417,11 @@ const easing = (t: number) => Math.pow(t, 3)
 />
 ```
 
-Easing fns must still be **pure** — no captured JS-thread refs, no closures over component state. The wrapping only fixes the worklet-validation; it can't safely move JS-thread state across the boundary.
+An easing function must still be **pure**: no captured JS-thread refs, no closure over component state. The wrap only fixes the worklet check. It can't safely move JS-thread state across the boundary.
 
 ## Mount/unmount transitions (`AnimatePresence`)
 
-If you have an existing `AnimatePresence` from another lib, swap the import:
+If you have an `AnimatePresence` from another library, swap the import:
 
 ```diff
 - import { AnimatePresence } from 'some-other-lib'
@@ -445,25 +445,25 @@ If you have an existing `AnimatePresence` from another lib, swap the import:
   }
 ```
 
-`<Presence>` automatically applies `pointerEvents: 'none'` to exiting children — the "two clicks to re-open the popover" bug doesn't reproduce. See [Presence](../presence) for the full contract.
+`<Presence>` applies `pointerEvents: 'none'` to an exiting child for you, so the "two taps to open the popover again" defect doesn't happen. See [Presence](../presence) for the full contract.
 
 ## When _not_ to migrate
 
-Some patterns are still better off as raw Reanimated:
+Some patterns are still better as raw Reanimated:
 
-- **Frame-by-frame data viz** — d3-style charts that read shared values inside `useDerivedValue` and feed them into SVG props. The Inertia public surface targets `style` keys; SVG attribute interpolation lives in the hooks layer or in raw Reanimated.
-- **Custom physics simulations** — anything where you'd be reaching into `withDecay` callback signatures, `cancelAnimation`, or `runOnUI` directly. Drop down to the hooks.
-- **Shared elements that carry more than the standard key set** — the [`layout` prop and `layoutId`](../layout) cover auto-layout and hero transitions, including window-coordinate measurement across differently-offset parents and a style carry for `opacity` / `borderRadius` / the color keys. The carried set is fixed and has no configuration surface, so a hero that needs to interpolate something else (padding, border width, a gradient) between screens is still a raw-Reanimated job.
-- **Slider / continuous gesture range UI with exotic requirements** — [`useDrag`](../gestures-adapter) and [`useTouchDrag`](../api/hooks#usetouchdragoptions) cover the standard drag/slider shapes; keep the hand-rolled PanResponder + `useSharedValue` flow only when you need custom gesture arbitration those hooks don't express.
+- **Frame-by-frame data visualization.** A d3-style chart reads shared values inside `useDerivedValue` and feeds them into SVG props. The public surface of Inertia targets `style` keys. SVG attribute interpolation lives in the hooks layer or in raw Reanimated.
+- **A custom physics simulation.** Anything where you use the `withDecay` callback signatures, `cancelAnimation`, or `runOnUI` directly. Use the hooks.
+- **A shared element that carries more than the standard key set.** The [`layout` prop and `layoutId`](../layout) cover layout and hero transitions, including window-coordinate measurement across parents with different offsets, and a style carry for `opacity`, `borderRadius`, and the color keys. The carried set is fixed and has no configuration. So a hero that must interpolate something else (padding, border width, a gradient) between screens is still a job for raw Reanimated.
+- **A slider or continuous gesture UI with unusual requirements.** [`useDrag`](../gestures-adapter) and [`useTouchDrag`](../api/hooks#usetouchdragoptions) cover the standard drag and slider shapes. Keep the hand-written PanResponder and `useSharedValue` flow only when you need custom gesture arbitration that those hooks don't express.
 
-The hooks layer is intentionally the same shape as Reanimated's so dropping down doesn't feel like switching tools.
+The hooks layer has the same shape as Reanimated on purpose, so a move down doesn't feel like a change of tools.
 
 ## Testing migrated components
 
-The Reanimated mock that ships with Jest is **static-render-only** — animations don't actually run, and `useAnimatedStyle` is captured at the at-rest values. After migrating, your existing tests assert against `initial` styles by default, which is usually wrong.
+The Reanimated mock that ships with Jest is **static-render only**. Animations don't run, and `useAnimatedStyle` captures the values at rest. After a migration, your existing tests assert against the `initial` styles by default, which is usually wrong.
 
 Inertia ships a test helper that flushes animations to their target state in one call. See [Testing](../testing) for the API.
 
 ## Stuck?
 
-Open an issue with the before/after pair you're trying to migrate. The patterns in this guide came from `@rootnative/ui`'s real components — if your shape isn't covered, it should be.
+Open an issue with the before and after pair that you try to migrate. The patterns in this guide came from real components in a component library. If your shape isn't here, it should be.

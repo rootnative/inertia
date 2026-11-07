@@ -5,15 +5,15 @@ description: The JS-thread resolver functions the Motion primitives are built on
 
 # Transition utilities
 
-The JS-thread resolver functions the Motion primitives are built on, exported for anyone building their own animated component on top of Inertia's transition vocabulary. This is exactly how the adapter packages work — `MotionLinearGradient` and `MotionPath` are external consumers of these same functions.
+The Motion primitives are built on these JS-thread resolver functions. The root entry exports them, so you can build your own animated component on the transition vocabulary of Inertia. The adapter packages work this way: `MotionLinearGradient` and `MotionPath` are external consumers of these same functions.
 
-Reach for this layer when a component animates something the core primitives can't reach (SVG props, gradient stops, any non-`style` target) but you still want it to accept the standard `transition={{ type: 'spring', tension: 180 }}` shape instead of inventing your own config.
+Use this layer when a component animates something that the core primitives can't reach (SVG props, gradient stops, any target that isn't `style`), and you still want it to accept the standard `transition={{ type: 'spring', tension: 180 }}` shape instead of your own config.
 
-All of them run on the **JS thread** — call them from render, effects, or event handlers, and assign the result to a shared value. The baked animation executes on the UI thread; the resolution itself never happens at frame time. (For picking a transition inside a gesture-release **worklet**, see [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue-callback) — that's the UI-thread counterpart to `resolveTransition`.)
+All of them run on the **JS thread**. Call them from render, an effect, or an event handler, and assign the result to a shared value. The baked animation runs on the UI thread. The resolution never happens at frame time. To pick a transition inside a gesture-release **worklet**, see [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue-callback), the UI-thread counterpart of `resolveTransition`.
 
 ## `resolveTransition(config, toValue, callback?)`
 
-Build a baked Reanimated animation for a single property from a `TransitionConfig` and a target value. Handles all four transition types plus `delay` / `repeat` wrapping:
+Builds a baked Reanimated animation for one property from a `TransitionConfig` and a target value. It handles all four transition types, and it wraps `delay` and `repeat`:
 
 | `config.type`    | Produces                                                                      |
 | ---------------- | ----------------------------------------------------------------------------- |
@@ -22,7 +22,7 @@ Build a baked Reanimated animation for a single property from a `TransitionConfi
 | `'decay'`        | `withDecay` — `toValue` is ignored; decay decelerates via its own physics     |
 | `'no-animation'` | the raw `toValue` (direct assignment, no interpolation)                       |
 
-`config` may be `undefined` — the default spring applies, same as the primitives.
+`config` can be `undefined`. Then the default spring applies, the same as in the primitives.
 
 ```ts
 import { resolveTransition, type TransitionConfig } from '@rootnative/inertia'
@@ -41,11 +41,11 @@ function useGlow(active: boolean, transition?: TransitionConfig) {
 }
 ```
 
-The return type is `unknown` because Reanimated's animation objects aren't part of Inertia's public type surface — cast to the shared value's type at the assignment site (`as number` / `as string`), the same way the adapter packages do.
+The return type is `unknown`, because the animation objects of Reanimated aren't part of the public type surface of Inertia. Cast the result to the type of the shared value at the assignment (`as number` or `as string`), the same as the adapter packages do.
 
-Color targets work: pass a color string as `toValue` and Reanimated's value setter interpolates the packed RGBA representations natively (seed the shared value with a color string so the slot is recognized as a color from the first frame).
+A color target works. Pass a color string as `toValue`, and the value setter of Reanimated interpolates the packed RGBA values natively. Seed the shared value with a color string, so that Reanimated treats the slot as a color from the first frame.
 
-**`callback`** fires when the animation settles. It runs on the **UI thread**, so it must be a worklet — either author one with the `'worklet'` directive or bridge with `runOnJS`:
+**`callback`** fires when the animation settles. It runs on the **UI thread**, so it must be a worklet. Write one with the `'worklet'` directive, or bridge with `runOnJS`:
 
 ```ts
 import { runOnJS } from 'react-native-reanimated'
@@ -60,11 +60,11 @@ sv.value = resolveTransition(
 ) as number
 ```
 
-For `'no-animation'` the callback fires synchronously on the JS thread (there's nothing to wait for). Repeat-wrapped animations forward the callback to `withRepeat`, so it fires once per iteration — Reanimated's own behavior.
+For `'no-animation'`, the callback fires synchronously on the JS thread, because there is nothing to wait for. An animation with `repeat` forwards the callback to `withRepeat`, so the callback fires once per iteration. That is the behavior of Reanimated.
 
 ## `resolveAnimatableValue(value, base, factory?)`
 
-The level above `resolveTransition`: resolve a full per-property `animate` value — including sequences and per-step overrides — into one animation. This is what gives a custom component the complete `animate` grammar, not just single targets.
+The level above `resolveTransition`. It resolves a full per-property `animate` value, including a sequence and per-step overrides, into one animation. This gives a custom component the complete `animate` grammar, not only single targets.
 
 It accepts the three shapes of `AnimatableValue`:
 
@@ -96,15 +96,15 @@ function usePulse(
 }
 ```
 
-Override merging follows the same rule as the primitives: if a step's override declares a different `type` than `base`, the override wins outright — spring fields never bleed into a timing step.
+The override merge follows the same rule as the primitives. If the override of a step declares a different `type` than `base`, the override wins whole. A spring field never reaches a timing step.
 
-The optional **`factory`** argument (type `CallbackFactory`, exported from the root) produces per-step completion callbacks. It's called with `(phase, step)` — `('step', i)` for each sequence step, `('animation', undefined)` for non-sequences — and returns a worklet callback (or `undefined` to skip). This is the mechanism behind the primitives' `onAnimationEnd` firing once per step; supply it only if your component surfaces step-level completion.
+The optional **`factory`** argument (type `CallbackFactory`, exported from the root) makes a completion callback per step. Inertia calls it with `(phase, step)`: `('step', i)` for each sequence step, and `('animation', undefined)` for a value that isn't a sequence. It returns a worklet callback, or `undefined` to skip. This is the mechanism behind the `onAnimationEnd` of the primitives, which fires once per step. Supply it only when your component reports completion per step.
 
 ## `applyDelay(animation, delay?)`
 
-Wrap a resolved animation in `withDelay`. A missing, zero, or negative `delay` is a pass-through — the animation comes back unchanged.
+Wraps a resolved animation in `withDelay`. A missing, zero, or negative `delay` passes through, and the animation comes back unchanged.
 
-Its job is delaying an animation that is already fully resolved, which is different from putting `delay` on the transition config in one important case: a keyframe sequence applies a base config's `delay` **per step**, while `applyDelay` defers the whole sequence once. This is how the `Motion.*` primitives apply a `<Stagger>` delay, and it is the composition point for custom components that want to participate in one:
+Its job is to delay an animation that is already resolved. That differs from a `delay` on the transition config in one important case: a keyframe sequence applies the `delay` of a base config **per step**, while `applyDelay` delays the whole sequence once. This is how the `Motion.*` primitives apply a `<Stagger>` delay. It's also the composition point for a custom component that wants to take part in one:
 
 ```ts
 import {
@@ -131,17 +131,17 @@ function useStaggeredValue(
 }
 ```
 
-Delays nest: an animation whose own config carries `delay: 30` wrapped in `applyDelay(…, 100)` starts after 130 ms — the two add rather than replace.
+Delays add up. An animation whose own config carries `delay: 30`, wrapped in `applyDelay(…, 100)`, starts after 130 ms. The two delays add, and neither replaces the other.
 
 ## `ensureWorkletEasing(easing)`
 
-Normalize any accepted easing input into a worklet function `withTiming` can consume. Three inputs, one output:
+Normalizes any accepted easing input into a worklet function that `withTiming` can consume. Three inputs, one output:
 
-- **Already a worklet** (a Reanimated `Easing.*` curve, or a user function processed by the worklets Babel plugin) → returned as-is.
-- **Reanimated 4 `EasingFunctionFactory`** (what `Easing.bezier(...)` returns since v4) → unwrapped via `.factory()` automatically, so nobody has to know that API changed.
-- **Plain JS function** → wrapped in a `'worklet'`-directive closure so Reanimated 3.9+'s nested-transition validation doesn't crash with `[Reanimated] The easing function is not a worklet`.
+- **Already a worklet** (a Reanimated `Easing.*` curve, or a user function that the worklets Babel plugin processed): returned as it is.
+- **A Reanimated 4 `EasingFunctionFactory`** (what `Easing.bezier(...)` returns since v4): unwrapped with `.factory()` for you, so nobody has to know that the API changed.
+- **A plain JS function**: wrapped in a closure with the `'worklet'` directive, so the nested-transition validation of Reanimated 3.9+ doesn't crash with `[Reanimated] The easing function is not a worklet`.
 
-`undefined` passes through as `undefined` (callers apply their own default).
+`undefined` passes through as `undefined`, and the caller applies its own default.
 
 ```ts
 import { ensureWorkletEasing } from '@rootnative/inertia'
@@ -158,13 +158,13 @@ sv.value = withTiming(1, {
 })
 ```
 
-You only need this when calling `withTiming` yourself with user-supplied easing. `resolveTransition` and `resolveAnimatableValue` already run every `easing` through it, as do all the Motion primitives.
+You need this only when you call `withTiming` yourself with an easing from the user. `resolveTransition`, `resolveAnimatableValue`, and all the Motion primitives already run every `easing` through it.
 
-The wrapped function must be **pure** — no JS-thread captured refs, no shared mutable state, no calls to non-worklet APIs. The wrapper carries the user function across the worklet boundary via closure; anything impure it closes over will be stale or crash on the UI thread.
+The wrapped function must be **pure**: no captured JS-thread refs, no shared mutable state, no calls to APIs that aren't worklets. The wrapper carries the user function across the worklet boundary in a closure. Anything impure in that closure is stale or crashes on the UI thread.
 
 ## `cubicBezier(x1, y1, x2, y2)` / `cubicBezier(css)`
 
-Build a `timing.easing` value from cubic-bezier control points — four numbers, a W3C CSS `cubic-bezier(...)` string, or a CSS easing keyword (`'linear'`, `'ease'`, `'ease-in'`, `'ease-out'`, `'ease-in-out'`):
+Builds a `timing.easing` value from cubic-bezier control points: four numbers, a W3C CSS `cubic-bezier(...)` string, or a CSS easing keyword (`'linear'`, `'ease'`, `'ease-in'`, `'ease-out'`, `'ease-in-out'`):
 
 ```ts
 import { cubicBezier } from '@rootnative/inertia'
@@ -174,13 +174,13 @@ cubicBezier('cubic-bezier(0.2, 0, 0, 1)') // design-token form
 cubicBezier('ease-out')
 ```
 
-Returns exactly what `timing.easing` accepts (Reanimated's bezier factory — `ensureWorkletEasing` handles it like every other easing input), so it works in the `transition` prop, in [named transitions](../motion-config#named-transitions), and anywhere else this page's resolvers take a config. Invalid input throws: `x1` / `x2` must be finite and within `[0, 1]`, and unsupported tokens (`step-start`, `linear(...)`) are rejected rather than approximated.
+It returns exactly what `timing.easing` accepts: the bezier factory of Reanimated, which `ensureWorkletEasing` handles like every other easing input. So it works in the `transition` prop, in [named transitions](../motion-config#named-transitions), and everywhere else that the resolvers on this page take a config. Invalid input throws: `x1` and `x2` must be finite and within `[0, 1]`. An unsupported token (`step-start`, `linear(...)`) throws too. Inertia doesn't approximate it.
 
-See [Transitions → cubicBezier](../transitions#cubicbezier--css-easing-tokens) for the token-file workflow this enables.
+See [Transitions → cubicBezier](../transitions#cubicbezier--css-easing-tokens) for the token-file workflow.
 
 ## `resolveNamedTransition(input, registry)`
 
-Resolve a `TransitionConfig | TransitionName` input into a concrete config. A config object passes through untouched; a name is looked up in `registry` — unknown names warn in dev and fall back to the library default spring. Pair it with `useNamedTransitions()` (which reads the merged registry off the nearest [`<MotionConfig transitions>`](../motion-config#named-transitions)) to make a custom component accept registered names wherever it accepts a config:
+Resolves a `TransitionConfig | TransitionName` input into a concrete config. A config object passes through unchanged. Inertia looks a name up in `registry`. An unknown name warns in dev and falls back to the library default spring. Pair it with `useNamedTransitions()`, which reads the merged registry of the nearest [`<MotionConfig transitions>`](../motion-config#named-transitions). Then a custom component accepts a registered name wherever it accepts a config:
 
 ```tsx
 import {
@@ -198,15 +198,15 @@ function useMyAnimatedProp(target: number, transition?: TransitionInput) {
 }
 ```
 
-This is how the Motion primitives and value-layer hooks support `transition="selection"` internally; adapter packages use the same two calls to join the registry.
+This is how the Motion primitives and the value-layer hooks support `transition="selection"` internally. The adapter packages use the same two calls to join the registry.
 
 ## `transitionForKey(transition, key)`
 
-Returns the transition that a `transition` prop gives one key. A custom animated component calls it once for each prop it animates.
+Returns the transition that a `transition` prop gives one key. A custom animated component calls it once for each prop that it animates.
 
 - A top-level config or a registered name applies to every key. It comes back as given.
 - A map gives a key its own entry.
-- A key with no entry gets the config keys of the map as its default. `{ type: 'spring', tension: 120, opacity: { type: 'timing' } }` springs every key except `opacity`. An entry replaces the default whole. The two do not merge.
+- A key with no entry gets the config keys of the map as its default. `{ type: 'spring', tension: 120, opacity: { type: 'timing' } }` springs every key except `opacity`. An entry replaces the default whole. The two don't merge.
 
 A name comes back as a string. Pass the result to `resolveNamedTransition` to get a config.
 
@@ -235,15 +235,15 @@ This is the lookup the Motion primitives, the gesture hooks, and the svg and gra
 
 Returns `true` when `value` is a single `TransitionConfig` and `false` when it is a per-property or per-layer map. The test is structural: every key on the object must be a known transition field (`type`, `tension`, `friction`, `mass`, `velocity`, `duration`, `easing`, `delay`, `repeat`, `deceleration`, `clamp`). An empty object, `null`, a string, and a map keyed by prop names all return `false`. A map that also carries config keys, such as `{ type: 'spring', opacity: { … } }`, returns `false`, and those keys are its default.
 
-Use it when a custom animated component must tell the two shapes apart. To read the transition for one key, use `transitionForKey`, which runs this test and also gives a key the default of a mixed map. Do not test `'type' in transition`. `SpringTransition.type` is optional, so `{ tension: 300, friction: 20 }` is a valid top-level config with no `type` key. The `in` test reads it as a map, finds nothing under the prop name, and falls back to the default spring with no warning.
+Use it when a custom animated component must tell the two shapes apart. To read the transition for one key, use `transitionForKey`, which runs this test and also gives a key the default of a mixed map. Don't test `'type' in transition`. `SpringTransition.type` is optional, so `{ tension: 300, friction: 20 }` is a valid top-level config with no `type` key. The `in` test reads it as a map, finds nothing under the prop name, and falls back to the default spring with no warning.
 
-The test is safe under additive growth of the config vocabulary: a valid map key is a style or prop name, and those are disjoint from the config field names.
+The test stays safe when the config vocabulary grows: a valid map key is a style or prop name, and those never overlap the config field names.
 
 ## `stableSig(value)`
 
-Returns a string signature of `value` that is stable across renders when the content is the same. Keys are sorted at every level, so two objects with the same entries in a different order give the same signature. `undefined` gives an empty string, and a function gives `null` inside the signature.
+Returns a string signature of `value` that is stable across renders when the content is the same. It sorts the keys at every level, so two objects with the same entries in a different order give the same signature. `undefined` gives an empty string, and a function gives `null` inside the signature.
 
-Use it as an effect dependency in a custom animated component in place of the `transition` object itself. An inline `transition={{ type: 'timing', duration: 600 }}` literal is a new object on every render of the parent. An effect that depends on that object re-fires on every parent render and re-assigns the animation from its current value with the full duration. An effect that depends on `stableSig(transition)` re-fires only when the config changes.
+Use it as an effect dependency in a custom animated component, in place of the `transition` object itself. An inline `transition={{ type: 'timing', duration: 600 }}` literal is a new object on every render of the parent. An effect that depends on that object fires on every parent render, and it assigns the animation again from its current value with the full duration. An effect that depends on `stableSig(transition)` fires only when the config changes.
 
 ```tsx
 import { resolveTransition, stableSig } from '@rootnative/inertia'
@@ -266,7 +266,7 @@ The factory primitives and the `-gradients` and `-svg` adapters key their own `t
 
 ## `TRANSPARENT`
 
-The colour to seed a colour shared value with when a custom component has no other source for it.
+The colour that seeds a colour shared value when a custom component has no other source for it.
 
 ```tsx
 import { resolveTransition, TRANSPARENT } from '@rootnative/inertia'
@@ -275,14 +275,14 @@ import { resolveTransition, TRANSPARENT } from '@rootnative/inertia'
 const fill = useSharedValue(props.fill ?? TRANSPARENT)
 ```
 
-It exists because the obvious choice used to be wrong in a way nothing pointed at. Reanimated dispatches an animation on the runtime shape of its **source** value, and `isColor()` gates the RGBA path — but up to Reanimated 4.4 the colour table mapped `transparent` to `undefined` while every other CSS colour name mapped to a number, so the keyword was the single name that failed the gate. A slot resting at `'transparent'` took the prefix-number-suffix branch built for values like `'100%'`, yielded `NaN`, and never became a colour.
+It exists because the obvious choice, `'transparent'`, used to be wrong, and nothing pointed at it. Reanimated dispatches an animation on the runtime shape of its **source** value, and `isColor()` gates the RGBA path. Up to Reanimated 4.4, the colour table mapped `transparent` to `undefined`, while every other CSS colour name mapped to a number. So the keyword was the one name that failed the gate. A slot at rest at `'transparent'` took the prefix-number-suffix branch for values like `'100%'`, gave `NaN`, and never became a colour.
 
-The symptom was transition-dependent, which is what made it hard to place: `withTiming` snaps to its target when the duration elapses regardless, so the colour still arrived and everything looked fine. `withSpring` — the default — decides it has settled by comparing against `NaN`, so it never settled, the colour never appeared, and the frame loop never stopped.
+The symptom depended on the transition, and that made it hard to find. `withTiming` snaps to its target when the duration ends, so the colour still arrived and everything looked fine. `withSpring`, the default, decides that it settled by a comparison against `NaN`. So it never settled, the colour never appeared, and the frame loop never stopped.
 
-**Reanimated 4.5 fixed the colour table**, and every Reanimated in Inertia's supported peer band (`>=4.7.0 <4.8.0`) has that fix, so the keyword now animates like any other name. `TRANSPARENT` stays exported for two reasons: it is `'rgba(0, 0, 0, 0)'` — the same colour, spelled unambiguously — and it remains the safe seed for code that may also run against an older Reanimated.
+**Reanimated 4.5 fixed the colour table.** Every Reanimated in the supported peer band of Inertia (`>=4.7.0 <4.8.0`) has that fix, so the keyword now animates like any other name. `TRANSPARENT` stays exported for two reasons. It is `'rgba(0, 0, 0, 0)'`, the same colour with an unambiguous spelling. And it stays the safe seed for code that can also run against an older Reanimated.
 
 :::note
-Only values passed to `withSpring` / `withTiming` are affected. `interpolateColor` parses `'transparent'` correctly, so a component that interpolates colours itself — [`useShadow`](./hooks.md#useshadow-from-to-progress-), [`useColorTransition`](./hooks.md#usecolortransitionprogress-from-to-options), the `gesture` cascade — can use the keyword freely.
+Only a value passed to `withSpring` or `withTiming` is affected. `interpolateColor` parses `'transparent'` correctly. So a component that interpolates colours itself ([`useShadow`](./hooks.md#useshadow-from-to-progress-), [`useColorTransition`](./hooks.md#usecolortransitionprogress-from-to-options), the `gesture` cascade) can use the keyword.
 :::
 
 ## Which layer to use

@@ -6,9 +6,9 @@
 [![npm](https://img.shields.io/npm/v/@rootnative/inertia-gestures.svg)](https://www.npmjs.com/package/@rootnative/inertia-gestures)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-Drag / pan / swipe hooks for [`@rootnative/inertia`](../core), built on [`react-native-gesture-handler`](https://docs.swmansion.com/react-native-gesture-handler/). Optional sibling package — install only when you need richer-than-`pressable` gestures. The core library has no required `gesture-handler` dependency.
+Drag, pan, and swipe hooks for [`@rootnative/inertia`](../core), built on [`react-native-gesture-handler`](https://docs.swmansion.com/react-native-gesture-handler/). It's an optional sibling package. Install it only when you need more than the `pressable` states. The core library doesn't depend on `react-native-gesture-handler`.
 
-The hooks compose with any `Motion.*` primitive via a `<GestureDetector>` and a single `style` slot — they don't replace the core `gesture` prop, they extend what's reachable beside it.
+The hooks compose with any `Motion.*` primitive through a `<GestureDetector>` and one `style` slot. They don't replace the core `gesture` prop. They add what you can do next to it.
 
 ## Install
 
@@ -16,15 +16,15 @@ The hooks compose with any `Motion.*` primitive via a `<GestureDetector>` and a 
 pnpm add @rootnative/inertia-gestures react-native-gesture-handler
 ```
 
-Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation) — it needs `<GestureHandlerRootView>` near the root of your app.
+Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation). It needs `<GestureHandlerRootView>` near the root of your app.
 
 **Peer dependencies:** `@rootnative/inertia` (workspace or installed), `react >=19.3.0`, `react-native >=0.88.0 <0.89.0`, `react-native-reanimated >=4.7.0 <4.8.0`, `react-native-gesture-handler >=3.3.0 <4.0.0`.
 
 ## What ships
 
-- **`useDrag`** — one- or two-axis drag with optional bounds and rubber-band overshoot. Accepts an `onRelease` worklet that returns per-axis Inertia release transitions (snap-to-tick spring, decay with bounds, etc.). The release velocity stays on the UI thread — no JS round-trip.
-- **`usePan`** — camera-style pan with momentum on release.
-- **`useSwipe`** — directional commit-or-snap-back (distance + velocity thresholds).
+- **`useDrag`:** a drag on one or two axes, with optional bounds and an elastic overshoot. It accepts an `onRelease` worklet that returns one Inertia release transition per axis (a spring snap to a tick, a decay with bounds, and so on). The release velocity stays on the UI thread, with no JS round trip.
+- **`usePan`:** a camera-style pan with momentum on release.
+- **`useSwipe`:** a directional gesture that commits or snaps back (distance and velocity thresholds).
 
 ## Usage
 
@@ -52,8 +52,8 @@ function DraggableBox() {
 - Full docs: [https://rootnative.github.io/inertia/docs/gestures-adapter](https://rootnative.github.io/inertia/docs/gestures-adapter)
 - Core library: [`@rootnative/inertia`](../core)
 
-AI agents: this package ships its own copy of the reference — read `node_modules/@rootnative/inertia-gestures/llms.txt` for the full API, no network needed.
+AI agents: this package ships its own copy of the reference. Read `node_modules/@rootnative/inertia-gestures/llms.txt` for the full API. You need no network.
 
 ## License
 
-[MIT](./LICENSE) © RootNative
+[MIT](./LICENSE) © Root Native

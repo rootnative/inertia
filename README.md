@@ -56,7 +56,7 @@
 | **Sequences and keyframes**     | An array in `animate` runs one step after the other. Each step can have its own transition.                                                   |
 | **Variants**                    | Name the states once, then write `animate="open"`. The common case needs no hook.                                                             |
 | **One `gesture` prop**          | Each primitive animates its `pressed`, `focused`, `focusVisible`, and `hovered` states. A primitive with no `gesture` prop has no extra cost. |
-| **Presence**                    | `<Presence>` plays the `exit` animation before a child unmounts. An exiting child does not take taps.                                         |
+| **Presence**                    | `<Presence>` plays the `exit` animation before a child unmounts. An exiting child doesn't take taps.                                          |
 | **Layout and shared elements**  | `layout` animates a change of size or position. `layoutId` moves one element between two places in the tree.                                  |
 | **Stagger**                     | `<Stagger>` delays each child by its position in the list.                                                                                    |
 | **Reduced motion**              | `<MotionConfig>` follows the reduce-motion setting of the OS from end to end. It also holds your named transitions.                           |
@@ -84,7 +84,7 @@
       <a href="https://rootnative.github.io/inertia/example/"><b>rootnative.github.io/inertia/example</b></a>
       <br /><br />
       One screen for each primitive, transition, and hook.<br />
-      You do not need an install or an account.
+      You don't need an install or an account.
     </td>
     <td align="center">
       Clone this repository, then run<br />
@@ -154,8 +154,8 @@ npx expo install @rootnative/inertia-svg react-native-svg                   # Mo
 | `'no-animation'`     | —                                         | direct assignment, no interpolation          |
 
 Each transition also takes `delay` and `repeat` (a count, `'infinite'`, or
-`{ count, alternate }`). A map for each property can also hold config keys.
-Those keys are the default for each key that the map does not name:
+`{ count, alternate }`). A per-property map can also hold config keys.
+Those keys are the default for each key that the map doesn't name:
 `{ type: 'spring', tension: 120, opacity: { type: 'timing' } }` springs each
 key except `opacity`.
 
@@ -181,7 +181,7 @@ flowchart LR
 
 - **The JS thread resolves the config.** Inertia turns `animate` and
   `transition` into Reanimated animations once per change. The worklet only
-  runs them. It does not read the config on each frame.
+  runs them. The worklet doesn't read the config on each frame.
 - **The worklets are memoized.** A render with the same `animate` makes no new
   UI-thread closure. A regression test pins this.
 - **Reanimated stays hidden.** The public types use react-spring names. A
@@ -258,7 +258,7 @@ has a `CLAUDE.md` snippet to copy.
 | [Gradients](https://rootnative.github.io/inertia/gradients/)                                      | Animate a linear gradient                                                      |
 | [SVG](https://rootnative.github.io/inertia/svg/)                                                  | Morph an SVG path, and animate its fill and stroke                             |
 | [MotionConfig](https://rootnative.github.io/inertia/motion-config/)                               | Follow the reduce-motion setting, and name your transitions                    |
-| [Static export & SSR](https://rootnative.github.io/inertia/static-export/)                        | Keep a pre-rendered page visible when the bundle does not run                  |
+| [Static export & SSR](https://rootnative.github.io/inertia/static-export/)                        | Keep a pre-rendered page visible when the bundle doesn't run                   |
 | [Testing](https://rootnative.github.io/inertia/testing/)                                          | Test animations in Jest with the preset                                        |
 | [Hooks](https://rootnative.github.io/inertia/api/hooks/)                                          | Use the value layer: `useMotionValue`, `useSpring`, `useTransform`, and more   |
 | [Migrating from raw Reanimated](https://rootnative.github.io/inertia/migrations/from-reanimated/) | Move Reanimated code to Inertia                                                |
@@ -347,15 +347,15 @@ frame between. The example app is where each frame is checked. Read
 ## 🤝 Contributing
 
 The code has no semicolons, single quotes, and trailing commas. ESLint uses a
-flat config. Do not put a style object inline in JSX: move it to a `const`, a
+flat config. Don't put a style object inline in JSX: move it to a `const`, a
 `useMemo`, or `StyleSheet.create`. TypeScript is strict everywhere.
 
 Three rules stop silent defects in code that runs on the UI thread:
 
 1. Make each callback that runs on the UI thread a worklet.
-2. Do not use JS-thread state inside a worklet. Go through a shared value or a
+2. Don't use JS-thread state inside a worklet. Go through a shared value or a
    `runOnJS` boundary.
-3. Keep `useAnimatedStyle` deterministic. Read shared values in it, and do not
+3. Keep `useAnimatedStyle` deterministic. Read shared values in it, and don't
    change them.
 
 After you edit a file, run Prettier on that file only

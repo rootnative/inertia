@@ -8,13 +8,13 @@ import RunnableExample from '@site/src/components/RunnableExample'
 
 # Installation
 
-Inertia is a thin wrapper around `react-native-reanimated`. The Reanimated install must complete first — Inertia is a peer to it, not a replacement.
+Inertia is a thin wrapper around `react-native-reanimated`. Install Reanimated first: Inertia is a peer of Reanimated, not a replacement.
 
 ## Prerequisites
 
 - Expo SDK `58` (React Native `0.88.x`, React `19.3.0`)
 - `react-native-reanimated` `>=4.7.0 <4.8.0`
-- `react-native-worklets` `>=0.13.0 <0.14.0` — the worklet runtime Reanimated 4 is built on. It is a **peer** of both Reanimated and Inertia, so Yarn and pnpm will not install it for you.
+- `react-native-worklets` `>=0.13.0 <0.14.0`, the worklet runtime of Reanimated 4. It's a **peer** of both Reanimated and Inertia, so Yarn and pnpm won't install it for you.
 
 Each release line supports one Expo SDK band. Install the line that matches the SDK of the app.
 
@@ -24,11 +24,11 @@ Each release line supports one Expo SDK band. Install the line that matches the 
 | 57 | `0.0.11` to `0.0.19` (`npm install @rootnative/inertia@0.0.19`) |
 | 54 | `0.0.10` and earlier, with a lockfile that already resolved |
 
-On SDK 57 with `0.0.19`, install Reanimated **4.5.3 or later** in a development build or a store build. Reanimated 4.5.0 to 4.5.2 can show a view at its `initial` value after its animation ends: native keeps a settled value for 2 s only, and React holds the first-render value. When the JS thread does not read the settled value in that window (a stall of more than 1 s, a paused app, a native dialog), the next React commit writes the `initial` value back, so an entrance from `opacity: 0` goes blank with no error. Reanimated 4.5.3 keeps the value until React has it ([software-mansion/react-native-reanimated#9987](https://github.com/software-mansion/react-native-reanimated/pull/9987)). The fix is native, so it needs a new build, not an over-the-air update. Expo SDK 57 pins `4.5.1`: add `react-native-reanimated` to `expo.install.exclude` in `package.json`, or `expo install --check` moves it back. Expo Go 57 runs 4.5.1 and cannot change, so a project in Expo Go keeps the defect. The SDK 58 band starts at Reanimated 4.7, which has the fix.
+On SDK 57 with `0.0.19`, install Reanimated **4.5.3 or later** in a development build or a store build. Reanimated 4.5.0 to 4.5.2 can show a view at its `initial` value after its animation ends. The cause: native keeps a settled value for 2 s only, and React holds the first-render value. When the JS thread doesn't read the settled value in that window (a stall of more than 1 s, a paused app, a native dialog), the next React commit writes the `initial` value back. An entrance from `opacity: 0` then goes blank with no error. Reanimated 4.5.3 keeps the value until React has it ([software-mansion/react-native-reanimated#9987](https://github.com/software-mansion/react-native-reanimated/pull/9987)). The fix is native, so it needs a new build, not an over-the-air update. Expo SDK 57 pins `4.5.1`: add `react-native-reanimated` to `expo.install.exclude` in `package.json`, or `expo install --check` moves it back. Expo Go 57 runs 4.5.1 and can't change, so a project in Expo Go keeps the defect. The SDK 58 band starts at Reanimated 4.7, which has the fix.
 
-Inertia targets **one SDK band, not a floor**, so `SDK 58+` is not correct: the peer ranges stop below React Native 0.89 and below Reanimated 4.8, which the next SDK will carry.
+Inertia targets **one SDK band, not a floor**, so `SDK 58+` is not correct. The peer ranges stop below React Native 0.89 and below Reanimated 4.8, which the next SDK will carry.
 
-The upper bounds are deliberate. Reanimated and `react-native-worklets` are version-locked to each other, and each pair works with one React Native band — Reanimated 4.7 needs worklets `0.13.x` and React Native 0.86–0.88. A wider range would let a package manager pair a new Reanimated with an old worklets, a combination that cannot install at all. Supporting a second SDK needs a second release line, not a wider range.
+The upper bounds are deliberate. Reanimated and `react-native-worklets` are version-locked to each other, and each pair works with one React Native band. Reanimated 4.7 needs worklets `0.13.x` and React Native 0.86 to 0.88. A wider range would let a package manager pair a new Reanimated with an old worklets, and that pair can't install at all. A second SDK needs a second release line, not a wider range.
 
 ## Platforms
 
@@ -49,19 +49,19 @@ npx expo install react-dom react-native-web
 
 Some behavior is different on web:
 
-- `gesture.hovered` operates on web only. On iOS and Android it does nothing. See [Gestures](./gestures).
+- `gesture.hovered` works on web only. On iOS and Android it does nothing. See [Gestures](./gestures).
 - `layoutId` measures the DOM rect with `getBoundingClientRect()` on web. See [Layout](./layout).
-- A static web export writes each element at its `initial` values. Without the entrance guard, the page stays blank when the JavaScript bundle does not run. See [Static export](./static-export).
+- A static web export writes each element at its `initial` values. Without the entrance guard, the page stays blank when the JavaScript bundle doesn't run. See [Static export](./static-export).
 
 The adapter packages use the web support of their peer dependency:
 
-- `@rootnative/inertia-gestures` operates on web through the web support of `react-native-gesture-handler`.
-- `@rootnative/inertia-svg` operates on web through the web support of `react-native-svg`.
-- `@rootnative/inertia-gradients` operates on web through the web component of `expo-linear-gradient`. On web, Reanimated can log a console error on each frame for this component. The gradient renders and animates correctly.
+- `@rootnative/inertia-gestures` works on web through the web support of `react-native-gesture-handler`.
+- `@rootnative/inertia-svg` works on web through the web support of `react-native-svg`.
+- `@rootnative/inertia-gradients` works on web through the web component of `expo-linear-gradient`. On web, Reanimated can log a console error on each frame for this component. The gradient renders and animates correctly.
 
 ## Which package has what
 
-Read this before you install. The core package does not contain the gesture hooks, the gradient primitive, or the SVG primitives — each is a separate install. A swipe deck is one of the most common reasons to reach for this library, and `useSwipe` is **not** in the core package.
+Read this before you install. The core package doesn't contain the gesture hooks, the gradient primitive, or the SVG primitives. Each one is a separate install. A swipe deck is a common reason to use this library, and `useSwipe` is **not** in the core package.
 
 | You want | Package | Install |
 | --- | --- | --- |
@@ -70,24 +70,24 @@ Read this before you install. The core package does not contain the gesture hook
 | Animatable linear gradients | `@rootnative/inertia-gradients` | + `expo-linear-gradient` |
 | Animatable SVG paths and shapes | `@rootnative/inertia-svg` | + `react-native-svg` |
 
-`useTouchDrag` is the exception: it is a drag hook that lives in **core**, under the `@rootnative/inertia/touch` subpath, because PanResponder is built into React Native and needs no extra peer dependency. Reach for it when you want drag without taking `react-native-gesture-handler`, or when the drag needs keyboard accessibility.
+`useTouchDrag` is the exception. It's a drag hook in **core**, under the `@rootnative/inertia/touch` subpath, because PanResponder is part of React Native and needs no extra peer dependency. Use it when you want drag without `react-native-gesture-handler`, or when the drag needs keyboard accessibility.
 
 ### Versions
 
-All four packages ship in **lockstep** — the same version number, released together. Install the same version of every `@rootnative/inertia*` package you use, and each adapter requires a core version at or above its own.
+All four packages ship in **lockstep**: the same version number, released together. Install the same version of every `@rootnative/inertia*` package you use. Each adapter requires a core version at or above its own.
 
-Two things that mislead here:
+Two things can mislead you here:
 
-- The `@rootnative/core` and `@rootnative/components` packages of **RootNative UI** are a different library on a different version line. That family being on `0.0.0-alpha.x` while this one is on `0.0.x` is expected, not a mismatch.
-- `npm view` shows an `alpha` dist-tag on these packages that is **older** than `latest`. It is a leftover from the prerelease line. Follow `latest`.
+- Other packages in the `@rootnative` scope are different libraries on different version lines. A `0.0.0-alpha.x` version there, next to `0.0.x` here, is expected and not a mismatch.
+- `npm view` shows an `alpha` dist-tag on these packages that is **older** than `latest`. It's a leftover from the prerelease line. Follow `latest`.
 
 ## Install
 
-Yarn is the default. Switch tabs for npm, pnpm, or Bun — your selection persists across the docs.
+Yarn is the default. Switch tabs for npm, pnpm, or Bun. Your choice applies to every install snippet in the docs.
 
 <PackageManagerTabs packages="@rootnative/inertia react-native-reanimated react-native-worklets" />
 
-Then enable the worklets Babel plugin per the Reanimated [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation). The plugin is what transforms `'worklet'`-marked functions into UI-thread code; without it, every animation crashes at runtime.
+Then enable the worklets Babel plugin as the Reanimated [install guide](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation) shows. The plugin transforms each `'worklet'` function into UI-thread code. Without the plugin, every animation crashes at runtime.
 
 A typical `babel.config.js` for a managed Expo app:
 
@@ -101,13 +101,13 @@ module.exports = function (api) {
 }
 ```
 
-The worklets plugin must be **last** in the plugins array. (`react-native-reanimated/plugin` still works in Reanimated 4 — it is a one-line shim that forwards to `react-native-worklets/plugin` — but the worklets name is the canonical one, and it's the one Inertia's own install check tells you to add.)
+The worklets plugin must be **last** in the plugins array. `react-native-reanimated/plugin` still works in Reanimated 4: it's a one-line shim that forwards to `react-native-worklets/plugin`. The worklets name is the canonical one, and Inertia's own install check tells you to add that name.
 
 ### The plugin must run on `node_modules` too
 
-`@rootnative/inertia`, `react-native-reanimated` and `react-native-worklets` all ship their `'worklet'` directives untransformed. The plugin in the consumer's build turns them into UI-thread code. Metro runs Babel on `node_modules`, so an Expo or bare React Native app needs nothing more than the config above.
+`@rootnative/inertia`, `react-native-reanimated`, and `react-native-worklets` all ship their `'worklet'` directives untransformed. The plugin in your build turns them into UI-thread code. Metro runs Babel on `node_modules`, so an Expo or bare React Native app needs only the config above.
 
-A web bundler without Metro (Vite, webpack, Electron, Tauri) skips `node_modules` by default. The build then succeeds, and no animation plays: every animated style stays at its first frame, and a production build shows no error. Inertia logs one `console.error` at the first `Motion` render in that case, in production too. Add the three packages to the plugin's include list. A Vite example with `@rolldown/plugin-babel`:
+A web bundler without Metro (Vite, webpack, Electron, Tauri) skips `node_modules` by default. The build then succeeds, and no animation plays: every animated style stays at its first frame, and a production build shows no error. In that case Inertia logs one `console.error` at the first `Motion` render, in production too. Add the three packages to the include list of the plugin. A Vite example with `@rolldown/plugin-babel`:
 
 ```ts
 babel({
@@ -142,13 +142,13 @@ export function FadeIn() {
 
 ### Try it live
 
-The example app runs in the iframe below — tap any screen to interact with the same primitives you'd ship in your app.
+The example app runs in the iframe below. Tap a screen to try the same primitives that you ship in your app.
 
 <RunnableExample screen="view" height={620} />
 
 ## Subpath imports
 
-Each primitive is reachable directly so apps that animate one element don't pull in the rest:
+Each primitive has its own import path, so an app that animates one element doesn't pull in the rest:
 
 ```ts
 import { MotionView } from '@rootnative/inertia/view'
@@ -158,25 +158,25 @@ import { MotionPressable } from '@rootnative/inertia/pressable'
 import { MotionScrollView } from '@rootnative/inertia/scroll-view'
 ```
 
-`@rootnative/inertia` is `sideEffects: false`, so a bundler with tree-shaking enabled (Metro 0.79+, Webpack, Rollup) will drop primitives you don't reference. The named imports above tree-shake to within ~0.1 kB of the subpath equivalents, verified per-primitive in CI.
+`@rootnative/inertia` is `sideEffects: false`, so a bundler with tree-shaking (Metro 0.79+, Webpack, Rollup) drops the primitives that you don't import. The named imports above tree-shake to within about 0.1 kB of the subpath imports. CI checks this for each primitive.
 
-One caveat: the `Motion` namespace object cannot tree-shake. `import { Motion } from '@rootnative/inertia'` followed by `Motion.View` holds the whole namespace live (it's a literal object — bundlers can't eliminate property accesses). Use it for ergonomics; reach for `import { MotionView } from '@rootnative/inertia'` (or the subpath) when bundle size matters.
+One caveat: the `Motion` namespace object can't tree-shake. `import { Motion } from '@rootnative/inertia'` followed by `Motion.View` keeps the whole namespace in the bundle, because a bundler can't remove a property access on a literal object. Use the namespace for comfort. Use `import { MotionView } from '@rootnative/inertia'` (or the subpath) when bundle size matters.
 
 ## Optional adapter packages
 
-Three sibling packages extend Inertia for capabilities that need extra peer dependencies. The core library has no required dependency on any of them — install only what you need.
+Three sibling packages extend Inertia with features that need extra peer dependencies. The core library doesn't depend on any of them. Install only what you need.
 
 ### Gestures (`@rootnative/inertia-gestures`)
 
-Drag / pan / swipe hooks built on [`react-native-gesture-handler`](https://docs.swmansion.com/react-native-gesture-handler). Compose with any `Motion.*` primitive via `<GestureDetector>`.
+Drag, pan, and swipe hooks on [`react-native-gesture-handler`](https://docs.swmansion.com/react-native-gesture-handler). Compose them with any `Motion.*` primitive through `<GestureDetector>`.
 
 <PackageManagerTabs packages="@rootnative/inertia-gestures react-native-gesture-handler" />
 
-Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation) — it needs `<GestureHandlerRootView>` near the root of your app. See [Gestures adapter](./gestures-adapter) for the hooks.
+Then follow the [`react-native-gesture-handler` install guide](https://docs.swmansion.com/react-native-gesture-handler/docs/installation). It needs `<GestureHandlerRootView>` near the root of your app. See [Gestures adapter](./gestures-adapter) for the hooks.
 
 ### Gradients (`@rootnative/inertia-gradients`)
 
-`MotionLinearGradient` wraps [`expo-linear-gradient`](https://docs.expo.dev/versions/latest/sdk/linear-gradient/) with animatable `colors` / `start` / `end` / `locations`. Works in bare React Native as well as Expo.
+`MotionLinearGradient` wraps [`expo-linear-gradient`](https://docs.expo.dev/versions/latest/sdk/linear-gradient/) with animatable `colors`, `start`, `end`, and `locations`. It works in bare React Native and in Expo.
 
 <PackageManagerTabs packages="@rootnative/inertia-gradients expo-linear-gradient" />
 
@@ -184,7 +184,7 @@ See [Gradients](./gradients) for the primitive.
 
 ### SVG (`@rootnative/inertia-svg`)
 
-`MotionPath` wraps [`react-native-svg`](https://github.com/software-mansion/react-native-svg)'s `<Path>` with animatable `d` (path morphing on structurally-compatible paths), `fill`, `stroke`, `strokeWidth`, opacities, and `strokeDashoffset`. Works in bare React Native as well as Expo.
+`MotionPath` wraps the `<Path>` of [`react-native-svg`](https://github.com/software-mansion/react-native-svg) with animatable `d` (path morphing between paths with the same structure), `fill`, `stroke`, `strokeWidth`, opacities, and `strokeDashoffset`. It works in bare React Native and in Expo.
 
 <PackageManagerTabs packages="@rootnative/inertia-svg react-native-svg" />
 
@@ -192,4 +192,4 @@ See [SVG](./svg) for the primitive.
 
 ## Reduced motion
 
-Inertia respects the OS reduce-motion accessibility setting by default — no extra wiring needed. To override the default for the whole app or a subtree, see [MotionConfig](./motion-config).
+Inertia follows the reduce-motion accessibility setting of the OS by default. You need no extra setup. To override the default for the whole app or a subtree, see [MotionConfig](./motion-config).

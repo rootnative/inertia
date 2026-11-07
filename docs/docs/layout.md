@@ -5,7 +5,7 @@ description: The layout prop interpolates position and size changes that come fr
 
 # Layout
 
-The `layout` prop animates position and size changes that come from outside the `animate` flow — a flex sibling growing, a list reordering, a column toggling its width. Without it, those changes snap; with it, they interpolate.
+The `layout` prop animates a change of position or size that comes from outside the `animate` flow: a flex sibling that grows, a list that reorders, a column that changes its width. Without the prop, those changes snap. With the prop, they interpolate.
 
 ```tsx
 import { Motion } from '@rootnative/inertia'
@@ -20,7 +20,7 @@ function ReorderableRow({ item, onPress }: Props) {
 }
 ```
 
-Internally the prop resolves to Reanimated's `LinearTransition` builder; the same react-spring vocabulary (`tension`, `friction`, `mass`) you use for `transition` works here too. Raw Reanimated names (`stiffness` / `damping`) never appear on the public API.
+Internally, the prop resolves to the `LinearTransition` builder of Reanimated. The prop takes the same react-spring vocabulary (`tension`, `friction`, `mass`) as `transition`. The raw Reanimated names (`stiffness`, `damping`) never appear in the public API.
 
 ## Accepted shapes
 
@@ -37,25 +37,25 @@ Internally the prop resolves to Reanimated's `LinearTransition` builder; the sam
 <Motion.View layout={{ type: 'timing', easing: (t) => t * t }} /> // custom easing
 ```
 
-Custom easing functions must be worklets, same as `transition.easing` — add the `'worklet'` directive as the function's first statement. Plain functions warn in dev and only work on web.
+A custom easing function must be a worklet, the same as `transition.easing`. Add the `'worklet'` directive as the first statement of the function. A plain function warns in dev and works on web only.
 
 ## What triggers a layout animation
 
-`LinearTransition` fires whenever the underlying native view's measured frame changes between commits. The common triggers:
+`LinearTransition` fires when the measured frame of the native view changes between two commits. The common triggers:
 
-- The component's siblings reorder in a flex container.
-- The component's size changes because its `style` props swap (`height: 56` ↔ `height: 96`).
-- The component's position shifts because a sibling grew, shrank, or was inserted.
+- The siblings of the component reorder in a flex container.
+- The size of the component changes because its `style` props swap (`height: 56` to `height: 96`).
+- The position of the component moves because a sibling grew, shrank, or appeared.
 
-The `animate` flow is independent. A `Motion.View` can have both `animate={{ opacity }}` and `layout` — the opacity drives through `useAnimatedStyle`, the layout drives through Reanimated's native commit hook. They don't fight.
+The `animate` flow is independent. A `Motion.View` can have both `animate={{ opacity }}` and `layout`. The opacity runs through `useAnimatedStyle`, and the layout runs through the native commit hook of Reanimated. The two don't conflict.
 
 ## Reduced motion
 
-`layout` participates in [`<MotionConfig reducedMotion>`](./motion-config.md) — when reduced motion is active, the prop resolves to no builder and changes snap. We pass `undefined` to the underlying component rather than a `.duration(0)` builder because Reanimated still runs commit-tracking machinery in the latter case; the snap path is genuinely cheaper.
+`layout` follows [`<MotionConfig reducedMotion>`](./motion-config.md). When reduced motion is active, the prop resolves to no builder, and changes snap. Inertia passes `undefined` to the component, not a `.duration(0)` builder, because Reanimated still tracks commits for a builder. The snap path is cheaper.
 
 ## Shared element transitions (`layoutId`)
 
-The `layoutId` prop is a separate but related mechanism for transitioning a logical element between two screens or two layouts.
+The `layoutId` prop is a separate but related mechanism. It moves one logical element between two screens or two layouts.
 
 ```tsx
 // Screen A
@@ -65,18 +65,18 @@ The `layoutId` prop is a separate but related mechanism for transitioning a logi
 <Motion.View layoutId="hero" style={styles.heroLarge} />
 ```
 
-When the first `Motion.View` unmounts and a second `Motion.View` with the same `layoutId` mounts within ~1 second, the new element FLIPs into place from the rect the previous element measured as it unmounted — a Hero-style transition without any explicit animation config beyond the shared id.
+The first `Motion.View` unmounts. A second `Motion.View` with the same `layoutId` mounts within about 1 second. The new element then runs a FLIP animation into place, from the rect that the first element measured as it unmounted. That is a hero transition with no animation config beyond the shared id.
 
-How it differs from `layout`:
+How `layoutId` differs from `layout`:
 
-- `layout` animates **this** element's own size/position changes between commits (no id needed).
-- `layoutId` animates from **another** element's last rect to this element's current rect (cross-mount or cross-screen).
+- `layout` animates the changes of size and position of **this** element between commits. It needs no id.
+- `layoutId` animates from the last rect of **another** element to the current rect of this element, across a mount or a screen.
 
-The **incoming** element's `transition` prop controls the FLIP animation (spring by default; `'timing'` honored; `'decay'` downgrades to spring; reduced motion skips the transition) — the outgoing element contributes only its last rect and style snapshot. Note it must be a top-level transition object (`transition={{ type: 'timing', duration: 250 }}`). The entries of a per-property map do not reach the FLIP. If the map also carries config keys, such as `{ type: 'timing', duration: 250, opacity: { … } }`, the FLIP uses those keys; otherwise the default spring applies. The FLIP reads `duration`, `easing` and `delay` of a timing transition, and `tension`, `friction`, `mass`, `velocity` and `delay` of a spring. A `delay` holds the element at the source rect before it moves. `repeat` does not apply.
+The `transition` prop of the **incoming** element controls the FLIP animation. The default is a spring. `'timing'` works. `'decay'` downgrades to a spring. Reduced motion skips the transition. The outgoing element gives only its last rect and its style snapshot. The `transition` must be a top-level transition object (`transition={{ type: 'timing', duration: 250 }}`). The entries of a per-property map don't reach the FLIP. If the map also carries config keys, such as `{ type: 'timing', duration: 250, opacity: { … } }`, the FLIP uses those keys. Otherwise the default spring applies. The FLIP reads `duration`, `easing`, and `delay` of a timing transition, and `tension`, `friction`, `mass`, `velocity`, and `delay` of a spring. A `delay` holds the element at the source rect before it moves. `repeat` doesn't apply.
 
 ### Style carry
 
-The rect FLIP moves and scales the element. A hero card that also changes colour or corner radius between screens would otherwise snap on those props while its frame animated — the most visible half of the transition arriving instantly. So a set of style keys is carried across from the source and crossfaded out over the same transition:
+The rect FLIP moves and scales the element. A hero card that also changes its colour or its corner radius between screens would snap on those props while its frame animates. That is the most visible half of the transition. So Inertia carries a set of style keys from the source and crossfades them out over the same transition:
 
 | Carried                                                                           | Not carried                                                                                                                                                                                                                                    |
 | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -90,23 +90,23 @@ The rect FLIP moves and scales the element. A hero card that also changes colour
 <Motion.View layoutId="hero" style={{ borderRadius: 24, backgroundColor: '#ea580c' }} />
 ```
 
-Nothing to configure — it rides the existing `layoutId` and `transition` props. There is no key list to override and no `layoutStyles` prop; if you need a key that isn't carried, drive it from `animate` on both sides.
+There is nothing to configure. The carry uses the existing `layoutId` and `transition` props. There is no key list to override and no `layoutStyles` prop. If you need a key that Inertia doesn't carry, drive it from `animate` on both sides.
 
-Rules worth knowing:
+Rules to know:
 
-- **A key only participates when the element already has a value for it** — from `animate` / `initial` / a variant / `gesture`, or from its static `style`. Values are never invented: activating a key the element says nothing about would rest it at the generic type default, and for `color` on a `Motion.Text` that inherits its colour from a parent, that default is `'transparent'` — invisible text on an element you only asked to move.
-- **Mismatched keys are ignored, both directions.** A key the source carried but the target has no value for does nothing, and vice versa.
-- **A still-mounted source is read live**, for the same reason its rect is re-measured — its values move without a layout pass. Once it has unmounted, the snapshot taken at release is all that remains.
-- **The carry overrides `initial` for carried keys** on the mount that consumes a source. It composites above the base value, so the first frame shows the source's colour whatever `initial` asked for.
-- **Reduced motion and `'no-animation'` snap**, matching the rect path. So does a coordinate-space mismatch — half a shared-element transition reads as a glitch, not as graceful degradation.
+- **A key takes part only when the element already has a value for it**, from `animate`, `initial`, a variant, `gesture`, or its static `style`. Inertia never invents a value. A key that the element says nothing about would rest at the generic type default. For `color` on a `Motion.Text` that inherits its colour from a parent, that default is `'transparent'`: invisible text on an element that you only asked to move.
+- **Inertia ignores a key that one side lacks, in both directions.** A key that the source carried but the target has no value for does nothing, and the reverse is also true.
+- **Inertia reads a source that is still mounted live**, for the same reason that it measures its rect again: its values move without a layout pass. After the source unmounts, only the snapshot from the unmount remains.
+- **The carry overrides `initial` for the carried keys** on the mount that consumes a source. The carry composites above the base value, so the first frame shows the colour of the source, whatever `initial` asked for.
+- **Reduced motion and `'no-animation'` snap**, the same as the rect path. A coordinate-space mismatch also snaps: half a shared-element transition looks like a glitch, not like a fallback.
 
 ### Caveats and current scope
 
-- **Window coordinates, where the host can supply them.** Rects are measured with `measureInWindow`, which resolves synchronously on the New Architecture (Fabric). On web, react-native-web answers `measureInWindow` from a `setTimeout`, so Inertia reads the DOM node's `getBoundingClientRect()` instead. That is the same window rect, read synchronously. That is what lets a source and target sit under containers at different screen offsets and still line up. Where a synchronous measurement isn't available — the legacy architecture, whose `measureInWindow` answers over the bridge, or a node that has already detached — both fall back to the parent-relative coordinates `onLayout` reports. That fallback is consistent but blind to the parents' own offsets, so nested-parent setups only line up on Fabric and on web.
-- **Mixed coordinate spaces skip the transition.** A source recorded in one space and a target measured in the other are not comparable — the delta would be off by the parent's window offset. Inertia skips the animation and lets the element appear at its natural position rather than flinging it in from the wrong place.
-- **A still-mounted source is re-measured on demand.** `onLayout` does not fire when an _ancestor_ scrolls, so a stored window rect drifts while the element hasn't moved relative to its parent. When the target lays out, Inertia asks a still-mounted source (the usual case — a stack navigator keeps the previous screen alive underneath) for a current measurement instead of trusting the stored one. Scrolling a list before tapping a row therefore doesn't offset the transition. Once the source has unmounted, the rect it measured as it unmounted is all that remains — and if the navigator has already begun translating the outgoing screen, the re-measurement catches it mid-transition, bounded by however far the transition has progressed.
-- **A source measures itself as it unmounts.** A transform moves an element without a layout pass, so `onLayout` does not report it. A source that entered with `initial={{ scale: 0.4 }}` lays out once, mid-entrance, and that rect is too small. The rect the next mount consumes is measured in the unmount cleanup, while the node is still attached, so it has the final transform in it. The last layout rect is the fallback when the node cannot be measured.
-- **A native stack push can hide the FLIP on iOS.** The native stack slides the new screen in, and the target mounts while that slide still moves the screen. On an iOS simulator with Expo Router's native stack, the target appeared at its final size on the first frame of the new screen, with no FLIP. Android is not measured. To show the FLIP, present the target screen with no native animation, so that the FLIP is the transition:
+- **Window coordinates, where the host can supply them.** Inertia measures a rect with `measureInWindow`, which resolves synchronously on the New Architecture (Fabric). On web, react-native-web answers `measureInWindow` from a `setTimeout`, so Inertia reads the `getBoundingClientRect()` of the DOM node instead. That is the same window rect, read synchronously. So a source and a target can sit under containers at different screen offsets and still line up. Where a synchronous measurement isn't available, both fall back to the parent-relative coordinates that `onLayout` reports. That is the case on the legacy architecture, where `measureInWindow` answers over the bridge, and for a node that already detached. The fallback is consistent, but it doesn't see the offsets of the parents. So a setup with nested parents lines up only on Fabric and on web.
+- **Mixed coordinate spaces skip the transition.** A source in one space and a target in the other aren't comparable: the delta would be off by the window offset of the parent. Inertia skips the animation and lets the element appear at its natural position. It doesn't move the element in from the wrong place.
+- **Inertia measures a source that is still mounted again on demand.** `onLayout` doesn't fire when an _ancestor_ scrolls, so a stored window rect drifts while the element hasn't moved relative to its parent. When the target lays out, Inertia asks a source that is still mounted for a current measurement, instead of the stored one. That is the usual case: a stack navigator keeps the previous screen alive below. So a scroll of a list before a tap on a row doesn't offset the transition. After the source unmounts, only the rect from the unmount remains. If the navigator already moves the outgoing screen, the new measurement catches the screen mid-transition, as far as the transition has moved.
+- **A source measures itself as it unmounts.** A transform moves an element without a layout pass, so `onLayout` doesn't report it. A source that entered with `initial={{ scale: 0.4 }}` lays out once, mid-entrance, and that rect is too small. Inertia measures the rect that the next mount consumes in the unmount cleanup, while the node is still attached, so the rect has the final transform in it. The last layout rect is the fallback when Inertia can't measure the node.
+- **A native stack push can hide the FLIP on iOS.** The native stack slides the new screen in, and the target mounts while that slide still moves the screen. On an iOS simulator with the native stack of Expo Router, the target appeared at its final size on the first frame of the new screen, with no FLIP. Android is not measured. To show the FLIP, present the target screen with no native animation, so that the FLIP is the transition:
 
   ```tsx
   <Stack.Screen
@@ -115,20 +115,20 @@ Rules worth knowing:
   />
   ```
 
-- **One mount per id.** Two `Motion.*` primitives with the same `layoutId` mounted simultaneously is undefined behavior. The most-recent layout commit wins as the source for the next consumer.
-- **TTL.** A source that is still mounted stays valid for as long as it is mounted: a list card that laid out once and then sat still for a minute is as good a source as one that laid out a frame ago, because it can be re-measured. A rect that a source recorded on unmount is consumable for ~1 second. A new mount in the same render as the unmount, such as a grid card that a detail header replaces, takes the rect when it mounts, before its first layout, so a slow device does not cancel the FLIP. If the new mount lands later (a slow navigation, a paused transition), no FLIP runs and the element just appears at its natural position — graceful degradation.
-- **In tests.** The Jest host mock's `measureInWindow` never invokes its callback, so a test suite always sees the parent-relative path. That's intentional: it keeps `layoutId` behavior in tests stable and independent of measurement.
+- **One mount per id.** Two `Motion.*` primitives with the same `layoutId` mounted at the same time is undefined behavior. The most recent layout commit wins as the source for the next consumer.
+- **TTL.** A source that is still mounted stays valid as long as it is mounted. A list card that laid out once and then sat still for a minute is as good a source as one that laid out a frame ago, because Inertia can measure it again. A rect that a source recorded on unmount is valid for about 1 second. A new mount in the same render as the unmount, such as a grid card that a detail header replaces, takes the rect when it mounts, before its first layout. So a slow device doesn't cancel the FLIP. If the new mount lands later (a slow navigation, a paused transition), no FLIP runs. The element then appears at its natural position.
+- **In tests.** The `measureInWindow` of the Jest host mock never calls its callback, so a test suite always sees the parent-relative path. That is intentional: it keeps the `layoutId` behavior in tests stable and independent of measurement.
 
 ### Why not `sharedTransitionTag`?
 
-Reanimated 4 removed `sharedTransitionTag` / `SharedTransition` entirely; `layoutId` is the Inertia-side replacement. It's a JS-side measure registry rather than a native handoff, so it doesn't require a native screen-transition harness — it works with any navigator (React Navigation, Expo Router, hand-rolled) that mounts and unmounts screens.
+Reanimated 4 removed `sharedTransitionTag` and `SharedTransition`. `layoutId` is the Inertia replacement. It's a JS-side measure registry, not a native handoff, so it needs no native screen-transition harness. It works with any navigator (React Navigation, Expo Router, or your own) that mounts and unmounts screens.
 
 ## What `layout` doesn't do (yet)
 
-- **Per-axis control (`layout="position"` / `layout="size"`)** — `LinearTransition` doesn't expose an axis filter; the whole frame animates together. If you need to gate a specific dimension, animate it through `animate` instead.
-- **Layout-tied callbacks** — `onAnimationEnd` fires for `animate` keys, not for layout commits. Reanimated's `withCallback` is what backs that on the layout side; we haven't surfaced it yet.
+- **Per-axis control (`layout="position"` or `layout="size"`).** `LinearTransition` has no axis filter: the whole frame animates together. If you need to control one dimension, animate it through `animate` instead.
+- **Layout callbacks.** `onAnimationEnd` fires for `animate` keys, not for layout commits. The `withCallback` of Reanimated backs that on the layout side. Inertia doesn't expose it yet.
 
 ## Caveats
 
-- The wrapped component must render a native host view. Every `Motion.*` primitive does; if you wrap a custom component via `createMotionComponent(C)`, ensure `C` ultimately renders a host view, or the prop is a no-op.
-- Layout animations on virtualized list items (FlatList rows) can fight the list's own measurement passes — measure twice before adding `layout` to row components. The [Perf bench](./perf-bench.md) screen is the place to test.
+- The wrapped component must render a native host view. Every `Motion.*` primitive does. If you wrap a custom component with `createMotionComponent(C)`, make sure that `C` renders a host view. Otherwise the prop does nothing.
+- A layout animation on a virtualized list item (a FlatList row) can conflict with the measurement passes of the list. Measure the result before you add `layout` to a row component. Use the [Perf bench](./perf-bench.md) screen to test it.

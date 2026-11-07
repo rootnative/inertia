@@ -10,9 +10,9 @@
 ---
 # SVG
 
-`@rootnative/inertia-svg` adds animatable SVG primitives built on [`react-native-svg`](https://github.com/software-mansion/react-native-svg). It is an **optional** sibling package — install it only when you need to morph paths or animate `fill` / `stroke`. The core library has no required `react-native-svg` dependency.
+`@rootnative/inertia-svg` adds animatable SVG primitives built on [`react-native-svg`](https://github.com/software-mansion/react-native-svg). It's an **optional** sibling package. Install it only when you need to morph a path or animate `fill` or `stroke`. The core library doesn't depend on `react-native-svg`.
 
-`MotionPath` wraps `<Path>` and accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for the path data (`d`) plus color and numeric paint properties. Prebuilt [`MotionCircle` / `MotionRect` / `MotionLine`](#shapes) cover the other common shapes, and the [`createMotionSvgComponent`](#factory) factory behind them wraps any `react-native-svg` element.
+`MotionPath` wraps `<Path>`. It accepts the same `initial`, `animate`, and `transition` shape as the core `Motion.*` primitives, with animatable keys for the path data (`d`) and for the color and numeric paint properties. The prebuilt [`MotionCircle`, `MotionRect`, and `MotionLine`](#shapes) cover the other common shapes. The [`createMotionSvgComponent`](#factory) factory behind them wraps any `react-native-svg` element.
 
 ## When to pick which
 
@@ -32,7 +32,7 @@
 yarn add @rootnative/inertia-svg react-native-svg
 ```
 
-`react-native-svg` works in bare React Native projects as well as Expo.
+`react-native-svg` works in a bare React Native project and in Expo.
 
 ## Usage
 
@@ -59,20 +59,20 @@ function Toggle({ open }) {
 }
 ```
 
-The package also exports a `MotionSvg` namespace for autocomplete-friendly grouping — `MotionSvg.Path` and `MotionPath` point at the same component, so pick whichever import style matches your codebase:
+The package also exports a `MotionSvg` namespace, which groups the components for autocomplete. `MotionSvg.Path` and `MotionPath` are the same component, so pick the import style that matches your codebase:
 
 ```tsx
 import { MotionSvg } from '@rootnative/inertia-svg'
 ;<MotionSvg.Path d={SOURCE_D} animate={{ d: TARGET_D }} />
 ```
 
-The namespace also carries the prebuilt shapes: `MotionSvg.Circle`, `MotionSvg.Rect`, and `MotionSvg.Line` — see [Shapes](#shapes) below.
+The namespace also carries the prebuilt shapes: `MotionSvg.Circle`, `MotionSvg.Rect`, and `MotionSvg.Line`. See [Shapes](#shapes) below.
 
-The static `d` prop is required. Its **command sequence is locked at first render** — every target `d` you pass via `animate` or `initial` must produce the same command letters in the same order after implicit-repeat expansion. Element-wise scalar interpolation is the entire morphing model.
+The static `d` prop is required. Its **command sequence is locked at the first render**. Every target `d` that you pass in `animate` or `initial` must give the same command letters in the same order after implicit-repeat expansion. Element-wise scalar interpolation is the whole morphing model.
 
 ## Structural compatibility
 
-Two paths are morphable iff their normalized template (command letters, in order, with case preserved) is equal. Examples:
+Two paths can morph only when their normalized templates (the command letters, in order, with the case kept) are equal. Examples:
 
 ```
 ✅ M 0 0 L 10 10 Z       ↔ M 50 50 L 80 80 Z       same: M L Z
@@ -83,9 +83,9 @@ Two paths are morphable iff their normalized template (command letters, in order
 ❌ M 0 0 L 10 10         ↔ M 0 0 C 1 1 2 2 3 3     differs: L vs C
 ```
 
-The component throws in dev when the templates diverge — either at mount (if `initial.d` mismatches the static `d`), when `animate.d` changes shape, or when the static `d` prop itself changes shape between renders. In production the bad target is skipped instead — the path simply keeps its current `d` (a mismatched `initial.d` falls back to the static `d`) so a single bad value doesn't crash the screen — but you should treat dev errors as bugs.
+The component throws in dev when the templates differ: at mount (if `initial.d` doesn't match the static `d`), when `animate.d` changes its shape, or when the static `d` prop itself changes its shape between renders. In production, the component skips the bad target instead. The path keeps its current `d`, and a mismatched `initial.d` falls back to the static `d`, so one bad value doesn't crash the screen. Treat a dev error as a defect.
 
-To switch between structurally different shapes, **remount with a new `key`**:
+To switch between shapes with a different structure, **remount with a new `key`**:
 
 ```tsx
 <MotionPath
@@ -94,7 +94,7 @@ To switch between structurally different shapes, **remount with a new `key`**:
 />
 ```
 
-Path normalization that resamples between arbitrary shapes (the flubber-style approach) is out of scope by design.
+Path normalization that resamples between arbitrary shapes (the approach of flubber) is out of scope by design.
 
 ## Animatable props
 
@@ -109,7 +109,7 @@ Path normalization that resamples between arbitrary shapes (the flubber-style ap
 | `opacity`          | `number` | Numeric, 0–1.                                                                                                               |
 | `strokeDashoffset` | `number` | Useful for "draw" animations on a dashed stroke.                                                                            |
 
-Per-property transitions work just like the core primitives:
+Per-property transitions work the same as in the core primitives:
 
 ```tsx
 <MotionPath
@@ -125,7 +125,7 @@ Per-property transitions work just like the core primitives:
 
 ## `initial`
 
-Pass `initial` to override the mount-frame values (so the component starts somewhere other than the static props), or `initial={false}` to start at the `animate` target with no mount animation.
+Pass `initial` to override the values of the mount frame, so the component starts somewhere other than the static props. Pass `initial={false}` to start at the `animate` target with no mount animation.
 
 ```tsx
 <MotionPath
@@ -141,15 +141,15 @@ Pass `initial` to override the mount-frame values (so the component starts somew
 />
 ```
 
-If `initial.d` is provided, it must be template-compatible with the static `d` — same rule as `animate.d`.
+If you pass `initial.d`, its template must match the static `d`, the same rule as for `animate.d`.
 
 ## Reduced motion
 
-`MotionPath` participates in [`<MotionConfig reducedMotion>`](./motion-config.md) the same way the core primitives do — when the OS reduce-motion setting is on (or you pass `reducedMotion="always"`), transitions resolve as direct assignment instead of `withSpring` / `withTiming`.
+`MotionPath` follows [`<MotionConfig reducedMotion>`](./motion-config.md) the same as the core primitives. When the reduce-motion setting of the OS is on, or you pass `reducedMotion="always"`, a transition resolves as a direct assignment instead of `withSpring` or `withTiming`.
 
 ## Shapes — MotionCircle, MotionRect, MotionLine {#shapes}
 
-Prebuilt animatable wrappers for the common non-path shapes, built with the [factory](#factory) below. Each accepts the same `initial` / `animate` / `transition` shape as `MotionPath`, and `transition` also accepts a [named transition](./motion-config.md#named-transitions) registered on the nearest `<MotionConfig transitions>` — top-level and per-property.
+Prebuilt animatable wrappers for the common shapes that aren't paths, built with the [factory](#factory) below. Each one accepts the same `initial`, `animate`, and `transition` shape as `MotionPath`. `transition` also accepts a [named transition](./motion-config.md#named-transitions) from the nearest `<MotionConfig transitions>`, top-level and per property.
 
 | Component      | Numeric props                                                                                                         | Color props      | Array props       |
 | -------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------- |
@@ -157,7 +157,7 @@ Prebuilt animatable wrappers for the common non-path shapes, built with the [fac
 | `MotionRect`   | `x`, `y`, `width`, `height`, `rx`, `ry`, `strokeWidth`, `strokeOpacity`, `fillOpacity`, `opacity`, `strokeDashoffset` | `fill`, `stroke` | `strokeDasharray` |
 | `MotionLine`   | `x1`, `y1`, `x2`, `y2`, `strokeWidth`, `strokeOpacity`, `opacity`, `strokeDashoffset`                                 | `stroke`         | `strokeDasharray` |
 
-The canonical `MotionCircle` consumer is a circular progress ring — a static `strokeDasharray` of the circumference with an animated `strokeDashoffset`:
+The canonical use of `MotionCircle` is a circular progress ring: a static `strokeDasharray` of the circumference with an animated `strokeDashoffset`:
 
 ```tsx
 import Svg from 'react-native-svg'
@@ -185,16 +185,16 @@ function ProgressRing({ progress }: { progress: number }) {
 }
 ```
 
-Shape-specific rules (they mirror `MotionPath`'s command-sequence lock):
+The rules for the shapes mirror the command-sequence lock of `MotionPath`:
 
-- **Array props lock their length at first render.** `strokeDasharray` interpolates element-wise, so a target with a different length throws in dev and is ignored in production. Remount with a new `key` to change the length.
-- **A key only animates when it's present at mount** — in the static props, `initial`, or `animate`. Keys introduced into `animate` after mount warn in dev and are ignored. Keys never mentioned pass through as ordinary static props, so un-animated attributes keep their element defaults.
-- **`fill="none"` and `stroke="none"` are safe.** A static `none` with no `initial` and no `animate` for that key stays a static prop. A `none` in `initial` or in `animate` maps to `TRANSPARENT`, which paints the same nothing. Reanimated's color processor rejects the keyword, so the adapter never sends it through `animatedProps`.
-- Numeric keys engaged only via `animate` seed from `0`; colors seed from `TRANSPARENT` (`rgba(0, 0, 0, 0)`, exported from `@rootnative/inertia`). Give the key a static prop or an `initial` value when the mount animation should start elsewhere.
+- **An array prop locks its length at the first render.** `strokeDasharray` interpolates element-wise, so a target with a different length throws in dev, and production ignores it. Remount with a new `key` to change the length.
+- **A key animates only when it's present at mount**, in the static props, in `initial`, or in `animate`. A key that enters `animate` after mount warns in dev, and the component ignores it. A key that nothing names passes through as an ordinary static prop, so an attribute that you don't animate keeps its element default.
+- **`fill="none"` and `stroke="none"` are safe.** A static `none` with no `initial` and no `animate` for that key stays a static prop. A `none` in `initial` or in `animate` maps to `TRANSPARENT`, which paints the same nothing. The color processor of Reanimated rejects the keyword, so the adapter never sends it through `animatedProps`.
+- A numeric key that only `animate` names seeds from `0`. A color seeds from `TRANSPARENT` (`rgba(0, 0, 0, 0)`, exported from `@rootnative/inertia`). Give the key a static prop or an `initial` value when the mount animation must start elsewhere.
 
 ## createMotionSvgComponent {#factory}
 
-The factory behind the prebuilt shapes. Point it at any `react-native-svg` element and declare which props animate and how each interpolates:
+The factory behind the prebuilt shapes. Point it at any `react-native-svg` element, and declare which props animate and how each one interpolates:
 
 ```tsx
 import { Ellipse } from 'react-native-svg'
@@ -213,19 +213,19 @@ const MotionEllipse = createMotionSvgComponent(Ellipse, {
 />
 ```
 
-Prop keys are inferred from the wrapped component, so a typo in `animatableProps` is a compile error, and the generated component's `animate` / `initial` only accept the declared keys. Everything documented for the shapes above — named transitions, per-property transitions, `initial` semantics, reduced motion, the mount locks — comes from the factory and applies to any component it builds.
+TypeScript infers the prop keys from the wrapped component, so a typo in `animatableProps` is a compile error, and the `animate` and `initial` of the generated component accept only the declared keys. Everything above about the shapes (named transitions, per-property transitions, the `initial` rules, reduced motion, the mount locks) comes from the factory and applies to any component that it builds.
 
-`MotionPath` remains hand-rolled: path morphing needs the `d` template machinery the generic factory doesn't model.
+`MotionPath` stays hand-written, because path morphing needs the `d` template machinery that the generic factory doesn't model.
 
 ## What this package doesn't do
 
-- **Path resampling** between structurally different shapes. Same-template morphs only — the rest is your `key` to remount.
-- **Gradient fills inside the SVG**. For gradient fills use `<Defs>` + `<LinearGradient>` from `react-native-svg` and animate the stops via [`MotionLinearGradient`](./gradients.mdx)'s patterns; the path itself just references the gradient by `url(#id)`.
-- **Path command interpolation** (e.g. morphing an `L` into a `C`). Element-wise scalar interpolation is intentional — it's predictable, cheap, and matches what designers reach for 95% of the time.
+- **Path resampling** between shapes with a different structure. Only a morph with the same template works. For the rest, remount with `key`.
+- **A gradient fill inside the SVG.** For a gradient fill, use `<Defs>` and `<LinearGradient>` from `react-native-svg`, and animate the stops with the patterns of [`MotionLinearGradient`](./gradients.mdx). The path only references the gradient by `url(#id)`.
+- **Path command interpolation** (for example, a morph from an `L` to a `C`). Element-wise scalar interpolation is intentional. It's predictable, cheap, and matches what designers want 95% of the time.
 
 ## Path utilities
 
-The tokenizer and template helpers are exported for downstream tooling:
+The package exports the tokenizer and the template helpers for downstream tooling:
 
 ```ts
 import {
@@ -245,4 +245,4 @@ const err = diffTemplate(t, templateOf(parsePathD('M 0 0 L 1 1')))
 // → 'command count differs: …'
 ```
 
-`serializePath` is a worklet — call it inside `useAnimatedProps` if you build your own SVG primitives on top of this layer.
+`serializePath` is a worklet. Call it inside `useAnimatedProps` when you build your own SVG primitives on this layer.

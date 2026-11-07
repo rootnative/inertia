@@ -5,11 +5,11 @@ description: 'Per-property keyframes and looping: arrays for sequence steps, and
 
 # Sequences and repeat
 
-Per-property keyframes and looping live in two related shapes: arrays for sequence steps, and the unified `repeat` config on transitions.
+Per-property keyframes and loops use two related shapes: an array for the sequence steps, and the one `repeat` config on a transition.
 
 ## Keyframes
 
-Pass an array as the value of any animatable key to step through frames in order:
+Pass an array as the value of an animatable key to step through the frames in order:
 
 ```tsx
 <Motion.View
@@ -20,11 +20,11 @@ Pass an array as the value of any animatable key to step through frames in order
 />
 ```
 
-Each step inherits the transition that's in effect for that key. Sequences run on the UI thread without bouncing through JS.
+Each step inherits the transition of that key. A sequence runs on the UI thread and never goes through JS.
 
 ## Per-step transitions
 
-Replace any step with `{ to, ...transitionOverride }` to tune that step's physics independently:
+Replace a step with `{ to, ...transitionOverride }` to give that step its own transition:
 
 ```tsx
 <Motion.View
@@ -38,11 +38,11 @@ Replace any step with `{ to, ...transitionOverride }` to tune that step's physic
 />
 ```
 
-We use `to` (not `value`) because steps describe a destination — "animate **to** this".
+The key is `to`, not `value`, because a step describes a destination: "animate **to** this".
 
 ## Repeat
 
-`repeat` lives on the transition, not on `animate`. One shape, no `loop` / `repeatReverse` cousins.
+`repeat` is part of the transition, not of `animate`. It has one shape, with no separate `loop` or `repeatReverse` flags.
 
 | Form                                       | Meaning                                        |
 | ------------------------------------------ | ---------------------------------------------- |
@@ -58,24 +58,24 @@ We use `to` (not `value`) because steps describe a destination — "animate **to
 />
 ```
 
-When applied to a sequence, repeat wraps the **whole sequence**, not each step. Per-step `repeat` overrides remain step-local — they apply only inside that step.
+On a sequence, `repeat` wraps the **whole sequence**, not each step. A `repeat` inside a step applies only inside that step.
 
-`count` is the total number of iterations, including the first pass, so `repeat: 2` plays the animation twice. A count below `1` runs the animation once and warns in dev. It is not forwarded to Reanimated, which reads a count of `0` as endless.
+`count` is the total number of iterations, including the first pass, so `repeat: 2` plays the animation twice. A count below `1` runs the animation once and warns in dev. Inertia doesn't forward that count to Reanimated, which reads a count of `0` as endless.
 
-`alternate` has no effect on a sequence. Reanimated's `reverse` flag only swaps the wrapped animation's target, which a sequence ignores — every pass restarts at the first step. Write the reverse steps into the sequence to alternate: `[0, 80, 0]` instead of `[0, 80]` with `alternate`. An explicit `alternate: true` on a sequence warns in dev.
+`alternate` has no effect on a sequence. The `reverse` flag of Reanimated only swaps the target of the wrapped animation, and a sequence ignores that. Every pass starts again at the first step. To alternate, write the reverse steps into the sequence: `[0, 80, 0]` instead of `[0, 80]` with `alternate`. An explicit `alternate: true` on a sequence warns in dev.
 
-`'no-animation'` and `'decay'` configs ignore `repeat`.
+A `'no-animation'` or `'decay'` config ignores `repeat`.
 
 ## Reduced motion
 
-A sequence under the reduced-motion gate does not play. The property snaps to the **last keyframe** — where the sequence would have ended — and no `withSequence` is built. `repeat` and `delay` are dropped with it, so an endless sequence rests rather than looping.
+A sequence under the reduced-motion gate doesn't play. The property snaps to the **last keyframe**, where the sequence would end, and Inertia builds no `withSequence`. Inertia also drops `repeat` and `delay`, so an endless sequence rests and doesn't loop.
 
 ```tsx
 // reduce-motion on at the OS level: opacity settles at 0.25, nothing animates.
 <Motion.View animate={{ opacity: [0, 1, 0.25] }} />
 ```
 
-Write the keyframes so the last one is the state you want a reduce-motion visitor to see. A loop that returns to where it started (`[0, 80, 0]`) already does the right thing. A loop written as one leg plus `alternate` cannot, because [`alternate` has no effect on a sequence](#repeat) — for a two-state drift, prefer a single target and let `repeat` alternate it:
+Write the keyframes so that the last one is the state that a reduce-motion user must see. A loop that returns to its start (`[0, 80, 0]`) already does that. A loop written as one leg plus `alternate` can't, because [`alternate` has no effect on a sequence](#repeat). For a drift between two states, use one target and let `repeat` alternate it:
 
 ```tsx
 // Oscillates between -8 and 0, and rests at 0 under reduced motion.
@@ -86,11 +86,11 @@ Write the keyframes so the last one is the state you want a reduce-motion visito
 />
 ```
 
-See [`MotionConfig`](./motion-config) for how the gate is resolved.
+See [`MotionConfig`](./motion-config) for how Inertia resolves the gate.
 
 ## `onAnimationEnd`
 
-Sequence and repeat lifecycle is reported through one callback:
+One callback reports the lifecycle of a sequence and of a repeat:
 
 ```tsx
 <Motion.View
@@ -119,8 +119,8 @@ Sequence and repeat lifecycle is reported through one callback:
 | `'repeat'`    | A non-final iteration of a non-sequence animation completes.          |
 | `'animation'` | The terminal phase of the property — no more passes will run.         |
 
-Transform parents fire once per logical event, not once per axis. A `translateX` + `translateY` animation on the same primitive produces the callback shape you'd expect from "translate", not two duplicates — when the terminal `'animation'` phase fires for any transform key, `key` is reported as the sentinel `'transform'`. Mid-step events (`'step'` / `'sequence'` / `'repeat'`) still fire per-axis with the specific axis name (`'translateX'`, `'scale'`, etc.) since each step is its own logical event.
+A transform fires once per logical event, not once per axis. A `translateX` and `translateY` animation on the same primitive gives one callback for the transform, not two. When the terminal `'animation'` phase fires for a transform key, `key` is the sentinel `'transform'`. The mid-step events (`'step'`, `'sequence'`, `'repeat'`) still fire per axis, with the axis name (`'translateX'`, `'scale'`, and so on), because each step is its own logical event.
 
-An endless axis is not part of that group. A property with `repeat: 'infinite'` never reaches `'animation'` — it emits `'repeat'` forever — so it is excluded from the transform group rather than holding it open. Give `translateX` an infinite repeat and `translateY` a finite one and you still get the terminal `'transform'` callback when `translateY` lands; make _every_ transform axis infinite and no terminal callback fires at all, which is the honest answer since nothing ever finishes.
+An endless axis is not part of that group. A property with `repeat: 'infinite'` never reaches `'animation'`: it emits `'repeat'` forever. So Inertia excludes it from the transform group, and it doesn't hold the group open. Give `translateX` an infinite repeat and `translateY` a finite one, and you still get the terminal `'transform'` callback when `translateY` lands. Make _every_ transform axis infinite, and no terminal callback fires, because nothing finishes.
 
-The same rule protects [`<Presence>`](./presence): an endless `exit` animation can never settle, so it does not gate the unmount. If every exiting property repeats forever the child is removed immediately; if some are finite, those still gate it. Note that a top-level `transition={{ repeat: 'infinite' }}` is inherited by `exit` — scope the repeat to the property you actually want looping (`transition={{ opacity: { repeat: 'infinite' } }}`) if you also want a normal exit.
+The same rule protects [`<Presence>`](./presence). An endless `exit` animation never settles, so it doesn't gate the unmount. If every exiting property repeats forever, `Presence` removes the child at once. If some properties are finite, those still gate the unmount. A top-level `transition={{ repeat: 'infinite' }}` also applies to `exit`. If you also want a normal exit, scope the repeat to the property that must loop: `transition={{ opacity: { repeat: 'infinite' } }}`.

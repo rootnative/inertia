@@ -5,7 +5,7 @@ description: Every animatable surface is a Motion.* component — an animatable 
 
 # Primitives
 
-Every animatable surface is a `Motion.*` component. Each one is an animatable mirror of an underlying React Native primitive — the prop surface (other than `style`) is unchanged, plus the Motion-specific props (`initial`, `animate`, `exit`, `variants`, `controller`, `gesture`, `transition`, `onAnimationEnd`, `layout`, `layoutId`).
+Every animatable surface is a `Motion.*` component. Each one is an animatable mirror of a React Native primitive. The props stay the same, except `style`, plus the Motion props: `initial`, `animate`, `exit`, `variants`, `controller`, `gesture`, `transition`, `onAnimationEnd`, `layout`, and `layoutId`.
 
 | Component                            | Wraps RN's   | Style type   |
 | ------------------------------------ | ------------ | ------------ |
@@ -18,7 +18,7 @@ Every animatable surface is a `Motion.*` component. Each one is an animatable mi
 
 ## Per-primitive style inference
 
-`animate`, `initial`, `exit`, and `gesture` sub-states are typed against the underlying component's `style` shape — there is no shared `ViewStyle & TextStyle & ImageStyle` fallback. So `tintColor` autocompletes on `Motion.Image` and is rejected at compile time on `Motion.View`.
+`animate`, `initial`, `exit`, and the `gesture` sub-states take the type of the `style` prop of the component. There is no shared `ViewStyle & TextStyle & ImageStyle` fallback. So `tintColor` autocompletes on `Motion.Image`, and `Motion.View` rejects it at compile time.
 
 ```tsx
 <Motion.Image animate={{ tintColor: '#4f46e5' }} />     // ✅
@@ -27,13 +27,13 @@ Every animatable surface is a `Motion.*` component. Each one is an animatable mi
 
 ## Custom primitives
 
-Wrap any component with `createMotionComponent(C)` to get the same prop surface inferred from `C`'s style prop. See [createMotionComponent](../api/create-motion-component).
+Wrap any component with `createMotionComponent(C)` to get the same prop surface, inferred from the style prop of `C`. See [createMotionComponent](../api/create-motion-component).
 
 ## Plain host (zero-cost pass-through)
 
-A `Motion.*` primitive with **none** of the animation-driving props — `initial`, `animate`, `exit`, `transition`, `variants`, `controller`, `gesture`, `layout`, `layoutId`, `onAnimationEnd` — is a zero-cost pass-through over `Animated.createAnimatedComponent(Component)`. It allocates no shared values, mounts no `useAnimatedStyle` worklet, holds no gesture state, and does no per-render animation work: it forwards `style`, `ref`, and every other prop straight to the underlying host. (A guard test pins this — a prop-less `Motion.View` calls neither `useSharedValue` nor `useAnimatedStyle`.)
+A `Motion.*` primitive with **none** of the animation props (`initial`, `animate`, `exit`, `transition`, `variants`, `controller`, `gesture`, `layout`, `layoutId`, `onAnimationEnd`) is a zero-cost pass-through over `Animated.createAnimatedComponent(Component)`. It allocates no shared values, mounts no `useAnimatedStyle` worklet, holds no gesture state, and does no animation work per render. It forwards `style`, `ref`, and every other prop straight to the host. A guard test pins this: a `Motion.View` with no props calls neither `useSharedValue` nor `useAnimatedStyle`.
 
-This means you never need to reach for `Animated.View` from the [`/reanimated` interop subpath](../api/reanimated-interop) just to render an animated-style **fragment** from a value-layer hook. Use the primitive directly:
+So you never need `Animated.View` from the [`/reanimated` interop subpath](../api/reanimated-interop) only to render an animated-style **fragment** from a value-layer hook. Use the primitive directly:
 
 ```tsx
 import { Motion, useColorTransition } from '@rootnative/inertia'
@@ -46,13 +46,13 @@ function Fill({ progress }) {
 }
 ```
 
-The instant you add an animation prop, the same instance opts into the full animated body (it re-mounts across that boundary, so give an element that flips between plain and animated a stable `key` if the remount matters). One host concept, no separate "plain" alias to pick between.
+When you add an animation prop, the same instance opts into the full animated body. It remounts across that boundary, so give an element that switches between plain and animated a stable `key` if the remount matters. There is one host concept, and no separate "plain" alias to pick.
 
 ## Animatable properties
 
-Inertia supports the properties below across every primitive that accepts them. `animate` is typed per primitive **and** narrowed to this set: a style key Inertia doesn't drive is a compile error rather than a silent no-op, so a typo or an unsupported property fails the build instead of quietly doing nothing at runtime.
+Inertia supports the properties below on every primitive that accepts them. `animate` is typed per primitive **and** narrowed to this set. A style key that Inertia doesn't drive is a compile error, not a silent no-op. So a typo or an unsupported property fails the build instead of doing nothing at runtime.
 
-**Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`. Rotation values are degrees as numbers — the runtime wraps with `'deg'` before handing to Reanimated.
+**Numeric:** `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`. A rotation value is degrees as a number. The runtime adds `'deg'` before it passes the value to Reanimated.
 
 **Layout numerics** (since `0.0.5`):
 
@@ -68,15 +68,15 @@ Inertia supports the properties below across every primitive that accepts them. 
 | Stacking          | `zIndex`                                                                                                        |
 | Text metrics      | `fontSize`, `letterSpacing`, `lineHeight` — `Motion.Text` only, since they live on `TextStyle`                  |
 
-These animate the box itself rather than compositing a transform, so they trigger layout on each frame. Prefer `scale` / `translateX` for pure motion — they run on the compositor and don't reflow. Reach for these when the effect genuinely _is_ a layout change: a drawer sliding via `left`, a card squaring off one corner as it expands, a pane resize via `flex`.
+These keys animate the box itself, not a transform, so they trigger layout on each frame. Prefer `scale` and `translateX` for pure motion. They run on the compositor and don't reflow. Use the layout keys when the effect _is_ a layout change: a drawer that slides with `left`, a card that squares one corner as it expands, a pane that resizes with `flex`.
 
-**Deliberately not animatable:** enum-valued keys (`position`, `overflow`, `alignItems`, `flexDirection`, `display`) have nothing to interpolate between. `minWidth` / `maxWidth` / `minHeight` / `maxHeight` / `aspectRatio` are excluded for a subtler reason — their unset state isn't a number, so there's no value a key can rest at when it's declared only in a `gesture` sub-state or a non-active variant without changing the layout the moment it activates. Animate `width` / `height` instead, or drop to the [value-layer hooks](../api/hooks).
+**Not animatable, on purpose:** an enum key (`position`, `overflow`, `alignItems`, `flexDirection`, `display`) has nothing to interpolate between. `minWidth`, `maxWidth`, `minHeight`, `maxHeight`, and `aspectRatio` are excluded for a subtler reason. Their unset state isn't a number. So there is no value for the key to rest at when only a `gesture` sub-state or an inactive variant declares it, without a layout change the moment it activates. Animate `width` or `height` instead, or use the [value-layer hooks](../api/hooks).
 
-**Shadow offset:** `shadowOffset` accepts the nested `{ width, height }` object (single-value form only — see [Motion.View](./view) for the contract).
+**Shadow offset:** `shadowOffset` accepts the nested `{ width, height }` object, in the single-value form only. See [Motion.View](./view) for the contract.
 
-**Box shadow:** `boxShadow` animates the cross-platform CSS shadow form — see [Motion.View](./view#boxshadow) for the layer-count rules and the `inset` constraint. Don't animate it alongside the native `shadow*` keys on the same element; that applies two shadow systems at once, and Inertia warns in dev when it sees both.
+**Box shadow:** `boxShadow` animates the cross-platform CSS shadow form. See [Motion.View](./view#boxshadow) for the layer-count rules and the `inset` constraint. Don't animate it next to the native `shadow*` keys on the same element. That applies two shadow systems at once, and Inertia warns in dev when it sees both.
 
-**Color:** `backgroundColor`, `borderColor`, `color`, `shadowColor`, `tintColor` (Image only). Any color string Reanimated recognizes works — hex (`'#4f46e5'`, `'#fff'`), `rgb()` / `rgba()`, `hsl()` / `hsla()`, and named colors including `'transparent'`. The target is forwarded straight through `withSpring` / `withTiming`; Reanimated's value setter packs the string to RGBA and interpolates on the UI thread.
+**Color:** `backgroundColor`, `borderColor`, `color`, `shadowColor`, `tintColor` (Image only). Any color string that Reanimated knows works: hex (`'#4f46e5'`, `'#fff'`), `rgb()` and `rgba()`, `hsl()` and `hsla()`, and named colors, including `'transparent'`. Inertia forwards the target straight through `withSpring` or `withTiming`. The value setter of Reanimated packs the string to RGBA and interpolates on the UI thread.
 
 ```tsx
 <Motion.View
@@ -86,10 +86,10 @@ These animate the box itself rather than compositing a transform, so they trigge
 />
 ```
 
-When `initial` is omitted, color slots seed with `'transparent'` — fine for fade-in, but pass an explicit `initial` color when animating between two opaque values to avoid the first frame flashing through transparent.
+When you omit `initial`, a color slot seeds with `'transparent'`. That is fine for a fade-in. When you animate between two opaque values, pass an explicit `initial` color, so the first frame doesn't flash through transparent.
 
-**Optional adapter primitives:** gradient interpolation ships in [`@rootnative/inertia-gradients`](../gradients) (`MotionLinearGradient`), and SVG path morphing ships in [`@rootnative/inertia-svg`](../svg) (`MotionPath`). Both compose with the same `initial` / `animate` / `transition` shape.
+**Optional adapter primitives:** gradient interpolation ships in [`@rootnative/inertia-gradients`](../gradients) (`MotionLinearGradient`), and SVG path morphing ships in [`@rootnative/inertia-svg`](../svg) (`MotionPath`). Both take the same `initial`, `animate`, and `transition` shape.
 
-**Auto-layout transitions:** the [`layout` prop](../layout) animates position + size changes that come from outside the `animate` flow — siblings reordering, dimensions toggling, etc.
+**Layout transitions:** the [`layout` prop](../layout) animates a change of position or size that comes from outside the `animate` flow, such as a reorder of siblings or a change of dimensions.
 
-**Shared element transitions:** the [`layoutId` prop](../layout#shared-element-transitions-layoutid) FLIPs between two `Motion.*` primitives that mount with the same id — cross-mount or cross-screen, without any explicit animation config beyond the shared id.
+**Shared element transitions:** the [`layoutId` prop](../layout#shared-element-transitions-layoutid) runs a FLIP between two `Motion.*` primitives that mount with the same id, across a mount or a screen, with no animation config beyond the shared id.

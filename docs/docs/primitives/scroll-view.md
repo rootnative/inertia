@@ -5,7 +5,7 @@ description: Animatable ScrollView, where animations apply to the scroll contain
 
 # Motion.ScrollView
 
-Animatable `ScrollView`. Animations apply to the scroll **container** itself — useful for entrance transforms, exit fades, or scaling the entire scrollable region.
+Animatable `ScrollView`. The animations apply to the scroll **container** itself. Use it for an entrance transform, an exit fade, or a scale of the whole scrollable region.
 
 ```tsx
 import { Motion } from '@rootnative/inertia'
@@ -32,6 +32,6 @@ import { MotionScrollView } from '@rootnative/inertia/scroll-view'
 
 ## Notes
 
-- This animates the outer container. To drive animations from scroll position itself (parallax, sticky headers), pair this with [`useScroll`](../api/hooks#usescroll) — it returns `scrollX` / `scrollY` shared values plus an `onScroll` handler you drop on this primitive.
-- Per-row entrance animations belong on a `Motion.View` row inside the scroll view, not on the scroll view itself.
-- This primitive mounts every child. [`Motion.FlatList`](./flat-list) is the virtualized counterpart and takes the same `useScroll` handler — prefer it for long or unbounded lists, and keep this one for a short, fixed set of children.
+- This primitive animates the outer container. To drive an animation from the scroll position itself (parallax, a sticky header), pair it with [`useScroll`](../api/hooks#usescroll). That hook returns the `scrollX` and `scrollY` shared values, plus an `onScroll` handler that you put on this primitive.
+- A per-row entrance animation belongs on a `Motion.View` row inside the scroll view, not on the scroll view itself.
+- This primitive mounts every child. [`Motion.FlatList`](./flat-list) is the virtualized counterpart, and it takes the same `useScroll` handler. Prefer it for a long or unbounded list. Keep this primitive for a short, fixed set of children.

@@ -5,19 +5,19 @@ description: The escape-hatch surface, for imperative control beyond what the pr
 
 # Hooks
 
-The escape-hatch surface — drop here when you need imperative control beyond what the props expose.
+The hooks are the escape hatch. Use them when you need imperative control beyond what the props expose.
 
-The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useInterpolatedStyle`, `useScroll`, `useHideOnScroll`, `useInView`, `useValueChange`) compose with `useAnimatedStyle` and every other Reanimated primitive — they return real shared values (or, in `useShadow` / `useColorTransition` / `useInterpolatedStyle`'s case, an animated style fragment), not wrapped abstractions. Reach for them when an animation is gesture-driven, scroll-driven, or otherwise needs to live outside the declarative `animate` flow.
+The value-layer hooks (`useMotionValue`, `useSpring`, `useBooleanSpring`, `useTransform`, `useShadow`, `useColorTransition`, `useInterpolatedStyle`, `useScroll`, `useHideOnScroll`, `useInView`, `useValueChange`) compose with `useAnimatedStyle` and every other Reanimated primitive. They return real shared values, not wrapped abstractions. `useShadow`, `useColorTransition`, and `useInterpolatedStyle` return an animated style fragment instead. Use the hooks when a gesture or a scroll drives an animation, or when the animation must live outside the declarative `animate` flow.
 
 :::note Unmount cleanup
-`useMotionValue`, `useSpring`, `useBooleanSpring`, and `useAnimation` cancel any in-flight animation on unmount, so a still-settling or `repeat: 'infinite'` animation stops ticking its worklet once its owning component is gone — you don't need a manual `cancelAnimation` teardown effect for that case. To cancel _mid-life_ (while the component stays mounted), import `cancelAnimation` from the [`/reanimated`](./reanimated-interop) interop subpath and call it yourself. The `Motion.*` primitives get the same unmount cleanup for their internal shared values.
+`useMotionValue`, `useSpring`, `useBooleanSpring`, and `useAnimation` cancel an animation in flight on unmount. So an animation that still settles, or a `repeat: 'infinite'` animation, stops its worklet when its component is gone. You don't need a manual `cancelAnimation` cleanup effect for that case. To cancel while the component stays mounted, import `cancelAnimation` from the [`/reanimated`](./reanimated-interop) interop subpath and call it yourself. The `Motion.*` primitives get the same unmount cleanup for their internal shared values.
 :::
 
 ## `useMotionValue(initial)`
 
-Create an animatable value owned by JS but readable from worklets. A thin pass-through over Reanimated's `useSharedValue` — the returned `SharedValue<T>` works anywhere a shared value is accepted (`useAnimatedStyle`, `useDerivedValue`, the other value hooks below).
+Creates an animatable value that JS owns and that a worklet can read. It's a thin pass-through over the `useSharedValue` of Reanimated. The returned `SharedValue<T>` works everywhere that a shared value is accepted (`useAnimatedStyle`, `useDerivedValue`, the other value hooks below).
 
-The generic is **unconstrained**, so it holds anything `useSharedValue` holds — not only animatable values:
+The generic is **unconstrained**, so it holds anything that `useSharedValue` holds, not only animatable values:
 
 ```ts
 const x = useMotionValue(0) // SharedValue<number>
@@ -26,12 +26,12 @@ const cellTops = useMotionValue<number[]>([]) // one measurement per item
 const ready = useMotionValue(false) // SharedValue<boolean>
 ```
 
-The other value hooks (`useSpring`, `useTransform`) are numeric because interpolation is. This one is storage, so it is not narrowed to match them.
+The other value hooks (`useSpring`, `useTransform`) are numeric, because interpolation is numeric. This hook is storage, so its type isn't narrowed to match them.
 
-Two rules come from Reanimated rather than from this hook:
+Two rules come from Reanimated, not from this hook:
 
-- **Reassign a structured value; do not mutate it.** `cellTops.value.push(y)` updates nothing. Write a new array or record instead.
-- **Only numbers and colour strings animate.** A structured value is something you write from a handler or an effect, never something you hand to `withSpring` / `withTiming`.
+- **Reassign a structured value. Don't mutate it.** `cellTops.value.push(y)` updates nothing. Write a new array or record instead.
+- **Only numbers and colour strings animate.** You write a structured value from a handler or an effect. You never pass it to `withSpring` or `withTiming`.
 
 ```tsx
 import { useMotionValue, Motion } from '@rootnative/inertia'
@@ -53,7 +53,7 @@ function Draggable() {
 }
 ```
 
-We intentionally don't wrap the shared value in a `MotionValue` class — adding a `{ get, set, value }` shell would force consumers to unwrap it at every Reanimated boundary and would break worklet capture. The bare shared value _is_ the public surface.
+We don't wrap the shared value in a `MotionValue` class on purpose. A `{ get, set, value }` shell would force you to unwrap it at every Reanimated boundary, and it would break worklet capture. The bare shared value _is_ the public surface.
 
 | Signature                                                | Returns          |
 | -------------------------------------------------------- | ---------------- |
@@ -61,9 +61,9 @@ We intentionally don't wrap the shared value in a `MotionValue` class — adding
 
 ## `useSpring(target, config?)`
 
-Animate a shared value toward `target` with spring physics, using Inertia's react-spring vocabulary (`tension` / `friction` / `mass`).
+Animates a shared value toward `target` with spring physics, in the react-spring vocabulary of Inertia (`tension`, `friction`, `mass`).
 
-`target` can be a plain number — the spring re-runs whenever the prop changes — or another `SharedValue<number>`, in which case the spring is driven by a UI-thread reaction. Both paths bottom out at the same `withSpring` call; the split is just which thread observes the source.
+`target` can be a plain number, and then the spring runs again whenever the prop changes. It can also be another `SharedValue<number>`, and then a UI-thread reaction drives the spring. Both paths end in the same `withSpring` call. The difference is only which thread observes the source.
 
 ```tsx
 import { useMotionValue, useSpring, Motion } from '@rootnative/inertia'
@@ -95,15 +95,15 @@ function Chained() {
 | ----------------------------------------------------------------------------------------------- | --------------------- |
 | `useSpring(target: number \| SharedValue<number>, config?: SpringTransition \| TransitionName)` | `SharedValue<number>` |
 
-Config accepts every field of [`SpringTransition`](../transitions): `tension`, `friction`, `mass`, `velocity`. Reanimated's raw `stiffness` / `damping` names are never accepted — that conversion is private to the library.
+`config` accepts every field of [`SpringTransition`](../transitions): `tension`, `friction`, `mass`, and `velocity`. The raw `stiffness` and `damping` names of Reanimated are never accepted. That conversion is private to the library.
 
-`config` also accepts a [named transition](../motion-config#named-transitions). Because the hook is spring-only, the name must be registered as a spring — a timing / decay / no-animation name warns in dev and falls back to the default spring (use `useAnimation` to honor the registered type). The same applies to `useBooleanSpring`.
+`config` also accepts a [named transition](../motion-config#named-transitions). The hook is spring-only, so the name must be registered as a spring. A timing, decay, or no-animation name warns in dev and falls back to the default spring. Use `useAnimation` to honor the registered type. The same applies to `useBooleanSpring`.
 
-Reduced motion is honoured. Under `<MotionConfig reducedMotion>` the hook assigns the target to the output directly, with no spring, on both the plain-number path and the shared-value path. The same applies to `useBooleanSpring`.
+The hook honours reduced motion. Under `<MotionConfig reducedMotion>`, the hook assigns the target to the output directly, with no spring, on both the plain-number path and the shared-value path. The same applies to `useBooleanSpring`.
 
 ## `useBooleanSpring(active, config?)`
 
-Sugar over `useSpring` for the recurring "spring 0↔1 progress from a boolean" shape — checkbox checks, accordion expansions, drawer open/closed states, focus rings, and every other binary UI flip that wants spring physics rather than a hard cut.
+A short form of `useSpring` for the common shape "a spring progress from 0 to 1 from a boolean": a checkbox check, an accordion expansion, a drawer open or closed, a focus ring, and every other binary UI change that wants spring physics instead of a hard cut.
 
 ```tsx
 import {
@@ -128,25 +128,25 @@ function Card({ raised }: { raised: boolean }) {
 }
 ```
 
-The returned shared value sits at `0` when `active` is `false` and animates toward `1` when it flips to `true` (and back on the reverse flip). The spring re-runs whenever `active` changes.
+The returned shared value sits at `0` when `active` is `false`. It animates toward `1` when `active` becomes `true`, and back when `active` becomes `false`. The spring runs again whenever `active` changes.
 
 | Signature                                                                        | Returns               |
 | -------------------------------------------------------------------------------- | --------------------- |
 | `useBooleanSpring(active: boolean, config?: SpringTransition \| TransitionName)` | `SharedValue<number>` |
 
-Config follows the same react-spring vocabulary as `useSpring` (`tension` / `friction` / `mass`); omit it for the library defaults. Note that like `useSpring`, this hook does **not** consult `<MotionConfig reducedMotion>` — it always interpolates. If the value must respect reduced motion, drive it through `useAnimation` (which gates on the config) or gate the target yourself with `useShouldReduceMotion()`.
+`config` takes the same react-spring vocabulary as `useSpring` (`tension`, `friction`, `mass`). Omit it for the library defaults. Like `useSpring`, this hook does **not** consult `<MotionConfig reducedMotion>`. It always interpolates. If the value must respect reduced motion, drive it through `useAnimation`, which gates on the config, or gate the target yourself with `useShouldReduceMotion()`.
 
-**`useBooleanSpring` vs `useSpring(active ? 1 : 0)`.** Identical mechanics — `useBooleanSpring` is the named version of the pattern so the call site reads as the boolean it represents, not as a ternary. Reach for it whenever the source is a boolean prop and the target is a 0↔1 progress value to feed into `useShadow` / `useColorTransition` / `useTransform` / a hand-rolled `useAnimatedStyle`.
+**`useBooleanSpring` vs `useSpring(active ? 1 : 0)`.** The mechanics are identical. `useBooleanSpring` is the named version of the pattern, so the call site reads as the boolean, not as a ternary. Use it whenever the source is a boolean prop and the target is a progress value from 0 to 1 for `useShadow`, `useColorTransition`, `useTransform`, or a hand-written `useAnimatedStyle`.
 
-**`useBooleanSpring` vs `useAnimation(active ? 1 : 0, { type: 'spring', ... })`.** Same animation either way; `useBooleanSpring` is the shorter spelling for the spring-only case. Drop to `useAnimation` if you need a `timing` curve, a `decay`, or a `repeat`.
+**`useBooleanSpring` vs `useAnimation(active ? 1 : 0, { type: 'spring', ... })`.** The animation is the same. `useBooleanSpring` is the shorter spelling for the spring-only case. Use `useAnimation` when you need a `timing` curve, a `decay`, or a `repeat`.
 
 ## `useTransform(...)`
 
-Derive a value from one or more shared values. Two overloads:
+Derives a value from one or more shared values. It has two overloads:
 
 ### Interpolation
 
-Map a numeric shared value onto a range of numbers or colors. Output type drives whether the underlying call is `interpolate` (numerics) or `interpolateColor` (color strings).
+Maps a numeric shared value onto a range of numbers or colors. The output type decides whether the hook calls `interpolate` (numbers) or `interpolateColor` (color strings).
 
 ```tsx
 import { useMotionValue, useTransform } from '@rootnative/inertia'
@@ -168,11 +168,11 @@ const headerTint = useTransform(scroll, [0, 100], ['#ffffff', '#000000'])
 | `extrapolateLeft`  | `'clamp' \| 'identity' \| 'extend'` | `'clamp'` | Behavior below the first input value. |
 | `extrapolateRight` | `'clamp' \| 'identity' \| 'extend'` | `'clamp'` | Behavior above the last input value.  |
 
-The input range must be monotonically increasing.
+The input range must increase monotonically.
 
 ### Transformer worklet
 
-Derive any value from any number of shared values via a worklet.
+Derives any value from any number of shared values through a worklet.
 
 ```tsx
 const x = useMotionValue(0)
@@ -187,11 +187,11 @@ const distance = useTransform(() => {
 | --------------------------------------- | ---------------- |
 | `useTransform<T>(transformer: () => T)` | `SharedValue<T>` |
 
-The transformer must be a worklet — add the `'worklet'` directive as its first statement so your Babel plugin captures the shared values it reads as the worklet's closure. A plain function warns in dev and cannot track dependencies: the fallback wrapper closes over the opaque function reference, not the shared values read inside it, so the derived value only refreshes on React re-renders (and native builds reject it outright). The transformer must be pure: no captured JS-thread refs, no calls to non-worklet APIs.
+The transformer must be a worklet. Add the `'worklet'` directive as its first statement, so that your Babel plugin captures the shared values that it reads as the closure of the worklet. A plain function warns in dev and can't track dependencies. The fallback wrapper closes over the opaque function reference, not over the shared values inside it, so the derived value refreshes only on a React re-render. A native build rejects it. The transformer must be pure: no captured JS-thread refs, no calls to APIs that aren't worklets.
 
 ## `useShadow({ from, to, progress })`
 
-Interpolate between two shadow configs as `progress` moves 0→1. Returns an animated style fragment you spread onto any Reanimated-aware view (`Motion.*` or a hand-rolled `Animated.View`) — no other props required on the host.
+Interpolates between two shadow configs as `progress` moves from 0 to 1. It returns an animated style fragment. Spread it onto any view that Reanimated knows (`Motion.*` or a hand-written `Animated.View`). The host needs no other props.
 
 ```tsx
 import { Motion, useShadow, useSpring } from '@rootnative/inertia'
@@ -222,7 +222,7 @@ function ElevatedCard({ raised }: { raised: boolean }) {
 }
 ```
 
-`ShadowConfig` accepts the same flat shadow keys as `Motion.View`'s `animate` surface, plus the nested `shadowOffset` source:
+`ShadowConfig` accepts the same flat shadow keys as the `animate` surface of `Motion.View`, plus the nested `shadowOffset` form:
 
 | Field           | Type                                  | Notes                                                                    |
 | --------------- | ------------------------------------- | ------------------------------------------------------------------------ |
@@ -233,11 +233,11 @@ function ElevatedCard({ raised }: { raised: boolean }) {
 | `shadowColor`   | `string`                              | Color string. Interpolated via `interpolateColor`.                       |
 | `boxShadow`     | `string \| BoxShadowLayer[]`          | CSS box-shadow — the shadow surface on web and RN 0.76+ new-arch native. |
 
-Only keys present on at least one side appear in the output style — there's no overhead for keys you don't use. A key present on one side and absent from the other tweens from / to the absent side's natural zero (`0`, `'transparent'`, or `{ width: 0, height: 0 }`).
+Only a key on at least one side appears in the output style. A key that you don't use has no cost. A key on one side only tweens from or to the natural zero of the other side (`0`, `'transparent'`, or `{ width: 0, height: 0 }`).
 
 ### Web shadows: `boxShadow`
 
-The classic `shadow*` / `elevation` keys never reach the web renderer — react-native-web's elevation surface is the CSS `box-shadow` string. `boxShadow` closes that gap: pass the CSS string form your design system already stores elevation tokens in (px lengths only), or structured `BoxShadowLayer` objects (`{ offsetX, offsetY, blurRadius?, spreadDistance?, color?, inset? }`, mirroring RN's `BoxShadowValue`):
+The classic `shadow*` and `elevation` keys never reach the web renderer. The elevation surface of react-native-web is the CSS `box-shadow` string. `boxShadow` closes that gap. Pass the CSS string form that your design system already stores elevation tokens in (px lengths only), or structured `BoxShadowLayer` objects (`{ offsetX, offsetY, blurRadius?, spreadDistance?, color?, inset? }`, the same as the `BoxShadowValue` of React Native):
 
 ```tsx
 const shadowStyle = useShadow({
@@ -251,17 +251,17 @@ const shadowStyle = useShadow({
 })
 ```
 
-Multi-layer shadows interpolate per layer; when one side has fewer layers (including `'none'`), it's padded with invisible layers, CSS-transition style. Like `cubicBezier`, a malformed string **throws** at render rather than warning — shadow tokens are built at theme setup, and a typo should fail loudly there. Two paired layers with mismatched `inset` are not interpolable and also throw. The interpolated value is emitted as a `boxShadow` style string, which react-native-web passes through as CSS and React Native 0.76+ (new architecture) renders natively; on old-architecture native it's ignored, so keep the `shadow*` / `elevation` keys alongside it for those targets.
+A multi-layer shadow interpolates per layer. When one side has fewer layers (including `'none'`), the hook pads it with invisible layers, the same as a CSS transition. Like `cubicBezier`, a malformed string **throws** at render and doesn't warn. Shadow tokens are built at theme setup, and a typo must fail there. Two paired layers with a different `inset` can't interpolate, and they also throw. The hook emits the interpolated value as a `boxShadow` style string. react-native-web passes it through as CSS, and React Native 0.76+ (new architecture) renders it natively. Old-architecture native ignores it, so keep the `shadow*` and `elevation` keys next to it for those targets.
 
 | Signature                                                                            | Returns                               |
 | ------------------------------------------------------------------------------------ | ------------------------------------- |
 | `useShadow({ from: ShadowConfig; to: ShadowConfig; progress: SharedValue<number> })` | Animated style (spread onto `style`). |
 
-**`useShadow` vs the declarative `animate` path.** If a state change in your component already swaps between two shadow configs (`animate={raised ? RAISED : REST}`), the `animate` prop is simpler — no hook needed. Reach for `useShadow` when the source of progress isn't a render-driven state swap: scroll position, drag progress, a `useSpring` driven by a shared value, or anywhere else the value-layer is the right abstraction. The example screen in the gallery drives it from a `useSpring`; wiring it to `useScroll` + `useTransform` for a scroll-driven elevation cascade is a one-line change.
+**`useShadow` vs the declarative `animate` path.** If a state change in your component already swaps between two shadow configs (`animate={raised ? RAISED : REST}`), the `animate` prop is simpler, and you need no hook. Use `useShadow` when the source of the progress isn't a state swap in render: a scroll position, a drag progress, a `useSpring` that a shared value drives, or any other case where the value layer is the correct abstraction. The example screen in the gallery drives it from a `useSpring`. To drive an elevation cascade from a scroll, wire it to `useScroll` and `useTransform`. That is a one-line change.
 
 ## `useColorTransition(progress, [from, to], options?)`
 
-Interpolate a single color channel between `from` and `to` as `progress` moves 0→1. Returns an animated style fragment with one color key — spread it onto any Reanimated-aware view alongside other style fragments (a `useShadow` result, a hand-rolled `useAnimatedStyle`, plain `StyleSheet` entries).
+Interpolates one color channel between `from` and `to` as `progress` moves from 0 to 1. It returns an animated style fragment with one color key. Spread it onto any view that Reanimated knows, next to other style fragments (a `useShadow` result, a hand-written `useAnimatedStyle`, plain `StyleSheet` entries).
 
 ```tsx
 import {
@@ -284,9 +284,9 @@ function Chip({ active }: { active: boolean }) {
 }
 ```
 
-The hook is a pure interpolator; it does not animate on its own. Drive `progress` upstream with a `useSpring`, `useBooleanSpring`, scroll-derived `useTransform`, gesture progress, or anything else producing a 0↔1 shared value. Values outside `[0, 1]` clamp.
+The hook is a pure interpolator. It doesn't animate on its own. Drive `progress` with a `useSpring`, a `useBooleanSpring`, a `useTransform` from a scroll, a gesture progress, or anything else that makes a shared value from 0 to 1. A value outside `[0, 1]` clamps.
 
-`options.key` chooses which RN style slot the interpolated color is emitted under:
+`options.key` chooses the React Native style key for the interpolated color:
 
 | Key                                                                                             | Default | Notes                                                              |
 | ----------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------ |
@@ -300,13 +300,13 @@ The hook is a pure interpolator; it does not animate on its own. Drive `progress
 | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
 | `useColorTransition(progress: SharedValue<number>, range: readonly [string, string], options?: UseColorTransitionOptions)` | Animated style (spread onto `style`). |
 
-**`useColorTransition` vs `useTransform` with a color output range.** `useTransform(progress, [0, 1], [from, to])` returns a raw `SharedValue<string>` — reach for it when you need to compose the color into a hand-rolled `useAnimatedStyle` (mixing with a `Math.max(...)` halo opacity, feeding into a gradient, etc.). `useColorTransition` is the one-call convenience for the dominant case: tween a single color slot and spread the result onto `style`.
+**`useColorTransition` vs `useTransform` with a color output range.** `useTransform(progress, [0, 1], [from, to])` returns a raw `SharedValue<string>`. Use it when you compose the color into a hand-written `useAnimatedStyle`, for example with a `Math.max(...)` halo opacity, or as the input of a gradient. `useColorTransition` is the one-call form for the common case: tween one color key and spread the result onto `style`.
 
-**`useColorTransition` vs the declarative `animate` path.** If a state change already swaps between two colors (`animate={active ? { backgroundColor: A } : { backgroundColor: B }}`), the `animate` prop is simpler. Reach for `useColorTransition` when the source of progress isn't a render-driven state swap, or when several color slots need to shift in lockstep from one shared driver (the chip example above — one spring, three color channels).
+**`useColorTransition` vs the declarative `animate` path.** If a state change already swaps between two colors (`animate={active ? { backgroundColor: A } : { backgroundColor: B }}`), the `animate` prop is simpler. Use `useColorTransition` when the source of the progress isn't a state swap in render, or when several color keys must move together from one shared driver. The chip example above has one spring and three color channels.
 
 ## `useColorCascade(rest, layers, options?)`
 
-Composite a **priority-ordered stack** of color layers over a base `rest` color. Each layer owns its own `progress` shared value and blends toward its color as that progress rises; later layers win over earlier ones at equal progress. This is the values-layer form of the same fixed-priority cascade the [`gesture` prop uses](../gestures) (Decision 5), for state colors that don't come from gestures — error, selected, activated, dragged.
+Composites a **stack of color layers in priority order** over a base `rest` color. Each layer owns its own `progress` shared value and blends toward its color as that progress rises. At equal progress, a later layer wins over an earlier one. This is the value-layer form of the same fixed-priority cascade that the [`gesture` prop](../gestures) uses (Decision 5), for state colors that don't come from gestures: error, selected, activated, dragged.
 
 ```tsx
 import { Motion, useBooleanSpring, useColorCascade } from '@rootnative/inertia'
@@ -332,9 +332,9 @@ function Field({ hovered, errored, focused }: FieldStates) {
 }
 ```
 
-The chain is exactly equivalent to the hand-written nested-`interpolateColor` shape `focus(error(hover(rest)))`, collapsed into one hook and one worklet. `layers` is priority order, **lowest first** (matching the gesture cascade). Each layer's `progress` is a 0↔1 shared value you drive upstream (a `useSpring`, `useBooleanSpring`, gesture progress, …) — the hook is a pure interpolator and does not animate on its own.
+The chain equals the hand-written nested `interpolateColor` shape `focus(error(hover(rest)))`, in one hook and one worklet. `layers` is in priority order, **lowest first**, the same as the gesture cascade. The `progress` of each layer is a shared value from 0 to 1 that you drive (a `useSpring`, a `useBooleanSpring`, a gesture progress, …). The hook is a pure interpolator and doesn't animate on its own.
 
-`options.key` reuses the same [`ColorStyleKey`](#usecolortransitionprogress-from-to-options) set as `useColorTransition`, defaulting to `backgroundColor`.
+`options.key` takes the same [`ColorStyleKey`](#usecolortransitionprogress-from-to-options) set as `useColorTransition`. The default is `backgroundColor`.
 
 | Signature                                                                                               | Returns                               |
 | ------------------------------------------------------------------------------------------------------- | ------------------------------------- |
@@ -342,15 +342,15 @@ The chain is exactly equivalent to the hand-written nested-`interpolateColor` sh
 
 where `ColorCascadeLayer` is `{ progress: SharedValue<number>; color: string }`.
 
-**Rewiring a layer.** The chain is resolved on the JS thread and kept identity-stable, so passing a fresh-but-equal `layers` array every render costs nothing. Changing a colour, the `key`, the base `rest`, the layer count, or **which shared value drives a layer** all rewire the worklet — so a conditionally-sourced progress (`{ progress: isError ? errorSpring : hoverSpring, color }`) behaves as written.
+**Rewiring a layer.** The hook resolves the chain on the JS thread and keeps its identity stable, so a new but equal `layers` array on every render costs nothing. A change of a colour, the `key`, the base `rest`, the layer count, or **the shared value that drives a layer** rewires the worklet. So a conditional progress (`{ progress: isError ? errorSpring : hoverSpring, color }`) behaves as written.
 
-**`useColorCascade` vs `useColorTransition`.** `useColorTransition(progress, [rest, active])` is the single-layer fast path — one progress ⇄ one color slot. Reach for `useColorCascade` when **independent** states each contribute a color and their precedence matters (a field border that is simultaneously hoverable, error-able, and focusable). It is not a replacement for the single-layer hook.
+**`useColorCascade` vs `useColorTransition`.** `useColorTransition(progress, [rest, active])` is the single-layer fast path: one progress for one color key. Use `useColorCascade` when **independent** states each contribute a color and their precedence matters, for example a field border that can be hovered, in error, and focused at the same time. It doesn't replace the single-layer hook.
 
-**Numeric cascades.** `useColorCascade` is color-only by design. If a numeric key needs the same precedence (e.g. an outlined border widening 1→2dp under error/focus), compose it separately — drive each layer through `useInterpolatedStyle` and combine with a `useTransform` `Math.max(...)`, or drop to a hand-rolled `useAnimatedStyle`.
+**Numeric cascades.** `useColorCascade` is color-only by design. If a numeric key needs the same precedence (for example, an outlined border that widens from 1 to 2 dp under error or focus), compose it separately. Drive each layer through `useInterpolatedStyle` and combine them with a `Math.max(...)` in `useTransform`, or use a hand-written `useAnimatedStyle`.
 
 ## `useInterpolatedStyle(progress, map, options?)`
 
-Map one `progress` shared value onto **N** style props at once, returning an animated style fragment. The style-fragment counterpart to `useTransform`'s output-range form: where `useTransform` gives you one interpolated value to compose by hand, `useInterpolatedStyle` interpolates a whole map of keys and hands back a ready-to-spread fragment. Reach for it when a single driver (a collapse progress, a float progress, a scroll offset) fans out to several style props — the shape that otherwise becomes a hand-rolled `useAnimatedStyle` over the Reanimated interop subpath.
+Maps one `progress` shared value onto **N** style props at once, and returns an animated style fragment. It's the style-fragment counterpart of the output-range form of `useTransform`. `useTransform` gives you one interpolated value to compose by hand. `useInterpolatedStyle` interpolates a whole map of keys and returns a fragment that you spread. Use it when one driver (a collapse progress, a float progress, a scroll offset) feeds several style props. Otherwise that shape becomes a hand-written `useAnimatedStyle` over the Reanimated interop subpath.
 
 ```tsx
 import {
@@ -372,13 +372,13 @@ function FloatingLabel({ focused }: { focused: boolean }) {
 }
 ```
 
-The hook is a pure interpolator; it does not animate on its own. Drive `progress` upstream with a `useSpring`, `useBooleanSpring`, scroll-derived `useTransform`, gesture progress, or anything else producing a shared value.
+The hook is a pure interpolator. It doesn't animate on its own. Drive `progress` with a `useSpring`, a `useBooleanSpring`, a `useTransform` from a scroll, a gesture progress, or anything else that makes a shared value.
 
 ### Key routing
 
-- **Numeric style keys** (`opacity`, `height`, `width`, `borderRadius`, `fontSize`, `top`, …) take number stops and route through `interpolate`, emitted as top-level style keys.
-- **Transform keys** (`translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`) take number stops and are lifted into a single `transform` array, **in the order they appear in the map** — the same key-order convention the `animate` prop uses. `rotate*` keys take numeric degrees and emit `'<n>deg'` strings.
-- **Color keys** (`backgroundColor`, `color`, `borderColor` and its per-edge variants, `tintColor`, `shadowColor`) take color-string stops and route through `interpolateColor` — a multi-stop `useColorTransition` without leaving this hook. Stop types are checked at compile time: number stops on a color key (or color stops on a numeric/transform key) are a type error.
+- **Numeric style keys** (`opacity`, `height`, `width`, `borderRadius`, `fontSize`, `top`, …) take number stops and go through `interpolate`. The hook emits them as top-level style keys.
+- **Transform keys** (`translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`) take number stops. The hook puts them into one `transform` array, **in the order of the map**, the same key-order convention as the `animate` prop. A `rotate*` key takes degrees as a number and emits a `'<n>deg'` string.
+- **Color keys** (`backgroundColor`, `color`, `borderColor` and its per-edge variants, `tintColor`, `shadowColor`) take color-string stops and go through `interpolateColor`. That is a multi-stop `useColorTransition` inside this hook. TypeScript checks the stop types: a number stop on a color key, or a color stop on a numeric or transform key, is a type error.
 
 ### Options
 
@@ -400,9 +400,9 @@ const fade = useInterpolatedStyle(
 | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | `useInterpolatedStyle(progress: SharedValue<number>, map: InterpolatedStyleMap, options?: UseInterpolatedStyleOptions)` | `InterpolatedStyle<K>` — an animated style fragment typed from the map's own keys. |
 
-The map is memoized on an order-preserving signature, so a fresh-but-equal map literal each render produces zero new UI-thread closures (the factory rule).
+The hook memoizes the map on a signature that keeps the key order, so a new but equal map literal on each render makes zero new UI-thread closures (the factory rule).
 
-**The return type follows the map, so no cast is needed in a `style` array.** A map of view keys yields a fragment that satisfies `StyleProp<ViewStyle>`; text-metric keys (`fontSize`, `lineHeight`, `letterSpacing`) yield one that satisfies `StyleProp<TextStyle>`, and `tintColor` one that satisfies `StyleProp<ImageStyle>`. Transform keys collapse into the single `transform` array the hook emits.
+**The return type follows the map, so a `style` array needs no cast.** A map of view keys gives a fragment that satisfies `StyleProp<ViewStyle>`. The text-metric keys (`fontSize`, `lineHeight`, `letterSpacing`) give one that satisfies `StyleProp<TextStyle>`, and `tintColor` gives one that satisfies `StyleProp<ImageStyle>`. The transform keys collapse into the one `transform` array that the hook emits.
 
 ```tsx
 const card = useInterpolatedStyle(scrollX, {
@@ -414,13 +414,13 @@ const card = useInterpolatedStyle(scrollX, {
 <Motion.View style={[styles.slot, card]} />
 ```
 
-This matters because Reanimated's own `useAnimatedStyle` resolves to `DefaultStyle` (`ViewStyle | ImageStyle | TextStyle`). A style **array** checks every member of that union, and `TextStyle` fails against `ViewStyle` on `cursor` — so a union return forced consumers to cast. The narrowing is exact rather than merely permissive: a text-only fragment is still rejected from a `ViewStyle` slot.
+This matters because the own `useAnimatedStyle` of Reanimated resolves to `DefaultStyle` (`ViewStyle | ImageStyle | TextStyle`). A style **array** checks every member of that union, and `TextStyle` fails against `ViewStyle` on `cursor`. So a union return forced you to cast. The narrowing is exact, not only permissive: a `ViewStyle` slot still rejects a text-only fragment.
 
-**`useInterpolatedStyle` vs `useTransform`.** `useTransform(progress, [0, 1], [a, b])` returns one raw `SharedValue` for you to compose. `useInterpolatedStyle` is the convenience for the dominant case — several style/transform keys driven from one progress value, returned as a spreadable fragment. For **function-valued** entries or **multi-source** composition (`Math.max(a, b)`), drop to `useTransform`'s worklet form or a hand-rolled `useAnimatedStyle` — this hook stays fully declarative and hashable by design.
+**`useInterpolatedStyle` vs `useTransform`.** `useTransform(progress, [0, 1], [a, b])` returns one raw `SharedValue` for you to compose. `useInterpolatedStyle` is the short form for the common case: several style or transform keys from one progress value, returned as a fragment that you spread. For a **function-valued** entry or a **multi-source** composition (`Math.max(a, b)`), use the worklet form of `useTransform` or a hand-written `useAnimatedStyle`. This hook stays fully declarative and hashable by design.
 
 ## `useAnimation(target, transition?)`
 
-The general-purpose value-layer hook: drive a `SharedValue<number>` toward `target` with any `TransitionConfig`. Reach for it when you need raw `useSharedValue + useEffect + withTiming` (or `withSpring`, or `withRepeat`) **outside** the declarative `animate` flow — boolean state progress on a widget with multiple animated children, indeterminate progress on a list of `useAnimatedStyle` consumers, anywhere the value layer is the right abstraction.
+The general-purpose value-layer hook. It drives a `SharedValue<number>` toward `target` with any `TransitionConfig`. Use it when you need raw `useSharedValue + useEffect + withTiming` (or `withSpring`, or `withRepeat`) **outside** the declarative `animate` flow: a boolean state progress on a widget with several animated children, an indeterminate progress on a list of `useAnimatedStyle` consumers, or any other case where the value layer is the correct abstraction.
 
 ```tsx
 import { useAnimation } from '@rootnative/inertia'
@@ -439,7 +439,7 @@ const floated = useAnimation(hasValue ? 1 : 0, {
 })
 ```
 
-The value starts at `target`, so the first run moves nothing. Pass `{ from }` as the third argument to start somewhere else: the first run animates `from → target`, like `initial` on a `Motion.*` primitive. A loop needs it, because Reanimated runs each turn of a loop from the value at its start: `useAnimation(1, loop)` runs from 1 to 1, and with `{ from: 0 }` it runs from 0 to 1 each turn.
+The value starts at `target`, so the first run moves nothing. Pass `{ from }` as the third argument to start somewhere else. The first run then animates from `from` to `target`, like `initial` on a `Motion.*` primitive. A loop needs it, because Reanimated runs each turn of a loop from the value at its start. `useAnimation(1, loop)` runs from 1 to 1. With `{ from: 0 }`, it runs from 0 to 1 on each turn.
 
 ```tsx
 import { useAnimation } from '@rootnative/inertia'
@@ -456,23 +456,23 @@ const slide = useAnimation(
 )
 ```
 
-`from` is read once, on mount. To start a loop from an event instead of on mount, use [`useAnimator`](#useanimator) on a `useMotionValue(0)`.
+The hook reads `from` once, on mount. To start a loop from an event instead of on mount, use [`useAnimator`](#useanimator) on a `useMotionValue(0)`.
 
 | Signature                                                                                           | Returns               |
 | --------------------------------------------------------------------------------------------------- | --------------------- |
 | `useAnimation(target: number, transition?: TransitionConfig \| TransitionName, options?: { from })` | `SharedValue<number>` |
 
-The hook re-runs the animation whenever `target` changes or the transition's structural signature changes. A fresh literal each render (`{ type: 'timing', duration: 200 }` rebuilt on every call) doesn't re-fire — only structural changes do. Reduced motion (`<MotionConfig reducedMotion>`) collapses the transition to `'no-animation'` and snaps the value.
+The hook runs the animation again whenever `target` changes or the structural signature of the transition changes. A new literal on each render (`{ type: 'timing', duration: 200 }` rebuilt on every call) doesn't fire it again. Only a structural change does. Reduced motion (`<MotionConfig reducedMotion>`) collapses the transition to `'no-animation'` and snaps the value.
 
-`transition` also accepts a [named transition](../motion-config#named-transitions); unlike the spring-only hooks, the registered config's type is honored whatever it is.
+`transition` also accepts a [named transition](../motion-config#named-transitions). Unlike the spring-only hooks, this hook honors the type of the registered config, whatever it is.
 
-**`useAnimation` vs `useSpring`.** They overlap on the spring case — `useAnimation(target, { type: 'spring', ... })` and `useSpring(target, { ... })` produce the same animation. Prefer `useSpring` when you only want spring physics; it also accepts a `SharedValue<number>` as the target for UI-thread-reactive smoothing (a gesture-driven smoothing source). `useAnimation` is the general-purpose hook — accepts any `TransitionConfig` including `timing`, `decay`, `no-animation`, and `repeat` — but is JS-thread-driven only.
+**`useAnimation` vs `useSpring`.** They overlap on the spring case. `useAnimation(target, { type: 'spring', ... })` and `useSpring(target, { ... })` make the same animation. Prefer `useSpring` when you only want spring physics. It also accepts a `SharedValue<number>` as the target, for smoothing that reacts on the UI thread (a gesture-driven source). `useAnimation` is the general-purpose hook. It accepts any `TransitionConfig`, including `timing`, `decay`, `no-animation`, and `repeat`, but only the JS thread drives it.
 
-**`useAnimation` vs `Motion.View animate={{...}}`.** Use the `animate` prop when one Motion primitive owns the animated value end-to-end. Use `useAnimation` when the same value drives several `useAnimatedStyle` blocks across siblings — there's no Motion primitive to attach `animate` to in that case.
+**`useAnimation` vs `Motion.View animate={{...}}`.** Use the `animate` prop when one Motion primitive owns the animated value from end to end. Use `useAnimation` when the same value drives several `useAnimatedStyle` blocks across siblings. In that case there is no Motion primitive to hold `animate`.
 
 ## `useAnimator()`
 
-The **imperative** counterpart to `useAnimation`. `useAnimation` drives a value from an effect (it re-runs when `target` changes); `useAnimator` returns a setter you call from an event handler to push a value toward a target on demand. Reach for it when the write is driven by an event — a hover-in, a focus, a press — rather than by rendered state.
+The **imperative** counterpart of `useAnimation`. `useAnimation` drives a value from an effect, and runs again when `target` changes. `useAnimator` returns a setter that you call from an event handler to move a value toward a target on demand. Use it when an event drives the write (a hover-in, a focus, a press), not rendered state.
 
 ```tsx
 import { useAnimator, useMotionValue, Motion } from '@rootnative/inertia'
@@ -490,27 +490,27 @@ function HoverCard() {
 }
 ```
 
-It exists because the hand-written escape hatch — `value.value = resolveTransition(config, to)` from an event handler — has two footguns that `useAnimator` closes:
+It exists because the hand-written escape hatch, `value.value = resolveTransition(config, to)` from an event handler, has two traps that `useAnimator` closes:
 
-- **Named transitions resolve.** A [named transition](../motion-config#named-transitions) registered on the nearest `<MotionConfig transitions>` works here just as it does on the `transition` prop or in `useAnimation`. A bare `resolveTransition` call can't reach the registry (names resolve through context), so imperative call sites otherwise rebuild configs the provider already owns.
-- **Reduced motion is respected.** The write routes through the same `'no-animation'` downgrade `useAnimation` applies under `<MotionConfig reducedMotion>`. Hand-rolled `resolveTransition` writes silently bypass that accessibility setting — a correctness bug this hook fixes.
+- **Named transitions resolve.** A [named transition](../motion-config#named-transitions) from the nearest `<MotionConfig transitions>` works here the same as on the `transition` prop or in `useAnimation`. A bare `resolveTransition` call can't reach the registry, because names resolve through context. So an imperative call site would otherwise rebuild a config that the provider already owns.
+- **Reduced motion is respected.** The write goes through the same `'no-animation'` downgrade that `useAnimation` applies under `<MotionConfig reducedMotion>`. A hand-written `resolveTransition` write skips that accessibility setting with no warning. This hook fixes that correctness defect.
 
-The returned callback is **identity-stable for the lifetime of the component** — it reads the registry and the reduced-motion flag out of refs at call time, so neither a provider republishing its `transitions` map nor a reduced-motion change hands you a new function. Drop it into memoized handlers or a `useCallback` dependency list without churning them. Reading at call time also means a write always resolves against the registry current _when the event fires_, not the one captured at render.
+The returned callback has a **stable identity for the lifetime of the component**. It reads the registry and the reduced-motion flag from refs at call time. So neither a provider that publishes a new `transitions` map nor a reduced-motion change gives you a new function. Put it in a memoized handler or a `useCallback` dependency list, and nothing churns. The read at call time also means that a write always resolves against the registry _when the event fires_, not the one from render.
 
 | Signature                                                                                                      | Returns    |
 | -------------------------------------------------------------------------------------------------------------- | ---------- |
 | `useAnimator()`                                                                                                | `Animator` |
 | `Animator = (value: SharedValue<number>, to: number, transition?: TransitionConfig \| TransitionName) => void` | `void`     |
 
-`transition` defaults to the library spring when omitted, and accepts any `TransitionConfig` or a registered `TransitionName` — the same input the declarative `transition` prop takes.
+`transition` defaults to the library spring when you omit it. It accepts any `TransitionConfig` or a registered `TransitionName`, the same input as the declarative `transition` prop.
 
-**`useAnimator` vs `useAnimation`.** Same transition vocabulary, opposite trigger. `useAnimation(target, transition)` re-fires from an effect whenever `target` changes; `useAnimator()(value, to, transition)` fires exactly when you call it. Use `useAnimation` for state-derived values, `useAnimator` for event-driven writes.
+**`useAnimator` vs `useAnimation`.** The same transition vocabulary, the opposite trigger. `useAnimation(target, transition)` fires from an effect whenever `target` changes. `useAnimator()(value, to, transition)` fires exactly when you call it. Use `useAnimation` for a value that comes from state, and `useAnimator` for a write that an event drives.
 
-This is not a new animation API — it starts animations in Inertia's existing transition vocabulary, so it doesn't conflict with the "no imperative-only APIs that bypass the declarative surface" scope rule. It's the hooks-layer equivalent of `useMotionValue` + `resolveTransition`, minus the footguns.
+This isn't a new animation API. It starts an animation in the existing transition vocabulary of Inertia, so it doesn't conflict with the scope rule "no imperative-only API that skips the declarative surface". It's the hooks-layer form of `useMotionValue` plus `resolveTransition`, without the traps.
 
 ## `useScroll()`
 
-Track the scroll offset of a `Motion.ScrollView` or a `Motion.FlatList` as shared values. Scroll events fire on the UI thread, so the returned values are safe to read from any worklet without a JS-thread bounce.
+Tracks the scroll offset of a `Motion.ScrollView` or a `Motion.FlatList` as shared values. The scroll events fire on the UI thread, so any worklet can read the returned values with no JS-thread round trip.
 
 ```tsx
 import { useScroll, useTransform, Motion } from '@rootnative/inertia'
@@ -556,13 +556,13 @@ const restingY = useDerivedValue(() =>
 )
 ```
 
-Each scroll event updates the end, so a change of the content size shows at the next scroll event. On iOS, the end leaves out the safe-area inset that `contentInsetAdjustmentBehavior="automatic"` adds, because the scroll event does not carry it. Keep the default `'never'` and add the inset as padding in `contentContainerStyle`.
+Each scroll event updates the end, so a change of the content size shows at the next scroll event. On iOS, the end leaves out the safe-area inset that `contentInsetAdjustmentBehavior="automatic"` adds, because the scroll event doesn't carry it. Keep the default `'never'` and add the inset as padding in `contentContainerStyle`.
 
-Set `scrollEventThrottle={16}` on a `Motion.ScrollView` for steady 60 Hz updates; without it, Android can dispatch less frequently than iOS. [`Motion.FlatList`](../primitives/flat-list) needs no such prop — it defaults the throttle to 1. Reach for `Motion.FlatList` when the list is long enough that mounting every row costs more than the animation does.
+Set `scrollEventThrottle={16}` on a `Motion.ScrollView` for steady 60 Hz updates. Without it, Android can send events less often than iOS. [`Motion.FlatList`](../primitives/flat-list) needs no such prop, because its default throttle is 1. Use `Motion.FlatList` when the list is so long that a mount of every row costs more than the animation.
 
 ## `useHideOnScroll(offset, { distance })`
 
-Drive a 0↔1 shared value from the direction of a scroll. The value rises while the content scrolls down and falls while it scrolls up, one point of scroll for one point of `distance`. A bar that translates by its own height from this value exits as the user reads on, and returns the moment they scroll back: the hide-on-scroll pattern of a bottom app bar or a floating button.
+Drives a shared value from 0 to 1 from the direction of a scroll. The value rises while the content scrolls down and falls while it scrolls up, one point of scroll for one point of `distance`. A bar that translates by its own height from this value exits as the user reads on, and returns at the moment they scroll back. That is the hide-on-scroll pattern of a bottom app bar or a floating button.
 
 ```tsx
 import {
@@ -595,17 +595,17 @@ Set `distance` to the height of the element that hides, so the element moves wit
 
 The rules of the value:
 
-- It is 0 whenever the offset is at or above the top, so the element is in place at the top of the content and after an overscroll bounce there.
-- Movement past the end of the content does not count. On iOS, a fling that reaches the end bounces past it and back. The bounce back is not a scroll up, so a hidden element stays hidden. `useScroll` records the end of the content for its own offsets. For an offset from somewhere else, pass the largest offset that the content can rest at as `maxOffset`, a shared value.
-- On iOS, the end that `useScroll` records leaves out an inset that iOS adds by itself. The scroll event carries the `contentInset` that you set, but not the safe-area inset that `contentInsetAdjustmentBehavior="automatic"` adds. With that setting, the recorded end is short by the bottom safe-area inset (about 34 pt on an iPhone with a home indicator), and movement in that last stretch does not count. Keep the default `'never'` and add the inset as padding in `contentContainerStyle`, or pass `maxOffset`, which replaces the recorded end.
-- It accumulates and clamps. A long scroll down holds it at 1, and the first scroll up starts to bring it back, from anywhere in the content.
-- It runs on the UI thread, through a reaction on the offset, so it is safe to read from any worklet.
-- It does not snap to 0 or 1 when the scroll stops. An element can rest half hidden after a short scroll.
-- A new `offset` or `maxOffset` starts it again. The value returns to 0, and the next movement counts from the position of the new offset. A bar that follows the active list of a tab screen shows on each change of tab, and the rest of the switch does not read as a scroll.
+- The value is 0 whenever the offset is at or above the top. So the element is in place at the top of the content, and after an overscroll bounce there.
+- Movement past the end of the content doesn't count. On iOS, a fling that reaches the end bounces past it and back. The bounce back isn't a scroll up, so a hidden element stays hidden. `useScroll` records the end of the content for its own offsets. For an offset from somewhere else, pass the largest offset that the content can rest at as `maxOffset`, a shared value.
+- On iOS, the end that `useScroll` records leaves out an inset that iOS adds by itself. The scroll event carries the `contentInset` that you set, but not the safe-area inset that `contentInsetAdjustmentBehavior="automatic"` adds. With that setting, the recorded end is short by the bottom safe-area inset (about 34 pt on an iPhone with a home indicator), and movement in that last stretch doesn't count. Keep the default `'never'` and add the inset as padding in `contentContainerStyle`, or pass `maxOffset`, which replaces the recorded end.
+- The value accumulates and clamps. A long scroll down holds it at 1, and the first scroll up starts to bring it back, from anywhere in the content.
+- The value runs on the UI thread, through a reaction on the offset, so any worklet can read it.
+- The value doesn't snap to 0 or 1 when the scroll stops. An element can rest half hidden after a short scroll.
+- A new `offset` or `maxOffset` starts the value again. The value returns to 0, and the next movement counts from the position of the new offset. A bar that follows the active list of a tab screen shows on each change of tab, and the rest of the switch doesn't count as a scroll.
 
 ## `useValueChange(value, onChange)`
 
-Call a JS-thread function when a shared value changes. The reaction runs on the UI thread and schedules `onChange(current, previous)` on the JS thread, once per change. It does not run for the initial value.
+Calls a JS-thread function when a shared value changes. The reaction runs on the UI thread and schedules `onChange(current, previous)` on the JS thread, once per change. It doesn't run for the initial value.
 
 This is the bridge from the value layer back to React state: the index that a scroll offset selects, the page that a pager position crosses, the step that a drag passes. Derive the value on the UI thread first, so the JS thread hears one call per step and not one per frame.
 
@@ -635,14 +635,14 @@ function Pager({ onPageChange }: { onPageChange: (page: number) => void }) {
 
 The rules:
 
-- `value` is a `SharedValue<T>` or a `DerivedValue<T>`. A change is a `!==` comparison of the new value with the last one, so derive a number, a string or a boolean. A new object on every frame is a change on every frame.
-- The callback can change on every render, as an inline arrow does. The hook always calls the latest one, and a new callback does not rebuild the UI-thread reaction.
-- The call lands on the JS thread after the frame that changed the value. A change in the same frame as a render is delivered after that render commits.
+- `value` is a `SharedValue<T>` or a `DerivedValue<T>`. A change is a `!==` comparison of the new value with the last one, so derive a number, a string, or a boolean. A new object on every frame is a change on every frame.
+- The callback can change on every render, as an inline arrow does. The hook always calls the latest one, and a new callback doesn't rebuild the UI-thread reaction.
+- The call lands on the JS thread after the frame that changed the value. A change in the same frame as a render arrives after that render commits.
 - Use it for state, not for style. A style that follows a value belongs in `useAnimatedStyle` or `useInterpolatedStyle`, on the UI thread.
 
 ## `useInView(ref, options?)`
 
-Drive a 0↔1 shared value from whether an element is on screen. This is the missing **source** for the value layer: `useInterpolatedStyle`, `useShadow`, and `useColorCascade` all take a progress value and leave the caller to decide what drives it. `useInView` makes that driver "the user can see this", so an entrance animation starts when the element arrives rather than when the screen mounts.
+Drives a shared value from 0 to 1 from whether an element is on screen. This is the missing **source** for the value layer. `useInterpolatedStyle`, `useShadow`, and `useColorCascade` all take a progress value and let you decide what drives it. `useInView` makes that driver "the user can see this element", so an entrance animation starts when the element arrives, not when the screen mounts.
 
 ```tsx
 import { useInView, useInterpolatedStyle, Motion } from '@rootnative/inertia'
@@ -672,17 +672,17 @@ Options:
 
 ### What it needs to work
 
-On **web** it uses `IntersectionObserver`, so the ref is all it needs.
+On **web**, the hook uses `IntersectionObserver`, so the ref is all that it needs.
 
-On **native** there is no such API, so the element must sit inside a [`Motion.ScrollView`](../primitives/scroll-view) or a [`Motion.FlatList`](../primitives/flat-list). Those publish their scroll offset and their visible length; the hook measures the element once and then does the arithmetic on the UI thread. Nesting depth does not matter — the measurement is in window coordinates, so an element any number of views deep reports correctly.
+On **native**, there is no such API, so the element must sit inside a [`Motion.ScrollView`](../primitives/scroll-view) or a [`Motion.FlatList`](../primitives/flat-list). Those publish their scroll offset and their visible length. The hook measures the element once and then does the arithmetic on the UI thread. The nesting depth doesn't matter. The measurement is in window coordinates, so an element at any depth reports correctly.
 
-The offset is read off the container's animated ref, not from its `onScroll` prop. That prop stays free, so `useScroll` and `useInView` can drive the same container.
+The hook reads the offset from the animated ref of the container, not from its `onScroll` prop. That prop stays free, so `useScroll` and `useInView` can drive the same container.
 
-### Limits, stated plainly
+### Limits
 
-- **Outside a scroll container on native the value is `1` from the start**, and the hook warns once in development. An element on a fixed screen really is visible, so the animation behaves exactly as it did before the hook existed. It is not a substitute for a scroll container.
-- **The element is measured on mount and when the container's width or height changes (a rotate, a split view, a fold), not continuously.** Content that changes height _above_ an element leaves that element's trigger point stale. Remount it (change its `key`) if the layout above it moves.
-- **The element is measured where it is drawn, with its transforms.** An entrance that starts the element 24 points lower (`translateY: [24, 0]` on the element that holds the ref) moves the trigger 24 points later, and a `scale` below `1` moves it a little more. For a small entrance this does not matter. To trigger on the layout box, put the ref on a plain wrapper and animate a child. On web, `IntersectionObserver` also uses the drawn box, so both platforms agree.
+- **Outside a scroll container on native, the value is `1` from the start**, and the hook warns once in development. An element on a fixed screen is visible, so the animation behaves exactly as it did before the hook existed. The hook doesn't replace a scroll container.
+- **The hook measures the element on mount and when the width or height of the container changes (a rotate, a split view, a fold), not continuously.** Content that changes its height _above_ an element makes the trigger point of that element stale. Remount the element (change its `key`) if the layout above it moves.
+- **The hook measures the element where it is drawn, with its transforms.** An entrance that starts the element 24 points lower (`translateY: [24, 0]` on the element that holds the ref) moves the trigger 24 points later, and a `scale` below `1` moves it a little more. For a small entrance this doesn't matter. To trigger on the layout box, put the ref on a plain wrapper and animate a child. On web, `IntersectionObserver` also uses the drawn box, so both platforms agree.
 
   ```tsx
   return (
@@ -692,11 +692,11 @@ The offset is read off the container's animated ref, not from its `onScroll` pro
   )
   ```
 
-- **An element longer than the container** can never satisfy a high `amount` literally, so the requirement caps at the container's own length: `amount: 1` there means "fills the container", not "never".
+- **An element longer than the container** can never satisfy a high `amount` literally, so the requirement caps at the length of the container. There, `amount: 1` means "fills the container", not "never".
 
 ## `useGesture(transition?)`
 
-The hook-form of the [`gesture` prop](../gestures). Reach for it when one Pressable's gesture state needs to drive multiple animated views — a focus ring rendered as a sibling, an MD3 state-layer halo that overlays the content, a content tint and a separate icon-color animation, etc. The prop-form only animates the receiver's own style; the hook gives you the underlying 0↔1 progress shared values to feed into any number of `useAnimatedStyle` blocks.
+The hook form of the [`gesture` prop](../gestures). Use it when the gesture state of one Pressable must drive several animated views: a focus ring as a sibling, an MD3 state-layer halo over the content, a content tint and a separate icon-color animation. The prop form animates only the own style of the primitive. The hook gives you the progress shared values (0 to 1) to feed into any number of `useAnimatedStyle` blocks.
 
 ```tsx
 import { useGesture } from '@rootnative/inertia'
@@ -731,13 +731,13 @@ function StateLayerButton() {
 }
 ```
 
-### Which bag: `handlers` or `pointerHandlers`?
+### Which set: `handlers` or `pointerHandlers`?
 
-Pick by what the surface **is**, not by what you are animating.
+Pick by what the surface **is**, not by what you animate.
 
-A `Pressable` is a keyboard tab stop even when it does nothing. Measured against react-native-web 0.21: a `Pressable` with no `onPress` renders `tabindex="0"`, and it still does with `accessible={false}` **and** `focusable={false}` — neither prop suppresses it. Build a grid of five hover-lifting cards that way and the page gains five keyboard stops that go nowhere. Nothing surfaces it: no warning, no failing test, and it looks correct in a browser. Only the built HTML shows it.
+A `Pressable` is a keyboard tab stop even when it does nothing. Measured on react-native-web 0.21: a `Pressable` with no `onPress` renders `tabindex="0"`, and it still does with `accessible={false}` **and** `focusable={false}`. Neither prop removes it. Build a grid of five cards that lift on hover that way, and the page gains five keyboard stops that go nowhere. Nothing shows it: no warning, no failed test, and it looks correct in a browser. Only the built HTML shows it.
 
-Every value in both bags is a plain `() => void`, so nothing about the behaviour needs a `Pressable` — only the prop names do. A surface that just reacts to the pointer takes `pointerHandlers` on a `Motion.View` and adds no tab stop:
+Every value in both sets is a plain `() => void`, so the behaviour needs no `Pressable`. Only the prop names do. A surface that only reacts to the pointer takes `pointerHandlers` on a `Motion.View` and adds no tab stop:
 
 ```tsx
 function HoverLift({ children }) {
@@ -754,9 +754,9 @@ function HoverLift({ children }) {
 }
 ```
 
-`onPointerEnter` / `onPointerLeave` have been `ViewProps` since React Native 0.71 and react-native-web forwards them to the DOM; `onFocus` / `onBlur` are `ViewProps` too.
+`onPointerEnter` and `onPointerLeave` are `ViewProps` since React Native 0.71, and react-native-web forwards them to the DOM. `onFocus` and `onBlur` are `ViewProps` too.
 
-There is deliberately **no press pair** in `pointerHandlers`. A surface with press feedback should be a real control — give it a `Pressable`, an `onPress` and a role, and use `handlers`.
+`pointerHandlers` has **no press pair** on purpose. A surface with press feedback must be a real control. Give it a `Pressable`, an `onPress`, and a role, and use `handlers`.
 
 Returns:
 
@@ -769,15 +769,15 @@ Returns:
 | `handlers`        | `UseGestureHandlers`        | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on a `Pressable` that is a real control. If you call `onFocus` yourself, pass the focus event. |
 | `pointerHandlers` | `UseGesturePointerHandlers` | `{ onPointerEnter, onPointerLeave, onFocus, onBlur }`. The same callbacks by reference, keyed for a plain `View`. No press pair.                                           |
 
-Transitions follow the same shape as the `gesture` prop's accompanying `transition`:
+The transitions have the same shape as the `transition` that goes with the `gesture` prop:
 
-- `useGesture({ type: 'timing', duration: 150 })` — same config for every layer.
-- `useGesture({ pressed: {...}, hovered: {...}, focused: {...}, focusVisible: {...} })` — per-layer.
-- A [named transition](../motion-config#named-transitions) is accepted in both positions: `useGesture('state-press')` or `useGesture({ pressed: 'state-press' })`.
-- Layers without an explicit transition fall back to the library default spring.
-- `<MotionConfig reducedMotion>` is respected — when reduced motion is active, every transition collapses to `'no-animation'` and progress snaps instead of interpolating.
+- `useGesture({ type: 'timing', duration: 150 })`: the same config for every layer.
+- `useGesture({ pressed: {...}, hovered: {...}, focused: {...}, focusVisible: {...} })`: one config per layer.
+- Both positions accept a [named transition](../motion-config#named-transitions): `useGesture('state-press')` or `useGesture({ pressed: 'state-press' })`.
+- A layer with no explicit transition falls back to the library default spring.
+- The hook respects `<MotionConfig reducedMotion>`. When reduced motion is active, every transition collapses to `'no-animation'`, and the progress snaps instead of interpolating.
 
-The shared values and the handler bag are **identity-stable** across renders — safe to pass to memoized children. To compose with consumer handlers (e.g. your own `onPressIn` for analytics), wrap manually:
+The shared values and the handler set keep their **identity** across renders, so you can pass them to memoized children. To compose with your own handlers (for example, an `onPressIn` for analytics), wrap them by hand:
 
 ```tsx
 <Pressable
@@ -789,11 +789,11 @@ The shared values and the handler bag are **identity-stable** across renders —
 />
 ```
 
-When `useGesture` and the `gesture` prop describe the same scenario, prefer the prop — fewer moving parts. The hook is the escape hatch for compositions the prop can't express.
+When `useGesture` and the `gesture` prop describe the same case, prefer the prop. It has fewer parts. The hook is the escape hatch for a composition that the prop can't express.
 
 ## `useGestureLayer(states, options?)`
 
-A higher-level helper over `useGesture` for the **strongest-active-layer-wins** composition model used by MD3 state-layer haloes and iOS-translucent overlays. You supply per-state target maps; the hook owns the four gesture progress shared values, the `disabled` override, the worklet, and the transition. It also hands those progress shared values back as `states`, so styles derived from the same gesture wiring (an elevation crossfade, an icon tint) don't need a second `useGesture` call. Lives at the `@rootnative/inertia/gesture-layer` subpath so apps that don't need it don't pay for it.
+A higher-level helper over `useGesture` for the composition model where **the strongest active layer wins**, as in an MD3 state-layer halo or an iOS translucent overlay. You supply a target map per state. The hook owns the four gesture progress shared values, the `disabled` override, the worklet, and the transition. It also returns those progress shared values as `states`, so a style from the same gesture wiring (an elevation crossfade, an icon tint) needs no second `useGesture` call. It lives at the `@rootnative/inertia/gesture-layer` subpath, so an app that doesn't need it doesn't pay for it.
 
 ```tsx
 import { Pressable } from 'react-native'
@@ -821,9 +821,9 @@ function SwitchHalo({ disabled }: { disabled?: boolean }) {
 
 ### Composition model
 
-- **Numeric keys** (`opacity`, `scale`, `borderWidth`, …) compose via clamped-max with `rest` as the floor: `out = max(rest, …for each active layer: lerp(rest, layer, progress))`. Multiple states active simultaneously raise the value to the strongest layer, not the sum — this is the MD3 halo pattern.
-- **Color keys** (any string value) compose via priority cascade with `interpolateColor`, lowest priority first: `hovered → focused → focusVisible → pressed`. Clamped-max doesn't apply to colors; this matches the cascade used by the declarative `gesture` prop.
-- **Disabled** sits at the top of the cascade for both numeric and color keys — when active, it lerps the composed value toward the `disabled` target. The `disabled` flag is JS-side, not gesture-driven.
+- **Numeric keys** (`opacity`, `scale`, `borderWidth`, …) compose with clamped-max, with `rest` as the floor: `out = max(rest, …for each active layer: lerp(rest, layer, progress))`. Several active states raise the value to the strongest layer, not to the sum. This is the MD3 halo pattern.
+- **Color keys** (any string value) compose with the priority cascade through `interpolateColor`, lowest priority first: `hovered → focused → focusVisible → pressed`. Clamped-max doesn't apply to a color. This matches the cascade of the declarative `gesture` prop.
+- **Disabled** sits at the top of the cascade for both numeric and color keys. When active, it lerps the composed value toward the `disabled` target. The `disabled` flag comes from JS, not from a gesture.
 
 ### States
 
@@ -836,7 +836,7 @@ function SwitchHalo({ disabled }: { disabled?: boolean }) {
 | `pressed`      | Active touch / pointer-down.                                                                                                                                                                       |
 | `disabled`     | Gated by `options.disabled`. Overrides every gesture layer when active; per-layer transitions don't apply (top-level transition or default spring).                                                |
 
-Every state key is optional. Values inside each state are a flat map of style keys to either a number (numeric layer) or a string (color layer). The hook doesn't validate that string values are valid colors — passing `borderStyle: 'solid'` will crash inside the worklet. Keep string values to color strings.
+Every state key is optional. The value of each state is a flat map from style keys to a number (a numeric layer) or a string (a color layer). The hook doesn't check that a string value is a valid color. `borderStyle: 'solid'` crashes inside the worklet. Use only color strings as string values.
 
 ### Options
 
@@ -853,7 +853,7 @@ Every state key is optional. Values inside each state are a flat map of style ke
 | `handlers` | `UseGestureHandlers`   | `{ onPressIn, onPressOut, onHoverIn, onHoverOut, onFocus, onBlur }`. Spread on the host `Pressable`.                                                                                                  |
 | `states`   | `GestureLayerProgress` | The per-state 0↔1 progress shared values the style is derived from: `{ hovered, focused, focusVisible, pressed, disabled }`. Stable across renders; treat as read-only — the handlers own the writes. |
 
-`states` exists so a component that already wires its state layer through `useGestureLayer` can derive _additional_ styles from the same gesture progress — without duplicating the gesture wiring through a parallel `useGesture` call. The canonical case is an elevation crossfade on hover:
+`states` exists so that a component that already wires its state layer through `useGestureLayer` can derive _more_ styles from the same gesture progress, without a parallel `useGesture` call. The canonical case is an elevation crossfade on hover:
 
 ```tsx
 import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
@@ -869,15 +869,15 @@ const shadow = useShadow({
 // <Animated.View style={[style, shadow]} />
 ```
 
-The gesture entries (`hovered` / `focused` / `focusVisible` / `pressed`) are the same shared values `useGesture` returns; `disabled` is the hook's own 0↔1 progress for the `options.disabled` override. Any of them also plug into a custom `useAnimatedStyle` or `useDerivedValue` for derivations the composed style can't express.
+The gesture entries (`hovered`, `focused`, `focusVisible`, `pressed`) are the same shared values that `useGesture` returns. `disabled` is the own progress (0 to 1) of the hook for the `options.disabled` override. Each of them also works in a custom `useAnimatedStyle` or `useDerivedValue`, for a derivation that the composed style can't express.
 
-**`useGestureLayer` vs the declarative `gesture` prop.** The prop composites states as a fixed **priority cascade** (`hovered → focused → focusVisible → pressed`) — when two layers are fully active, the value converges to the higher-priority layer's target, regardless of which is numerically stronger. `useGestureLayer` composites numerics via **clamped-max** — pressing while hovered shows whichever target is _stronger_ per-key, whatever its priority. The MD3 / iOS-translucent halo wants clamped-max so a weaker press target can't visually "dim" an active hover layer. Reach for the prop for ordinary button feedback (`{ scale: 0.96 }` on press layering over an opacity hover); reach for this hook when targets are state-layer overlays whose strongest value should win.
+**`useGestureLayer` vs the declarative `gesture` prop.** The prop composites states as a fixed **priority cascade** (`hovered → focused → focusVisible → pressed`). When two layers are fully active, the value converges to the target of the higher-priority layer, whichever is numerically stronger. `useGestureLayer` composites numbers with **clamped-max**. A press while hovered shows the _stronger_ target per key, whatever its priority. The MD3 and iOS translucent halo wants clamped-max, so that a weaker press target can't "dim" an active hover layer. Use the prop for ordinary button feedback (`{ scale: 0.96 }` on press over an opacity hover). Use this hook when the targets are state-layer overlays whose strongest value must win.
 
-**`useGestureLayer` vs `useGesture` + custom worklet.** `useGesture` returns the raw 0↔1 progress shared values. Use it for compositions this hook doesn't express — additive blends, per-key custom rules, multi-target outputs (e.g. a halo plus a separate ring that uses different math). `useGestureLayer` is the convenience layer for the one composition model it owns.
+**`useGestureLayer` vs `useGesture` with a custom worklet.** `useGesture` returns the raw progress shared values (0 to 1). Use it for a composition that this hook doesn't express: an additive blend, a custom rule per key, several outputs (for example, a halo plus a separate ring with different math). `useGestureLayer` is the convenience layer for the one composition model that it owns.
 
 ## `useVariants(variants, initial?)`
 
-Build a controller for a variants map. Pass it through `controller={...}` to drive transitions imperatively.
+Builds a controller for a variants map. Pass it through `controller={...}` to drive transitions imperatively.
 
 ```ts
 import { useVariants } from '@rootnative/inertia'
@@ -900,15 +900,15 @@ Returns `{ current, transitionTo, subscribe }`:
 | `transitionTo` | `(next: keyof V & string) => void` | No-op if `next === current`. Warns on unknown keys in dev.       |
 | `subscribe`    | `(listener) => () => void`         | Internal. Motion primitives subscribe via the `controller` prop. |
 
-The controller is identity-stable — the hook returns the same object across renders. It also pins the `variants` map it received on the first render: if a later render passes a different map object, the controller keeps validating keys against the first one. Define the map once (module scope or `useMemo`) rather than inline in render.
+The controller keeps its identity. The hook returns the same object across renders. It also pins the `variants` map from the first render. If a later render passes a different map object, the controller still checks keys against the first one. Define the map once (at module scope or in `useMemo`), not inline in render.
 
-Do not set `controller` and `animate` on the same primitive — the controller drives the animation and `animate` is ignored (warns in dev).
+Don't set `controller` and `animate` on the same primitive. The controller drives the animation, and the primitive ignores `animate` (with a warning in dev).
 
 See [Variants](../variants) for the props-side usage.
 
 ## `useMotionConfig()`
 
-Read the active `<MotionConfig>` value:
+Reads the active `<MotionConfig>` value:
 
 ```ts
 import { useMotionConfig } from '@rootnative/inertia'
@@ -918,11 +918,11 @@ const { reducedMotion, transitions } = useMotionConfig()
 // transitions: the merged named-transition registry from ancestor providers
 ```
 
-Returns the default (`{ reducedMotion: 'user', transitions: {} }`) when no provider is in the tree.
+It returns the default (`{ reducedMotion: 'user', transitions: {} }`) when the tree has no provider.
 
 ## `useShouldReduceMotion()`
 
-Resolve the active reduced-motion mode to a boolean. `'user'` consults Reanimated's OS-backed hook; `'never'` and `'always'` shortcut to `false` / `true`.
+Resolves the active reduced-motion mode to a boolean. `'user'` asks the OS-backed hook of Reanimated. `'never'` returns `false`, and `'always'` returns `true`.
 
 ```ts
 import { useShouldReduceMotion } from '@rootnative/inertia'
@@ -934,11 +934,11 @@ function MyVideoIntro() {
 }
 ```
 
-This is what every Motion primitive uses to decide whether to swap transitions for `'no-animation'`. Subscribes to OS changes — components re-render when the user toggles the setting at runtime.
+Every Motion primitive uses this hook to decide whether to swap transitions for `'no-animation'`. It subscribes to OS changes, so a component re-renders when the user changes the setting at runtime.
 
 ## `usePresence()`
 
-Read the per-child presence context inside a custom component you'd like to behave like a Motion primitive under `<Presence>`:
+Reads the per-child presence context inside a custom component that must behave like a Motion primitive under `<Presence>`:
 
 ```ts
 import { usePresence } from '@rootnative/inertia'
@@ -951,13 +951,13 @@ function CustomExitable() {
 }
 ```
 
-A call to `usePresence()` also tells `<Presence>` that the child has a consumer. The child then stays mounted after it departs until `safeToRemove()` runs, or until every `Motion.*` under it has finished its exit. A departing child with no consumer and no `Motion.*` is removed at once. A component that reads `isPresent` only, and never calls `safeToRemove()`, does not hold a child that has a `Motion.*` inside it.
+A call to `usePresence()` also tells `<Presence>` that the child has a consumer. The child then stays mounted after it departs, until `safeToRemove()` runs or until every `Motion.*` under it finishes its exit. `Presence` removes a departing child with no consumer and no `Motion.*` at once. A component that reads only `isPresent`, and never calls `safeToRemove()`, doesn't hold a child that has a `Motion.*` inside it.
 
 See [Presence](../presence) for the higher-level prop-driven usage.
 
 ## `buildReleaseAnimation(transition, toValue, callback?)`
 
-Worklet-safe single-step animation builder. Mirrors a subset of [`resolveTransition`](./transition-utilities.md#resolvetransitionconfig-tovalue-callback) for the UI-thread path where the transition config is picked at gesture-release time, not at render time. Supports `spring` / `timing` / `decay` / `no-animation`; sequences, top-level `repeat`, and easing-function auto-worklet-wrapping are not.
+A worklet-safe builder for a single-step animation. It mirrors a subset of [`resolveTransition`](./transition-utilities.md#resolvetransitionconfig-tovalue-callback) for the UI-thread path, where you pick the transition config at gesture release, not at render. It supports `spring`, `timing`, `decay`, and `no-animation`. It doesn't support a sequence, a top-level `repeat`, or the automatic worklet wrap of an easing function.
 
 ```ts
 import { buildReleaseAnimation } from '@rootnative/inertia'
@@ -975,19 +975,19 @@ const pan = usePanGesture({
 })
 ```
 
-For decay transitions, the second argument is ignored — decay decelerates from the SV's current position via its own physics.
+A decay transition ignores the second argument. A decay slows down from the current position of the shared value with its own physics.
 
-`callback`, when provided, fires once when the animation settles — the same `(finished) => void` shape Reanimated's `with*` factories accept. It runs on the UI thread; bridge to JS-thread code with `runOnJS(...)` inside it. For `no-animation` it fires synchronously with `finished: true`, since a direct assignment has no settle point of its own. This is what `useSwipe`'s `onSwipeEnd` rides on.
+`callback`, when you pass one, fires once when the animation settles. It has the same `(finished) => void` shape that the `with*` factories of Reanimated accept. It runs on the UI thread. Bridge to JS-thread code with `runOnJS(...)` inside it. For `no-animation`, it fires synchronously with `finished: true`, because a direct assignment has no settle point of its own. The `onSwipeEnd` of `useSwipe` uses this callback.
 
 | Signature                                                                                            | Returns                                                                  |
 | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `buildReleaseAnimation(transition: TransitionConfig, toValue: number, callback?: AnimationCallback)` | Reanimated animation value (assign to a `SharedValue<number>` directly). |
 
-Most consumers reach for `useDrag({ onRelease })` from `@rootnative/inertia-gestures` instead — it wraps this builder behind a per-axis return shape. Use `buildReleaseAnimation` directly when you're authoring a custom `onDeactivate` worklet for a Gesture Handler hook outside the adapter hooks.
+Most apps use `useDrag({ onRelease })` from `@rootnative/inertia-gestures` instead. It wraps this builder behind a return shape per axis. Use `buildReleaseAnimation` directly when you write a custom `onDeactivate` worklet for a Gesture Handler hook outside the adapter hooks.
 
 ## `useTranslateStyle(x, y)`
 
-Animated style that translates by two shared values: `transform: [{ translateX: x }, { translateY: y }]`. This is the `animatedStyle` every drag-style hook returns (`useTouchDrag`, and `useDrag` / `usePan` / `useSwipe` in `@rootnative/inertia-gestures`). Use it directly when a custom gesture owns its own translation values.
+An animated style that translates by two shared values: `transform: [{ translateX: x }, { translateY: y }]`. This is the `animatedStyle` that every drag hook returns (`useTouchDrag`, and `useDrag`, `usePan`, and `useSwipe` in `@rootnative/inertia-gestures`). Use it directly when a custom gesture owns its own translation values.
 
 ```tsx
 import { Motion, useMotionValue, useTranslateStyle } from '@rootnative/inertia'
@@ -1004,13 +1004,13 @@ function Puck() {
 | ------------------------------------------------------------------- | ---------------- |
 | `useTranslateStyle(x: SharedValue<number>, y: SharedValue<number>)` | `TranslateStyle` |
 
-`TranslateStyle`, `ColorStyle` (from `useColorTransition` / `useColorCascade`) and `ShadowStyle` (from `useShadow`) are **plain style objects**, not Reanimated's branded `AnimatedStyleHandle`. Reanimated 4.5 brands what `useAnimatedStyle` returns, and a branded value is rejected inside a `StyleProp` array — so these hooks state the plain shape instead, and a style-array call site needs no cast. The brand is compile-time only; the value is still the animated style Reanimated produced.
+`TranslateStyle`, `ColorStyle` (from `useColorTransition` and `useColorCascade`), and `ShadowStyle` (from `useShadow`) are **plain style objects**, not the branded `AnimatedStyleHandle` of Reanimated. Reanimated 4.5 brands what `useAnimatedStyle` returns, and a `StyleProp` array rejects a branded value. So these hooks state the plain shape instead, and a style-array call site needs no cast. The brand exists at compile time only. The value is still the animated style that Reanimated made.
 
-The style owns the whole `transform` key. Do not stack a second transform style beside it — `transform` is one key in React Native, so the later style replaces this one instead of merging. Nest another animated view, or build one style from `x` / `y` with `useInterpolatedStyle`, to add a transform.
+The style owns the whole `transform` key. Don't put a second transform style next to it. `transform` is one key in React Native, so the later style replaces this one and doesn't merge. To add a transform, nest another animated view, or build one style from `x` and `y` with `useInterpolatedStyle`.
 
 ## `applyBounds(value, min, max, elastic)`
 
-Clamp `value` to `[min, max]`. When `elastic > 0` the overshoot past a bound is scaled by `elastic` instead of hard-clamped, which gives a rubber-band feel. `min` / `max` may be `undefined` to leave that side unbounded. It is a worklet, so it runs inside a gesture-handler pan handler on the UI thread and from a JS-thread `PanResponder` callback alike. `useTouchDrag` and `useDrag` apply their `constraints` and `elastic` options through it.
+Clamps `value` to `[min, max]`. When `elastic > 0`, the function scales the overshoot past a bound by `elastic` instead of a hard clamp. That gives an elastic feel. `min` and `max` can be `undefined`, which leaves that side open. It's a worklet, so it runs inside a gesture-handler pan handler on the UI thread, and also from a JS-thread `PanResponder` callback. `useTouchDrag` and `useDrag` apply their `constraints` and `elastic` options through it.
 
 ```ts
 import { applyBounds } from '@rootnative/inertia'
@@ -1026,7 +1026,7 @@ applyBounds(50, undefined, 100, 0) // 50
 
 ## `useTouchDrag(options?)`
 
-PanResponder-backed drag hook. The zero-extra-peer-dep counterpart to `useDrag` from `@rootnative/inertia-gestures` — both share the same `onRelease` shape, but `useTouchDrag` lives in core (`@rootnative/inertia/touch`) and returns `panHandlers` to spread on a `View` instead of a `gesture` object for `<GestureDetector>`. Do not spread them on a `Pressable`: it spreads its own responder handlers after yours, and they replace the pan handlers, so the drag does not move.
+A drag hook on PanResponder. It's the counterpart of `useDrag` from `@rootnative/inertia-gestures`, with no extra peer dependency. Both share the same `onRelease` shape. `useTouchDrag` lives in core (`@rootnative/inertia/touch`) and returns `panHandlers` to spread on a `View`, instead of a `gesture` object for `<GestureDetector>`. Don't spread them on a `Pressable`. `Pressable` spreads its own responder handlers after yours, and they replace the pan handlers, so the drag doesn't move.
 
 ```tsx
 import { Motion } from '@rootnative/inertia'
@@ -1065,10 +1065,10 @@ function Slider({ ticks }: { ticks: number[] }) {
 | `onDragEnd`   | `(info: { x, y, velocity: { x, y } }) => void` | none     | Fires on JS thread when drag ends. Velocity normalized to px/sec.                                               |
 | `onRelease`   | `(info) => ReleaseResult \| void`              | none     | JS-thread release transition. Same shape as the gesture-handler `useDrag`'s `onRelease`.                        |
 
-Returns `{ panHandlers, animatedStyle, dragX, dragY, isDragging }`.
+The hook returns `{ panHandlers, animatedStyle, dragX, dragY, isDragging }`.
 
-**When the bounds change.** A new `constraints` value applies from the next drag. An element at rest outside the new bounds stays there, and it jumps at the first move of the next drag. To move it at once, write `dragX` / `dragY` when you change the bounds. For example, after a rotate changes the width of a slider track, set the thumb to the same fraction of the new track.
+**When the bounds change.** A new `constraints` value applies from the next drag. An element at rest outside the new bounds stays there, and it jumps at the first move of the next drag. To move it at once, write `dragX` or `dragY` when you change the bounds. For example, after a rotate changes the width of a slider track, set the thumb to the same fraction of the new track.
 
-**When to pick `useTouchDrag` over `useDrag` from `@rootnative/inertia-gestures`:** you want key steps on the dragged element (arrow keys, `PageUp` / `PageDown`; see **Keyboard** below for the platforms), OR you don't want to take `react-native-gesture-handler` as a peer dep. **When to skip it:** you're already using `react-native-gesture-handler` elsewhere — the gesture-handler `useDrag`'s release velocity is UI-thread and slightly more precise; consistency across the app trumps a small per-call win.
+**When to pick `useTouchDrag` over `useDrag` from `@rootnative/inertia-gestures`:** you want key steps on the dragged element (arrow keys, `PageUp`, `PageDown`; see **Keyboard** below for the platforms), or you don't want `react-native-gesture-handler` as a peer dependency. **When to skip it:** you already use `react-native-gesture-handler` elsewhere. The release velocity of the gesture-handler `useDrag` comes from the UI thread and is a little more precise. Consistency across the app matters more than a small gain per call.
 
 **Keyboard.** `useTouchDrag` composes with `onKeyDown`, but the key events come from the platform. `onKeyDown` fires on web. On Android, React Native sends key events only when the app turns on the `enableKeyEvents` feature flag in its native code, and Expo Go leaves it off. iOS sends no key events. For a screen reader on iOS and Android, give the element `accessibilityActions` with `increment` and `decrement`, and step the value in `onAccessibilityAction`.

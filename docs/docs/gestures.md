@@ -5,7 +5,7 @@ description: One gesture prop on every Motion primitive, with no handlers mounte
 
 # Gestures
 
-A single `gesture` prop on every Motion primitive — no `whileTap` / `whilePress` soup, no separate "pressable" variant. When the prop is omitted no handlers are mounted (zero overhead).
+Every Motion primitive has one `gesture` prop. There is no `whileTap` or `whilePress` family, and no separate "pressable" variant. When you omit the prop, Inertia mounts no handlers, so the prop has zero overhead.
 
 ```tsx
 <Motion.View
@@ -28,7 +28,7 @@ A single `gesture` prop on every Motion primitive — no `whileTap` / `whilePres
 | `focusVisible` | The focus shows a ring (W3C `:focus-visible`): on web, the browser's `:focus-visible` for the focused element; keyboard focus everywhere. On native — where focus always arrives via D-pad / hardware keyboard / screen reader — behaves identically to `focused`. | `onFocus`, which asks the focused element whether it matches `:focus-visible`. A module-level input-modality tracker (web `keydown` vs `pointerdown` / `mousedown` / `touchstart`; a ⌘, Ctrl or Alt chord does not count) is the fallback when the event has no focused target or the browser does not support the selector. The tracker's `document` listeners attach when the first component that declares `focusVisible` mounts, not at import, so the package stays `sideEffects: false`. |
 | `hovered`      | Pointer is over the component. **Web-only**, no-op on native.                                                                                                                                                                                                      | `onMouseEnter` / `onMouseLeave`.                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
-Sub-states layer over the base `animate` target per-property. When a sub-state is released, the property animates back to whatever was set in `animate`. If `animate` doesn't touch that property, it rests at **whatever your static `style` sets** — so the focus ring above returns to the `borderColor` on the element's own stylesheet, and you don't have to restate resting values in `animate` just because a sub-state mentions them:
+A sub-state layers over the base `animate` target, property by property. When a sub-state releases, the property animates back to the value in `animate`. If `animate` doesn't set that property, the property rests at **the value in your static `style`**. So the focus ring above returns to the `borderColor` of the stylesheet of the element. You don't have to repeat a resting value in `animate` only because a sub-state names it:
 
 ```tsx
 const styles = StyleSheet.create({
@@ -39,9 +39,9 @@ const styles = StyleSheet.create({
 <Motion.View style={styles.field} gesture={{ focused: { borderColor: '#4f46e5' } }} />
 ```
 
-Only when neither `animate` nor `style` provides a value does the property fall back to its type default (`0` for numbers, `transparent` for colors). The same rule covers `exit` targets and properties that appear in only some `variants` branches — a key mentioned by any of them joins the animated set, but it rests on your style until something actually drives it.
+When neither `animate` nor `style` gives a value, the property falls back to its type default (`0` for a number, `transparent` for a color). The same rule covers `exit` targets and a property that appears in only some `variants` branches. A key that any of them names joins the animated set, but it rests on your style until something drives it.
 
-Use `focused` for state-layer fills (any focus, including click-focus on web) and `focusVisible` for focus rings. Declaring both gives you the right behaviour automatically: clicking a button shows the state layer; tabbing to it shows the state layer **and** the ring.
+Use `focused` for a state-layer fill (any focus, including click focus on web) and `focusVisible` for a focus ring. Declare both, and you get the correct behaviour: a click on a button shows the state layer, and a tab to the button shows the state layer **and** the ring.
 
 ### `focusVisible` follows the browser on web
 
@@ -51,9 +51,9 @@ The input-modality tracker is the fallback in three cases: a call with no event,
 
 **In jsdom tests**, `:focus-visible` matches every focused element, so a test that calls `element.focus()` always sees the ring. `fireEvent.focus` moves no focus and gets the fallback: fire a `keydown` or a `pointerdown` on `document` first to set the modality.
 
-### Author `pressed` against rest, not against `hovered`
+### Write `pressed` relative to rest, not to `hovered`
 
-Because `hovered` never activates on a touch device, a `pressed` target that only makes sense as a step down from `hovered` produces **no motion at all** on native:
+`hovered` never activates on a touch device. So a `pressed` target that only makes sense as a step down from `hovered` makes **no motion at all** on native:
 
 ```tsx
 // Wrong on native: pressed is value-identical to rest, so nothing animates.
@@ -66,9 +66,9 @@ Because `hovered` never activates on a touch device, a `pressed` target that onl
 />
 ```
 
-On web this reads correctly: hover lifts the card, press settles it. On iOS and Android there is no hover layer, so the cascade runs rest → `pressed` — and the two values are the same. The animation is a no-op, and nothing warns you, because a target equal to the resting value is perfectly legal.
+On web this works: hover lifts the card, and press settles it. On iOS and Android there is no hover layer, so the cascade runs from rest to `pressed`, and the two values are the same. The animation does nothing, and nothing warns you, because a target equal to the resting value is valid.
 
-Write each sub-state as an absolute target measured from **rest**, and treat `hovered` as an intermediate step that only some platforms see:
+Write each sub-state as an absolute target from **rest**. Treat `hovered` as an intermediate step that only some platforms see:
 
 ```tsx
 // Right: every layer differs from rest, so each one moves on every platform.
@@ -81,15 +81,15 @@ Write each sub-state as an absolute target measured from **rest**, and treat `ho
 />
 ```
 
-The general rule: **verify each sub-state against rest on its own**, since that is the only comparison a touch device ever makes.
+The general rule: **check each sub-state against rest on its own**, because that is the only comparison that a touch device makes.
 
 ## Priority
 
-When multiple sub-states are active at once, they composite as a **priority cascade** in this order — later layers composite over earlier ones:
+When several sub-states are active at once, they composite as a **priority cascade** in this order. A later layer composites over an earlier one:
 
 `hovered` → `focused` → `focusVisible` → `pressed`
 
-Each declared sub-state owns its own progress (0↔1) shared value that fades in when the sub-state activates and back out when it releases. The `useAnimatedStyle` worklet composites the layers per-property:
+Each declared sub-state owns a progress shared value (0 to 1). The value fades in when the sub-state activates and fades out when it releases. The `useAnimatedStyle` worklet composites the layers per property:
 
 ```
 v = base
@@ -99,15 +99,15 @@ v = lerp(v, focusVisible.value, progressFocusVisible) // if declared
 v = lerp(v, pressed.value,      progressPressed)      // if declared
 ```
 
-(Color-valued keys use `interpolateColor` instead of `lerp`.) When a single sub-state is active, this collapses to "highest-priority declared layer wins" — a `pressed` target overrides everything below it. The win of layered composition is in **overlapping transitions**: release-while-still-hovered fades the press layer back to 0 independently while the hover layer holds at 1, so the value lands on the hover target rather than snapping back to base.
+A color key uses `interpolateColor` instead of `lerp`. When one sub-state is active, the rule is: the declared layer with the highest priority wins. A `pressed` target overrides every layer below it. The gain of layered composition shows in **overlapping transitions**. When you release a press while the pointer still hovers, the press layer fades back to 0 on its own, while the hover layer stays at 1. So the value lands on the hover target and doesn't snap back to the base.
 
 ## Per-layer transitions
 
-Each layer animates with its own transition. Resolution priority:
+Each layer animates with its own transition. Inertia resolves it in this order:
 
-1. `transition.<stateName>` on the parent primitive (e.g. `transition.pressed`)
-2. The top-level `transition` (when written as a top-level transition object)
-3. Library default (spring)
+1. `transition.<stateName>` on the primitive (for example `transition.pressed`)
+2. The top-level `transition`, when you write it as a top-level transition object
+3. The library default (a spring)
 
 ```tsx
 <Motion.Pressable
@@ -123,15 +123,15 @@ Each layer animates with its own transition. Resolution priority:
 />
 ```
 
-Per-layer entries (`pressed`, `hovered`, …) and per-property entries (`backgroundColor`, `opacity`, …) live on the same `transition` map and don't conflict — none of the gesture-layer names are valid style props.
+Per-layer entries (`pressed`, `hovered`, …) and per-property entries (`backgroundColor`, `opacity`, …) share the same `transition` map. They don't conflict, because no gesture-layer name is a valid style prop.
 
 ## Type inference
 
-`gesture` sub-states are typed against the same `style`-derived shape as `animate`. So `tintColor` autocompletes inside `gesture.pressed` on `Motion.Image` and is rejected on `Motion.View`.
+A `gesture` sub-state has the same `style`-derived type as `animate`. So `tintColor` autocompletes inside `gesture.pressed` on `Motion.Image`, and `Motion.View` rejects it.
 
 ## Composing user handlers
 
-Inertia composes its internal handlers with whatever you've already attached:
+Inertia composes its internal handlers with the handlers that you attach:
 
 ```tsx
 <Motion.Pressable
@@ -140,11 +140,11 @@ Inertia composes its internal handlers with whatever you've already attached:
 />
 ```
 
-Your `onPressIn` runs first, then the internal pressed-state setter. The same composition applies to every event the gesture prop subscribes to.
+Your `onPressIn` runs first, then the internal pressed-state setter. The same order applies to every event that the gesture prop subscribes to.
 
 ## When the prop isn't enough — `useGesture`
 
-The `gesture` prop animates the receiver's own style. If you need one Pressable's gesture state to drive **multiple** animated views (a focus ring rendered as a sibling, an MD3 state-layer halo over the content, a separate icon-color animation), reach for [`useGesture`](./api/hooks#usegesturetransition) — the hook-form of this prop. It returns the underlying 0↔1 progress shared values for `pressed` / `focused` / `focusVisible` / `hovered` plus a handler bag to spread on a `Pressable`. Feed the shared values into as many `useAnimatedStyle` blocks as you need.
+The `gesture` prop animates the own style of the primitive. Sometimes the gesture state of one Pressable must drive **several** animated views: a focus ring as a sibling, an MD3 state-layer halo over the content, a separate icon-color animation. Then use [`useGesture`](./api/hooks#usegesturetransition), the hook form of this prop. It returns the progress shared values (0 to 1) for `pressed`, `focused`, `focusVisible`, and `hovered`, plus a set of handlers to spread on a `Pressable`. Feed the shared values into as many `useAnimatedStyle` blocks as you need.
 
 ```tsx
 const { pressed, focused, hovered, handlers } = useGesture()
@@ -152,11 +152,11 @@ const { pressed, focused, hovered, handlers } = useGesture()
 <Pressable {...handlers}>{children}</Pressable>
 ```
 
-The prop and the hook share the layered-blend model, the `isFocusVisible()` semantics, and the `<MotionConfig reducedMotion>` gating — they're the same machinery, two surfaces.
+The prop and the hook share the layered-blend model, the `isFocusVisible()` rules, and the `<MotionConfig reducedMotion>` gate. They are the same machinery with two surfaces.
 
 ## When you want MD3 state-layer overlays — `useGestureLayer`
 
-The `gesture` prop composites states as a fixed **priority cascade** — when hovered and pressed are both fully active, the value converges to the `pressed` target because it sits highest in the cascade, regardless of which target is numerically stronger. MD3 state-layer haloes and iOS-translucent overlays want a different model: **clamped-max**, where simultaneously hovered + pressed shows whichever target is _stronger_ per-key, whatever its priority. [`useGestureLayer`](./api/hooks#usegesturelayerstates-options) at `@rootnative/inertia/gesture-layer` is the convenience layer for that model — supply per-state target maps (`rest` / `hovered` / `focused` / `focusVisible` / `pressed` / `disabled`), the hook owns the worklet, the disabled override, and the transition.
+The `gesture` prop composites states as a fixed **priority cascade**. When hovered and pressed are both fully active, the value converges to the `pressed` target, because `pressed` is highest in the cascade, whichever target is numerically stronger. An MD3 state-layer halo or an iOS translucent overlay wants a different model: **clamped-max**. There, hovered plus pressed shows the _stronger_ target per key, whatever its priority. [`useGestureLayer`](./api/hooks#usegesturelayerstates-options) at `@rootnative/inertia/gesture-layer` is the convenience layer for that model. You supply a target map per state (`rest`, `hovered`, `focused`, `focusVisible`, `pressed`, `disabled`). The hook owns the worklet, the disabled override, and the transition.
 
 ```tsx
 import { useGestureLayer } from '@rootnative/inertia/gesture-layer'
@@ -168,10 +168,10 @@ const { style, handlers } = useGestureLayer({
 })
 ```
 
-Numeric keys compose via clamped-max; color keys compose via priority cascade (`hovered → focused → focusVisible → pressed`); `disabled` sits on top of both. The result also carries `states` — the per-state 0↔1 progress shared values behind the composed style — so extra styles can derive from the same gesture wiring (e.g. `useShadow({ from, to, progress: states.hovered })` for an elevation crossfade) without a second `useGesture` call. Reach for plain `useGesture` if the composition model doesn't fit (additive blends, multiply, per-key custom rules).
+A numeric key composes with clamped-max. A color key composes with the priority cascade (`hovered → focused → focusVisible → pressed`). `disabled` sits on top of both. The result also carries `states`, the progress shared values (0 to 1) per state behind the composed style. So an extra style can derive from the same gesture wiring without a second `useGesture` call, for example `useShadow({ from, to, progress: states.hovered })` for an elevation crossfade. Use plain `useGesture` when the composition model doesn't fit (an additive blend, a multiply, a custom rule per key).
 
 ## When you need drag, pan, or swipe
 
-The `gesture` prop covers Pressable-shaped states — anything that boils down to "active / inactive / focused / hovered". For continuous, value-bearing gestures (a thumb that follows the finger, a sheet that flicks closed, a carousel with momentum), reach for the [gestures adapter](./gestures-adapter): `useDrag`, `usePan`, `useSwipe`. It's an opt-in sibling package so the core library doesn't ship a `react-native-gesture-handler` peer for apps that only animate buttons.
+The `gesture` prop covers Pressable-shaped states: active, inactive, focused, and hovered. For a continuous gesture with a value (a thumb that follows the finger, a sheet that flicks closed, a carousel with momentum), use the [gestures adapter](./gestures-adapter): `useDrag`, `usePan`, and `useSwipe`. It's an opt-in sibling package, so the core library has no `react-native-gesture-handler` peer for an app that only animates buttons.
 
-A fully gesture-driven `Slider` is the canonical example the core package can't build alone — the thumb's position has to track touch X continuously, and that's what the adapter is for.
+A fully gesture-driven `Slider` is the canonical example that the core package can't build alone. The position of the thumb has to follow the touch X continuously, and that is what the adapter is for.

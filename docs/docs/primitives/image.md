@@ -5,7 +5,7 @@ description: Animatable Image, typed against ImageStyle — so tintColor autocom
 
 # Motion.Image
 
-Animatable `Image`. `animate` / `initial` / `exit` / `gesture` are typed against `ImageStyle`, so `tintColor` autocompletes here (and is rejected on other primitives).
+Animatable `Image`. `animate`, `initial`, `exit`, and `gesture` take the `ImageStyle` type, so `tintColor` autocompletes here, and the other primitives reject it.
 
 ```tsx
 import { Motion } from '@rootnative/inertia'

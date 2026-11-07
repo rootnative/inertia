@@ -5,7 +5,7 @@ description: Animatable Text, with animate, initial, exit, and gesture typed aga
 
 # Motion.Text
 
-Animatable `Text`. `animate` / `initial` / `exit` / `gesture` are typed against `TextStyle`.
+Animatable `Text`. `animate`, `initial`, `exit`, and `gesture` take the `TextStyle` type.
 
 ```tsx
 import { Motion } from '@rootnative/inertia'
@@ -34,7 +34,7 @@ import { MotionText } from '@rootnative/inertia/text'
 
 `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `color`, `backgroundColor`, plus the layout numerics listed in [Animatable properties](.#animatable-properties).
 
-**Text metrics** — `fontSize`, `letterSpacing`, and `lineHeight` animate as of `0.0.5` (before that they typechecked but were silently dropped, and the docs recommended a hand-rolled `useAnimatedStyle`; that workaround is no longer needed). They're `TextStyle`-only, so they're rejected at compile time on `Motion.View` and `Motion.Image`.
+**Text metrics.** `fontSize`, `letterSpacing`, and `lineHeight` animate since `0.0.5`. Before that, they passed the type check but did nothing, and the docs recommended a hand-written `useAnimatedStyle`. You don't need that workaround anymore. They exist on `TextStyle` only, so `Motion.View` and `Motion.Image` reject them at compile time.
 
 ```tsx
 <Motion.Text
@@ -46,7 +46,7 @@ import { MotionText } from '@rootnative/inertia/text'
 </Motion.Text>
 ```
 
-Each of these re-measures the text every frame, which is heavier than the transform path. When you only need the text to _look_ bigger and reflow isn't wanted, animate `scale` instead — it composites without re-measuring. Use `fontSize` when surrounding content genuinely must reflow around the new size.
+Each of these keys measures the text again on every frame, which costs more than the transform path. When the text only has to _look_ bigger, and you don't want a reflow, animate `scale` instead. It composites with no new measurement. Use `fontSize` when the content around the text must reflow around the new size.
 
 ```tsx
 <Motion.Text
