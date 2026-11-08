@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.28] - 2026-11-08
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.28` (`useHideOnScroll` starts again when its offset source changes). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.28 <0.1.0`. The README and `llms.txt` use plainer wording, with the same API and facts.
+
 ## [0.0.27] - 2026-11-05
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.27` (`useScroll` returns the end of the content as `maxScrollX` and `maxScrollY`, and `useSpring` reads a shared value target during the first render only). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.27 <0.1.0`.
@@ -169,7 +173,8 @@ _No git tag was cut for this release; the published artifact is on npm as [`@roo
 
 - `MotionLinearGradient` over `expo-linear-gradient`. Accepts the same `initial` / `animate` / `transition` shape as the core `Motion.*` primitives, with animatable keys for `colors`, `start`, `end`, and `locations`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.27...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.28...HEAD
+[0.0.28]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.28
 [0.0.27]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.27
 [0.0.26]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.26
 [0.0.25]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.25

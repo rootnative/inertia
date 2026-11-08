@@ -4,9 +4,15 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.28] - 2026-11-08
+
 ### Fixed
 
 - **`useHideOnScroll` starts again when its offset source changes.** A new `offset` or `maxOffset` rebuilt the reaction, but the hook kept the previous offset and the progress of the old source. So a bar that follows the active list of a tab screen read the switch as one long scroll: a second list that rested lower hid the bar, and one that rested higher did nothing until the user scrolled past the old position. Now the progress returns to 0 on a new source, and the next movement counts from the position of the new offset. The check runs inside the reaction, on the UI thread, so nothing is written during render.
+
+### Documentation
+
+- **The README and `llms.txt` use plainer wording.** The sentences are shorter, and each list item names what it does. The API and the facts are the same.
 
 ## [0.0.27] - 2026-11-05
 
@@ -611,7 +617,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.27...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.28...HEAD
+[0.0.28]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.28
 [0.0.27]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.27
 [0.0.26]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.26
 [0.0.25]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.25
