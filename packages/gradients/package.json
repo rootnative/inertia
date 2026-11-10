@@ -3,7 +3,7 @@
   "version": "0.0.28",
   "description": "Animated linear gradient primitive for @rootnative/inertia, built on expo-linear-gradient.",
   "license": "MIT",
-  "author": "RootNative",
+  "author": "Root Native",
   "homepage": "https://github.com/rootnative/inertia",
   "repository": {
     "type": "git",

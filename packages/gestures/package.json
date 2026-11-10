@@ -3,7 +3,7 @@
   "version": "0.0.28",
   "description": "Gesture-handler-driven drag / pan / swipe adapters for @rootnative/inertia.",
   "license": "MIT",
-  "author": "RootNative",
+  "author": "Root Native",
   "homepage": "https://github.com/rootnative/inertia",
   "repository": {
     "type": "git",
