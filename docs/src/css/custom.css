@@ -50,6 +50,8 @@
   --inertia-fg-subtle: #71717a;
   --inertia-accent: #4f46e5;
   --inertia-accent-2: #ec4899;
+  --inertia-accent-tint: rgba(79, 70, 229, 0.08);
+  --inertia-accent-2-tint: rgba(236, 72, 153, 0.07);
 }
 
 /* `html[...]`, not `[...]`: Infima sets its dark background under
@@ -76,6 +78,8 @@ html[data-theme='dark'] {
   --inertia-fg-subtle: #8a8a93;
   --inertia-accent: #818cf8;
   --inertia-accent-2: #f472b6;
+  --inertia-accent-tint: rgba(129, 140, 248, 0.14);
+  --inertia-accent-2-tint: rgba(244, 114, 182, 0.1);
 }
 
 html {

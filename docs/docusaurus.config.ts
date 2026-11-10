@@ -197,7 +197,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} RootNative — MIT Licensed`,
+      copyright: `Copyright © ${new Date().getFullYear()} Root Native — MIT Licensed`,
     },
     prism: {
       additionalLanguages: ['bash'],

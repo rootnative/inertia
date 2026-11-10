@@ -7,6 +7,24 @@
   border-bottom: 1px solid var(--inertia-border);
 }
 
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 40% 55% at 80% 25%,
+      var(--inertia-accent-tint),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 35% 45% at 62% 75%,
+      var(--inertia-accent-2-tint),
+      transparent 70%
+    );
+}
+
 .heroGrid {
   position: absolute;
   inset: 0;
@@ -44,13 +62,43 @@
 }
 
 .eyebrow {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--inertia-border);
+  border-radius: 999px;
+  background: var(--inertia-surface-muted);
   font-family: var(--ifm-font-family-monospace);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0.02em;
-  color: var(--inertia-fg-subtle);
+  color: var(--inertia-fg-muted);
   margin-bottom: 1.25rem;
+}
+
+.eyebrowDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    var(--inertia-accent-2),
+    var(--inertia-accent)
+  );
+}
+
+/* The direction of the mark's gradient: pink at the start, indigo at the end. */
+.heroHighlight,
+.statValue {
+  background: linear-gradient(
+    100deg,
+    var(--inertia-accent-2),
+    var(--inertia-accent) 70%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .heroTitle {
@@ -129,7 +177,7 @@
 .ctaSecondary:hover {
   color: var(--inertia-fg);
   text-decoration: none;
-  border-color: var(--inertia-fg);
+  border-color: var(--inertia-accent);
   transform: translateY(-1px);
 }
 
@@ -149,11 +197,11 @@
 }
 
 .copyCommand:hover {
-  border-color: var(--inertia-border-strong);
+  border-color: var(--inertia-accent);
 }
 
 .copyPrompt {
-  color: var(--inertia-fg-subtle);
+  color: var(--inertia-accent);
   user-select: none;
 }
 
@@ -255,7 +303,7 @@
 }
 
 .demoOpenLink:hover {
-  color: var(--inertia-fg);
+  color: var(--inertia-accent);
   text-decoration: none;
 }
 
@@ -291,7 +339,6 @@
 }
 
 .statValue {
-  color: var(--inertia-fg);
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -304,6 +351,17 @@
 }
 
 /* ===== Shared section styles ===== */
+.sectionEyebrow {
+  display: block;
+  text-align: center;
+  color: var(--inertia-accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
 .sectionTitle {
   color: var(--inertia-fg);
   font-size: clamp(1.7rem, 3vw, 2.2rem);
@@ -352,7 +410,7 @@
 }
 
 .stepCard:hover {
-  border-color: var(--inertia-border-strong);
+  border-color: var(--inertia-accent);
   transform: translateY(-2px);
 }
 
@@ -360,7 +418,7 @@
   display: inline-block;
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--inertia-fg-subtle);
+  color: var(--inertia-accent);
   margin-bottom: 0.9rem;
   font-family: var(--ifm-font-family-monospace);
 }
@@ -425,7 +483,7 @@
 }
 
 .featureCard:hover {
-  border-color: var(--inertia-border-strong);
+  border-color: var(--inertia-accent);
   box-shadow: 0 12px 32px -20px hsla(0, 0%, 4%, 0.25);
   transform: translateY(-2px);
 }
@@ -438,9 +496,8 @@
   justify-content: center;
   border-radius: 12px;
   margin-bottom: 1.1rem;
-  background: var(--inertia-surface-muted);
-  border: 1px solid var(--inertia-border);
-  color: var(--inertia-fg);
+  background: var(--inertia-accent-tint);
+  color: var(--inertia-accent);
 }
 
 .featureIcon svg {
@@ -482,6 +539,7 @@
   min-width: 0;
 }
 
+.codePreviewText .sectionEyebrow,
 .codePreviewText .sectionTitle {
   text-align: left;
 }
@@ -499,7 +557,9 @@
   overflow: hidden;
   background: #101012;
   border: 1px solid var(--inertia-border-strong);
-  box-shadow: 0 30px 60px -25px rgba(10, 10, 10, 0.4);
+  box-shadow:
+    0 30px 60px -25px rgba(10, 10, 10, 0.4),
+    0 24px 64px -32px var(--inertia-accent);
 }
 
 .codeHeader {
@@ -592,7 +652,13 @@
 .bottomCta {
   padding: 5rem 2rem;
   text-align: center;
-  background: var(--inertia-surface-muted);
+  background:
+    radial-gradient(
+      ellipse 50% 80% at 50% 0%,
+      var(--inertia-accent-tint),
+      transparent 70%
+    ),
+    var(--inertia-surface-muted);
   border-top: 1px solid var(--inertia-border);
   overflow-x: clip;
 }
@@ -673,9 +739,11 @@
 
   .codePreviewInner {
     flex-direction: column;
+    align-items: stretch;
     gap: 2rem;
   }
 
+  .codePreviewText .sectionEyebrow,
   .codePreviewText .sectionTitle,
   .codePreviewText .sectionSubtitle {
     text-align: center;
@@ -707,7 +775,7 @@
 
   .stepsGrid,
   .featuresGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .heroVisual {

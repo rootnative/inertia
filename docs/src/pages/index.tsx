@@ -84,9 +84,13 @@ function Hero() {
       <div className={styles.heroGrid} aria-hidden />
       <div className={styles.heroInner}>
         <div className={styles.heroContent}>
-          <span className={styles.eyebrow}>React Native · Reanimated 4</span>
+          <span className={styles.eyebrow}>
+            <span className={styles.eyebrowDot} aria-hidden />
+            React Native · Reanimated 4
+          </span>
           <h1 className={styles.heroTitle}>
-            Declarative animations for React Native.
+            Declarative <span className={styles.heroHighlight}>animations</span>{' '}
+            for React Native.
           </h1>
           <p className={styles.heroTagline}>
             {siteConfig.tagline}. A thin wrapper around react-native-reanimated
@@ -181,6 +185,7 @@ function HowItWorks() {
   return (
     <section className={styles.howItWorks}>
       <div className={styles.howItWorksInner}>
+        <span className={styles.sectionEyebrow}>How it works</span>
         <h2 className={styles.sectionTitle}>Get started in 3 steps</h2>
         <p className={styles.sectionSubtitle}>
           From zero to your first animation in under a minute.
@@ -328,6 +333,7 @@ function Features() {
   return (
     <section className={styles.features}>
       <div className={styles.featuresInner}>
+        <span className={styles.sectionEyebrow}>Features</span>
         <h2 className={styles.sectionTitle}>Why Inertia</h2>
         <p className={styles.sectionSubtitle}>
           Built to clear specific sharp edges in existing Reanimated wrappers —
@@ -352,6 +358,7 @@ function CodePreview() {
     <section className={styles.codePreview}>
       <div className={styles.codePreviewInner}>
         <div className={styles.codePreviewText}>
+          <span className={styles.sectionEyebrow}>Example</span>
           <h2 className={styles.sectionTitle}>Declarative API, native feel</h2>
           <p className={styles.sectionSubtitle}>
             One <code className={styles.inlineCode}>animate</code> prop, one{' '}

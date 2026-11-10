@@ -1370,6 +1370,472 @@ A fully gesture-driven `Slider` is the canonical example that the core package c
 
 ---
 
+# Presence
+
+`<Presence>` keeps a child mounted long enough to play its `exit` animation after you remove the child from the tree. It has the same role as `<AnimatePresence>` in Framer Motion, with a smaller API.
+
+```tsx
+import { Motion, Presence } from '@rootnative/inertia'
+
+export function Toast({ visible }: { visible: boolean }) {
+  return (
+    <Presence>
+      {visible ? (
+        <Motion.View
+          key="toast"
+          initial={{ opacity: 0, translateY: 24 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          exit={{ opacity: 0, translateY: 24 }}
+          transition={{ type: 'spring', tension: 220, friction: 22 }}
+          style={toastStyles.toast}
+        />
+      ) : null}
+    </Presence>
+  )
+}
+```
+
+## How it works
+
+When a child disappears from the `children` array, `Presence` takes a snapshot of it and holds the snapshot in a JS-thread map. `Presence` unmounts the child after the child finishes its exit animation and calls `safeToRemove()`. `Presence` does **not** use the `entering` and `exiting` lifecycle of Reanimated. The exit frames are ordinary Motion animations that the `exit` prop of the child drives. That design lets an interrupted exit reverse smoothly when the child re-enters.
+
+## Required: `key`
+
+Every direct child of `<Presence>` must have an explicit `key`. Without a key, React uses the position as the identity, and a removal looks like a prop change. Then there is nothing to mark as exiting. `Presence` never renders a child with no key. A dev build also logs a warning. A production build drops the child with no message.
+
+## Tap-deaf exits
+
+When a child starts its exit animation, Inertia merges `pointerEvents: 'none'` into its style. A tap falls through to the element below. It doesn't start the node that is about to unmount again. In other libraries, this is the "two taps to open the popover again" defect. In Inertia you need one tap.
+
+## Re-entry interrupts exit
+
+If a key reappears in `children` while its child exits, the exit animation reverses toward the `animate` values. The component instance stays alive through the round trip, with no remount and no flicker.
+
+## Multiple children
+
+`Presence` handles lists too:
+
+```tsx
+<Presence>
+  {items.map((item) => (
+    <Motion.View
+      key={item.id}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    />
+  ))}
+</Presence>
+```
+
+Each child has its own exit timing. One row can finish its exit while another row still animates in.
+
+An exiting child animates out **in place**. It keeps its slot among its siblings until `Presence` removes it, right after its nearest sibling that stays. When you delete the middle row of a list, that row fades where it is. The rows below it don't move up during the animation. A sibling that you add or reorder while a child exits goes around the exiting child. Several adjacent exiting children keep their order.
+
+## Nested `Motion.*` children
+
+An exiting child stays mounted until every `Motion.*` inside it finishes its exit. A nested `Motion.*` with no `exit` finishes at once, so it doesn't cut the exit of the child that holds it. A nested `Motion.*` with a longer `exit` holds the child until that exit ends.
+
+```tsx
+<Presence>
+  {open ? (
+    <Motion.View key="sheet" exit={{ translateY: 400 }}>
+      {/* No `exit`: the sheet still slides out in full. */}
+      <Motion.View
+        animate={{ rotate: 360 }}
+        transition={{ repeat: 'infinite' }}
+      />
+      {/* A shorter `exit`: it fades, and the sheet keeps sliding. */}
+      <Motion.View
+        exit={{ opacity: 0 }}
+        transition={{ type: 'timing', duration: 100 }}
+      />
+    </Motion.View>
+  ) : null}
+</Presence>
+```
+
+So a component that animates on its own, such as a spinner or a skeleton, can go inside a sheet or a dialog with no `exit` of its own.
+
+A custom component that calls `usePresence()` and then `safeToRemove()` removes the child at once. `safeToRemove()` doesn't wait for the `Motion.*` exits, so call it only after the whole exit finishes.
+
+## A child with no `Motion.*` leaves at once
+
+A departing child with no `Motion.*` and no `usePresence()` consumer has nothing to animate and nothing to wait for. `Presence` removes it at once, with no exit animation. So a loading placeholder in a plain `View` can swap for its content under one `<Presence>`:
+
+```tsx
+<Presence>
+  {loading ? (
+    <View key="loading">
+      <Spinner />
+    </View>
+  ) : (
+    <Motion.View
+      key="content"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    />
+  )}
+</Presence>
+```
+
+The content fades in, and the placeholder is gone on the same frame. Give the placeholder a `Motion.View` with an `exit` when it must fade out.
+
+## What can be a child?
+
+Any element. A child animates its exit through a `Motion.*` primitive, or through a component that calls `usePresence()` and then `safeToRemove()` when its exit finishes. `Presence` removes a child with neither at once.
+
+## Accessing presence state
+
+A custom component can read the presence state:
+
+```tsx
+import { usePresence } from '@rootnative/inertia'
+
+function MyExitable() {
+  const presence = usePresence()
+  // presence is null when no <Presence> ancestor exists
+  // presence?.isPresent flips false when the parent removes us
+  // presence?.safeToRemove() once the exit animation finishes
+}
+```
+
+---
+
+# Stagger
+
+`<Stagger>` gives each child an animation delay that comes from the position of the child. A list entrance then cascades, and no child computes `index * ms` itself. The parent owns the timing, because the parent decides the order.
+
+```tsx
+import { Motion, Stagger } from '@rootnative/inertia'
+
+export function GiftList({ revealed, gifts }: Props) {
+  return (
+    <Stagger interval={60} enabled={revealed}>
+      {gifts.map((gift) => (
+        <Motion.View
+          key={gift.id}
+          animate={{
+            opacity: revealed ? 1 : 0,
+            translateY: revealed ? 0 : 16,
+          }}
+          transition={{ type: 'spring', tension: 220, friction: 20 }}
+        />
+      ))}
+    </Stagger>
+  )
+}
+```
+
+Child `i` (in render order) gets a delay of `delay + i * interval` milliseconds. The delay applies to the declarative animations of every `Motion.*` primitive in the subtree of that child: the mount animation (`initial` to `animate`) and each later `animate` change. `<Stagger>` renders no host view of its own, only a context for each child.
+
+## Props
+
+| Prop       | Type                | Default   | Meaning                                                               |
+| ---------- | ------------------- | --------- | --------------------------------------------------------------------- |
+| `interval` | `number`            | required  | Milliseconds between consecutive children.                            |
+| `delay`    | `number`            | `0`       | Base delay added to every child, so the whole cascade can start late. |
+| `from`     | `'first' \| 'last'` | `'first'` | Which end of the list starts the cascade. `'last'` reverses it.       |
+| `enabled`  | `boolean`           | `true`    | Turn the stagger off in one place — every child gets a delay of `0`.  |
+
+## Why the parent owns the timing
+
+The alternative, `transition={{ delay: index * 60 }}` on each child, has two structural problems. This component removes both:
+
+- **The index is per-child state.** A list that filters, reverses, or reorders staggers from stale positions, unless every child guards its own delay. `<Stagger>` computes every delay again from the current render order on every render.
+- **You can't turn the cascade off in one place.** The common requirement is "cascade in, but snap out together". Pass `enabled={revealed}`. The hide direction then animates with no delays, while the reveal cascades.
+
+## What the delay applies to
+
+The stagger delay wraps the **declarative animations** of the child: everything that `animate` drives, including the initial mount. It adds to the own `transition.delay` of the child. The delay does **not** apply to:
+
+- **`gesture` sub-states.** Press and focus feedback with a delay from the list position would look like lag, not like choreography.
+- **`<Presence>` exits.** An exit with a delay from the position would hold the unmount until the cascade ends. Exits run on their own timing. Use `enabled` if you want the hide direction to snap together.
+- **Reduced motion.** When `<MotionConfig reducedMotion>` gates a subtree, values snap at once. A delayed snap is still motion choreography, and that is what the user asked to turn off.
+
+## Details to know
+
+- **Positions come from the render order after filtering.** `<Stagger>` drops `null`, `undefined`, and boolean children before it assigns positions, so a conditional child leaves no hole in the cascade.
+- **The delay reaches nested primitives.** Each child slot gets its own provider, so a `Motion.View` anywhere inside the subtree of child `i` inherits the delay of child `i`. The inner animated parts of a list row cascade with their row.
+- **A delay change alone starts nothing.** Inertia reads the delay when an animation starts. A change of `interval`, `from`, or `enabled` affects the next animation, not an animation in flight.
+- **A custom animated component can take part.** `useStaggerDelay()` returns the delay of the current child slot (`0` outside a `<Stagger>`). Add it to the delay of whatever you resolve through `resolveTransition` or `resolveAnimatableValue`.
+
+## Nesting
+
+Nested `<Stagger>` components don't add up. The nearest ancestor wins, the same as any React context. Give an inner list its own `<Stagger>`, and its children cascade relative to that list.
+
+---
+
+# Layout
+
+The `layout` prop animates a change of position or size that comes from outside the `animate` flow: a flex sibling that grows, a list that reorders, a column that changes its width. Without the prop, those changes snap. With the prop, they interpolate.
+
+```tsx
+import { Motion } from '@rootnative/inertia'
+
+function ReorderableRow({ item, onPress }: Props) {
+  return (
+    <Motion.View
+      layout={{ type: 'spring', tension: 200, friction: 22 }}
+      style={styles.row}
+    />
+  )
+}
+```
+
+Internally, the prop resolves to the `LinearTransition` builder of Reanimated. The prop takes the same react-spring vocabulary (`tension`, `friction`, `mass`) as `transition`. The raw Reanimated names (`stiffness`, `damping`) never appear in the public API.
+
+## Accepted shapes
+
+| Value              | Meaning                                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| omitted / `false`  | No layout animation. Position and size changes snap (default).                                  |
+| `true`             | Library default spring (`tension: 170`, `friction: 26`, `mass: 1`).                             |
+| `TransitionConfig` | `'spring'` or `'timing'`. `'decay'` downgrades to spring; `'no-animation'` skips the animation. |
+
+```tsx
+<Motion.View layout />                                          // default spring
+<Motion.View layout={{ type: 'spring', tension: 240 }} />        // custom spring
+<Motion.View layout={{ type: 'timing', duration: 320 }} />       // duration-based
+<Motion.View layout={{ type: 'timing', easing: (t) => t * t }} /> // custom easing
+```
+
+A custom easing function must be a worklet, the same as `transition.easing`. Add the `'worklet'` directive as the first statement of the function. A plain function warns in dev and works on web only.
+
+## What triggers a layout animation
+
+`LinearTransition` fires when the measured frame of the native view changes between two commits. The common triggers:
+
+- The siblings of the component reorder in a flex container.
+- The size of the component changes because its `style` props swap (`height: 56` to `height: 96`).
+- The position of the component moves because a sibling grew, shrank, or appeared.
+
+The `animate` flow is independent. A `Motion.View` can have both `animate={{ opacity }}` and `layout`. The opacity runs through `useAnimatedStyle`, and the layout runs through the native commit hook of Reanimated. The two don't conflict.
+
+## Reduced motion
+
+`layout` follows [`<MotionConfig reducedMotion>`](./motion-config.md). When reduced motion is active, the prop resolves to no builder, and changes snap. Inertia passes `undefined` to the component, not a `.duration(0)` builder, because Reanimated still tracks commits for a builder. The snap path is cheaper.
+
+## Shared element transitions (`layoutId`)
+
+The `layoutId` prop is a separate but related mechanism. It moves one logical element between two screens or two layouts.
+
+```tsx
+// Screen A
+<Motion.View layoutId="hero" style={styles.thumb} />
+
+// Screen B (after navigation)
+<Motion.View layoutId="hero" style={styles.heroLarge} />
+```
+
+The first `Motion.View` unmounts. A second `Motion.View` with the same `layoutId` mounts within about 1 second. The new element then runs a FLIP animation into place, from the rect that the first element measured as it unmounted. That is a hero transition with no animation config beyond the shared id.
+
+How `layoutId` differs from `layout`:
+
+- `layout` animates the changes of size and position of **this** element between commits. It needs no id.
+- `layoutId` animates from the last rect of **another** element to the current rect of this element, across a mount or a screen.
+
+The `transition` prop of the **incoming** element controls the FLIP animation. The default is a spring. `'timing'` works. `'decay'` downgrades to a spring. Reduced motion skips the transition. The outgoing element gives only its last rect and its style snapshot. The `transition` must be a top-level transition object (`transition={{ type: 'timing', duration: 250 }}`). The entries of a per-property map don't reach the FLIP. If the map also carries config keys, such as `{ type: 'timing', duration: 250, opacity: { … } }`, the FLIP uses those keys. Otherwise the default spring applies. The FLIP reads `duration`, `easing`, and `delay` of a timing transition, and `tension`, `friction`, `mass`, `velocity`, and `delay` of a spring. A `delay` holds the element at the source rect before it moves. `repeat` doesn't apply.
+
+### Style carry
+
+The rect FLIP moves and scales the element. A hero card that also changes its colour or its corner radius between screens would snap on those props while its frame animates. That is the most visible half of the transition. So Inertia carries a set of style keys from the source and crossfades them out over the same transition:
+
+| Carried                                                                           | Not carried                                                                                                                                                                                                                                    |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `opacity`, `borderRadius`, `backgroundColor`, `borderColor`, `color`, `tintColor` | Transform keys (the FLIP owns them — carrying them too would double-apply the displacement), `shadowColor` (crossfading one of four native shadow props over snapped geometry looks worse than letting the shadow snap whole), everything else |
+
+```tsx
+// Screen A — a small tile
+<Motion.View layoutId="hero" style={{ borderRadius: 14, backgroundColor: '#f97316' }} />
+
+// Screen B — a large header. Radius and colour crossfade with the rect.
+<Motion.View layoutId="hero" style={{ borderRadius: 24, backgroundColor: '#ea580c' }} />
+```
+
+There is nothing to configure. The carry uses the existing `layoutId` and `transition` props. There is no key list to override and no `layoutStyles` prop. If you need a key that Inertia doesn't carry, drive it from `animate` on both sides.
+
+Rules to know:
+
+- **A key takes part only when the element already has a value for it**, from `animate`, `initial`, a variant, `gesture`, or its static `style`. Inertia never invents a value. A key that the element says nothing about would rest at the generic type default. For `color` on a `Motion.Text` that inherits its colour from a parent, that default is `'transparent'`: invisible text on an element that you only asked to move.
+- **Inertia ignores a key that one side lacks, in both directions.** A key that the source carried but the target has no value for does nothing, and the reverse is also true.
+- **Inertia reads a source that is still mounted live**, for the same reason that it measures its rect again: its values move without a layout pass. After the source unmounts, only the snapshot from the unmount remains.
+- **The carry overrides `initial` for the carried keys** on the mount that consumes a source. The carry composites above the base value, so the first frame shows the colour of the source, whatever `initial` asked for.
+- **Reduced motion and `'no-animation'` snap**, the same as the rect path. A coordinate-space mismatch also snaps: half a shared-element transition looks like a glitch, not like a fallback.
+
+### Caveats and current scope
+
+- **Window coordinates, where the host can supply them.** Inertia measures a rect with `measureInWindow`, which resolves synchronously on the New Architecture (Fabric). On web, react-native-web answers `measureInWindow` from a `setTimeout`, so Inertia reads the `getBoundingClientRect()` of the DOM node instead. That is the same window rect, read synchronously. So a source and a target can sit under containers at different screen offsets and still line up. Where a synchronous measurement isn't available, both fall back to the parent-relative coordinates that `onLayout` reports. That is the case on the legacy architecture, where `measureInWindow` answers over the bridge, and for a node that already detached. The fallback is consistent, but it doesn't see the offsets of the parents. So a setup with nested parents lines up only on Fabric and on web.
+- **Mixed coordinate spaces skip the transition.** A source in one space and a target in the other aren't comparable: the delta would be off by the window offset of the parent. Inertia skips the animation and lets the element appear at its natural position. It doesn't move the element in from the wrong place.
+- **Inertia measures a source that is still mounted again on demand.** `onLayout` doesn't fire when an _ancestor_ scrolls, so a stored window rect drifts while the element hasn't moved relative to its parent. When the target lays out, Inertia asks a source that is still mounted for a current measurement, instead of the stored one. That is the usual case: a stack navigator keeps the previous screen alive below. So a scroll of a list before a tap on a row doesn't offset the transition. After the source unmounts, only the rect from the unmount remains. If the navigator already moves the outgoing screen, the new measurement catches the screen mid-transition, as far as the transition has moved.
+- **A source measures itself as it unmounts.** A transform moves an element without a layout pass, so `onLayout` doesn't report it. A source that entered with `initial={{ scale: 0.4 }}` lays out once, mid-entrance, and that rect is too small. Inertia measures the rect that the next mount consumes in the unmount cleanup, while the node is still attached, so the rect has the final transform in it. The last layout rect is the fallback when Inertia can't measure the node.
+- **A native stack push can hide the FLIP on iOS.** The native stack slides the new screen in, and the target mounts while that slide still moves the screen. On an iOS simulator with the native stack of Expo Router, the target appeared at its final size on the first frame of the new screen, with no FLIP. Android is not measured. To show the FLIP, present the target screen with no native animation, so that the FLIP is the transition:
+
+  ```tsx
+  <Stack.Screen
+    name="detail"
+    options={{ presentation: 'transparentModal', animation: 'none' }}
+  />
+  ```
+
+- **One mount per id.** Two `Motion.*` primitives with the same `layoutId` mounted at the same time is undefined behavior. The most recent layout commit wins as the source for the next consumer.
+- **TTL.** A source that is still mounted stays valid as long as it is mounted. A list card that laid out once and then sat still for a minute is as good a source as one that laid out a frame ago, because Inertia can measure it again. A rect that a source recorded on unmount is valid for about 1 second. A new mount in the same render as the unmount, such as a grid card that a detail header replaces, takes the rect when it mounts, before its first layout. So a slow device doesn't cancel the FLIP. If the new mount lands later (a slow navigation, a paused transition), no FLIP runs. The element then appears at its natural position.
+- **In tests.** The `measureInWindow` of the Jest host mock never calls its callback, so a test suite always sees the parent-relative path. That is intentional: it keeps the `layoutId` behavior in tests stable and independent of measurement.
+
+### Why not `sharedTransitionTag`?
+
+Reanimated 4 removed `sharedTransitionTag` and `SharedTransition`. `layoutId` is the Inertia replacement. It's a JS-side measure registry, not a native handoff, so it needs no native screen-transition harness. It works with any navigator (React Navigation, Expo Router, or your own) that mounts and unmounts screens.
+
+## What `layout` doesn't do (yet)
+
+- **Per-axis control (`layout="position"` or `layout="size"`).** `LinearTransition` has no axis filter: the whole frame animates together. If you need to control one dimension, animate it through `animate` instead.
+- **Layout callbacks.** `onAnimationEnd` fires for `animate` keys, not for layout commits. The `withCallback` of Reanimated backs that on the layout side. Inertia doesn't expose it yet.
+
+## Caveats
+
+- The wrapped component must render a native host view. Every `Motion.*` primitive does. If you wrap a custom component with `createMotionComponent(C)`, make sure that `C` renders a host view. Otherwise the prop does nothing.
+- A layout animation on a virtualized list item (a FlatList row) can conflict with the measurement passes of the list. Measure the result before you add `layout` to a row component. Use the [Perf bench](./perf-bench.md) screen to test it.
+
+---
+
+# MotionConfig
+
+A provider for the animation config of a subtree. It sets how the Motion primitives below it respond to the reduce-motion accessibility setting of the OS, and it holds a registry of [named transitions](#named-transitions) that you can use anywhere a transition config is accepted.
+
+:::tip Free accessibility win when you migrate
+An app that moves from hand-written `useSharedValue` and `useAnimatedStyle` code to the Inertia primitives gets reduce-motion support for free. Every `Motion.*` component reads the OS setting through [`useShouldReduceMotion()`](#reading-the-resolved-value), with no setup per component. If you had no reduce-motion handling before, you have it now.
+:::
+
+## Default — respect the OS
+
+By default, and with no provider in the tree, Inertia respects the reduce-motion setting of the OS. When the user enables it, Inertia swaps every per-key transition for `'no-animation'`, and values snap to their target at once. A sequence still iterates, but each step settles at once.
+
+```tsx
+import { MotionConfig } from '@rootnative/inertia'
+
+export function App() {
+  return <MotionConfig reducedMotion="user">{/* Your app */}</MotionConfig>
+}
+```
+
+`reducedMotion="user"` is the default value of the prop. An explicit wrapper around the root only documents the intent, because the same happens with no provider.
+
+## Modes
+
+| Value      | Behavior                                                                                     |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| `'user'`   | Defer to the OS accessibility setting. The right default for app-level wrappers.             |
+| `'never'`  | Animate regardless of the OS setting. Use sparingly — e.g. essential onboarding transitions. |
+| `'always'` | Never animate, regardless of OS setting. Useful for tests and snapshots.                     |
+
+## Scope
+
+`<MotionConfig>` is a context provider. Wrap a subtree to override the behavior there:
+
+```tsx
+<MotionConfig reducedMotion="user">
+  <App />
+
+  <MotionConfig reducedMotion="never">
+    <CriticalOnboardingFlow />
+  </MotionConfig>
+</MotionConfig>
+```
+
+A nested provider **inherits** from its ancestor. A provider that omits `reducedMotion` keeps the mode of the ancestor, and the `transitions` maps merge per name, with the child first. A provider with only `transitions` in the middle of the tree never disturbs an outer `reducedMotion` override.
+
+## Named transitions
+
+`transitions` registers named transition configs for the subtree. Every place that accepts a `TransitionConfig` also accepts a registered name: the `transition` prop (top-level, per property, **and** per gesture layer), the `layout` prop, and the value-layer hooks (`useAnimation`, `useSpring`, `useBooleanSpring`, `useGesture`, `useGestureLayer`).
+
+```tsx
+<MotionConfig
+  transitions={{
+    'state-hover': { type: 'timing', duration: 150 },
+    'state-press': { type: 'timing', duration: 100 },
+    selection: { type: 'spring', tension: 380, friction: 33 },
+  }}
+>
+  {/* Anywhere below the provider: */}
+  <Motion.View
+    animate={{ scale: isSelected ? 1 : 0.8 }}
+    transition="selection"
+  />
+  <Motion.View
+    animate={{ opacity: 1, translateY: 0 }}
+    transition={{ opacity: 'state-hover', translateY: 'selection' }}
+  />
+</MotionConfig>
+```
+
+```ts
+const progress = useBooleanSpring(checked, 'selection')
+const fade = useAnimation(visible ? 1 : 0, 'state-hover')
+```
+
+The names are **your** vocabulary: design-system tokens, semantic roles, or whatever your app standardizes on. Inertia ships no presets. The registry lets a theme file (MD3, iOS style, Fluent, or your own) be the one source of truth for motion values, instead of copied config objects at every call site.
+
+The rules:
+
+- **The nearest provider wins.** A name resolves against the merged registry of all ancestor `<MotionConfig>` providers.
+- **Nested providers merge.** The `transitions` map of a child provider merges into the ancestor registry. The child overrides an entry with the same name.
+- **An unknown name degrades softly.** An unregistered name warns in development and falls back to the library default spring. The animation still runs.
+- **A spring-only hook stays spring-only.** `useSpring` and `useBooleanSpring` accept a name, but a name registered as `timing`, `decay`, or `no-animation` warns in dev and falls back to the default spring. Use `useAnimation` when the type of the named transition must apply.
+
+### Typed names (optional)
+
+By default, any string is accepted where a name is (`TransitionName` is `string`). To get autocomplete and a compile-time typo check, augment the `RegisteredTransitions` interface with the keys of your registry:
+
+```ts
+// motion.d.ts (anywhere in your app's include path)
+import type { TransitionConfig } from '@rootnative/inertia'
+
+declare module '@rootnative/inertia' {
+  interface RegisteredTransitions {
+    'state-hover': TransitionConfig
+    'state-press': TransitionConfig
+    selection: TransitionConfig
+  }
+}
+```
+
+With the augmentation in place, `transition="selectoin"` is a compile error. TypeScript ignores the value type. Only the keys matter.
+
+### Consuming the registry from custom components
+
+An adapter package or a custom animated component can support names on its own surface with `useNamedTransitions()` and `resolveNamedTransition()`:
+
+```ts
+import {
+  resolveNamedTransition,
+  useNamedTransitions,
+} from '@rootnative/inertia'
+
+function useMyAnimatedThing(transition?: TransitionConfig | TransitionName) {
+  const registry = useNamedTransitions()
+  const config = resolveNamedTransition(transition, registry)
+  // config is a concrete TransitionConfig | undefined
+}
+```
+
+## Reading the resolved value
+
+Two hooks let a component react to the active mode:
+
+```tsx
+import { useMotionConfig, useShouldReduceMotion } from '@rootnative/inertia'
+
+function MyComponent() {
+  const { reducedMotion } = useMotionConfig()
+  const reduce = useShouldReduceMotion()
+  // reduce: boolean — already accounts for the OS setting when mode is 'user'
+}
+```
+
+Every Motion primitive uses `useShouldReduceMotion()` internally. In `'user'` mode, it reads the OS setting through the `useReducedMotion()` of Reanimated, which captures the value **once at app start**. A change of the accessibility setting while the app runs takes effect on the next launch, not at once. `'never'` and `'always'` don't consult the OS at all. A change of the `reducedMotion` prop itself re-renders normally.
+
+---
+
 # Gestures adapter
 
 `@rootnative/inertia-gestures` adds drag, swipe, and pan hooks on `react-native-gesture-handler`. It's an **optional** sibling package. Install it only when you need more than the `pressable` states. The core library doesn't depend on `react-native-gesture-handler`.
@@ -1975,521 +2441,6 @@ const err = diffTemplate(t, templateOf(parsePathD('M 0 0 L 1 1')))
 
 ---
 
-# Presence
-
-`<Presence>` keeps a child mounted long enough to play its `exit` animation after you remove the child from the tree. It has the same role as `<AnimatePresence>` in Framer Motion, with a smaller API.
-
-```tsx
-import { Motion, Presence } from '@rootnative/inertia'
-
-export function Toast({ visible }: { visible: boolean }) {
-  return (
-    <Presence>
-      {visible ? (
-        <Motion.View
-          key="toast"
-          initial={{ opacity: 0, translateY: 24 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          exit={{ opacity: 0, translateY: 24 }}
-          transition={{ type: 'spring', tension: 220, friction: 22 }}
-          style={toastStyles.toast}
-        />
-      ) : null}
-    </Presence>
-  )
-}
-```
-
-## How it works
-
-When a child disappears from the `children` array, `Presence` takes a snapshot of it and holds the snapshot in a JS-thread map. `Presence` unmounts the child after the child finishes its exit animation and calls `safeToRemove()`. `Presence` does **not** use the `entering` and `exiting` lifecycle of Reanimated. The exit frames are ordinary Motion animations that the `exit` prop of the child drives. That design lets an interrupted exit reverse smoothly when the child re-enters.
-
-## Required: `key`
-
-Every direct child of `<Presence>` must have an explicit `key`. Without a key, React uses the position as the identity, and a removal looks like a prop change. Then there is nothing to mark as exiting. `Presence` never renders a child with no key. A dev build also logs a warning. A production build drops the child with no message.
-
-## Tap-deaf exits
-
-When a child starts its exit animation, Inertia merges `pointerEvents: 'none'` into its style. A tap falls through to the element below. It doesn't start the node that is about to unmount again. In other libraries, this is the "two taps to open the popover again" defect. In Inertia you need one tap.
-
-## Re-entry interrupts exit
-
-If a key reappears in `children` while its child exits, the exit animation reverses toward the `animate` values. The component instance stays alive through the round trip, with no remount and no flicker.
-
-## Multiple children
-
-`Presence` handles lists too:
-
-```tsx
-<Presence>
-  {items.map((item) => (
-    <Motion.View
-      key={item.id}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    />
-  ))}
-</Presence>
-```
-
-Each child has its own exit timing. One row can finish its exit while another row still animates in.
-
-An exiting child animates out **in place**. It keeps its slot among its siblings until `Presence` removes it, right after its nearest sibling that stays. When you delete the middle row of a list, that row fades where it is. The rows below it don't move up during the animation. A sibling that you add or reorder while a child exits goes around the exiting child. Several adjacent exiting children keep their order.
-
-## Nested `Motion.*` children
-
-An exiting child stays mounted until every `Motion.*` inside it finishes its exit. A nested `Motion.*` with no `exit` finishes at once, so it doesn't cut the exit of the child that holds it. A nested `Motion.*` with a longer `exit` holds the child until that exit ends.
-
-```tsx
-<Presence>
-  {open ? (
-    <Motion.View key="sheet" exit={{ translateY: 400 }}>
-      {/* No `exit`: the sheet still slides out in full. */}
-      <Motion.View
-        animate={{ rotate: 360 }}
-        transition={{ repeat: 'infinite' }}
-      />
-      {/* A shorter `exit`: it fades, and the sheet keeps sliding. */}
-      <Motion.View
-        exit={{ opacity: 0 }}
-        transition={{ type: 'timing', duration: 100 }}
-      />
-    </Motion.View>
-  ) : null}
-</Presence>
-```
-
-So a component that animates on its own, such as a spinner or a skeleton, can go inside a sheet or a dialog with no `exit` of its own.
-
-A custom component that calls `usePresence()` and then `safeToRemove()` removes the child at once. `safeToRemove()` doesn't wait for the `Motion.*` exits, so call it only after the whole exit finishes.
-
-## A child with no `Motion.*` leaves at once
-
-A departing child with no `Motion.*` and no `usePresence()` consumer has nothing to animate and nothing to wait for. `Presence` removes it at once, with no exit animation. So a loading placeholder in a plain `View` can swap for its content under one `<Presence>`:
-
-```tsx
-<Presence>
-  {loading ? (
-    <View key="loading">
-      <Spinner />
-    </View>
-  ) : (
-    <Motion.View
-      key="content"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-    />
-  )}
-</Presence>
-```
-
-The content fades in, and the placeholder is gone on the same frame. Give the placeholder a `Motion.View` with an `exit` when it must fade out.
-
-## What can be a child?
-
-Any element. A child animates its exit through a `Motion.*` primitive, or through a component that calls `usePresence()` and then `safeToRemove()` when its exit finishes. `Presence` removes a child with neither at once.
-
-## Accessing presence state
-
-A custom component can read the presence state:
-
-```tsx
-import { usePresence } from '@rootnative/inertia'
-
-function MyExitable() {
-  const presence = usePresence()
-  // presence is null when no <Presence> ancestor exists
-  // presence?.isPresent flips false when the parent removes us
-  // presence?.safeToRemove() once the exit animation finishes
-}
-```
-
----
-
-# Stagger
-
-`<Stagger>` gives each child an animation delay that comes from the position of the child. A list entrance then cascades, and no child computes `index * ms` itself. The parent owns the timing, because the parent decides the order.
-
-```tsx
-import { Motion, Stagger } from '@rootnative/inertia'
-
-export function GiftList({ revealed, gifts }: Props) {
-  return (
-    <Stagger interval={60} enabled={revealed}>
-      {gifts.map((gift) => (
-        <Motion.View
-          key={gift.id}
-          animate={{
-            opacity: revealed ? 1 : 0,
-            translateY: revealed ? 0 : 16,
-          }}
-          transition={{ type: 'spring', tension: 220, friction: 20 }}
-        />
-      ))}
-    </Stagger>
-  )
-}
-```
-
-Child `i` (in render order) gets a delay of `delay + i * interval` milliseconds. The delay applies to the declarative animations of every `Motion.*` primitive in the subtree of that child: the mount animation (`initial` to `animate`) and each later `animate` change. `<Stagger>` renders no host view of its own, only a context for each child.
-
-## Props
-
-| Prop       | Type                | Default   | Meaning                                                               |
-| ---------- | ------------------- | --------- | --------------------------------------------------------------------- |
-| `interval` | `number`            | required  | Milliseconds between consecutive children.                            |
-| `delay`    | `number`            | `0`       | Base delay added to every child, so the whole cascade can start late. |
-| `from`     | `'first' \| 'last'` | `'first'` | Which end of the list starts the cascade. `'last'` reverses it.       |
-| `enabled`  | `boolean`           | `true`    | Turn the stagger off in one place — every child gets a delay of `0`.  |
-
-## Why the parent owns the timing
-
-The alternative, `transition={{ delay: index * 60 }}` on each child, has two structural problems. This component removes both:
-
-- **The index is per-child state.** A list that filters, reverses, or reorders staggers from stale positions, unless every child guards its own delay. `<Stagger>` computes every delay again from the current render order on every render.
-- **You can't turn the cascade off in one place.** The common requirement is "cascade in, but snap out together". Pass `enabled={revealed}`. The hide direction then animates with no delays, while the reveal cascades.
-
-## What the delay applies to
-
-The stagger delay wraps the **declarative animations** of the child: everything that `animate` drives, including the initial mount. It adds to the own `transition.delay` of the child. The delay does **not** apply to:
-
-- **`gesture` sub-states.** Press and focus feedback with a delay from the list position would look like lag, not like choreography.
-- **`<Presence>` exits.** An exit with a delay from the position would hold the unmount until the cascade ends. Exits run on their own timing. Use `enabled` if you want the hide direction to snap together.
-- **Reduced motion.** When `<MotionConfig reducedMotion>` gates a subtree, values snap at once. A delayed snap is still motion choreography, and that is what the user asked to turn off.
-
-## Details to know
-
-- **Positions come from the render order after filtering.** `<Stagger>` drops `null`, `undefined`, and boolean children before it assigns positions, so a conditional child leaves no hole in the cascade.
-- **The delay reaches nested primitives.** Each child slot gets its own provider, so a `Motion.View` anywhere inside the subtree of child `i` inherits the delay of child `i`. The inner animated parts of a list row cascade with their row.
-- **A delay change alone starts nothing.** Inertia reads the delay when an animation starts. A change of `interval`, `from`, or `enabled` affects the next animation, not an animation in flight.
-- **A custom animated component can take part.** `useStaggerDelay()` returns the delay of the current child slot (`0` outside a `<Stagger>`). Add it to the delay of whatever you resolve through `resolveTransition` or `resolveAnimatableValue`.
-
-## Nesting
-
-Nested `<Stagger>` components don't add up. The nearest ancestor wins, the same as any React context. Give an inner list its own `<Stagger>`, and its children cascade relative to that list.
-
----
-
-# Layout
-
-The `layout` prop animates a change of position or size that comes from outside the `animate` flow: a flex sibling that grows, a list that reorders, a column that changes its width. Without the prop, those changes snap. With the prop, they interpolate.
-
-```tsx
-import { Motion } from '@rootnative/inertia'
-
-function ReorderableRow({ item, onPress }: Props) {
-  return (
-    <Motion.View
-      layout={{ type: 'spring', tension: 200, friction: 22 }}
-      style={styles.row}
-    />
-  )
-}
-```
-
-Internally, the prop resolves to the `LinearTransition` builder of Reanimated. The prop takes the same react-spring vocabulary (`tension`, `friction`, `mass`) as `transition`. The raw Reanimated names (`stiffness`, `damping`) never appear in the public API.
-
-## Accepted shapes
-
-| Value              | Meaning                                                                                         |
-| ------------------ | ----------------------------------------------------------------------------------------------- |
-| omitted / `false`  | No layout animation. Position and size changes snap (default).                                  |
-| `true`             | Library default spring (`tension: 170`, `friction: 26`, `mass: 1`).                             |
-| `TransitionConfig` | `'spring'` or `'timing'`. `'decay'` downgrades to spring; `'no-animation'` skips the animation. |
-
-```tsx
-<Motion.View layout />                                          // default spring
-<Motion.View layout={{ type: 'spring', tension: 240 }} />        // custom spring
-<Motion.View layout={{ type: 'timing', duration: 320 }} />       // duration-based
-<Motion.View layout={{ type: 'timing', easing: (t) => t * t }} /> // custom easing
-```
-
-A custom easing function must be a worklet, the same as `transition.easing`. Add the `'worklet'` directive as the first statement of the function. A plain function warns in dev and works on web only.
-
-## What triggers a layout animation
-
-`LinearTransition` fires when the measured frame of the native view changes between two commits. The common triggers:
-
-- The siblings of the component reorder in a flex container.
-- The size of the component changes because its `style` props swap (`height: 56` to `height: 96`).
-- The position of the component moves because a sibling grew, shrank, or appeared.
-
-The `animate` flow is independent. A `Motion.View` can have both `animate={{ opacity }}` and `layout`. The opacity runs through `useAnimatedStyle`, and the layout runs through the native commit hook of Reanimated. The two don't conflict.
-
-## Reduced motion
-
-`layout` follows [`<MotionConfig reducedMotion>`](./motion-config.md). When reduced motion is active, the prop resolves to no builder, and changes snap. Inertia passes `undefined` to the component, not a `.duration(0)` builder, because Reanimated still tracks commits for a builder. The snap path is cheaper.
-
-## Shared element transitions (`layoutId`)
-
-The `layoutId` prop is a separate but related mechanism. It moves one logical element between two screens or two layouts.
-
-```tsx
-// Screen A
-<Motion.View layoutId="hero" style={styles.thumb} />
-
-// Screen B (after navigation)
-<Motion.View layoutId="hero" style={styles.heroLarge} />
-```
-
-The first `Motion.View` unmounts. A second `Motion.View` with the same `layoutId` mounts within about 1 second. The new element then runs a FLIP animation into place, from the rect that the first element measured as it unmounted. That is a hero transition with no animation config beyond the shared id.
-
-How `layoutId` differs from `layout`:
-
-- `layout` animates the changes of size and position of **this** element between commits. It needs no id.
-- `layoutId` animates from the last rect of **another** element to the current rect of this element, across a mount or a screen.
-
-The `transition` prop of the **incoming** element controls the FLIP animation. The default is a spring. `'timing'` works. `'decay'` downgrades to a spring. Reduced motion skips the transition. The outgoing element gives only its last rect and its style snapshot. The `transition` must be a top-level transition object (`transition={{ type: 'timing', duration: 250 }}`). The entries of a per-property map don't reach the FLIP. If the map also carries config keys, such as `{ type: 'timing', duration: 250, opacity: { … } }`, the FLIP uses those keys. Otherwise the default spring applies. The FLIP reads `duration`, `easing`, and `delay` of a timing transition, and `tension`, `friction`, `mass`, `velocity`, and `delay` of a spring. A `delay` holds the element at the source rect before it moves. `repeat` doesn't apply.
-
-### Style carry
-
-The rect FLIP moves and scales the element. A hero card that also changes its colour or its corner radius between screens would snap on those props while its frame animates. That is the most visible half of the transition. So Inertia carries a set of style keys from the source and crossfades them out over the same transition:
-
-| Carried                                                                           | Not carried                                                                                                                                                                                                                                    |
-| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `opacity`, `borderRadius`, `backgroundColor`, `borderColor`, `color`, `tintColor` | Transform keys (the FLIP owns them — carrying them too would double-apply the displacement), `shadowColor` (crossfading one of four native shadow props over snapped geometry looks worse than letting the shadow snap whole), everything else |
-
-```tsx
-// Screen A — a small tile
-<Motion.View layoutId="hero" style={{ borderRadius: 14, backgroundColor: '#f97316' }} />
-
-// Screen B — a large header. Radius and colour crossfade with the rect.
-<Motion.View layoutId="hero" style={{ borderRadius: 24, backgroundColor: '#ea580c' }} />
-```
-
-There is nothing to configure. The carry uses the existing `layoutId` and `transition` props. There is no key list to override and no `layoutStyles` prop. If you need a key that Inertia doesn't carry, drive it from `animate` on both sides.
-
-Rules to know:
-
-- **A key takes part only when the element already has a value for it**, from `animate`, `initial`, a variant, `gesture`, or its static `style`. Inertia never invents a value. A key that the element says nothing about would rest at the generic type default. For `color` on a `Motion.Text` that inherits its colour from a parent, that default is `'transparent'`: invisible text on an element that you only asked to move.
-- **Inertia ignores a key that one side lacks, in both directions.** A key that the source carried but the target has no value for does nothing, and the reverse is also true.
-- **Inertia reads a source that is still mounted live**, for the same reason that it measures its rect again: its values move without a layout pass. After the source unmounts, only the snapshot from the unmount remains.
-- **The carry overrides `initial` for the carried keys** on the mount that consumes a source. The carry composites above the base value, so the first frame shows the colour of the source, whatever `initial` asked for.
-- **Reduced motion and `'no-animation'` snap**, the same as the rect path. A coordinate-space mismatch also snaps: half a shared-element transition looks like a glitch, not like a fallback.
-
-### Caveats and current scope
-
-- **Window coordinates, where the host can supply them.** Inertia measures a rect with `measureInWindow`, which resolves synchronously on the New Architecture (Fabric). On web, react-native-web answers `measureInWindow` from a `setTimeout`, so Inertia reads the `getBoundingClientRect()` of the DOM node instead. That is the same window rect, read synchronously. So a source and a target can sit under containers at different screen offsets and still line up. Where a synchronous measurement isn't available, both fall back to the parent-relative coordinates that `onLayout` reports. That is the case on the legacy architecture, where `measureInWindow` answers over the bridge, and for a node that already detached. The fallback is consistent, but it doesn't see the offsets of the parents. So a setup with nested parents lines up only on Fabric and on web.
-- **Mixed coordinate spaces skip the transition.** A source in one space and a target in the other aren't comparable: the delta would be off by the window offset of the parent. Inertia skips the animation and lets the element appear at its natural position. It doesn't move the element in from the wrong place.
-- **Inertia measures a source that is still mounted again on demand.** `onLayout` doesn't fire when an _ancestor_ scrolls, so a stored window rect drifts while the element hasn't moved relative to its parent. When the target lays out, Inertia asks a source that is still mounted for a current measurement, instead of the stored one. That is the usual case: a stack navigator keeps the previous screen alive below. So a scroll of a list before a tap on a row doesn't offset the transition. After the source unmounts, only the rect from the unmount remains. If the navigator already moves the outgoing screen, the new measurement catches the screen mid-transition, as far as the transition has moved.
-- **A source measures itself as it unmounts.** A transform moves an element without a layout pass, so `onLayout` doesn't report it. A source that entered with `initial={{ scale: 0.4 }}` lays out once, mid-entrance, and that rect is too small. Inertia measures the rect that the next mount consumes in the unmount cleanup, while the node is still attached, so the rect has the final transform in it. The last layout rect is the fallback when Inertia can't measure the node.
-- **A native stack push can hide the FLIP on iOS.** The native stack slides the new screen in, and the target mounts while that slide still moves the screen. On an iOS simulator with the native stack of Expo Router, the target appeared at its final size on the first frame of the new screen, with no FLIP. Android is not measured. To show the FLIP, present the target screen with no native animation, so that the FLIP is the transition:
-
-  ```tsx
-  <Stack.Screen
-    name="detail"
-    options={{ presentation: 'transparentModal', animation: 'none' }}
-  />
-  ```
-
-- **One mount per id.** Two `Motion.*` primitives with the same `layoutId` mounted at the same time is undefined behavior. The most recent layout commit wins as the source for the next consumer.
-- **TTL.** A source that is still mounted stays valid as long as it is mounted. A list card that laid out once and then sat still for a minute is as good a source as one that laid out a frame ago, because Inertia can measure it again. A rect that a source recorded on unmount is valid for about 1 second. A new mount in the same render as the unmount, such as a grid card that a detail header replaces, takes the rect when it mounts, before its first layout. So a slow device doesn't cancel the FLIP. If the new mount lands later (a slow navigation, a paused transition), no FLIP runs. The element then appears at its natural position.
-- **In tests.** The `measureInWindow` of the Jest host mock never calls its callback, so a test suite always sees the parent-relative path. That is intentional: it keeps the `layoutId` behavior in tests stable and independent of measurement.
-
-### Why not `sharedTransitionTag`?
-
-Reanimated 4 removed `sharedTransitionTag` and `SharedTransition`. `layoutId` is the Inertia replacement. It's a JS-side measure registry, not a native handoff, so it needs no native screen-transition harness. It works with any navigator (React Navigation, Expo Router, or your own) that mounts and unmounts screens.
-
-## What `layout` doesn't do (yet)
-
-- **Per-axis control (`layout="position"` or `layout="size"`).** `LinearTransition` has no axis filter: the whole frame animates together. If you need to control one dimension, animate it through `animate` instead.
-- **Layout callbacks.** `onAnimationEnd` fires for `animate` keys, not for layout commits. The `withCallback` of Reanimated backs that on the layout side. Inertia doesn't expose it yet.
-
-## Caveats
-
-- The wrapped component must render a native host view. Every `Motion.*` primitive does. If you wrap a custom component with `createMotionComponent(C)`, make sure that `C` renders a host view. Otherwise the prop does nothing.
-- A layout animation on a virtualized list item (a FlatList row) can conflict with the measurement passes of the list. Measure the result before you add `layout` to a row component. Use the [Perf bench](./perf-bench.md) screen to test it.
-
----
-
-# MotionConfig
-
-A provider for the animation config of a subtree. It sets how the Motion primitives below it respond to the reduce-motion accessibility setting of the OS, and it holds a registry of [named transitions](#named-transitions) that you can use anywhere a transition config is accepted.
-
-:::tip Free accessibility win when you migrate
-An app that moves from hand-written `useSharedValue` and `useAnimatedStyle` code to the Inertia primitives gets reduce-motion support for free. Every `Motion.*` component reads the OS setting through [`useShouldReduceMotion()`](#reading-the-resolved-value), with no setup per component. If you had no reduce-motion handling before, you have it now.
-:::
-
-## Default — respect the OS
-
-By default, and with no provider in the tree, Inertia respects the reduce-motion setting of the OS. When the user enables it, Inertia swaps every per-key transition for `'no-animation'`, and values snap to their target at once. A sequence still iterates, but each step settles at once.
-
-```tsx
-import { MotionConfig } from '@rootnative/inertia'
-
-export function App() {
-  return <MotionConfig reducedMotion="user">{/* Your app */}</MotionConfig>
-}
-```
-
-`reducedMotion="user"` is the default value of the prop. An explicit wrapper around the root only documents the intent, because the same happens with no provider.
-
-## Modes
-
-| Value      | Behavior                                                                                     |
-| ---------- | -------------------------------------------------------------------------------------------- |
-| `'user'`   | Defer to the OS accessibility setting. The right default for app-level wrappers.             |
-| `'never'`  | Animate regardless of the OS setting. Use sparingly — e.g. essential onboarding transitions. |
-| `'always'` | Never animate, regardless of OS setting. Useful for tests and snapshots.                     |
-
-## Scope
-
-`<MotionConfig>` is a context provider. Wrap a subtree to override the behavior there:
-
-```tsx
-<MotionConfig reducedMotion="user">
-  <App />
-
-  <MotionConfig reducedMotion="never">
-    <CriticalOnboardingFlow />
-  </MotionConfig>
-</MotionConfig>
-```
-
-A nested provider **inherits** from its ancestor. A provider that omits `reducedMotion` keeps the mode of the ancestor, and the `transitions` maps merge per name, with the child first. A provider with only `transitions` in the middle of the tree never disturbs an outer `reducedMotion` override.
-
-## Named transitions
-
-`transitions` registers named transition configs for the subtree. Every place that accepts a `TransitionConfig` also accepts a registered name: the `transition` prop (top-level, per property, **and** per gesture layer), the `layout` prop, and the value-layer hooks (`useAnimation`, `useSpring`, `useBooleanSpring`, `useGesture`, `useGestureLayer`).
-
-```tsx
-<MotionConfig
-  transitions={{
-    'state-hover': { type: 'timing', duration: 150 },
-    'state-press': { type: 'timing', duration: 100 },
-    selection: { type: 'spring', tension: 380, friction: 33 },
-  }}
->
-  {/* Anywhere below the provider: */}
-  <Motion.View
-    animate={{ scale: isSelected ? 1 : 0.8 }}
-    transition="selection"
-  />
-  <Motion.View
-    animate={{ opacity: 1, translateY: 0 }}
-    transition={{ opacity: 'state-hover', translateY: 'selection' }}
-  />
-</MotionConfig>
-```
-
-```ts
-const progress = useBooleanSpring(checked, 'selection')
-const fade = useAnimation(visible ? 1 : 0, 'state-hover')
-```
-
-The names are **your** vocabulary: design-system tokens, semantic roles, or whatever your app standardizes on. Inertia ships no presets. The registry lets a theme file (MD3, iOS style, Fluent, or your own) be the one source of truth for motion values, instead of copied config objects at every call site.
-
-The rules:
-
-- **The nearest provider wins.** A name resolves against the merged registry of all ancestor `<MotionConfig>` providers.
-- **Nested providers merge.** The `transitions` map of a child provider merges into the ancestor registry. The child overrides an entry with the same name.
-- **An unknown name degrades softly.** An unregistered name warns in development and falls back to the library default spring. The animation still runs.
-- **A spring-only hook stays spring-only.** `useSpring` and `useBooleanSpring` accept a name, but a name registered as `timing`, `decay`, or `no-animation` warns in dev and falls back to the default spring. Use `useAnimation` when the type of the named transition must apply.
-
-### Typed names (optional)
-
-By default, any string is accepted where a name is (`TransitionName` is `string`). To get autocomplete and a compile-time typo check, augment the `RegisteredTransitions` interface with the keys of your registry:
-
-```ts
-// motion.d.ts (anywhere in your app's include path)
-import type { TransitionConfig } from '@rootnative/inertia'
-
-declare module '@rootnative/inertia' {
-  interface RegisteredTransitions {
-    'state-hover': TransitionConfig
-    'state-press': TransitionConfig
-    selection: TransitionConfig
-  }
-}
-```
-
-With the augmentation in place, `transition="selectoin"` is a compile error. TypeScript ignores the value type. Only the keys matter.
-
-### Consuming the registry from custom components
-
-An adapter package or a custom animated component can support names on its own surface with `useNamedTransitions()` and `resolveNamedTransition()`:
-
-```ts
-import {
-  resolveNamedTransition,
-  useNamedTransitions,
-} from '@rootnative/inertia'
-
-function useMyAnimatedThing(transition?: TransitionConfig | TransitionName) {
-  const registry = useNamedTransitions()
-  const config = resolveNamedTransition(transition, registry)
-  // config is a concrete TransitionConfig | undefined
-}
-```
-
-## Reading the resolved value
-
-Two hooks let a component react to the active mode:
-
-```tsx
-import { useMotionConfig, useShouldReduceMotion } from '@rootnative/inertia'
-
-function MyComponent() {
-  const { reducedMotion } = useMotionConfig()
-  const reduce = useShouldReduceMotion()
-  // reduce: boolean — already accounts for the OS setting when mode is 'user'
-}
-```
-
-Every Motion primitive uses `useShouldReduceMotion()` internally. In `'user'` mode, it reads the OS setting through the `useReducedMotion()` of Reanimated, which captures the value **once at app start**. A change of the accessibility setting while the app runs takes effect on the next launch, not at once. `'never'` and `'always'` don't consult the OS at all. A change of the `reducedMotion` prop itself re-renders normally.
-
----
-
-# Perf bench
-
-A manual harness for the Phase-3 acceptance bar:
-
-> A virtualized-list row using `Motion.Pressable` with a `gesture` prop matches a hand-rolled `Pressable + useAnimatedStyle` row within 5% on Android dropped-frames (the moti #322 / #336 bar).
-
-The **Perf bench** screen of the example app renders 1000 list rows with a press-state scale animation. A toggle switches the row implementation between Inertia (`Motion.Pressable` with `gesture`) and a hand-written equivalent (`Pressable` with `useSharedValue`, `useAnimatedStyle`, and `withSpring`). The spring physics are byte-identical, so the only difference is which library drives the shared value.
-
-The harness uses the built-in `FlatList` of React Native, so it runs in Expo Go without a custom dev client. For the canonical moti #322 / #336 reproduction (those issues were against FlashList), swap `FlatList` for the `FlashList` of `@shopify/flash-list` in [example/screens/PerfBenchScreen.tsx](https://github.com/rootnative/inertia/blob/main/example/screens/PerfBenchScreen.tsx), and run a custom dev client (`pnpm --filter @rootnative/inertia-example exec expo run:android`). The row code is the same. Either way, the cost of the list virtualization stays the same for both row variants.
-
-## What "within 5%" means
-
-Run the same scroll motion on each variant on the same Android device. Read the dropped-frame count from PerfMonitor (or the JS profiler of React Native) for the duration of the scroll. The dropped-frame count of the Inertia variant must be **within 5%** of the hand-written one: `dropped_inertia <= dropped_handrolled * 1.05`.
-
-If Inertia regresses past 5%, the abstraction leaks work onto the UI thread that the hand-written path avoids. That is a defect, not a tuning issue.
-
-## How to run
-
-1. **Use a real device.** A simulator doesn't reproduce the GPU and CPU pressure that causes frame drops. Use a mid-range Android device (for example, a Pixel 6a or older). Connect it over USB, so the PerfMonitor of React Native can attach.
-2. **Make a release build.** Run `pnpm --filter @rootnative/inertia-example exec expo run:android --variant release`. The `android` script of the package only starts the dev server. A release build needs `expo run:android`. Hot reload and the inspector dominate the PerfMonitor numbers of a dev build, so those numbers don't track production behavior.
-3. **Open the screen.** Tap **Perf bench** on the home screen of the example app. The default build uses `FlatList`. See the swap recipe above if you need the canonical FlashList reproduction.
-4. **Enable PerfMonitor.** Open the dev menu (shake, or the volume keys), and enable "Perf Monitor". The JS frame rate and the UI frame rate appear as overlays.
-5. **First pass, Inertia.** With the toggle on **Inertia**, scroll fast for about 10 seconds. Note the JS dropped-frame count and the UI dropped-frame count.
-6. **Second pass, hand-written.** Toggle to **Hand-rolled**, and scroll for about 10 seconds with the same motion. Note the same two counts.
-7. **Compare.**
-   - JS thread: the count must be near zero on both. Neither variant runs JS per frame.
-   - UI thread: this is where the bar applies. The Inertia count must be within 5% of the hand-written count.
-
-## What this harness doesn't do, on purpose
-
-- **No automated 5% assertion.** A real frame measurement needs a device, not CI. The harness is the reproducible part. A human makes the comparison.
-- **No proxy metrics on the JS side.** A `requestAnimationFrame` count on the JS thread doesn't capture UI-thread drops, and those are the actual bar. A fake JS-side metric would give a false sense of CI coverage.
-- **No iOS run.** iOS rarely drops frames at this list size. The bar is Android-specific.
-
-## When the bar gets violated
-
-The two paths are:
-
-- **Inertia row:** `Motion.Pressable gesture={{ pressed: { scale: 0.96 } }} transition={{ type: 'spring', tension: 320, friction: 22 }}`.
-- **Hand-written row:** `Pressable` with a manual `useSharedValue(0)` toggle, and a `useAnimatedStyle` that reads `withSpring(1 - pressed.value * 0.04, { stiffness: 320, damping: 22 })`.
-
-If Inertia regresses, suspect these causes, in this order:
-
-1. A new worklet per render. The worklet must be memoized through `baseSig` and `transitionSig`. Check the [memoization regression test](https://github.com/rootnative/inertia/blob/main/packages/core/src/__tests__/memoization.test.tsx) again.
-2. The cost of the animated style. Make sure that the worklet body doesn't allocate per frame.
-3. The cost of the resolver. `resolveAnimatableValue` runs on the JS thread, per render and not per frame. Check the effect dependency array.
-
----
-
 # Static export & SSR
 
 A static export renders your tree on a server and writes the result into HTML. `Motion.*` renders at its `initial` values, so an element that animates in from `opacity: 0` ships as:
@@ -2725,6 +2676,55 @@ If your test suite asserted against raw `react-native-reanimated` shared values 
 ```
 
 For a test that called `act` and `jest.runAllTimers()` to push an animation through, remove both. The mock needs no timers, and `renderWithMotion` does the extra render pass for you.
+
+---
+
+# Perf bench
+
+A manual harness for the Phase-3 acceptance bar:
+
+> A virtualized-list row using `Motion.Pressable` with a `gesture` prop matches a hand-rolled `Pressable + useAnimatedStyle` row within 5% on Android dropped-frames (the moti #322 / #336 bar).
+
+The **Perf bench** screen of the example app renders 1000 list rows with a press-state scale animation. A toggle switches the row implementation between Inertia (`Motion.Pressable` with `gesture`) and a hand-written equivalent (`Pressable` with `useSharedValue`, `useAnimatedStyle`, and `withSpring`). The spring physics are byte-identical, so the only difference is which library drives the shared value.
+
+The harness uses the built-in `FlatList` of React Native, so it runs in Expo Go without a custom dev client. For the canonical moti #322 / #336 reproduction (those issues were against FlashList), swap `FlatList` for the `FlashList` of `@shopify/flash-list` in [example/screens/PerfBenchScreen.tsx](https://github.com/rootnative/inertia/blob/main/example/screens/PerfBenchScreen.tsx), and run a custom dev client (`pnpm --filter @rootnative/inertia-example exec expo run:android`). The row code is the same. Either way, the cost of the list virtualization stays the same for both row variants.
+
+## What "within 5%" means
+
+Run the same scroll motion on each variant on the same Android device. Read the dropped-frame count from PerfMonitor (or the JS profiler of React Native) for the duration of the scroll. The dropped-frame count of the Inertia variant must be **within 5%** of the hand-written one: `dropped_inertia <= dropped_handrolled * 1.05`.
+
+If Inertia regresses past 5%, the abstraction leaks work onto the UI thread that the hand-written path avoids. That is a defect, not a tuning issue.
+
+## How to run
+
+1. **Use a real device.** A simulator doesn't reproduce the GPU and CPU pressure that causes frame drops. Use a mid-range Android device (for example, a Pixel 6a or older). Connect it over USB, so the PerfMonitor of React Native can attach.
+2. **Make a release build.** Run `pnpm --filter @rootnative/inertia-example exec expo run:android --variant release`. The `android` script of the package only starts the dev server. A release build needs `expo run:android`. Hot reload and the inspector dominate the PerfMonitor numbers of a dev build, so those numbers don't track production behavior.
+3. **Open the screen.** Tap **Perf bench** on the home screen of the example app. The default build uses `FlatList`. See the swap recipe above if you need the canonical FlashList reproduction.
+4. **Enable PerfMonitor.** Open the dev menu (shake, or the volume keys), and enable "Perf Monitor". The JS frame rate and the UI frame rate appear as overlays.
+5. **First pass, Inertia.** With the toggle on **Inertia**, scroll fast for about 10 seconds. Note the JS dropped-frame count and the UI dropped-frame count.
+6. **Second pass, hand-written.** Toggle to **Hand-rolled**, and scroll for about 10 seconds with the same motion. Note the same two counts.
+7. **Compare.**
+   - JS thread: the count must be near zero on both. Neither variant runs JS per frame.
+   - UI thread: this is where the bar applies. The Inertia count must be within 5% of the hand-written count.
+
+## What this harness doesn't do, on purpose
+
+- **No automated 5% assertion.** A real frame measurement needs a device, not CI. The harness is the reproducible part. A human makes the comparison.
+- **No proxy metrics on the JS side.** A `requestAnimationFrame` count on the JS thread doesn't capture UI-thread drops, and those are the actual bar. A fake JS-side metric would give a false sense of CI coverage.
+- **No iOS run.** iOS rarely drops frames at this list size. The bar is Android-specific.
+
+## When the bar gets violated
+
+The two paths are:
+
+- **Inertia row:** `Motion.Pressable gesture={{ pressed: { scale: 0.96 } }} transition={{ type: 'spring', tension: 320, friction: 22 }}`.
+- **Hand-written row:** `Pressable` with a manual `useSharedValue(0)` toggle, and a `useAnimatedStyle` that reads `withSpring(1 - pressed.value * 0.04, { stiffness: 320, damping: 22 })`.
+
+If Inertia regresses, suspect these causes, in this order:
+
+1. A new worklet per render. The worklet must be memoized through `baseSig` and `transitionSig`. Check the [memoization regression test](https://github.com/rootnative/inertia/blob/main/packages/core/src/__tests__/memoization.test.tsx) again.
+2. The cost of the animated style. Make sure that the worklet body doesn't allocate per frame.
+3. The cost of the resolver. `resolveAnimatableValue` runs on the JS thread, per render and not per frame. Check the effect dependency array.
 
 ---
 
