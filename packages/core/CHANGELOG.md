@@ -4,6 +4,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Fixed
+
+- **A `layoutId` target no longer shows at its new place for one frame before it moves.** The FLIP started from the first `onLayout` of the target, which comes after the first paint. On web it always did, because react-native-web reports layout from a `setTimeout`. So the target was drawn once at its final rect, then jumped back to the source and moved. Now the FLIP starts when the target mounts, if the target can be measured then (on web and on the New Architecture). Otherwise it still starts from the first `onLayout`. On web, the first frame after the swap now shows the target at the source rect.
+
 ## [0.0.28] - 2026-11-08
 
 ### Fixed

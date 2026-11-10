@@ -96,11 +96,13 @@ export interface SharedLayoutBindings {
  *   3. On unmount, measure the node one last time and hand that rect to
  *      `releaseLayout` so the next mount with the same id can consume it.
  *      The last layout rect is the fallback when the node cannot be measured.
- *   4. On mount, claim any pending source rect. On the first layout commit,
- *      drive the FLIP shared values from it: snap them to the (delta,
- *      scale) that visually places the new element at the source position,
- *      then animate back to identity. `withSequence(snap, animate)` keeps the
- *      animation starting from the snapped delta rather than from zero.
+ *   4. On mount, claim any pending source rect, and drive the FLIP shared
+ *      values from it: at once when the element can be measured
+ *      synchronously, else on the first layout commit. Snap them to the
+ *      (delta, scale) that visually places the new element at the source
+ *      position, then animate back to identity. `withSequence(snap, animate)`
+ *      keeps the animation starting from the snapped delta rather than from
+ *      zero.
  *   5. Carry the source's style values for the keys the rect can't express
  *      (colors, `opacity`, `borderRadius`) by parking them in a snapshot and
  *      running a crossfade progress 1 → 0 on the same transition. The blend
@@ -117,7 +119,7 @@ export interface SharedLayoutBindings {
  * than played wrongly. See `measureWindow.ts` for why there is no third,
  * asynchronous option.
  *
- * The source is re-measured at the first layout when it is still mounted (the
+ * The source is re-measured when the FLIP starts if it is still mounted (the
  * usual case — a stack navigator keeps the previous screen alive underneath).
  * That is what stops a scrolled list from offsetting every transition by its
  * scroll distance: `onLayout` never fires for an ancestor's scroll, so the
@@ -209,11 +211,12 @@ export function useSharedLayout(options: {
   const snapshotStyles = useCallback(() => readStylesRef.current?.(), [])
 
   const startTransition = useCallback(
-    (
-      source: SharedLayoutSource,
-      sourceRect: SharedRect,
-      target: SharedRect,
-    ) => {
+    (source: SharedLayoutSource, target: SharedRect) => {
+      // Prefer a fresh measurement of the source over its stored rect: it may
+      // have scrolled since its last layout, and `onLayout` never reports an
+      // ancestor's scroll. Falls back to the stored rect once the source has
+      // unmounted or when it can't be measured.
+      const sourceRect = source.remeasure?.() ?? source.rect
       // Mixed coordinate spaces are not comparable — the delta would be off by
       // the parent's window offset. Skipping is the honest outcome; playing
       // the animation anyway would fling the element in from the wrong place.
@@ -258,11 +261,7 @@ export function useSharedLayout(options: {
       registerLayout(layoutId, rect, remeasure, snapshotStyles)
 
       if (!source) return
-      // Prefer a fresh measurement of the source over its stored rect: it may
-      // have scrolled since its last layout, and `onLayout` never reports an
-      // ancestor's scroll. Falls back to the stored rect once the source has
-      // unmounted or when it can't be measured.
-      startTransition(source, source.remeasure?.() ?? source.rect, rect)
+      startTransition(source, rect)
     },
     [layoutId, userOnLayout, remeasure, snapshotStyles, startTransition],
   )
@@ -273,9 +272,23 @@ export function useSharedLayout(options: {
   // so a swap in one render always finds a fresh rect. The first `onLayout`
   // can arrive more than the TTL after that commit on a slow device; a claim
   // that waited for it found the rect expired, and no FLIP ran.
+  //
+  // The FLIP starts here too when the element can be measured now (Fabric,
+  // and web through the DOM rect). The first `onLayout` comes after the first
+  // paint — on web always, because react-native-web reports layout from a
+  // `setTimeout` — so a start from it showed the element at its new place for
+  // one frame before it jumped back to the source. A node that can't be
+  // measured yet keeps the claim for its first `onLayout`.
   useLayoutEffect(() => {
-    claimedRef.current = layoutId ? consumeLayout(layoutId) : undefined
-  }, [layoutId])
+    const source = layoutId ? consumeLayout(layoutId) : undefined
+    claimedRef.current = source
+    if (!source) return
+    const rect = measureWindowRect(nodeRef.current)
+    if (!rect) return
+    claimedRef.current = undefined
+    lastRectRef.current = rect
+    startTransition(source, rect)
+  }, [layoutId, startTransition])
 
   // On unmount, hand a final rect — and a final snapshot of the carried style
   // keys — to the registry under this id so the next mount can consume them.

@@ -55,8 +55,9 @@ function fireLayout(
  * Stub window measurement with a queue consumed in call order, and return the
  * list of nodes it was asked about.
  *
- * Order is deterministic: an element measures itself during its own `onLayout`,
- * and only then asks a still-mounted source to re-measure.
+ * Order is deterministic: an element measures itself when it mounts with a
+ * claimed source, else during its own `onLayout`, and only then asks a
+ * still-mounted source to re-measure. It measures itself again on unmount.
  */
 function stubMeasurements(...queue: Array<MeasuredRect | undefined>) {
   let i = 0
@@ -696,7 +697,10 @@ describe('layoutId — the rect released on unmount', () => {
 
 // On a slow device the first `onLayout` of the target can arrive more than
 // the TTL after the commit that released the source. The target claims the
-// rect when it mounts, so that delay does not cancel the FLIP.
+// rect when it mounts, so that delay does not cancel the FLIP. When the target
+// can be measured then, the FLIP starts in that commit too: the first
+// `onLayout` comes after the first paint, so a start from it showed the
+// target at its new place for one frame.
 describe('layoutId — the target claims the source when it mounts', () => {
   const detailStyle = { width: 200, height: 150 }
   let now = 0
@@ -756,6 +760,75 @@ describe('layoutId — the target claims the source when it mounts', () => {
       y: 100,
       width: 200,
       height: 150,
+    })
+
+    expect(withSpring).toHaveBeenCalledTimes(4)
+  })
+
+  it('starts the FLIP in the commit of a swap, before the first layout', () => {
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    stubMeasurements(
+      { x: 0, y: 0, width: 50, height: 50 },
+      { x: 0, y: 0, width: 50, height: 50 },
+      { x: 0, y: 100, width: 200, height: 150 },
+    )
+    const view = render(<Swap detail={false} />)
+    fireLayout(view.getByTestId('tile') as never, {
+      x: 0,
+      y: 0,
+      width: 50,
+      height: 50,
+    })
+
+    view.rerender(<Swap detail />)
+
+    // Centres: tile (25, 25), detail (100, 175).
+    expect(flipSnapValues(withTiming)).toEqual([-75, -150, 50 / 200, 50 / 150])
+  })
+
+  it('starts no second FLIP on the first layout after a mount-time start', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    stubMeasurements(
+      { x: 0, y: 0, width: 50, height: 50 },
+      { x: 0, y: 0, width: 50, height: 50 },
+      { x: 0, y: 100, width: 200, height: 150 },
+    )
+    const view = render(<Swap detail={false} />)
+    fireLayout(view.getByTestId('tile') as never, {
+      x: 0,
+      y: 0,
+      width: 50,
+      height: 50,
+    })
+    view.rerender(<Swap detail />)
+    expect(withSpring).toHaveBeenCalledTimes(4)
+
+    fireLayout(view.getByTestId('detail') as never, {
+      x: 0,
+      y: 100,
+      width: 200,
+      height: 150,
+    })
+
+    expect(withSpring).toHaveBeenCalledTimes(4)
+    expect(peekSharedLayout('card')).toEqual(par(0, 100, 200, 150))
+  })
+
+  it('waits for the first layout when the target cannot be measured at mount', () => {
+    const withSpring = jest.spyOn(Reanimated, 'withSpring')
+    releaseLayout('hero', win(0, 0, 50, 50))
+    stubMeasurements(undefined, { x: 100, y: 100, width: 100, height: 100 })
+
+    const view = render(
+      <Motion.View testID="el" layoutId="hero" style={boxStyle} />,
+    )
+    expect(withSpring).not.toHaveBeenCalled()
+
+    fireLayout(view.getByTestId('el') as never, {
+      x: 100,
+      y: 100,
+      width: 100,
+      height: 100,
     })
 
     expect(withSpring).toHaveBeenCalledTimes(4)
