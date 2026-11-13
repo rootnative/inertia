@@ -6,6 +6,10 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+## [0.0.29] - 2026-11-13
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.29` (on web, a `layoutId` target no longer shows at its new place for one frame before it moves)). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.29 <0.1.0`.
+
 ## [0.0.28] - 2026-11-08
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.28` (`useHideOnScroll` starts again when its offset source changes). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.28 <0.1.0`. The README and `llms.txt` use plainer wording, with the same API and facts.
@@ -184,7 +188,8 @@ Initial alpha publish alongside `@rootnative/inertia@0.0.0-alpha.0`. Optional ad
 - `useDrag({ onRelease })` — release worklet returns per-axis Inertia transitions (snap-to-tick spring, decay with bounds, etc.). Velocity stays on the UI thread; no JS round-trip.
 - `useSwipe`, `usePan` hooks composable with any `Motion.*` primitive via `<GestureDetector>`.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.28...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.29...HEAD
+[0.0.29]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.29
 [0.0.28]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.28
 [0.0.27]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.27
 [0.0.26]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.26

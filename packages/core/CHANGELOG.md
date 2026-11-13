@@ -4,9 +4,11 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.29] - 2026-11-13
+
 ### Fixed
 
-- **A `layoutId` target no longer shows at its new place for one frame before it moves.** The FLIP started from the first `onLayout` of the target, which comes after the first paint. On web it always did, because react-native-web reports layout from a `setTimeout`. So the target was drawn once at its final rect, then jumped back to the source and moved. Now the FLIP starts when the target mounts, if the target can be measured then (on web and on the New Architecture). Otherwise it still starts from the first `onLayout`. On web, the first frame after the swap now shows the target at the source rect.
+- **On web, a `layoutId` target no longer shows at its new place for one frame before it moves.** The FLIP started from the first `onLayout` of the target, which comes after the first paint. On web it always did, because react-native-web reports layout from a `setTimeout`. So the target was drawn once at its final rect, then jumped back to the source and moved. Now the FLIP starts when the target mounts, if the target can be measured then (on web and on the New Architecture). Otherwise it still starts from the first `onLayout`. On web, the first frame after the swap now shows the target at the source rect. On iOS and Android, the target can still show at its new place for one frame. That frame was there before this release too.
 
 ### Documentation
 
@@ -625,7 +627,8 @@ Initial alpha publish. The full initial surface is in place; APIs are still subj
 - SVG path morphing, gradient interpolation, and shared-element transitions across screens are out of scope until `0.2.x` / `1.x` per the roadmap.
 - `react-native-gesture-handler` integration (drag, pan, swipe sub-states) lands in `0.2` via the optional `@rootnative/inertia-gestures` adapter.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.28...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.29...HEAD
+[0.0.29]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.29
 [0.0.28]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.28
 [0.0.27]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.27
 [0.0.26]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.26
