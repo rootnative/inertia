@@ -12,7 +12,7 @@
 
 Declarative animation primitives for React Native, built as a thin wrapper around [`react-native-reanimated`](https://docs.swmansion.com/react-native-reanimated/). The API takes ideas from Framer Motion (web) and react-spring (cross-platform).
 
-> **Status:** `0.0.28`, stable. Before `1.0.0`, a minor release can still change the API. The [CHANGELOG](https://github.com/rootnative/inertia/blob/main/packages/core/CHANGELOG.md) names each breaking change.
+> **Status:** `0.0.29`, stable. Before `1.0.0`, a minor release can still change the API. The [CHANGELOG](https://github.com/rootnative/inertia/blob/main/packages/core/CHANGELOG.md) names each breaking change.
 
 ## Install
 

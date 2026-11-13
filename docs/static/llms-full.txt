@@ -10,7 +10,7 @@ Inertia (`@rootnative/inertia`) is a thin wrapper around `react-native-reanimate
 
 Inertia supports iOS, Android, and web (react-native-web). macOS, Windows, and Electron are not tested. See [Platforms](./installation#platforms).
 
-> **Status:** `0.0.28`. The example app covers the full surface: primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, layout, shared elements, and the value-layer hooks. Before `1.0.0`, a minor release can still change the API. The [changelog](https://github.com/rootnative/inertia/blob/main/packages/core/CHANGELOG.md) names each breaking change.
+> **Status:** `0.0.29`. The example app covers the full surface: primitives, per-property transitions, sequences, variants, gestures, `<Presence>`, decay, `<MotionConfig>`, layout, shared elements, and the value-layer hooks. Before `1.0.0`, a minor release can still change the API. The [changelog](https://github.com/rootnative/inertia/blob/main/packages/core/CHANGELOG.md) names each breaking change.
 
 ## What you get
 
