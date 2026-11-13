@@ -253,7 +253,7 @@ describe('one <Stagger> per <Presence> child', () => {
     expect(screen.queryByTestId('b')).not.toBeNull()
 
     act(() => {
-      ;(started[0][2] as SettleCallback)(true)
+      ;(started[0]?.[2] as SettleCallback)(true)
     })
     expect(screen.queryByTestId('b')).toBeNull()
     expect(screen.queryByTestId('c')).not.toBeNull()
