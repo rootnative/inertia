@@ -1560,6 +1560,39 @@ The stagger delay wraps the **declarative animations** of the child: everything 
 - **A delay change alone starts nothing.** Inertia reads the delay when an animation starts. A change of `interval`, `from`, or `enabled` affects the next animation, not an animation in flight.
 - **A custom animated component can take part.** `useStaggerDelay()` returns the delay of the current child slot (`0` outside a `<Stagger>`). Add it to the delay of whatever you resolve through `resolveTransition` or `resolveAnimatableValue`.
 
+## A list that cascades in and whose rows exit
+
+`<Stagger>` and `<Presence>` each read their own direct children, so one can't wrap the other around the same list. `<Presence><Stagger>` gives `<Presence>` one child. `<Stagger><Presence>` gives every row the delay of one slot.
+
+Give each row its own `<Stagger>` with one child, and compute the delay from the index:
+
+```tsx
+import { Motion, Presence, Stagger } from '@rootnative/inertia'
+
+export function BuildList({ builds }: Props) {
+  return (
+    <Presence>
+      {builds.map((build, index) => (
+        <Stagger key={build.id} interval={0} delay={index * 40}>
+          <Motion.View
+            initial={{ opacity: 0, translateY: 8 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            exit={{ opacity: 0 }}
+          />
+        </Stagger>
+      ))}
+    </Presence>
+  )
+}
+```
+
+- **The `key` goes on the `<Stagger>`.** `<Presence>` follows its direct children, and here those are the `<Stagger>` elements.
+- **The rows cascade in.** Row `index` starts `index * 40` milliseconds late.
+- **A removed row exits with no delay.** It stays mounted until its exit ends, as with any `<Presence>` child.
+- **The rows that stay don't replay.** A removal changes the index of each later row, but a delay change alone starts nothing.
+- **A row that you add later gets the delay of its index too.** If a late row must come in at once, pass `delay={0}` after the first cascade.
+- **`from` and `enabled` are yours to compute.** Use `(builds.length - 1 - index) * 40` for a cascade from the last row, and `0` for no cascade.
+
 ## Nesting
 
 Nested `<Stagger>` components don't add up. The nearest ancestor wins, the same as any React context. Give an inner list its own `<Stagger>`, and its children cascade relative to that list.

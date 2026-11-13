@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native'
+import { act, render, screen } from '@testing-library/react-native'
 import { StyleSheet, View } from 'react-native'
 import * as Reanimated from 'react-native-reanimated'
 import { MotionConfig } from '../config'
@@ -207,5 +207,63 @@ describe('<Stagger>', () => {
       }
     expect(flat('first').opacity).toBe(1)
     expect(flat('second').opacity).toBe(0.5)
+  })
+})
+
+// `<Stagger>` and `<Presence>` each read their own direct children, so one
+// can't wrap the other around the same list. The docs recipe gives each
+// `<Presence>` child its own keyed, one-child `<Stagger>`.
+describe('one <Stagger> per <Presence> child', () => {
+  type SettleCallback = (finished?: boolean) => void
+
+  const list = (ids: string[]) => (
+    <Presence>
+      {ids.map((id, index) => (
+        <Stagger key={id} interval={0} delay={index * 100}>
+          <Motion.View
+            testID={id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: 'timing', duration: 200 }}
+          />
+        </Stagger>
+      ))}
+    </Presence>
+  )
+
+  it('cascades the entrance by index', () => {
+    const withDelay = jest.spyOn(Reanimated, 'withDelay')
+    render(list(['a', 'b', 'c']))
+    expect(delaysOf(withDelay)).toEqual([100, 200])
+  })
+
+  it('a removed row exits with no delay, and the other rows stay still', () => {
+    const withDelay = jest.spyOn(Reanimated, 'withDelay')
+    const withTiming = jest.spyOn(Reanimated, 'withTiming')
+    const { rerender } = render(list(['a', 'b', 'c']))
+    const delaysBefore = withDelay.mock.calls.length
+    const timingsBefore = withTiming.mock.calls.length
+
+    // `c` moves from index 2 to index 1, so its delay changes to 100.
+    rerender(list(['a', 'c']))
+    expect(withDelay.mock.calls.length).toBe(delaysBefore)
+    const started = withTiming.mock.calls.slice(timingsBefore)
+    expect(started).toHaveLength(1)
+    expect(screen.queryByTestId('b')).not.toBeNull()
+
+    act(() => {
+      ;(started[0][2] as SettleCallback)(true)
+    })
+    expect(screen.queryByTestId('b')).toBeNull()
+    expect(screen.queryByTestId('c')).not.toBeNull()
+  })
+
+  it('a row added later gets the delay of its index', () => {
+    const withDelay = jest.spyOn(Reanimated, 'withDelay')
+    const { rerender } = render(list(['a', 'b', 'c']))
+    const before = withDelay.mock.calls.length
+    rerender(list(['a', 'b', 'c', 'd']))
+    expect(delaysOf(withDelay).slice(before)).toEqual([300])
   })
 })

@@ -8,6 +8,10 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 - **A `layoutId` target no longer shows at its new place for one frame before it moves.** The FLIP started from the first `onLayout` of the target, which comes after the first paint. On web it always did, because react-native-web reports layout from a `setTimeout`. So the target was drawn once at its final rect, then jumped back to the source and moved. Now the FLIP starts when the target mounts, if the target can be measured then (on web and on the New Architecture). Otherwise it still starts from the first `onLayout`. On web, the first frame after the swap now shows the target at the source rect.
 
+### Documentation
+
+- **The Stagger page shows how to cascade a list whose rows also exit.** `<Stagger>` and `<Presence>` each read their own direct children, so one can't wrap the other around the same list. The recipe gives each `<Presence>` child its own `<Stagger>` with one child and a delay from the index. The rows cascade in, a removed row exits with no delay, and the rows that stay don't replay. No API change.
+
 ## [0.0.28] - 2026-11-08
 
 ### Fixed
