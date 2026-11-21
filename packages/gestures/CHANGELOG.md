@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `@rootnative/inertia-gestures` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Pre-`1.0.0`, breaking changes may land in minor versions and are called out under their release.
+All notable changes to `@rootnative/inertia-gestures` are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow modified semver: a breaking change bumps the middle digit (`0.1.0`), and fixes and additions bump the last digit (`0.0.2`).
 
 This package ships in lockstep with `@rootnative/inertia` — version numbers track the core release that introduced or last touched the adapter.
 
@@ -165,28 +165,7 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [0.0.1] - 2026-07-23
 
-**First stable release.** Lockstep version bump alongside `@rootnative/inertia@0.0.1` (the first stable release of the core). No runtime changes in this adapter since `0.0.0-alpha.2`.
-
-## [0.0.0-alpha.2] - 2026-07-20
-
-### Changed
-
-- Published bundles no longer include sourcemaps, and the `__type-tests__` directories are excluded from the npm package (packaging-only; no runtime change).
-
-## [0.0.0-alpha.1] - 2026-07-19
-
-Lockstep version bump alongside `@rootnative/inertia@0.0.0-alpha.1` (README updates only; no runtime changes).
-
-## 0.0.0-alpha.0
-
-_No git tag was cut for this release; the published artifact is on npm as [`@rootnative/inertia-gestures@0.0.0-alpha.0`](https://www.npmjs.com/package/@rootnative/inertia-gestures/v/0.0.0-alpha.0). Unlinked here for that reason — every other heading resolves to a real tag._
-
-Initial alpha publish alongside `@rootnative/inertia@0.0.0-alpha.0`. Optional adapter package wrapping `react-native-gesture-handler`; the core library has no required gesture-handler dependency.
-
-### Added
-
-- `useDrag({ onRelease })` — release worklet returns per-axis Inertia transitions (snap-to-tick spring, decay with bounds, etc.). Velocity stays on the UI thread; no JS round-trip.
-- `useSwipe`, `usePan` hooks composable with any `Motion.*` primitive via `<GestureDetector>`.
+**First stable release**, in lockstep with `@rootnative/inertia@0.0.1`. An optional adapter on `react-native-gesture-handler`: `useDrag`, whose `onRelease` worklet returns a transition for each axis (a snap spring, or a decay with bounds), and `useSwipe` and `usePan`. Each one works with any `Motion.*` primitive through `<GestureDetector>`. The core needs no gesture-handler dependency.
 
 [unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.29...HEAD
 [0.0.29]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.29
@@ -218,5 +197,3 @@ Initial alpha publish alongside `@rootnative/inertia@0.0.0-alpha.0`. Optional ad
 [0.0.3]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.3
 [0.0.2]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.2
 [0.0.1]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.1
-[0.0.0-alpha.2]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.0-alpha.2
-[0.0.0-alpha.1]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.0-alpha.1

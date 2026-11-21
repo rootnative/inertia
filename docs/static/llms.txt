@@ -31,7 +31,7 @@ The core package doesn't contain the gesture hooks, the gradient primitive, or t
 
 `useTouchDrag` is the exception: a drag hook in **core**, under the `@rootnative/inertia/touch` subpath, because PanResponder is part of React Native. Use it for drag without `react-native-gesture-handler`, or when the drag needs keyboard accessibility.
 
-All four packages ship in **lockstep**: the same version, released together. Install the same version of every `@rootnative/inertia*` package that you use. Two things can mislead you. Other packages in the `@rootnative` scope are different libraries on different version lines, so a `0.0.0-alpha.x` version there is not a mismatch. And `npm view` shows an `alpha` dist-tag on these packages that is **older** than `latest`. It's a prerelease leftover. Follow `latest`.
+All four packages ship in **lockstep**: the same version, released together. Install the same version of every `@rootnative/inertia*` package that you use. Other packages in the `@rootnative` scope are different libraries with their own versions, so a different version there is not a mismatch.
 
 ## Imports
 
@@ -181,7 +181,7 @@ transition={{
 - Every `Motion.*` primitive **throws in dev** when `style` is a function. The animated-component wrapper of Reanimated would drop the function form `style={({ pressed }) => ...}`, which the `Pressable` of React Native accepts, with no message. The throw catches that trap at the source. Drive the press, focus, and hover styles through `gesture` instead, or compute a conditional style once in render. A production build skips the check. The styles would still be dropped there, so the check in dev is the safety net.
 - Inertia reads `initial` once, on mount, and it doesn't react to a change on purpose. To reset after a state change, change the component `key`, remount through `<Presence>`, or drive the value through a controller. Pass `initial={false}` to skip the mount animation.
 
-## Animatable properties (alpha)
+## Animatable properties
 
 Numeric: `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `shadowOpacity`, `shadowRadius`, `elevation`. A rotation value is in degrees. The factory wraps it as `'${value}deg'`. `rotateX` and `rotateY` need a sibling `perspective` style entry to render in 3D.
 

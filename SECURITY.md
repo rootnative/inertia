@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Inertia is pre-1.0.0. Only the latest release of each package receives security fixes.
+Only the latest release of each package gets security fixes.
 
 | Package                                                        | Supported |
 | -------------------------------------------------------------- | --------- |

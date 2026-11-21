@@ -74,7 +74,7 @@ import {
 } from '../types'
 
 /**
- * Animatable properties supported in the alpha. Expanding this set is a
+ * The transform keys that `animate` takes. Expanding this set is a
  * mechanical change — add the key here, decide whether it lives inside
  * `transform`, and wire it through `buildAnimatedStyle` below.
  */
@@ -428,10 +428,6 @@ function gestureLayerTransitionFor<S>(
  * The generic `C` flows through `MotionProps`, so `animate` / `initial` /
  * `exit` / `transition` all infer from `C`'s `style` prop. There is no
  * shared `ViewStyle & TextStyle & ImageStyle` fallback.
- *
- * Alpha scope: numeric properties (transforms, opacity, width, height,
- * borderRadius) and color properties (backgroundColor, borderColor, color,
- * tintColor) applied via Reanimated shared values + `useAnimatedStyle`.
  */
 // `ComponentType<any>` is React's canonical "accept any component" idiom.
 // `unknown` doesn't work — props need to widen to whatever `C` actually accepts

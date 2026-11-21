@@ -32,7 +32,7 @@ export function Avatar({ source }: { source: { uri: string } }) {
 import { MotionImage } from '@rootnative/inertia/image'
 ```
 
-## Animatable keys (alpha)
+## Animatable keys
 
 `opacity`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `rotate`, `rotateX`, `rotateY`, `width`, `height`, `borderRadius`, `tintColor`, `backgroundColor`, `borderColor`.
 
