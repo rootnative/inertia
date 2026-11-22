@@ -1,5 +1,5 @@
 > @rootnative/inertia-gradients — adapter package for @rootnative/inertia.
-> This file is generated from the matching docs page by scripts/build-llms.mjs — do not edit by hand.
+> scripts/build-llms.mjs builds this file from the matching docs page. Don't edit it by hand.
 
 > Platforms: iOS, Android, and web. Web uses the web component of expo-linear-gradient; Reanimated can log a console error on each frame there, and the gradient still animates. macOS, Windows, and Electron are not tested.
 

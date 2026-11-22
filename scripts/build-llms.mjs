@@ -175,7 +175,7 @@ function buildLlmsFull() {
   const header = [
     '# Inertia — full API reference',
     '',
-    '> This file aggregates every documentation page in source order. Generated from docs/docs/*.md by scripts/build-llms.mjs — do not edit by hand.',
+    "> This file holds every documentation page, in source order. scripts/build-llms.mjs builds it from docs/docs/*.md. Don't edit it by hand.",
     '',
     `> Source: https://github.com/rootnative/inertia`,
     `> Site:   https://rootnative.github.io/inertia/`,
@@ -197,7 +197,7 @@ function buildSiblingLlms({ docId, name, platforms }) {
 
   const header = [
     `> ${name} — adapter package for @rootnative/inertia.`,
-    '> This file is generated from the matching docs page by scripts/build-llms.mjs — do not edit by hand.',
+    "> scripts/build-llms.mjs builds this file from the matching docs page. Don't edit it by hand.",
     '',
     `> Platforms: ${platforms}`,
     '',
