@@ -4,9 +4,11 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+## [0.0.30] - 2026-11-22
+
 ### Changed
 
-- **Versions follow modified semver.** From the next release on, a breaking change bumps the middle digit (`0.1.0`), and fixes and additions bump the last digit.
+- **Versions follow modified semver.** From this release on, a breaking change bumps the middle digit (`0.1.0`), and fixes and additions bump the last digit.
 
 ### Documentation
 
@@ -569,7 +571,8 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 - **`useShadow` now interpolates CSS `boxShadow`.** The classic `shadow*`/`elevation` keys never reach the web renderer, so a `useShadow` elevation crossfade silently dropped its shadow on web — the platform where hover, its most common driver, matters most. `ShadowConfig` gains `boxShadow?: string | BoxShadowLayer[]`: pass the CSS string form design systems store elevation tokens in (px lengths only; parsed once on the JS thread, `cubicBezier`-style — malformed tokens throw at setup rather than warning) or structured layers mirroring RN's `BoxShadowValue`. Multi-layer shadows interpolate per layer with CSS-transition padding semantics (shorter side padded with invisible layers; a genuine `inset` mismatch throws); blur clamps at 0 under springy overshoot. Emitted as a `boxShadow` style string — passed through as CSS by react-native-web and rendered natively on RN 0.76+ new architecture; keep `shadow*`/`elevation` alongside it for old-arch native. New `BoxShadowLayer` type exported from the root.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.29...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.30...HEAD
+[0.0.30]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.30
 [0.0.29]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.29
 [0.0.28]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.28
 [0.0.27]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.27

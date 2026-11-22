@@ -6,7 +6,9 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
-**Lockstep version bump** alongside the next `@rootnative/inertia` release (documentation fixes). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to the new version, below `0.1.0`.
+## [0.0.30] - 2026-11-22
+
+**Lockstep version bump** alongside `@rootnative/inertia@0.0.30` (documentation fixes). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.30 <0.1.0`.
 
 ## [0.0.29] - 2026-11-13
 
@@ -162,7 +164,8 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 **First stable release**, in lockstep with `@rootnative/inertia@0.0.1`. `MotionPath` over `react-native-svg` animates `d` (on paths with the same commands), `fill`, `stroke`, `strokeWidth`, the opacities, and `strokeDashoffset`. The `createMotionSvgComponent` factory gives any `react-native-svg` element the same surface, and `MotionCircle`, `MotionRect`, and `MotionLine` are built on it.
 
-[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.29...HEAD
+[unreleased]: https://github.com/rootnative/inertia/compare/core+gestures+gradients+svg@0.0.30...HEAD
+[0.0.30]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.30
 [0.0.29]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.29
 [0.0.28]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.28
 [0.0.27]: https://github.com/rootnative/inertia/releases/tag/core+gestures+gradients+svg@0.0.27
