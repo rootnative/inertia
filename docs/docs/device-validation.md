@@ -7,7 +7,7 @@ description: The run procedure for the five behaviors CI cannot validate, becaus
 
 Five features shipped between `0.0.1` and `0.0.9` that CI can't validate. The Jest mock resolves animations **synchronously by design**: `withSpring` is the identity function, and `useAnimatedStyle` runs once per call with no frame loop. So no test can observe a dropped frame, a colour crossfade at 60 Hz, or whether a native measurement resolved in time. Every item below is green in CI and unproven on hardware.
 
-This page is the run procedure. Complete it in **one sitting with two physical devices** (one Android, one iOS), and check the items off in place. Record the findings in the results table at the bottom. Then copy them into the standing-items bullet in the design contract, so the next audit doesn't derive the list again.
+This page is the run procedure. Complete it in **one sitting with two physical devices** (one Android, one iOS), and check the items off in place. Record the findings in the results table at the bottom.
 
 ## Before you start
 
@@ -111,7 +111,7 @@ Enable PerfMonitor, then toggle **Animate** several times, and watch the UI-thre
 
 ## Recording results
 
-Fill this in during the run, then copy the findings into the standing device-validation bullet in the design contract. **A number is worth more than a checkmark.** "Inertia 12 drops vs hand-rolled 11, ratio 1.09, fails" is actionable. "item 1 ✗" is not.
+Fill this in during the run. **A number is worth more than a checkmark.** "Inertia 12 drops vs hand-rolled 11, ratio 1.09, fails" is actionable. "item 1 ✗" is not.
 
 | Item                       | Android | iOS | Notes / numbers |
 | -------------------------- | ------- | --- | --------------- |

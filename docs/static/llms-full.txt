@@ -3391,7 +3391,7 @@ The returned shared value sits at `0` when `active` is `false`. It animates towa
 | -------------------------------------------------------------------------------- | --------------------- |
 | `useBooleanSpring(active: boolean, config?: SpringTransition \| TransitionName)` | `SharedValue<number>` |
 
-`config` takes the same react-spring vocabulary as `useSpring` (`tension`, `friction`, `mass`). Omit it for the library defaults. Like `useSpring`, this hook does **not** consult `<MotionConfig reducedMotion>`. It always interpolates. If the value must respect reduced motion, drive it through `useAnimation`, which gates on the config, or gate the target yourself with `useShouldReduceMotion()`.
+`config` takes the same react-spring vocabulary as `useSpring` (`tension`, `friction`, `mass`). Omit it for the library defaults. Like `useSpring`, this hook honours `<MotionConfig reducedMotion>`: under reduced motion, the value goes to its target at once, with no spring.
 
 **`useBooleanSpring` vs `useSpring(active ? 1 : 0)`.** The mechanics are identical. `useBooleanSpring` is the named version of the pattern, so the call site reads as the boolean, not as a ternary. Use it whenever the source is a boolean prop and the target is a progress value from 0 to 1 for `useShadow`, `useColorTransition`, `useTransform`, or a hand-written `useAnimatedStyle`.
 
@@ -4191,7 +4191,7 @@ function MyVideoIntro() {
 }
 ```
 
-Every Motion primitive uses this hook to decide whether to swap transitions for `'no-animation'`. It subscribes to OS changes, so a component re-renders when the user changes the setting at runtime.
+Every Motion primitive uses this hook to decide whether to swap transitions for `'no-animation'`. In `'user'` mode, it reads the OS setting once, at app start. A change of the setting while the app runs takes effect on the next launch. A change of the `reducedMotion` prop re-renders at once. See [Reading the resolved value](../motion-config#reading-the-resolved-value).
 
 ## `usePresence()`
 
