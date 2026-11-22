@@ -44,7 +44,7 @@
   </picture>
 </p>
 
-> **Status:** `0.0.29`. The declarative core, layout, and shared elements are complete and tested. The [changelog](packages/core/CHANGELOG.md) names each breaking change.
+> **Status:** `0.0.30`. The declarative core, layout, and shared elements are complete and tested. The [changelog](packages/core/CHANGELOG.md) names each breaking change.
 
 ## ✨ Features
 
