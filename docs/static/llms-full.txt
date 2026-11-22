@@ -1669,7 +1669,7 @@ The `transition` prop of the **incoming** element controls the FLIP animation. T
 
 ### Style carry
 
-The rect FLIP moves and scales the element. A hero card that also changes its colour or its corner radius between screens would snap on those props while its frame animates. That is the most visible half of the transition. So Inertia carries a set of style keys from the source and crossfades them out over the same transition:
+The rect FLIP moves and scales the element. A hero card that also changes its color or its corner radius between screens would snap on those props while its frame animates. That is the most visible half of the transition. So Inertia carries a set of style keys from the source and crossfades them out over the same transition:
 
 | Carried                                                                           | Not carried                                                                                                                                                                                                                                    |
 | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1679,7 +1679,7 @@ The rect FLIP moves and scales the element. A hero card that also changes its co
 // Screen A — a small tile
 <Motion.View layoutId="hero" style={{ borderRadius: 14, backgroundColor: '#f97316' }} />
 
-// Screen B — a large header. Radius and colour crossfade with the rect.
+// Screen B — a large header. Radius and color crossfade with the rect.
 <Motion.View layoutId="hero" style={{ borderRadius: 24, backgroundColor: '#ea580c' }} />
 ```
 
@@ -1687,10 +1687,10 @@ There is nothing to configure. The carry uses the existing `layoutId` and `trans
 
 Rules to know:
 
-- **A key takes part only when the element already has a value for it**, from `animate`, `initial`, a variant, `gesture`, or its static `style`. Inertia never invents a value. A key that the element says nothing about would rest at the generic type default. For `color` on a `Motion.Text` that inherits its colour from a parent, that default is `'transparent'`: invisible text on an element that you only asked to move.
+- **A key takes part only when the element already has a value for it**, from `animate`, `initial`, a variant, `gesture`, or its static `style`. Inertia never invents a value. A key that the element says nothing about would rest at the generic type default. For `color` on a `Motion.Text` that inherits its color from a parent, that default is `'transparent'`: invisible text on an element that you only asked to move.
 - **Inertia ignores a key that one side lacks, in both directions.** A key that the source carried but the target has no value for does nothing, and the reverse is also true.
 - **Inertia reads a source that is still mounted live**, for the same reason that it measures its rect again: its values move without a layout pass. After the source unmounts, only the snapshot from the unmount remains.
-- **The carry overrides `initial` for the carried keys** on the mount that consumes a source. The carry composites above the base value, so the first frame shows the colour of the source, whatever `initial` asked for.
+- **The carry overrides `initial` for the carried keys** on the mount that consumes a source. The carry composites above the base value, so the first frame shows the color of the source, whatever `initial` asked for.
 - **Reduced motion and `'no-animation'` snap**, the same as the rect path. A coordinate-space mismatch also snaps: half a shared-element transition looks like a glitch, not like a fallback.
 
 ### Caveats and current scope
@@ -2801,7 +2801,7 @@ If a pattern isn't on this page, the likely answer is "use the hooks layer". Ine
 
 ## State-layer fills (Material Design 3)
 
-The most common pattern: a `Pressable` with a coloured layer that fades in on hover, focus, and press. In a component library, a dozen components can share this exact shape.
+The most common pattern: a `Pressable` with a colored layer that fades in on hover, focus, and press. In a component library, a dozen components can share this exact shape.
 
 ### Before — raw Reanimated
 
@@ -3288,7 +3288,7 @@ The other value hooks (`useSpring`, `useTransform`) are numeric, because interpo
 Two rules come from Reanimated, not from this hook:
 
 - **Reassign a structured value. Don't mutate it.** `cellTops.value.push(y)` updates nothing. Write a new array or record instead.
-- **Only numbers and colour strings animate.** You write a structured value from a handler or an effect. You never pass it to `withSpring` or `withTiming`.
+- **Only numbers and color strings animate.** You write a structured value from a handler or an effect. You never pass it to `withSpring` or `withTiming`.
 
 ```tsx
 import { useMotionValue, Motion } from '@rootnative/inertia'
@@ -3599,7 +3599,7 @@ The chain equals the hand-written nested `interpolateColor` shape `focus(error(h
 
 where `ColorCascadeLayer` is `{ progress: SharedValue<number>; color: string }`.
 
-**Rewiring a layer.** The hook resolves the chain on the JS thread and keeps its identity stable, so a new but equal `layers` array on every render costs nothing. A change of a colour, the `key`, the base `rest`, the layer count, or **the shared value that drives a layer** rewires the worklet. So a conditional progress (`{ progress: isError ? errorSpring : hoverSpring, color }`) behaves as written.
+**Rewiring a layer.** The hook resolves the chain on the JS thread and keeps its identity stable, so a new but equal `layers` array on every render costs nothing. A change of a color, the `key`, the base `rest`, the layer count, or **the shared value that drives a layer** rewires the worklet. So a conditional progress (`{ progress: isError ? errorSpring : hoverSpring, color }`) behaves as written.
 
 **`useColorCascade` vs `useColorTransition`.** `useColorTransition(progress, [rest, active])` is the single-layer fast path: one progress for one color key. Use `useColorCascade` when **independent** states each contribute a color and their precedence matters, for example a field border that can be hovered, in error, and focused at the same time. It doesn't replace the single-layer hook.
 
@@ -4652,7 +4652,7 @@ The factory primitives and the `-gradients` and `-svg` adapters key their own `t
 
 ## `TRANSPARENT`
 
-The colour that seeds a colour shared value when a custom component has no other source for it.
+The color that seeds a color shared value when a custom component has no other source for it.
 
 ```tsx
 import { resolveTransition, TRANSPARENT } from '@rootnative/inertia'
@@ -4661,14 +4661,14 @@ import { resolveTransition, TRANSPARENT } from '@rootnative/inertia'
 const fill = useSharedValue(props.fill ?? TRANSPARENT)
 ```
 
-It exists because the obvious choice, `'transparent'`, used to be wrong, and nothing pointed at it. Reanimated dispatches an animation on the runtime shape of its **source** value, and `isColor()` gates the RGBA path. Up to Reanimated 4.4, the colour table mapped `transparent` to `undefined`, while every other CSS colour name mapped to a number. So the keyword was the one name that failed the gate. A slot at rest at `'transparent'` took the prefix-number-suffix branch for values like `'100%'`, gave `NaN`, and never became a colour.
+It exists because the obvious choice, `'transparent'`, used to be wrong, and nothing pointed at it. Reanimated dispatches an animation on the runtime shape of its **source** value, and `isColor()` gates the RGBA path. Up to Reanimated 4.4, the color table mapped `transparent` to `undefined`, while every other CSS color name mapped to a number. So the keyword was the one name that failed the gate. A slot at rest at `'transparent'` took the prefix-number-suffix branch for values like `'100%'`, gave `NaN`, and never became a color.
 
-The symptom depended on the transition, and that made it hard to find. `withTiming` snaps to its target when the duration ends, so the colour still arrived and everything looked fine. `withSpring`, the default, decides that it settled by a comparison against `NaN`. So it never settled, the colour never appeared, and the frame loop never stopped.
+The symptom depended on the transition, and that made it hard to find. `withTiming` snaps to its target when the duration ends, so the color still arrived and everything looked fine. `withSpring`, the default, decides that it settled by a comparison against `NaN`. So it never settled, the color never appeared, and the frame loop never stopped.
 
-**Reanimated 4.5 fixed the colour table.** Every Reanimated in the supported peer band of Inertia (`>=4.7.0 <4.8.0`) has that fix, so the keyword now animates like any other name. `TRANSPARENT` stays exported for two reasons. It is `'rgba(0, 0, 0, 0)'`, the same colour with an unambiguous spelling. And it stays the safe seed for code that can also run against an older Reanimated.
+**Reanimated 4.5 fixed the color table.** Every Reanimated in the supported peer band of Inertia (`>=4.7.0 <4.8.0`) has that fix, so the keyword now animates like any other name. `TRANSPARENT` stays exported for two reasons. It is `'rgba(0, 0, 0, 0)'`, the same color with an unambiguous spelling. And it stays the safe seed for code that can also run against an older Reanimated.
 
 :::note
-Only a value passed to `withSpring` or `withTiming` is affected. `interpolateColor` parses `'transparent'` correctly. So a component that interpolates colours itself ([`useShadow`](./hooks.md#useshadow-from-to-progress-), [`useColorTransition`](./hooks.md#usecolortransitionprogress-from-to-options), the `gesture` cascade) can use the keyword.
+Only a value passed to `withSpring` or `withTiming` is affected. `interpolateColor` parses `'transparent'` correctly. So a component that interpolates colors itself ([`useShadow`](./hooks.md#useshadow-from-to-progress-), [`useColorTransition`](./hooks.md#usecolortransitionprogress-from-to-options), the `gesture` cascade) can use the keyword.
 :::
 
 ## Which layer to use
@@ -4679,7 +4679,7 @@ Only a value passed to `withSpring` or `withTiming` is affected. `interpolateCol
 | a component animating non-`style` props (SVG, gradients, text runs) | `resolveAnimatableValue` (full grammar) or `resolveTransition` (single targets)        |
 | a gesture-release worklet picking a transition on the UI thread     | [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue-callback) |
 | a manual `withTiming` call with consumer-supplied easing            | `ensureWorkletEasing`                                                                  |
-| a colour shared value with no starting value to seed from           | `TRANSPARENT`                                                                          |
+| a color shared value with no starting value to seed from            | `TRANSPARENT`                                                                          |
 
 ---
 

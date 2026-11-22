@@ -76,7 +76,7 @@ The `transition` prop of the **incoming** element controls the FLIP animation. T
 
 ### Style carry
 
-The rect FLIP moves and scales the element. A hero card that also changes its colour or its corner radius between screens would snap on those props while its frame animates. That is the most visible half of the transition. So Inertia carries a set of style keys from the source and crossfades them out over the same transition:
+The rect FLIP moves and scales the element. A hero card that also changes its color or its corner radius between screens would snap on those props while its frame animates. That is the most visible half of the transition. So Inertia carries a set of style keys from the source and crossfades them out over the same transition:
 
 | Carried                                                                           | Not carried                                                                                                                                                                                                                                    |
 | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -86,7 +86,7 @@ The rect FLIP moves and scales the element. A hero card that also changes its co
 // Screen A — a small tile
 <Motion.View layoutId="hero" style={{ borderRadius: 14, backgroundColor: '#f97316' }} />
 
-// Screen B — a large header. Radius and colour crossfade with the rect.
+// Screen B — a large header. Radius and color crossfade with the rect.
 <Motion.View layoutId="hero" style={{ borderRadius: 24, backgroundColor: '#ea580c' }} />
 ```
 
@@ -94,10 +94,10 @@ There is nothing to configure. The carry uses the existing `layoutId` and `trans
 
 Rules to know:
 
-- **A key takes part only when the element already has a value for it**, from `animate`, `initial`, a variant, `gesture`, or its static `style`. Inertia never invents a value. A key that the element says nothing about would rest at the generic type default. For `color` on a `Motion.Text` that inherits its colour from a parent, that default is `'transparent'`: invisible text on an element that you only asked to move.
+- **A key takes part only when the element already has a value for it**, from `animate`, `initial`, a variant, `gesture`, or its static `style`. Inertia never invents a value. A key that the element says nothing about would rest at the generic type default. For `color` on a `Motion.Text` that inherits its color from a parent, that default is `'transparent'`: invisible text on an element that you only asked to move.
 - **Inertia ignores a key that one side lacks, in both directions.** A key that the source carried but the target has no value for does nothing, and the reverse is also true.
 - **Inertia reads a source that is still mounted live**, for the same reason that it measures its rect again: its values move without a layout pass. After the source unmounts, only the snapshot from the unmount remains.
-- **The carry overrides `initial` for the carried keys** on the mount that consumes a source. The carry composites above the base value, so the first frame shows the colour of the source, whatever `initial` asked for.
+- **The carry overrides `initial` for the carried keys** on the mount that consumes a source. The carry composites above the base value, so the first frame shows the color of the source, whatever `initial` asked for.
 - **Reduced motion and `'no-animation'` snap**, the same as the rect path. A coordinate-space mismatch also snaps: half a shared-element transition looks like a glitch, not like a fallback.
 
 ### Caveats and current scope

@@ -266,7 +266,7 @@ The factory primitives and the `-gradients` and `-svg` adapters key their own `t
 
 ## `TRANSPARENT`
 
-The colour that seeds a colour shared value when a custom component has no other source for it.
+The color that seeds a color shared value when a custom component has no other source for it.
 
 ```tsx
 import { resolveTransition, TRANSPARENT } from '@rootnative/inertia'
@@ -275,14 +275,14 @@ import { resolveTransition, TRANSPARENT } from '@rootnative/inertia'
 const fill = useSharedValue(props.fill ?? TRANSPARENT)
 ```
 
-It exists because the obvious choice, `'transparent'`, used to be wrong, and nothing pointed at it. Reanimated dispatches an animation on the runtime shape of its **source** value, and `isColor()` gates the RGBA path. Up to Reanimated 4.4, the colour table mapped `transparent` to `undefined`, while every other CSS colour name mapped to a number. So the keyword was the one name that failed the gate. A slot at rest at `'transparent'` took the prefix-number-suffix branch for values like `'100%'`, gave `NaN`, and never became a colour.
+It exists because the obvious choice, `'transparent'`, used to be wrong, and nothing pointed at it. Reanimated dispatches an animation on the runtime shape of its **source** value, and `isColor()` gates the RGBA path. Up to Reanimated 4.4, the color table mapped `transparent` to `undefined`, while every other CSS color name mapped to a number. So the keyword was the one name that failed the gate. A slot at rest at `'transparent'` took the prefix-number-suffix branch for values like `'100%'`, gave `NaN`, and never became a color.
 
-The symptom depended on the transition, and that made it hard to find. `withTiming` snaps to its target when the duration ends, so the colour still arrived and everything looked fine. `withSpring`, the default, decides that it settled by a comparison against `NaN`. So it never settled, the colour never appeared, and the frame loop never stopped.
+The symptom depended on the transition, and that made it hard to find. `withTiming` snaps to its target when the duration ends, so the color still arrived and everything looked fine. `withSpring`, the default, decides that it settled by a comparison against `NaN`. So it never settled, the color never appeared, and the frame loop never stopped.
 
-**Reanimated 4.5 fixed the colour table.** Every Reanimated in the supported peer band of Inertia (`>=4.7.0 <4.8.0`) has that fix, so the keyword now animates like any other name. `TRANSPARENT` stays exported for two reasons. It is `'rgba(0, 0, 0, 0)'`, the same colour with an unambiguous spelling. And it stays the safe seed for code that can also run against an older Reanimated.
+**Reanimated 4.5 fixed the color table.** Every Reanimated in the supported peer band of Inertia (`>=4.7.0 <4.8.0`) has that fix, so the keyword now animates like any other name. `TRANSPARENT` stays exported for two reasons. It is `'rgba(0, 0, 0, 0)'`, the same color with an unambiguous spelling. And it stays the safe seed for code that can also run against an older Reanimated.
 
 :::note
-Only a value passed to `withSpring` or `withTiming` is affected. `interpolateColor` parses `'transparent'` correctly. So a component that interpolates colours itself ([`useShadow`](./hooks.md#useshadow-from-to-progress-), [`useColorTransition`](./hooks.md#usecolortransitionprogress-from-to-options), the `gesture` cascade) can use the keyword.
+Only a value passed to `withSpring` or `withTiming` is affected. `interpolateColor` parses `'transparent'` correctly. So a component that interpolates colors itself ([`useShadow`](./hooks.md#useshadow-from-to-progress-), [`useColorTransition`](./hooks.md#usecolortransitionprogress-from-to-options), the `gesture` cascade) can use the keyword.
 :::
 
 ## Which layer to use
@@ -293,4 +293,4 @@ Only a value passed to `withSpring` or `withTiming` is affected. `interpolateCol
 | a component animating non-`style` props (SVG, gradients, text runs) | `resolveAnimatableValue` (full grammar) or `resolveTransition` (single targets)        |
 | a gesture-release worklet picking a transition on the UI thread     | [`buildReleaseAnimation`](./hooks.md#buildreleaseanimationtransition-tovalue-callback) |
 | a manual `withTiming` call with consumer-supplied easing            | `ensureWorkletEasing`                                                                  |
-| a colour shared value with no starting value to seed from           | `TRANSPARENT`                                                                          |
+| a color shared value with no starting value to seed from            | `TRANSPARENT`                                                                          |

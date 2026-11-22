@@ -71,7 +71,7 @@
   &nbsp;
   <img src="assets/docs/screenshots/phone-path-morph.jpg" alt="The Path morphing screen of the demo: a star shape and buttons to morph it into a diamond or a heart" width="30%" />
   &nbsp;
-  <img src="assets/docs/screenshots/phone-shared-element.jpg" alt="The Shared element screen of the demo: three colour cards that move into a detail view" width="30%" />
+  <img src="assets/docs/screenshots/phone-shared-element.jpg" alt="The Shared element screen of the demo: three color cards that move into a detail view" width="30%" />
 </p>
 
 <table>
@@ -160,7 +160,7 @@ Those keys are the default for each key that the map doesn't name:
 key except `opacity`.
 
 The animatable properties are opacity, transforms, size, border radius,
-shadows, and colours. The full list is in
+shadows, and colors. The full list is in
 [Transitions](https://rootnative.github.io/inertia/transitions/).
 
 ## 🧭 How it works

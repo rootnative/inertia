@@ -5,7 +5,7 @@ description: The run procedure for the five behaviors CI cannot validate, becaus
 
 # Device validation checklist
 
-Five features shipped between `0.0.1` and `0.0.9` that CI can't validate. The Jest mock resolves animations **synchronously by design**: `withSpring` is the identity function, and `useAnimatedStyle` runs once per call with no frame loop. So no test can observe a dropped frame, a colour crossfade at 60 Hz, or whether a native measurement resolved in time. Every item below is green in CI and unproven on hardware.
+Five features shipped between `0.0.1` and `0.0.9` that CI can't validate. The Jest mock resolves animations **synchronously by design**: `withSpring` is the identity function, and `useAnimatedStyle` runs once per call with no frame loop. So no test can observe a dropped frame, a color crossfade at 60 Hz, or whether a native measurement resolved in time. Every item below is green in CI and unproven on hardware.
 
 This page is the run procedure. Complete it in **one sitting with two physical devices** (one Android, one iOS), and check the items off in place. Record the findings in the results table at the bottom.
 
@@ -52,7 +52,7 @@ Screen: **boxShadow**. There are two separate questions, and the second one is t
 The first Android session on this screen found that `boxShadow` didn't animate at all under `type: 'spring'`, the default, while it worked under `type: 'timing'`. The cause was the shape of the payload that Inertia passed to Reanimated. It's fixed. See the core changelog. So the checks below are a **re-validation**, not a first validation, and the spring boxes matter more than the rest of this page.
 :::
 
-**Multi-layer spring interpolation.** Tap **Raise all**. The first card animates a one-layer shadow to a two-layer shadow, so the padded transparent layer fades in and doesn't pop. Every length and colour of every layer springs on its own.
+**Multi-layer spring interpolation.** Tap **Raise all**. The first card animates a one-layer shadow to a two-layer shadow, so the padded transparent layer fades in and doesn't pop. Every length and color of every layer springs on its own.
 
 - [ ] The shadow animates **at all** under a spring. This is the regression check.
 - [ ] The extra layer **fades in**, with no pop and no flash of an opaque shadow.
@@ -90,8 +90,8 @@ Screen: **Shared element transition (layoutId)**. This item has the most subtle 
 
 The same screen. Each card uses a darker detail shade on purpose, so the crossfade is visible.
 
-- [ ] The background colour **crossfades** over the transition, and doesn't snap at either end.
-- [ ] The colour blend and the rect FLIP finish **together**. One that lags the other is the specific thing to watch for. A spring-driven rect and a progress-driven colour can visibly diverge, even though they share the same transition config.
+- [ ] The background color **crossfades** over the transition, and doesn't snap at either end.
+- [ ] The color blend and the rect FLIP finish **together**. One that lags the other is the specific thing to watch for. A spring-driven rect and a progress-driven color can visibly diverge, even though they share the same transition config.
 - [ ] The corner radius interpolates smoothly where the source and the target differ.
 - [ ] No frame where the arriving element shows _neither_ style (a flash of the default or of transparent).
 - [ ] Enable reduce motion in the OS, and repeat: the rect **and** the style snap together. Half a transition that degrades is worse than none.

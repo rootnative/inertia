@@ -11,7 +11,7 @@ If a pattern isn't on this page, the likely answer is "use the hooks layer". Ine
 
 ## State-layer fills (Material Design 3)
 
-The most common pattern: a `Pressable` with a coloured layer that fades in on hover, focus, and press. In a component library, a dozen components can share this exact shape.
+The most common pattern: a `Pressable` with a colored layer that fades in on hover, focus, and press. In a component library, a dozen components can share this exact shape.
 
 ### Before — raw Reanimated
 

@@ -31,7 +31,7 @@ The other value hooks (`useSpring`, `useTransform`) are numeric, because interpo
 Two rules come from Reanimated, not from this hook:
 
 - **Reassign a structured value. Don't mutate it.** `cellTops.value.push(y)` updates nothing. Write a new array or record instead.
-- **Only numbers and colour strings animate.** You write a structured value from a handler or an effect. You never pass it to `withSpring` or `withTiming`.
+- **Only numbers and color strings animate.** You write a structured value from a handler or an effect. You never pass it to `withSpring` or `withTiming`.
 
 ```tsx
 import { useMotionValue, Motion } from '@rootnative/inertia'
@@ -342,7 +342,7 @@ The chain equals the hand-written nested `interpolateColor` shape `focus(error(h
 
 where `ColorCascadeLayer` is `{ progress: SharedValue<number>; color: string }`.
 
-**Rewiring a layer.** The hook resolves the chain on the JS thread and keeps its identity stable, so a new but equal `layers` array on every render costs nothing. A change of a colour, the `key`, the base `rest`, the layer count, or **the shared value that drives a layer** rewires the worklet. So a conditional progress (`{ progress: isError ? errorSpring : hoverSpring, color }`) behaves as written.
+**Rewiring a layer.** The hook resolves the chain on the JS thread and keeps its identity stable, so a new but equal `layers` array on every render costs nothing. A change of a color, the `key`, the base `rest`, the layer count, or **the shared value that drives a layer** rewires the worklet. So a conditional progress (`{ progress: isError ? errorSpring : hoverSpring, color }`) behaves as written.
 
 **`useColorCascade` vs `useColorTransition`.** `useColorTransition(progress, [rest, active])` is the single-layer fast path: one progress for one color key. Use `useColorCascade` when **independent** states each contribute a color and their precedence matters, for example a field border that can be hovered, in error, and focused at the same time. It doesn't replace the single-layer hook.
 
