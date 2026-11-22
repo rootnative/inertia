@@ -6,6 +6,8 @@ This package ships in lockstep with `@rootnative/inertia` — version numbers tr
 
 ## [Unreleased]
 
+**Lockstep version bump** alongside the next `@rootnative/inertia` release (documentation fixes). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to the new version, below `0.1.0`.
+
 ## [0.0.29] - 2026-11-13
 
 **Lockstep version bump** alongside `@rootnative/inertia@0.0.29` (on web, a `layoutId` target no longer shows at its new place for one frame before it moves)). No runtime changes in this adapter; the `@rootnative/inertia` peer range moves to `>=0.0.29 <0.1.0`.

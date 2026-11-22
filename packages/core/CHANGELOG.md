@@ -4,6 +4,15 @@ All notable changes to `@rootnative/inertia` are documented here. The format fol
 
 ## [Unreleased]
 
+### Changed
+
+- **Versions follow modified semver.** From the next release on, a breaking change bumps the middle digit (`0.1.0`), and fixes and additions bump the last digit.
+
+### Documentation
+
+- **`useBooleanSpring` honours reduced motion, and the Hooks page now says so.** The page said that it doesn't read `<MotionConfig reducedMotion>`. It calls `useSpring`, which does: under reduced motion, the value goes to its target at once, with no spring. If you wrapped either hook in a reduced-motion check of your own, you can remove that check.
+- **`useShouldReduceMotion` reads the OS setting once, at app start.** The Hooks page said that it follows OS changes. A change of the setting while the app runs takes effect at the next launch. A change of the `reducedMotion` prop applies at once.
+
 ## [0.0.29] - 2026-11-13
 
 ### Fixed
