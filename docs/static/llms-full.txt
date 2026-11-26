@@ -89,9 +89,11 @@ Inertia is a thin wrapper around `react-native-reanimated`. Install Reanimated f
 
 ## Prerequisites
 
-- Expo SDK `58` (React Native `0.88.x`, React `19.3.0`)
+- Expo SDK `58` (React Native `0.88.x`, React `19.3.0`), or a bare React Native app with no Expo on the same versions
 - `react-native-reanimated` `>=4.7.0 <4.8.0`
 - `react-native-worklets` `>=0.13.0 <0.14.0`, the worklet runtime of Reanimated 4. It's a **peer** of both Reanimated and Inertia, so Yarn and pnpm won't install it for you.
+
+Each release of `@rootnative/inertia` is bundled in an Expo app and in a bare React Native app with no Expo before it's published. Of the adapters, only `@rootnative/inertia-gradients` needs Expo: it runs on the Expo modules runtime. See [Gradients](./gradients).
 
 Each release line supports one Expo SDK band. Install the line that matches the SDK of the app.
 
