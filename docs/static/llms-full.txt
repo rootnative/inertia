@@ -254,7 +254,7 @@ Then follow the [`react-native-gesture-handler` install guide](https://docs.swma
 
 ### Gradients (`@rootnative/inertia-gradients`)
 
-`MotionLinearGradient` wraps [`expo-linear-gradient`](https://docs.expo.dev/versions/latest/sdk/linear-gradient/) with animatable `colors`, `start`, `end`, and `locations`. It works in bare React Native and in Expo.
+`MotionLinearGradient` wraps [`expo-linear-gradient`](https://docs.expo.dev/versions/latest/sdk/linear-gradient/) with animatable `colors`, `start`, `end`, and `locations`. It works in bare React Native and in Expo, but `expo-linear-gradient` is an Expo Module. A bare project needs the Expo modules runtime. See [Installing Expo modules](https://docs.expo.dev/bare/installing-expo-modules/).
 
 ```bash
 yarn add @rootnative/inertia-gradients expo-linear-gradient
